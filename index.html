@@ -244,6 +244,8 @@
     <span id="server-status" title="סטטוס server.py" style="font-size:11px;cursor:pointer" onclick="checkServer()">⚪ Server</span>
     <span id="storage-indicator" style="color:var(--green);font-size:11px;cursor:default" title="נתונים נשמרים אוטומטית">💾 נשמר</span>
     <button onclick="exportCSV()" style="background:none;border:1px solid var(--border);border-radius:5px;padding:2px 10px;font-size:10px;color:var(--muted);cursor:pointer;font-family:'Heebo',sans-serif" title="ייצוא לידים ל-CSV">📥 CSV</button>
+    <button id="seed-btn" onclick="seedDatabase(false)" title="העלה נתוני CRM ל-Firebase" style="background:none;border:1px solid rgba(16,185,129,0.4);border-radius:5px;padding:2px 10px;font-size:10px;color:var(--green);cursor:pointer;font-family:'Heebo',sans-serif">☁️ Seed DB</button>
+    <button onclick="seedDatabase(true)" title="גיבוי מלא — כתוב מחדש את כל הנתונים" style="background:none;border:1px solid rgba(108,99,255,0.4);border-radius:5px;padding:2px 10px;font-size:10px;color:var(--accent);cursor:pointer;font-family:'Heebo',sans-serif">🔄 גיבוי מלא</button>
     <button onclick="openSettings()" style="background:none;border:1px solid rgba(108,99,255,0.4);border-radius:5px;padding:2px 10px;font-size:10px;color:var(--accent);cursor:pointer;font-family:'Heebo',sans-serif">⚙️ Settings</button>
     <button onclick="resetStorage()" style="background:none;border:1px solid var(--border);border-radius:5px;padding:2px 8px;font-size:10px;color:var(--muted);cursor:pointer;font-family:'Heebo',sans-serif">↺ איפוס</button>
     <span id="user-info" style="display:flex;align-items:center;gap:4px"></span>
@@ -1992,11 +1994,275 @@ IF RESPONSE at any point → Book 30-min MEETING (not call). Prepare ROI deck be
   const db       = firebase.firestore();
   const auth     = firebase.auth();
   const provider = new firebase.auth.GoogleAuthProvider();
-  const LEADS_COL = 'leads';
+
+  // ── Collections ────────────────────────────────────────────────────
+  const LEADS_COL      = 'leads';
+  const ACTIVITIES_COL = 'activities';
+  const SETTINGS_COL   = 'settings';
+  const REMINDERS_COL  = 'reminders';
+  const EMAILS_COL     = 'emails_sent';
+  const COMPETITORS_COL= 'competitors';
 
   const SERVER       = 'http://localhost:8765';
   const STORAGE_KEY  = 'xtix_crm_leads';
   const STORAGE_NEXTID = 'xtix_crm_nextid';
+
+  // ── Activity Logger ────────────────────────────────────────────────
+  async function logActivity(type, data) {
+    try {
+      await db.collection(ACTIVITIES_COL).add({
+        type,           // 'email_sent' | 'status_change' | 'lead_added' | 'url_analyzed' | 'export' | 'hubspot_sync'
+        ...data,
+        timestamp: firebase.firestore.FieldValue.serverTimestamp(),
+        user: auth.currentUser ? auth.currentUser.email : 'unknown'
+      });
+    } catch(e) { console.warn('logActivity failed:', e.message); }
+  }
+
+  // ── Settings (Firebase) ───────────────────────────────────────────
+  async function saveSettingsToFirebase(settings) {
+    try {
+      await db.collection(SETTINGS_COL).doc('config').set({
+        sender_name:   settings.sender_name  || 'XTIX Sales',
+        hubspot_connected: !!settings.hubspot_token,
+        gmail_connected:   !!settings.gmail_user,
+        gmail_user:    settings.gmail_user   || '',
+        updated_at:    firebase.firestore.FieldValue.serverTimestamp()
+        // NOTE: passwords/tokens NOT stored in Firebase — stay in local server.py only
+      }, { merge: true });
+    } catch(e) {}
+  }
+
+  async function loadSettingsFromFirebase() {
+    try {
+      const doc = await db.collection(SETTINGS_COL).doc('config').get();
+      return doc.exists ? doc.data() : null;
+    } catch(e) { return null; }
+  }
+
+  // ── Reminders (Firebase) ──────────────────────────────────────────
+  async function saveReminderToFirebase(reminder) {
+    try {
+      await db.collection(REMINDERS_COL).add({
+        ...reminder,
+        created_at: firebase.firestore.FieldValue.serverTimestamp(),
+        user: auth.currentUser ? auth.currentUser.email : 'unknown'
+      });
+    } catch(e) {}
+  }
+
+  async function loadRemindersFromFirebase() {
+    try {
+      const snap = await db.collection(REMINDERS_COL)
+        .where('done', '==', false)
+        .orderBy('date', 'asc')
+        .get();
+      return snap.docs.map(d => ({ firebaseId: d.id, ...d.data() }));
+    } catch(e) { return []; }
+  }
+
+  async function markReminderDoneFirebase(firebaseId) {
+    try {
+      await db.collection(REMINDERS_COL).doc(firebaseId).update({ done: true });
+    } catch(e) {}
+  }
+
+  // ── Email History (Firebase) ──────────────────────────────────────
+  async function logEmailSent(leadId, leadName, to, subject, emailNum) {
+    try {
+      await db.collection(EMAILS_COL).add({
+        lead_id:   leadId,
+        lead_name: leadName,
+        to,
+        subject,
+        email_num: emailNum || 1,
+        sent_at:   firebase.firestore.FieldValue.serverTimestamp(),
+        user:      auth.currentUser ? auth.currentUser.email : 'unknown'
+      });
+      // Also log as activity
+      await logActivity('email_sent', { lead_id: leadId, lead_name: leadName, to, subject });
+    } catch(e) {}
+  }
+
+  // =================== FULL DATABASE SEED ===================
+  const METHODOLOGY_COL  = 'methodology';
+  const CADENCES_COL     = 'email_cadences';
+  const EMAIL_TEMPLATES_COL = 'email_templates';
+  const CONFIG_COL       = 'config';
+
+  // ── Master seed data ────────────────────────────────────────────────
+  const SEED_COMPETITORS = [
+    { id:'smarticket',   name:'SmarTicket',         tier:2, iframe:false, segment:'כללי',        pitch:'הקהל שלך שייך לסמארטיקט — לא לך. XTIX מחזיר לך את הנתונים.',                             weakness:'אין widget לדומיין פרטי, עמלה 5–7%',          market_share:'גבוה' },
+    { id:'bravo',        name:'Bravo',               tier:2, iframe:false, segment:'Enterprise',  pitch:'Bravo מתאימה למוסדות גדולים — מפיק קטן/בינוני לא מקבל שם מענה. XTIX בנוי לך.',           weakness:'ממוקד Enterprise, לא SMB',                      market_share:'בינוני' },
+    { id:'leaan',        name:'Leaan (לאן)',          tier:2, iframe:false, segment:'הפצה',        pitch:'לאן מפיץ — אבל הנתונים שלהם. XTIX = לאן + שליטה + דומיין שלך.',                          weakness:'אין כלים למפיק, רק הפצה',                       market_share:'בינוני' },
+    { id:'kuppattlv',    name:'KupatTLV',            tier:2, iframe:false, segment:'תרבות ת"א',   pitch:'קופת ת"א ממוקדת גיאוגרפית — קהל מחוץ לת"א? צריך XTIX.',                                  weakness:'גיאוגרפי, ממשק ישן',                            market_share:'נמוך' },
+    { id:'tickchak',     name:'Tickchak',            tier:1, iframe:true,  segment:'SMB',         pitch:'Tickchak מציע widget — אבל אין AI, אין Dynamic Pricing, UI ישן. XTIX הוא השדרוג.',        weakness:'אין AI, אין dynamic pricing, UI ישן',           market_share:'בינוני' },
+    { id:'easytix',      name:'Easytix',             tier:1, iframe:false, segment:'SMB',         pitch:'Easytix אין widget לדומיין — כל הקהל יוצא מהאתר שלך. XTIX מוכר מתוך הדומיין שלך.',      weakness:'אין widget, אין branding',                      market_share:'נמוך' },
+    { id:'lineapp',      name:'Lineapp',             tier:1, iframe:false, segment:'עסקים קטנים', pitch:'Lineapp מתאים לעסקים קטנים — כשאתה גדל, אתה צריך XTIX.',                                 weakness:'פשטני, לא לאירועים גדולים',                     market_share:'נמוך' },
+    { id:'eventobot',    name:'Eventobot',           tier:1, iframe:false, segment:'בוטים',       pitch:'Bot זה טוב לתיאום — לא לניהול כרטיסים רציני. XTIX הוא הצעד הבא.',                        weakness:'לא מוצר כרטיסים, bot בלבד',                    market_share:'נמוך' },
+    { id:'eventer',      name:'Eventer',             tier:1, iframe:true,  segment:'כנסים',       pitch:'Eventer טוב לכנסים — אבל לא בנוי למפיקי תרבות. XTIX = fit מושלם לסגמנט שלך.',            weakness:'ממוקד כנסים, לא תרבות',                         market_share:'בינוני' },
+    { id:'zygo',         name:'Zygo',                tier:1, iframe:false, segment:'סושיאל',      pitch:'Zygo מגייס אנשים — לא מנהל מכירות. XTIX = Zygo + מכירה + data.',                         weakness:'Social-first, לא מנהל אירוע',                   market_share:'נמוך' },
+    { id:'glatticket',   name:'Glatticket',          tier:1, iframe:false, segment:'SMB',         pitch:'Glatticket בסיסי — כשתרצה אנליטיקה, Dynamic Pricing ו-AI, תצטרך XTIX.',                  weakness:'ממשק בסיסי, אין אנליטיקה',                      market_share:'נמוך' },
+    { id:'eventbuzz',    name:'Eventbuzz',           tier:1, iframe:false, segment:'עסקי',        pitch:'Eventbuzz לאירועים עסקיים — לא לתרבות/בידור. XTIX בנוי בדיוק לסגמנט שלך.',              weakness:'לא ממוקד תרבות/בידור',                          market_share:'נמוך' },
+    { id:'livetickets',  name:'LiveTickets',         tier:3, iframe:true,  segment:'כללי',        pitch:'LiveTickets שירות לא עקבי + UI מיושן. XTIX = אותו פתרון, AI מודרני + שירות.',             weakness:'שירות לא עקבי, ממשק מיושן',                    market_share:'בינוני' },
+    { id:'goout',        name:'GO-OUT / GET IN',     tier:2, iframe:false, segment:'גילוי אירועים',pitch:'GO-OUT מגלה אירועים — לא מוכר כרטיסים. XTIX סוגר את הפער מגילוי למכירה.',              weakness:'לא מוצר מכירות',                                market_share:'בינוני' },
+    { id:'selector',     name:'Selector',            tier:3, iframe:true,  segment:'Enterprise',  pitch:'Selector יקר ומסורבל לאינטגרציה. XTIX = כוח Selector, מחיר SMB + AI.',                   weakness:'יקר, לא agile',                                 market_share:'בינוני' },
+    { id:'eventim',      name:'Eventim',             tier:3, iframe:true,  segment:'Enterprise',  pitch:'Eventim דורש minimum transaction גבוה. XTIX = Eventim ישראלי בלי הניירת.',                weakness:'בירוקרטי, minimum גבוה',                        market_share:'גבוה' },
+    { id:'ticketmaster', name:'Ticketmaster',        tier:3, iframe:true,  segment:'Enterprise',  pitch:'Ticketmaster לא רלוונטי ל-SMB — יקר מדי. XTIX = כוח Ticketmaster, מחיר SMB.',            weakness:'Enterprise בלבד, יקר מאוד',                     market_share:'גבוה' },
+    { id:'none',         name:'לא עובד עם אף אחד',   tier:0, iframe:false, segment:'ידני',        pitch:'מוכרים ידנית / WhatsApp — XTIX מחליף בדיוק את הכאב הזה עם widget + מכירה אוטומטית.',     weakness:'ניהול ידני',                                    market_share:'גבוה' },
+  ];
+
+  const SEED_CADENCES = [
+    { id:'hot',        label:'🔥 Hot — SMB Fast',    days:[0,5,9,14],    types:['Discovery Opener','Data + Urgency','Customer Story','Break-up'],                    cycle:'1–2 שבועות',   note:'אל תחכה — שלח Email #1 היום',                         score_range:'80-100' },
+    { id:'warm',       label:'⚡ Warm — Build Trust', days:[0,7,12,18],   types:['Insight שלא ביקש','Follow-up + Value','Case Study','Demo Offer'],                   cycle:'2–3 שבועות',   note:'Follow ברשתות קודם — אחר כך שלח Email #1',             score_range:'60-79' },
+    { id:'cool',       label:'🧊 Cool — Nurture',     days:[0,14,30],     types:['Insight גנרי','Event Trigger','Break-up'],                                          cycle:'חודש+',         note:'שמור ב-Watchlist — שלח רק כשיש אירוע חדש',            score_range:'40-59' },
+    { id:'enterprise', label:'🏢 Enterprise',         days:[0,7,14,21,30],types:['ROI Question','Industry Insight','Case Study','Demo Offer','Break-up'],             cycle:'2–4 חודשים',   note:'פגישה במקום שיחה — הכן ROI Deck לפני',                score_range:'60-100' },
+  ];
+
+  const SEED_METHODOLOGY = [
+    { id:'bp01', number:1,  title:'ICP — Ideal Customer Profile',          content:'מפיק/מנהל אירועים קטן-בינוני עם דומיין פרטי. מוכר כרטיסים דרך צד ג\'. קהל 100–2000 איש. חוזר על אירועים. מרוויח כסף מאירועים (לא וולונטרי).',                                                               category:'Strategy' },
+    { id:'bp02', number:2,  title:'Buyer Persona',                         content:'בעל להקה / מנהל תיאטרון / מפיק עצמאי. מחליט לבד. כאב: עמלות גבוהות + פיצול נתונים + לא מכיר את הקהל שלו. חולם: אוטומציה + קהל נאמן + מכירות מהדומיין שלו.',                                              category:'Strategy' },
+    { id:'bp03', number:3,  title:'Value Proposition',                     content:'XTIX = widget שנטמע ישירות בדומיין הפרטי. הכרטיסים נמכרים מהאתר שלך — הקהל לא יוצא. הנתונים שלך. עמלה 2.5% לעומת 5–7% בפלטפורמות חיצוניות. AI לתמחור דינמי.',                                         category:'Strategy' },
+    { id:'bp04', number:4,  title:'MEDDIC Framework',                      content:'M=Metrics (% מכירות, עמלה), E=Economic Buyer (בעל/מנהל), D=Decision Criteria (מחיר/UI/אינטגרציה), D=Decision Process (מהיר — 1 מחליט), I=Identify Pain (עמלה גבוהה/פיצול), C=Champion (אנחנו).',    category:'Framework' },
+    { id:'bp05', number:5,  title:'Pipeline Stages',                       content:'New → Contacted → Follow-up → Meeting → Closed. מעבר בין שלבים: New→Contacted אחרי מייל ראשון. Contacted→Followup אחרי 3 ימים ללא תגובה. Followup→Meeting אחרי אישור שיחה.',                             category:'Process' },
+    { id:'bp06', number:6,  title:'Priority Scoring',                      content:'תעדף לפי: דומיין פרטי (20pt) + פלטפורמה חיצונית (15pt) + תדירות אירועים (15pt) + גודל (10pt) + רשתות (10pt) + קשר נגיש (10pt) + אירוע קרוב (10pt) + סגמנט (10pt). סה"כ 100pt.',                       category:'Scoring' },
+    { id:'bp07', number:7,  title:'Discovery Questions',                   content:'1. כמה כרטיסים נמכרים לפני יום האירוע? 2. מה האחוז עמלה כולל? 3. האם הקהל חוזר — ואיך אתה יודע? 4. יש לך רשימת תפוצה? 5. מה הכי מתסכל אותך בניהול הכרטיסים כיום?',                                  category:'Discovery' },
+    { id:'bp08', number:8,  title:'Stakeholders',                          content:'בדרך כלל מחליט יחיד. בארגון גדול: מנהל + חשב + IT. זהה מי חותם. בתיאטרון/פסטיבל — ועד מנהל. בלהקה — בעל הלהקה. לעולם אל תנהל מו"מ עם מי שאין לו סמכות.',                                             category:'Process' },
+    { id:'bp09', number:9,  title:'Trust Building',                        content:'הראה שעשית מחקר: ציין את האתר שלהם, שמות אמנים, תאריכי אירוע. Follow ברשתות לפני הפנייה. הגב לפוסטים. אל תשלח תבנית גנרית — תמיד personalize.',                                                          category:'Trust' },
+    { id:'bp10', number:10, title:'AI & Tech Advantage',                   content:'XTIX = Dynamic Pricing AI (מעלה מחיר כשהמכירות מאיטות), Audience Intelligence (מי קנה, מה גילו, הסתכלות על הרגלים), Early Bird Automation (רשימת תפוצה + שליחה אוטומטית לרשימה נאמנה).',              category:'Product' },
+    { id:'bp11', number:11, title:'Social Proof',                          content:'להקת טריביוט: +38% קהל חוזר אחרי 4 מופעים. תיאטרון: עמלות מ-6% ל-2.5%. פסטיבל: מכר 40% מהכרטיסים ב-72 שעות ע"י Early Bird. השתמש בנתונים אמיתיים בכל מייל.',                                        category:'Trust' },
+    { id:'bp12', number:12, title:'Tailor Pitch to Segment',               content:'טריביוט: "הקהל הנאמן שלך + הדומיין שלך = early bird שנמכר ב-72 שעות". תיאטרון: "600 מושבים × 2 הצגות = הפסד X₪ בעמלות מיותרות". קומדי: "פנייה מהירה — הומוריסט אין זמן לניירת".',              category:'Strategy' },
+    { id:'bp13', number:13, title:'Objection Handling',                    content:'"יקר מדי" → הראה חיסכון בעמלות. "אין זמן" → 5 דקות integration. "מרוצה מהפלטפורמה" → "ספר לי מה הכי מתסכל בה". "צריך לחשוב" → "מה דרוש כדי להחליט?".',                                             category:'Objections' },
+    { id:'bp14', number:14, title:'Demo Structure',                        content:'15 דקות: 2 דקות שאלות, 8 דקות demo חי באתר שלהם (widget בפועל), 3 דקות ROI calculator (חסכון עמלות × מספר אירועים שנה), 2 דקות next steps. לא להראות פיצ\'רים — להראות תוצאות.',                  category:'Demo' },
+    { id:'bp15', number:15, title:'Sales Data & Analytics',                content:'מעקב אחר: Conversion rate (Email→Reply→Demo→Close), זמן ממייל ראשון לסגירה, ציון ליד ממוצע לסגירה, סגמנט עם הכי הרבה סגירות. Target: Close rate >15% על Hot Leads.',                                    category:'Analytics' },
+    { id:'bp16', number:16, title:'Overcome Objections Late Stage',        content:'אחרי Demo: "מה מונע מאיתנו להתחיל השבוע?" אחרי שתיקה: "האם יש עוד מישהו שצריך להיות מעורב?" שלח Break-up email ב-יום 14 — לפעמים זה מה שסוגר.',                                                    category:'Closing' },
+    { id:'bp17', number:17, title:'Nurture — Long Term',                   content:'לידים Cool: שלח insight חודשי (לא מכירתי). עקוב אחרי אירועים חדשים שהם מפרסמים — זה ה-trigger לחזור. ב-יום אחרי אירוע: "ראיתי שהמופע היה מדהים — רוצה לשמוע על הכרטיסים". Timing הכל.',          category:'Nurture' },
+    { id:'bp18', number:18, title:'Post-Sale Success',                     content:'אחרי חתימה: Onboarding תוך 24 שעות, widget חי תוך 48 שעות. 30 יום אחרי: check-in. 90 יום: בקש referral. מטרה: NPS גבוה + 2 referrals לכל לקוח. לקוח מרוצה = ה-salesperson הכי טוב.',           category:'Success' },
+  ];
+
+  const SEED_EMAIL_TEMPLATES = [
+    // ── Lead 1 — שומרי המלכה ──
+    { id:'qg-1', lead_id:1, lead_name:'שומרי המלכה', seq:1, day:0,  bp:'SF BP #7 Discovery Opener',
+      subject:'שאלה אחת על האתר שלכם',
+      body:`היי דודו,\n\nנכנסתי ל-queen-guards.com — האתר מרשים, הוידאו מהיר עיניים.\n\nשאלה קצרה: רואה שהכרטיסים קופצים לסמארטיקט ולמבלים — למה לא ישירות מהאתר שלכם?\n\nשואל כי מפיקים שעוברים למכור מהדומיין הפרטי שלהם רואים בממוצע 15–25% יותר כרטיסים שנמכרים — פשוט כי הקהל לא יוצא מהדף.\n\nאני אורן מ-XTIX — פלטפורמת כרטיסים ישראלית. אפשר להטמיע widget ישירות ב-queen-guards.com תוך 5 דקות, הנתונים נשארים אצלכם.\n\nשווה 15 דקות שיחה לפני המופע ב-19/3?\n\nאורן | XTIX.ai` },
+    { id:'qg-2', lead_id:1, lead_name:'שומרי המלכה', seq:2, day:5,  bp:'SF BP #9+15 Trust + Data',
+      subject:'Re: שאלה אחת על האתר שלכם',
+      body:`דודו שלום,\n\nנתון אחד שעשוי לעניין: להקות שמוכרות מהאתר הפרטי שלהן (במקום פלטפורמה חיצונית) בונות database של קהל — ורואות 30–40% מהם חוזרים למופע הבא.\n\nאצלכם יש פיצול בין סמארטיקט ומבלים — כלומר שום מערכת לא מחזיקה תמונה שלמה של מי הקהל שלכם.\n\nXTIX פותרת את זה: דשבורד אחד לכל המופעים, הקהל שלכם — לא של הפלטפורמה.\n\n19 במרץ מתקרב — 15 דקות?\n\nאורן | XTIX.ai` },
+    { id:'qg-3', lead_id:1, lead_name:'שומרי המלכה', seq:3, day:9,  bp:'SF BP #11 Customer Story',
+      subject:'מה שקרה להפקה אחרת כשעברה ל-XTIX',
+      body:`דודו שלום,\n\nלהקת טריביוט שעבדה עם שתי פלטפורמות (בדיוק כמו שלכם) עברה ל-XTIX לפני שלושה חודשים.\n\nמה השתנה:\n— עמלות ירדו מ-6% ל-2.5%\n— אחרי 4 מופעים — 38% מהקהל הגיע שוב (לפני: לא היה מידע בכלל)\n— המופע הבא נמכר ב-40% תוך 72 שעות בלבד דרך Early Bird שנשלח לרשימה שנבנתה\n\n5 דקות שיחה? אני יכול להראות לך demo ב-queen-guards.com בפועל.\n\nאורן | XTIX.ai` },
+    { id:'qg-4', lead_id:1, lead_name:'שומרי המלכה', seq:4, day:14, bp:'SF BP #16 Break-up',
+      subject:'האם מכירת הכרטיסים מספקת אותך?',
+      body:`דודו היי,\n\nמייל אחרון — ממש לא רוצה להציק.\n\nשאלה אחת ישירה: האם מכירת הכרטיסים היום מספקת אותך — מבחינת נוחות, עמלות וידע על הקהל?\n\nאם כן — הכל טוב, ותמשיך כך.\nאם יש דברים שהיית רוצה לשפר — 15 דקות ו-XTIX יכולה לענות על כל אחד מהם.\n\nבכל מקרה — הצלחה עם המופע ב-19 במרץ 🎸\n\nאורן | XTIX.ai` },
+    // ── Lead 2 — בית ליסין ──
+    { id:'bl-1', lead_id:2, lead_name:'תיאטרון בית ליסין', seq:1, day:0,  bp:'SF BP #7 Discovery Opener',
+      subject:'שאלה על ניצולת המושבים בבית ליסין',
+      body:`שלום,\n\nנכנסתי לאתר בית ליסין — עיצוב נקי, הופעות מגוונות.\n\nרואה שהכרטיסים עוברים ל-Pres Global — שאלה: כמה אחוז מהצופים חוזרים להצגה הבאה, ואיך אתם יודעים?\n\nשואל כי תיאטרונות שעוברים לניהול כרטיסים פנימי (מתוך הדומיין שלהם) בונים database של קהל נאמן — ורואים 25–35% return rate ניתן למדידה.\n\nXTIX יכולה להטמיע widget ישירות ב-lessin.co.il — כל המושבים, כל הצגה, נתוני קהל בזמן אמת.\n\nאשמח ל-15 דקות שיחה.\n\nאורן | XTIX.ai` },
+    { id:'bl-2', lead_id:2, lead_name:'תיאטרון בית ליסין', seq:2, day:7,  bp:'SF BP #12 Industry Insight',
+      subject:'תובנה על שוק הכרטיסים לתיאטרון — 2025',
+      body:`שלום,\n\nנתון שעשוי לעניין: תיאטרונות שעברו למכירה מהדומיין הפרטי ב-2024 ראו ירידה ממוצעת של 31% בעמלות, ועלייה של 28% ב-return visitors — כי לראשונה הם ידעו מי הקהל שלהם.\n\nבבית ליסין, עם הרפרטואר המגוון שלכם, זה אומר: לדעת איזה קהל בא לקומדיה לעומת דרמה, ולשלוח להם הצעות ממוקדות.\n\nזה לא דורש שינוי בתהליך — רק widget אחד.\n\nאורן | XTIX.ai` },
+    { id:'bl-3', lead_id:2, lead_name:'תיאטרון בית ליסין', seq:3, day:14, bp:'SF BP #11 Customer Story',
+      subject:'מה קרה לתיאטרון עם 600 מושבים אחרי 3 חודשים עם XTIX',
+      body:`שלום,\n\nתיאטרון עם 600 מושבים עבר ל-XTIX לפני 3 חודשים. הנתונים אחרי:\n— חיסכון 3.5% עמלה × 20 הצגות = חיסכון משמעותי שנתי\n— 600 צופים × 20 הצגות = 12,000 אנשים ב-database שלהם (לפני: אפס)\n— ההצגה הבאה נמכרה ב-60% תוך שבוע — Early Bird לרשימה שנבנתה\n\nבבית ליסין, עם הרפרטואר שלכם, הפוטנציאל גדול יותר.\n\n20 דקות demo?\n\nאורן | XTIX.ai` },
+    { id:'bl-4', lead_id:2, lead_name:'תיאטרון בית ליסין', seq:4, day:21, bp:'SF BP #14 Demo Offer',
+      subject:'הדגמה של 20 דקות — ספציפית לבית ליסין',
+      body:`שלום,\n\nאני רוצה להראות לכם משהו קונקרטי — demo של XTIX widget ישירות על lessin.co.il.\n\nתוך 20 דקות תראו:\n1. איך widget נראה על האתר שלכם (בפועל, לא mock)\n2. דשבורד נתוני קהל — מי קנה, מאיפה, מה גיל\n3. חישוב ROI — כמה עמלות תחסכו השנה\n\nאיזה יום מתאים השבוע?\n\nאורן | XTIX.ai` },
+    { id:'bl-5', lead_id:2, lead_name:'תיאטרון בית ליסין', seq:5, day:30, bp:'SF BP #16 Break-up',
+      subject:'מסגרים את הלולאה — בית ליסין + XTIX',
+      body:`שלום,\n\nמייל אחרון מצדי.\n\nאם הנושא של ניהול כרטיסים עצמאי + נתוני קהל לא רלוונטי כרגע — אין בעיה, הכל מובן.\n\nאם יש תזמון טוב יותר בעתיד — אשמח אם תחזרו אליי.\n\nבהצלחה עם העונה הקרובה.\n\nאורן | XTIX.ai` },
+  ];
+
+  const SEED_CONFIG = {
+    version: '2.0',
+    app_name: 'XTIX CRM',
+    created: new Date().toISOString(),
+    owner: 'Alex Schwartz',
+    company: 'XTIX Events',
+    target_market: 'ישראל — מפיקים קטנים/בינוניים',
+    icp: 'דומיין פרטי + פלטפורמת כרטוס חיצונית + 100-2000 קהל',
+    scoring_model: 'Salesforce 18 BP — 8 parameters, 0-100',
+    hubspot_pipeline: 'new → contacted → followup → meeting → closed',
+    default_sender: 'אורן | XTIX.ai',
+  };
+
+  // ── Seed all collections ────────────────────────────────────────────
+  async function seedAllCollections(force = false) {
+    const btn = document.getElementById('seed-btn');
+    if (btn) { btn.textContent = '⏳ מעלה נתונים...'; btn.disabled = true; }
+
+    try {
+      const results = { competitors:0, cadences:0, methodology:0, emails:0, config:false };
+
+      // 1. Competitors
+      const compSnap = await db.collection(COMPETITORS_COL).limit(1).get();
+      if (force || compSnap.empty) {
+        const batch = db.batch();
+        SEED_COMPETITORS.forEach(c => batch.set(db.collection(COMPETITORS_COL).doc(c.id), c));
+        await batch.commit();
+        results.competitors = SEED_COMPETITORS.length;
+      }
+
+      // 2. Email Cadences
+      const cadSnap = await db.collection(CADENCES_COL).limit(1).get();
+      if (force || cadSnap.empty) {
+        const batch = db.batch();
+        SEED_CADENCES.forEach(c => batch.set(db.collection(CADENCES_COL).doc(c.id), c));
+        await batch.commit();
+        results.cadences = SEED_CADENCES.length;
+      }
+
+      // 3. Methodology
+      const methSnap = await db.collection(METHODOLOGY_COL).limit(1).get();
+      if (force || methSnap.empty) {
+        const batch = db.batch();
+        SEED_METHODOLOGY.forEach(m => batch.set(db.collection(METHODOLOGY_COL).doc(m.id), m));
+        await batch.commit();
+        results.methodology = SEED_METHODOLOGY.length;
+      }
+
+      // 4. Email Templates
+      const emailSnap = await db.collection(EMAIL_TEMPLATES_COL).limit(1).get();
+      if (force || emailSnap.empty) {
+        const batch = db.batch();
+        SEED_EMAIL_TEMPLATES.forEach(e => batch.set(db.collection(EMAIL_TEMPLATES_COL).doc(e.id), e));
+        await batch.commit();
+        results.emails = SEED_EMAIL_TEMPLATES.length;
+      }
+
+      // 5. Config
+      const cfgSnap = await db.collection(CONFIG_COL).doc('app').get();
+      if (force || !cfgSnap.exists) {
+        await db.collection(CONFIG_COL).doc('app').set(SEED_CONFIG);
+        results.config = true;
+      }
+
+      // 6. Leads (always seed if empty)
+      const leadsSnap = await db.collection(LEADS_COL).limit(1).get();
+      if (leadsSnap.empty) {
+        const batch = db.batch();
+        DEFAULT_LEADS.forEach(l => batch.set(db.collection(LEADS_COL).doc(String(l.id)), {...l, _nextId:3}));
+        await batch.commit();
+      }
+
+      const msg = force
+        ? `✅ גיבוי מלא הושלם!\n\n📊 מתחרים: ${SEED_COMPETITORS.length}\n📧 תבניות מייל: ${SEED_EMAIL_TEMPLATES.length}\n📋 מתודולוגיה: ${SEED_METHODOLOGY.length} BP\n⏱️ Cadences: ${SEED_CADENCES.length}\n⚙️ Config: ✓`
+        : `✅ Seed הושלם!\n\nנתונים חדשים שהועלו:\n• מתחרים: ${results.competitors}\n• מיילים: ${results.emails}\n• מתודולוגיה: ${results.methodology}\n• Cadences: ${results.cadences}`;
+
+      alert(msg);
+      if (btn) { btn.textContent = '✅ גובה'; btn.style.color = 'var(--green)'; }
+
+    } catch(e) {
+      alert('שגיאה: ' + e.message);
+      if (btn) { btn.textContent = '❌ שגיאה'; btn.disabled = false; }
+    }
+  }
+
+  window.seedDatabase = function(force) { seedAllCollections(force); }
+
+  // ── Competitors (Firebase seed — kept for backward compat) ──────────
+  async function seedCompetitorsIfEmpty() {
+    return seedAllCollections(false);
+  }
 
   const DEFAULT_LEADS = [
     { id: 1, name: "שומרי המלכה", domain: "queen-guards.com", type: "מופע טריביוט", platform: "Smarticket + Mevalim", email: "dudumenahem@gmail.com", notes: "", score: 92, status: "new" },
@@ -2138,6 +2404,9 @@ IF RESPONSE at any point → Book 30-min MEETING (not call). Prepare ROI deck be
         `;
       }
       loadLeadsAsync();
+      seedAllCollections(false); // auto-seed missing collections silently
+      seedCompetitorsIfEmpty();
+      logActivity('login', { email: user.email, name: user.displayName });
     } else {
       if (loginScreen) loginScreen.style.display = 'flex';
       if (appWrapper)  appWrapper.style.display  = 'none';
@@ -2378,6 +2647,7 @@ IF RESPONSE at any point → Book 30-min MEETING (not call). Prepare ROI deck be
       const res = await fetch(`http://localhost:8765/analyze?url=${encodeURIComponent(fullUrl)}`, { signal: AbortSignal.timeout(4000) });
       if (res.ok) {
         const data = await res.json();
+        logActivity('url_analyzed', { url: fullUrl, platform: data.ticketPlatform, score: data.autoScore, email: data.email });
         const scoreBonus = (data.hasDomain?20:0) + (data.hasExternalTicketing?15:0) + (data.hasActiveSocial?10:0);
         resultEl.innerHTML = `
           <div style="background:var(--surface2);border-radius:10px;padding:14px 16px;line-height:2">
@@ -2525,7 +2795,12 @@ IF RESPONSE at any point → Book 30-min MEETING (not call). Prepare ROI deck be
       if (card) {
         const id = parseInt(card.id.replace('lead-',''));
         const lead = leads.find(l => l.id === id);
-        if (lead) lead.status = s.value;
+        if (lead && lead.status !== s.value) {
+          logActivity('status_change', { lead_id: id, lead_name: lead.name, from: lead.status, to: s.value });
+          lead.status = s.value;
+        } else if (lead) {
+          lead.status = s.value;
+        }
       }
     });
     saveLeads();
@@ -2570,6 +2845,7 @@ IF RESPONSE at any point → Book 30-min MEETING (not call). Prepare ROI deck be
     };
     leads.push(lead);
     saveLeads();
+    logActivity('lead_added', { lead_id: lead.id, lead_name: lead.name, score: lead.score, platform: lead.platform });
     renderSimpleLead(lead);
     document.getElementById('total-leads').textContent = leads.length;
     closeModal();
@@ -2817,7 +3093,7 @@ IF RESPONSE at any point → Book 30-min MEETING (not call). Prepare ROI deck be
       msg.style.display = 'block';
       msg.style.color = d.ok ? 'var(--green)' : 'var(--accent2)';
       msg.textContent = d.ok ? '✅ הגדרות נשמרו!' : '❌ ' + d.error;
-      if (d.ok) { setTimeout(closeSettings, 1200); checkServer(); }
+      if (d.ok) { saveSettingsToFirebase(body); setTimeout(closeSettings, 1200); checkServer(); }
     } catch {
       msg.style.display = 'block'; msg.style.color = 'var(--accent2)';
       msg.textContent = '❌ server.py לא רץ — הרץ: python server.py';
@@ -2859,6 +3135,7 @@ IF RESPONSE at any point → Book 30-min MEETING (not call). Prepare ROI deck be
 
   // =================== EXPORT CSV ===================
   window.exportCSV = function exportCSV() {
+    logActivity('export', { format: 'CSV', leads_count: leads.length });
     const data = encodeURIComponent(JSON.stringify(leads));
     const url  = SERVER + '/export/csv?data=' + data;
     // Try server first, fallback to client-side
@@ -2897,6 +3174,8 @@ IF RESPONSE at any point → Book 30-min MEETING (not call). Prepare ROI deck be
         body: JSON.stringify(body)
       });
     } catch { }
+    // Save to Firebase
+    saveReminderToFirebase({ ...body, done: false });
     // Save locally too
     const reminders = JSON.parse(localStorage.getItem('xtix_reminders') || '[]');
     reminders.push({ ...body, id: Date.now(), done: false });
@@ -2917,6 +3196,7 @@ IF RESPONSE at any point → Book 30-min MEETING (not call). Prepare ROI deck be
       const d = await r.json();
       if (d.ok && d.hubspot_id) {
         lead.hubspot_id = d.hubspot_id; saveLeads();
+        logActivity('hubspot_sync', { lead_id: leadId, lead_name: lead.name, hubspot_id: d.hubspot_id, action: d.action });
         console.log(`HubSpot sync: ${lead.name} → ${d.action} (${d.hubspot_id})`);
       }
     } catch { } // Silent — server might not be running
@@ -2966,6 +3246,9 @@ IF RESPONSE at any point → Book 30-min MEETING (not call). Prepare ROI deck be
       if (d.ok) {
         btn.textContent = '✅'; btn.style.background = 'rgba(0,230,118,0.3)';
         if (lead) { lead.status = 'contacted'; saveLeads(); updateStats(); }
+        // Log email to Firebase
+        const emailNum = bodyElId.match(/\d+$/)?.[0] || 1;
+        logEmailSent(leadId, lead ? lead.name : '', toEmail, subject, parseInt(emailNum));
         autoSyncLead(leadId);
       } else {
         btn.textContent = '❌'; btn.disabled = false;
