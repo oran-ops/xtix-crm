@@ -1981,6 +1981,7 @@ IF RESPONSE at any point → Book 30-min MEETING (not call). Prepare ROI deck be
 </div>
 
 <script>
+  document.addEventListener('DOMContentLoaded', function() {
   // =================== FIREBASE — AUTH + CLOUD PERSISTENCE (compat) ===================
   firebase.initializeApp({
     apiKey: "AIzaSyCWSvwxK-66wEcmJzs259XuGHuSH6BxPO0",
@@ -3617,21 +3618,11 @@ ${proxyContext}
       alert('אין כתובת מייל תקינה לליד זה.\nהוסף מייל בפרופיל הליד ונסה שוב.'); return;
     }
 
-    // Extract subject - look for Subject: or נושא: anywhere in first 3 lines
+    // Extract subject and body
     const raw = (el.innerText || el.textContent).trim();
-    let subject = '';
-    let bodyText = raw;
-
-    const lines = raw.split('\n');
-    const subjectLineIdx = lines.findIndex(l => /^(Subject|נושא)\s*:/i.test(l.trim()));
-    if (subjectLineIdx !== -1) {
-      subject = lines[subjectLineIdx].replace(/^(Subject|נושא)\s*:\s*/i, '').trim();
-      bodyText = lines.filter((_, i) => i !== subjectLineIdx).join('\n').trim();
-    } else {
-      // Use first non-empty line as subject
-      const firstLine = lines.find(l => l.trim());
-      subject = firstLine ? firstLine.trim().substring(0, 80) : `פנייה מ-XTIX`;
-    }
+    const subjectMatch = raw.match(/Subject:\s*([^\n\r]+)/i);
+    const subject = subjectMatch ? subjectMatch[1].trim() : 'פנייה מ-XTIX';
+    const bodyText = raw.replace(/Subject:[^\n\r]+[\n\r]*/i, '').trim();
 
     // Get sender name from config
     let senderName = 'אורן';
@@ -3689,6 +3680,8 @@ ${proxyContext}
       }
     }
   })();
+
+  }); // end DOMContentLoaded
 
 </script>
 </div> <!-- end app-wrapper -->
