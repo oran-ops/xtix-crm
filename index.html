@@ -2003,7 +2003,7 @@ IF RESPONSE at any point → Book 30-min MEETING (not call). Prepare ROI deck be
   const EMAILS_COL     = 'emails_sent';
   const COMPETITORS_COL= 'competitors';
 
-  const SERVER       = 'http://localhost:8765';
+  const SERVER       = 'https://xtix-crm-production.up.railway.app';
   const STORAGE_KEY  = 'xtix_crm_leads';
   const STORAGE_NEXTID = 'xtix_crm_nextid';
 
@@ -2658,7 +2658,7 @@ IF RESPONSE at any point → Book 30-min MEETING (not call). Prepare ROI deck be
     // Step 1: Try local proxy for raw data
     let proxyData = null;
     try {
-      const res = await fetch(`http://localhost:8765/analyze?url=${encodeURIComponent(fullUrl)}`, { signal: AbortSignal.timeout(5000) });
+      const res = await fetch(`https://xtix-crm-production.up.railway.app/analyze?url=${encodeURIComponent(fullUrl)}`, { signal: AbortSignal.timeout(5000) });
       if (res.ok) proxyData = await res.json();
     } catch(e) {}
 
