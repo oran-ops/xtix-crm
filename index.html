@@ -3617,19 +3617,20 @@ ${proxyContext}
       alert('אין כתובת מייל תקינה לליד זה.\nהוסף מייל בפרופיל הליד ונסה שוב.'); return;
     }
 
-    // Extract subject from first line if it starts with נושא: or Subject:
+    // Extract subject - look for Subject: or נושא: anywhere in first 3 lines
     const raw = (el.innerText || el.textContent).trim();
     let subject = '';
     let bodyText = raw;
-    const subjectMatch = raw.match(/^(?:נושא|Subject):\s*(.+)/im);
-    if (subjectMatch) {
-      subject = subjectMatch[1].trim();
-      bodyText = raw.replace(/^(?:נושא|Subject):[^\n]+\n?/im, '').trim();
+
+    const lines = raw.split('\n');
+    const subjectLineIdx = lines.findIndex(l => /^(Subject|נושא)\s*:/i.test(l.trim()));
+    if (subjectLineIdx !== -1) {
+      subject = lines[subjectLineIdx].replace(/^(Subject|נושא)\s*:\s*/i, '').trim();
+      bodyText = lines.filter((_, i) => i !== subjectLineIdx).join('\n').trim();
     } else {
       // Use first non-empty line as subject
-      const firstLine = raw.split('\n').find(l => l.trim());
+      const firstLine = lines.find(l => l.trim());
       subject = firstLine ? firstLine.trim().substring(0, 80) : `פנייה מ-XTIX`;
-      bodyText = raw;
     }
 
     // Get sender name from config
