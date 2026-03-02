@@ -13,7 +13,7 @@ from http.server import HTTPServer, BaseHTTPRequestHandler
 from email.mime.text import MIMEText
 from email.mime.multipart import MIMEMultipart
 
-PORT           = 8765
+PORT           = int(os.environ.get('PORT', 8765))
 CONFIG_FILE    = os.path.join(os.path.dirname(__file__), 'xtix_config.json')
 REMINDERS_FILE = os.path.join(os.path.dirname(__file__), 'xtix_reminders.json')
 LEADS_FILE     = os.path.join(os.path.dirname(__file__), 'xtix_leads.json')
@@ -36,6 +36,24 @@ SOCIAL_PATTERNS = {
 
 # ── Config ─────────────────────────────────────────────────────────────────
 def load_config():
+    # Railway: read from environment variables first
+    env_cfg = {
+        'gmail_user':         os.environ.get('GMAIL_USER', ''),
+        'gmail_app_password': os.environ.get('GMAIL_APP_PASSWORD', ''),
+        'hubspot_token':      os.environ.get('HUBSPOT_TOKEN', ''),
+        'sender_name':        os.environ.get('SENDER_NAME', 'XTIX Sales'),
+    }
+    if any(env_cfg.values()):
+        # Merge with file config if exists
+        if os.path.exists(CONFIG_FILE):
+            try:
+                with open(CONFIG_FILE,'r',encoding='utf-8') as f:
+                    file_cfg = json.load(f)
+                    for k,v in file_cfg.items():
+                        if not env_cfg.get(k): env_cfg[k] = v
+            except: pass
+        return env_cfg
+    # Fallback: local file
     if os.path.exists(CONFIG_FILE):
         try:
             with open(CONFIG_FILE,'r',encoding='utf-8') as f: return json.load(f)
@@ -318,12 +336,13 @@ if __name__=='__main__':
     cfg=load_config()
     gmail_ok   = '✅' if cfg.get('gmail_user') else '⚠️  Not set'
     hubspot_ok = '✅' if cfg.get('hubspot_token') else '⚠️  Not set'
+    is_railway = bool(os.environ.get('RAILWAY_ENVIRONMENT'))
+    host_info  = f"Railway PORT={PORT}" if is_railway else f"http://localhost:{PORT}"
     print(f"""
 +----------------------------------------------+
 |       XTIX CRM - Server v2.0                 |
 +----------------------------------------------+
-|  >> פתח בדפדפן: http://localhost:{PORT}        |
-|                                              |
+|  >> {host_info:<41}|
 |  Gmail:   {gmail_ok:<35}|
 |  HubSpot: {hubspot_ok:<35}|
 +----------------------------------------------+
@@ -331,6 +350,6 @@ if __name__=='__main__':
 +----------------------------------------------+
 """)
     threading.Thread(target=reminder_loop,daemon=True).start()
-    server=HTTPServer(('localhost',PORT),Handler)
+    server=HTTPServer(('0.0.0.0',PORT),Handler)
     try: server.serve_forever()
     except KeyboardInterrupt: print('\nServer stopped.')
