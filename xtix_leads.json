@@ -1,0 +1,46 @@
+[
+  {
+    "id": 1,
+    "name": "שומרי המלכה",
+    "domain": "queen-guards.com",
+    "type": "מופע טריביוט",
+    "platform": "Smarticket + Mevalim",
+    "email": "dudumenahem@gmail.com",
+    "notes": "",
+    "score": 92,
+    "status": "new"
+  },
+  {
+    "id": 2,
+    "name": "תיאטרון בית ליסין",
+    "domain": "lessin.co.il",
+    "type": "תיאטרון",
+    "platform": "Pres Global",
+    "email": "LinkedIn",
+    "notes": "",
+    "score": 81,
+    "status": "new"
+  },
+  {
+    "id": 3,
+    "name": "אנסמבל ציפורלה",
+    "domain": "https://tziporela.com/",
+    "type": "Lead Finder",
+    "platform": "SmarTicket",
+    "email": "",
+    "notes": "",
+    "score": 89,
+    "status": "new"
+  },
+  {
+    "id": 4,
+    "name": "תיאטרון אורנה פורת",
+    "domain": "https://www.porat-theater.co.il/",
+    "type": "Lead Finder",
+    "platform": "SmarTicket",
+    "email": "",
+    "notes": "",
+    "score": 94,
+    "status": "new"
+  }
+]
