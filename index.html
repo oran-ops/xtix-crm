@@ -2275,8 +2275,10 @@ IF RESPONSE at any point → Book 30-min MEETING (not call). Prepare ROI deck be
       const batch = db.batch();
       leads.forEach(lead => {
         const ref = db.collection(LEADS_COL).doc(String(lead.id));
-        batch.set(ref, { ...lead, _nextId: nextId });
+        batch.set(ref, { ...lead });
       });
+      // Save nextId separately
+      batch.set(db.collection(SETTINGS_COL).doc('meta'), { nextId }, { merge: true });
       await batch.commit();
       showStorageStatus('firebase');
     } catch(e) {
@@ -2295,17 +2297,20 @@ IF RESPONSE at any point → Book 30-min MEETING (not call). Prepare ROI deck be
     showStorageStatus('loading');
     try {
       const snap = await db.collection(LEADS_COL).get();
+      // Load nextId from meta
+      try {
+        const meta = await db.collection(SETTINGS_COL).doc('meta').get();
+        if (meta.exists && meta.data().nextId) nextId = meta.data().nextId;
+      } catch(e) {}
       if (!snap.empty) {
         leads = [];
-        let maxNextId = 3;
         snap.forEach(docSnap => {
           const d = docSnap.data();
-          if (d._nextId) maxNextId = Math.max(maxNextId, d._nextId);
           const { _nextId, ...lead } = d;
           leads.push(lead);
+          if (lead.id >= nextId) nextId = lead.id + 1;
         });
         leads.sort((a, b) => a.id - b.id);
-        nextId = maxNextId;
         renderAllLeads();
         updateStats();
         showStorageStatus('firebase');
@@ -2730,7 +2735,7 @@ IF RESPONSE at any point → Book 30-min MEETING (not call). Prepare ROI deck be
     const tier = cd ? cd.name : 'לא ידוע';
 
     const leadHTML = `
-      <div class="lead-card" id="${newId}" data-dynamic="true" style="border-color:rgba(108,99,255,0.3)">
+      <div class="lead-card" id="lead-${newId}" data-dynamic="true" style="border-color:rgba(108,99,255,0.3)">
         <div class="lead-card-header" onclick="this.nextElementSibling.classList.toggle('open');this.querySelector('span:last-child').textContent=this.nextElementSibling.classList.contains('open')?'▲':'▼'">
           <div class="lead-info">
             <div class="lead-avatar" style="background:linear-gradient(135deg,var(--accent),var(--accent2))">${initials}</div>
@@ -2793,7 +2798,8 @@ IF RESPONSE at any point → Book 30-min MEETING (not call). Prepare ROI deck be
       // sync status back to leads array
       const card = s.closest('.lead-card');
       if (card) {
-        const id = parseInt(card.id.replace('lead-',''));
+        const cardId = card.id.replace('lead-','');
+        const id = parseInt(cardId);
         const lead = leads.find(l => l.id === id);
         if (lead && lead.status !== s.value) {
           logActivity('status_change', { lead_id: id, lead_name: lead.name, from: lead.status, to: s.value });
@@ -2829,19 +2835,75 @@ IF RESPONSE at any point → Book 30-min MEETING (not call). Prepare ROI deck be
     }
   }
 
+  window.deleteLead = async function deleteLead(id) {
+    if (!confirm('למחוק את הליד הזה?')) return;
+    leads = leads.filter(l => l.id !== id);
+    try { await db.collection(LEADS_COL).doc(String(id)).delete(); } catch(e) {}
+    const card = document.getElementById('lead-' + id);
+    if (card) card.remove();
+    document.getElementById('total-leads').textContent = leads.length;
+    logActivity('lead_deleted', { lead_id: id });
+  }
+
+  window.editLead = function editLead(id) {
+    const lead = leads.find(l => l.id === id);
+    if (!lead) return;
+    // Populate modal fields and open
+    document.getElementById('new-name').value     = lead.name    || '';
+    document.getElementById('new-domain').value   = lead.domain  || '';
+    document.getElementById('new-type').value     = lead.type    || '';
+    document.getElementById('new-platform').value = lead.platform|| '';
+    document.getElementById('new-email').value    = lead.email   || '';
+    document.getElementById('new-notes').value    = lead.notes   || '';
+    // Mark modal as edit mode
+    const modal = document.getElementById('addLeadModal');
+    modal.dataset.editId = id;
+    const saveBtn = modal.querySelector('button[onclick="addLead()"]');
+    if (saveBtn) saveBtn.textContent = 'עדכן ליד';
+    modal.classList.add('open');
+  }
+
+  // addLead supports both create and edit mode
   window.addLead = function addLead() {
+    const modal = document.getElementById('addLeadModal');
+    const editId = modal.dataset.editId ? parseInt(modal.dataset.editId) : null;
+    if (editId) {
+      // Edit mode
+      const lead = leads.find(l => l.id === editId);
+      if (lead) {
+        lead.name     = document.getElementById('new-name').value.trim()     || lead.name;
+        lead.domain   = document.getElementById('new-domain').value.trim();
+        lead.type     = document.getElementById('new-type').value.trim();
+        lead.platform = document.getElementById('new-platform').value.trim();
+        lead.email    = document.getElementById('new-email').value.trim();
+        lead.notes    = document.getElementById('new-notes').value.trim();
+        saveLeads();
+        // Re-render card
+        const old = document.getElementById('lead-' + editId);
+        if (old) old.remove();
+        renderSimpleLead(lead);
+        logActivity('lead_edited', { lead_id: lead.id, lead_name: lead.name });
+      }
+      delete modal.dataset.editId;
+      const saveBtn = modal.querySelector('button[onclick="addLead()"]');
+      if (saveBtn) saveBtn.textContent = 'שמור ליד';
+      closeModal();
+      ['new-name','new-domain','new-platform','new-email','new-notes'].forEach(id => document.getElementById(id).value='');
+      return;
+    }
+    // Original add mode
     const name = document.getElementById('new-name').value.trim();
     if (!name) { alert('נא להזין שם'); return; }
     const lead = {
       id: nextId,
       name,
-      domain: document.getElementById('new-domain').value,
-      type: document.getElementById('new-type').value,
+      domain:   document.getElementById('new-domain').value,
+      type:     document.getElementById('new-type').value,
       platform: document.getElementById('new-platform').value,
-      email: document.getElementById('new-email').value,
-      notes: document.getElementById('new-notes').value,
-      score: Math.floor(Math.random() * 25) + 55,
-      status: 'new'
+      email:    document.getElementById('new-email').value,
+      notes:    document.getElementById('new-notes').value,
+      score:    Math.floor(Math.random() * 25) + 55,
+      status:   'new'
     };
     leads.push(lead);
     saveLeads();
@@ -2854,9 +2916,17 @@ IF RESPONSE at any point → Book 30-min MEETING (not call). Prepare ROI deck be
   }
 
   window.renderSimpleLead = function renderSimpleLead(lead) {
-    const initials = lead.name.substring(0,2);
+    const initials = (lead.name||'??').substring(0,2);
     const colors = ['linear-gradient(135deg,#06b6d4,#3b82f6)','linear-gradient(135deg,#f59e0b,#ef4444)','linear-gradient(135deg,#10b981,#059669)','linear-gradient(135deg,#8b5cf6,#ec4899)'];
     const color = colors[lead.id % 4];
+    const scoreColor = lead.score >= 80 ? 'var(--green)' : lead.score >= 60 ? 'var(--yellow)' : 'var(--accent)';
+    const statusVal = lead.status || 'new';
+    const emailSubject1 = `שאלה אחת על האתר של ${lead.name}`;
+    const emailBody1 = `היי,\n\nנכנסתי לאתר ${lead.domain||lead.name} — ${lead.type||'נראה מעניין'}.\n\nשאלה קצרה: הכרטיסים עוברים ל-${lead.platform||'פלטפורמה חיצונית'} — למה לא ישירות מהאתר שלכם?\n\nXTIX מאפשר להטמיע widget ישירות — הקהל לא יוצא מהדף, הנתונים נשארים אצלכם, עמלה 2.5% לעומת 5–7%.\n\n15 דקות שיחה?\n\nאורן | XTIX.ai`;
+    const emailBody2 = `היי,\n\nרצ"ב נתון אחד: מפיקים שמוכרים מהדומיין הפרטי שלהם רואים 30–40% מהקהל חוזר למופע הבא — כי לראשונה יש להם database של הקהל.\n\nאצלכם עם ${lead.platform||'הפלטפורמה הנוכחית'} — מי מחזיק את הנתונים האלה?\n\nXTIX = פלטפורמה אחת, הנתונים שלכם.\n\n15 דקות שיחה?\n\nאורן | XTIX.ai`;
+    const emailBody3 = `היי,\n\nלקוח שעבד עם מצב דומה לשלכם עבר ל-XTIX לפני 3 חודשים:\n— עמלות ירדו מ-6% ל-2.5%\n— 38% מהקהל חזר למופע הבא\n— מכר 40% מהכרטיסים ב-72 שעות דרך Early Bird לרשימה שנבנתה\n\nאפשר להראות לכם demo ב-${lead.domain||'האתר שלכם'} — 15 דקות?\n\nאורן | XTIX.ai`;
+    const emailBody4 = `היי,\n\nמייל אחרון — לא רוצה להציק.\n\nשאלה אחת ישירה: האם מכירת הכרטיסים היום מספקת אותכם?\n\nאם כן — הכל טוב. אם יש מה לשפר — 15 דקות ו-XTIX יכולה לענות.\n\nאורן | XTIX.ai`;
+
     const html = `
     <div class="lead-card" id="lead-${lead.id}" data-dynamic="true">
       <div class="lead-card-header" onclick="toggleLead(${lead.id})">
@@ -2864,33 +2934,143 @@ IF RESPONSE at any point → Book 30-min MEETING (not call). Prepare ROI deck be
           <div class="lead-avatar" style="background:${color}">${initials}</div>
           <div>
             <div class="lead-name">${lead.name}</div>
-            <div class="lead-meta"><span>🎭 ${lead.type}</span>${lead.domain?`<span>🌐 ${lead.domain}</span>`:''}</div>
+            <div class="lead-meta">
+              ${lead.type?`<span>🎭 ${lead.type}</span>`:''}
+              ${lead.domain?`<span>🌐 ${lead.domain}</span>`:''}
+              ${lead.platform?`<span>⚙️ ${lead.platform}</span>`:''}
+            </div>
           </div>
         </div>
         <div class="lead-badges">
           <div class="score-ring" style="--score:${lead.score}"><span>${lead.score}</span></div>
-          <select class="status-select" onclick="event.stopPropagation()" onchange="updateStats()">
-            <option value="new" selected>🟢 ליד חדש</option>
-            <option value="contacted">📧 נשלח מייל</option>
-            <option value="followup">🔁 Follow-up</option>
-            <option value="meeting">📅 פגישה</option>
-            <option value="closed">✅ נסגר</option>
+          <select class="status-select" onclick="event.stopPropagation()" onchange="updateStats()" data-lead-id="${lead.id}">
+            <option value="new"       ${statusVal==='new'      ?'selected':''}>🟢 ליד חדש</option>
+            <option value="contacted" ${statusVal==='contacted'?'selected':''}>📧 נשלח מייל</option>
+            <option value="followup"  ${statusVal==='followup' ?'selected':''}>🔁 Follow-up</option>
+            <option value="meeting"   ${statusVal==='meeting'  ?'selected':''}>📅 פגישה</option>
+            <option value="closed"    ${statusVal==='closed'   ?'selected':''}>✅ נסגר</option>
           </select>
           <span style="font-size:18px;color:var(--muted)" id="arrow-${lead.id}">▼</span>
         </div>
       </div>
       <div class="lead-body" id="body-${lead.id}">
-        <div style="padding:16px 0">
+
+        <div class="lead-tabs">
+          <button class="lead-tab active" onclick="switchLeadTab(${lead.id},'profile',this)">פרופיל</button>
+          <button class="lead-tab" onclick="switchLeadTab(${lead.id},'analysis',this)">ניתוח SF</button>
+          <button class="lead-tab" onclick="switchLeadTab(${lead.id},'emails',this)">✉️ מיילים</button>
+          <button class="lead-tab" onclick="switchLeadTab(${lead.id},'actions',this)">⚙️ פעולות</button>
+        </div>
+
+        <!-- PROFILE TAB -->
+        <div class="lead-tab-panel active" id="l${lead.id}-profile">
           <div class="info-grid">
             <div class="info-box"><label>שם</label><value>${lead.name}</value></div>
-            <div class="info-box"><label>סוג</label><value>${lead.type}</value></div>
-            <div class="info-box"><label>דומיין</label><value>${lead.domain||'—'}</value></div>
+            <div class="info-box"><label>סוג</label><value>${lead.type||'—'}</value></div>
+            <div class="info-box"><label>דומיין</label><value>${lead.domain?`<a href="https://${lead.domain}" target="_blank" style="color:var(--accent)">${lead.domain}</a>`:'—'}</value></div>
             <div class="info-box"><label>פלטפורמה</label><value>${lead.platform||'—'}</value></div>
             <div class="info-box"><label>מייל</label><value>${lead.email||'—'}</value></div>
-            <div class="info-box"><label>Score</label><value style="color:var(--green)">${lead.score}/100</value></div>
+            <div class="info-box"><label>Lead Score</label><value style="color:${scoreColor}">${lead.score}/100 ${lead.score>=80?'🔥':lead.score>=60?'⚡':'🧊'}</value></div>
+            ${lead.phone?`<div class="info-box"><label>טלפון</label><value>${lead.phone}</value></div>`:''}
           </div>
-          ${lead.notes?`<div class="card" style="background:var(--surface2);margin-top:10px;font-size:12px">${lead.notes}</div>`:''}
+          ${lead.notes?`<div class="card" style="background:var(--surface2);margin-top:10px;font-size:12px;line-height:1.7">${lead.notes}</div>`:''}
+          ${lead.hubspot_id?`<div style="margin-top:8px;font-size:11px;color:var(--muted)">🔗 HubSpot ID: ${lead.hubspot_id}</div>`:''}
         </div>
+
+        <!-- ANALYSIS TAB -->
+        <div class="lead-tab-panel" id="l${lead.id}-analysis">
+          <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px">
+            <div class="card" style="background:var(--surface2)">
+              <div class="card-title"><div class="dot" style="background:#00a1e0"></div>SF BP #2 — Buyer Persona</div>
+              <div style="font-size:12px;line-height:1.7;color:var(--text)">
+                <strong>סוג:</strong> ${lead.type||'מפיק/מנהל אירועים'}<br>
+                <strong>פלטפורמה:</strong> ${lead.platform||'לא ידוע'}<br>
+                <strong>כאב מרכזי:</strong> עמלות גבוהות + פיצול נתונים<br>
+                <strong>מפתח:</strong> הראה חיסכון בעמלות + שליטה בנתונים
+              </div>
+            </div>
+            <div class="card" style="background:var(--surface2)">
+              <div class="card-title"><div class="dot" style="background:var(--accent2)"></div>SF BP #6 — תעדוף</div>
+              <div style="font-size:12px;line-height:1.7">
+                <strong style="color:${scoreColor}">Score: ${lead.score}/100</strong><br>
+                ${lead.score>=80?'<span style="color:var(--green)">🔥 ליד חם — פנה תוך 24 שעות</span>':lead.score>=60?'<span style="color:var(--yellow)">⚡ ליד חמים — פנה תוך שבוע</span>':'<span style="color:var(--muted)">🧊 ליד קר — הכנס ל-Nurture</span>'}<br>
+                ${lead.domain?'<span style="color:var(--green)">✅ יש דומיין פרטי</span><br>':''} 
+                ${lead.platform?'<span style="color:var(--green)">✅ יש פלטפורמת כרטיסים</span>':'<span style="color:var(--muted)">⚠️ לא ידועה פלטפורמה</span>'}
+              </div>
+            </div>
+            <div class="card" style="background:var(--surface2)">
+              <div class="card-title"><div class="dot" style="background:var(--yellow)"></div>SF BP #7 — Discovery</div>
+              <div style="font-size:12px;line-height:1.7;color:var(--muted)">
+                "כמה כרטיסים נמכרים לפני יום האירוע?"<br>
+                "מה האחוז עמלה כולל?"<br>
+                "האם הקהל חוזר — ואיך אתה יודע?"<br>
+                "מה הכי מתסכל בניהול הכרטיסים?"
+              </div>
+            </div>
+            <div class="card" style="background:var(--surface2)">
+              <div class="card-title"><div class="dot" style="background:var(--accent)"></div>SF BP #13 — התנגדויות</div>
+              <div style="font-size:12px;line-height:1.7;color:var(--muted)">
+                <strong>"מרוצה מהפלטפורמה"</strong><br>
+                → "ספר לי מה הכי מתסכל בה"<br><br>
+                <strong>"יקר מדי"</strong><br>
+                → הראה חיסכון בעמלות × מספר אירועים
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- EMAILS TAB -->
+        <div class="lead-tab-panel" id="l${lead.id}-emails">
+          <div style="display:flex;flex-direction:column;gap:10px">
+            ${[
+              {num:1, label:'📧 מייל #1 — Discovery Opener', subj: emailSubject1, body: emailBody1, day:'יום 0'},
+              {num:2, label:'📧 מייל #2 — Data + Value',     subj: 'Re: '+emailSubject1, body: emailBody2, day:'יום 5'},
+              {num:3, label:'📧 מייל #3 — Customer Story',  subj: 'מה שקרה ללקוח אחר', body: emailBody3, day:'יום 9'},
+              {num:4, label:'📧 מייל #4 — Break-up',        subj: 'האם מכירת הכרטיסים מספקת?', body: emailBody4, day:'יום 14'},
+            ].map(e => `
+            <div class="card" style="background:var(--surface2)">
+              <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px">
+                <strong style="font-size:13px">${e.label}</strong>
+                <span style="font-size:11px;color:var(--muted)">${e.day}</span>
+              </div>
+              <div style="font-size:11px;color:var(--muted);margin-bottom:8px">נושא: <em>${e.subj}</em></div>
+              <div id="email-body-${lead.id}-${e.num}" class="email-body" style="display:none;font-size:12px;line-height:1.7;white-space:pre-wrap;background:var(--bg);padding:12px;border-radius:8px;margin-bottom:8px">${e.body}</div>
+              <div style="display:flex;gap:8px;flex-wrap:wrap">
+                <button class="btn" style="font-size:11px;padding:5px 12px" onclick="document.getElementById('email-body-${lead.id}-${e.num}').style.display=document.getElementById('email-body-${lead.id}-${e.num}').style.display==='none'?'block':'none'">👁 הצג</button>
+                <button class="btn" style="font-size:11px;padding:5px 12px" onclick="sendEmailFromCard('email-body-${lead.id}-${e.num}','${lead.email||''}',${lead.id})">📤 שלח</button>
+                <button class="btn" style="font-size:11px;padding:5px 12px" onclick="navigator.clipboard.writeText(document.getElementById('email-body-${lead.id}-${e.num}').innerText);this.textContent='✓ הועתק';setTimeout(()=>this.textContent='📋 העתק',2000)">📋 העתק</button>
+                <button class="btn" style="font-size:11px;padding:5px 12px" onclick="openReminder(${lead.id},'${lead.name.replace(/'/,"\\'")}')">🔔 תזכורת</button>
+              </div>
+            </div>`).join('')}
+          </div>
+        </div>
+
+        <!-- ACTIONS TAB -->
+        <div class="lead-tab-panel" id="l${lead.id}-actions">
+          <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px">
+            <div class="card" style="background:var(--surface2)">
+              <div class="card-title">✏️ עריכה</div>
+              <p style="font-size:12px;color:var(--muted);margin-bottom:12px">ערוך את פרטי הליד</p>
+              <button class="btn" onclick="editLead(${lead.id})" style="width:100%">✏️ ערוך ליד</button>
+            </div>
+            <div class="card" style="background:var(--surface2)">
+              <div class="card-title">🔗 HubSpot</div>
+              <p style="font-size:12px;color:var(--muted);margin-bottom:12px">${lead.hubspot_id?`מסונכרן: ${lead.hubspot_id}`:'לא מסונכרן עדיין'}</p>
+              <button class="btn" onclick="autoSyncLead(${lead.id})" style="width:100%">🔗 סנכרן HubSpot</button>
+            </div>
+            <div class="card" style="background:var(--surface2)">
+              <div class="card-title">🔔 תזכורת</div>
+              <p style="font-size:12px;color:var(--muted);margin-bottom:12px">קבע תזכורת לפנייה</p>
+              <button class="btn" onclick="openReminder(${lead.id},'${lead.name.replace(/'/,"\\'")}\")" style="width:100%">🔔 הוסף תזכורת</button>
+            </div>
+            <div class="card" style="background:rgba(220,38,38,0.08);border-color:rgba(220,38,38,0.2)">
+              <div class="card-title" style="color:#ef4444">🗑️ מחיקה</div>
+              <p style="font-size:12px;color:var(--muted);margin-bottom:12px">פעולה בלתי הפיכה</p>
+              <button class="btn" onclick="deleteLead(${lead.id})" style="width:100%;background:rgba(220,38,38,0.15);border-color:rgba(220,38,38,0.3);color:#ef4444">🗑️ מחק ליד</button>
+            </div>
+          </div>
+        </div>
+
       </div>
     </div>`;
     document.getElementById('leads-list').insertAdjacentHTML('beforeend', html);
