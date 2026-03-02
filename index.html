@@ -2641,52 +2641,215 @@ IF RESPONSE at any point → Book 30-min MEETING (not call). Prepare ROI deck be
 
   window.analyzeUrl = async function analyzeUrl() {
     const url = (document.getElementById('lf-url').value || '').trim();
+    const nameInput = document.getElementById('lf-name-url') || document.getElementById('lf-name');
+    const leadName = nameInput ? nameInput.value.trim() : '';
     const resultEl = document.getElementById('url-analysis-result');
     if (!url) return;
     const fullUrl = url.startsWith('http') ? url : 'https://' + url;
-    resultEl.style.display = 'block';
-    resultEl.innerHTML = '<span style="color:var(--muted)">⏳ מתחבר ל-proxy מקומי...</span>';
+    const domain = fullUrl.replace(/https?:\/\//, '').split('/')[0];
 
-    // Try local proxy first (python server.py)
+    resultEl.style.display = 'block';
+    resultEl.innerHTML = `<div style="background:var(--surface2);border-radius:10px;padding:16px;text-align:center;color:var(--muted)">
+      <div style="font-size:20px;margin-bottom:8px">🔍</div>
+      <div>מנתח את <strong>${domain}</strong>...</div>
+      <div style="font-size:11px;margin-top:6px;color:var(--accent)">AI בוחן אתר, פלטפורמה, מתחרים ומכין ניתוח מכירות</div>
+    </div>`;
+
+    // Step 1: Try local proxy for raw data
+    let proxyData = null;
     try {
-      const res = await fetch(`http://localhost:8765/analyze?url=${encodeURIComponent(fullUrl)}`, { signal: AbortSignal.timeout(4000) });
-      if (res.ok) {
-        const data = await res.json();
-        logActivity('url_analyzed', { url: fullUrl, platform: data.ticketPlatform, score: data.autoScore, email: data.email });
-        const scoreBonus = (data.hasDomain?20:0) + (data.hasExternalTicketing?15:0) + (data.hasActiveSocial?10:0);
-        resultEl.innerHTML = `
-          <div style="background:var(--surface2);border-radius:10px;padding:14px 16px;line-height:2">
-            <strong style="color:var(--accent);display:block;margin-bottom:8px">🔍 ניתוח: ${fullUrl}</strong>
-            <div>🌐 <strong>דומיין פרטי:</strong> <span style="color:${data.hasDomain?'var(--green)':'var(--accent2)'}">${data.hasDomain?'✓ אתר מלא':'✗ לא זוהה'}</span></div>
-            <div>🎟 <strong>מכירת כרטיסים חיצונית:</strong> <span style="color:${data.hasExternalTicketing?'var(--yellow)':'var(--green)'}">${data.hasExternalTicketing?'✓ זוהתה — ליד פוטנציאלי! ('+data.ticketPlatform+')':'✗ לא זוהתה'}</span></div>
-            <div>📱 <strong>רשתות חברתיות:</strong> <span style="color:${data.hasActiveSocial?'var(--green)':'var(--muted)'}">${data.hasActiveSocial?'✓ '+data.socialLinks.join(', '):'✗ לא נמצאו'}</span></div>
-            <div>📧 <strong>מייל:</strong> <span style="color:${data.email?'var(--green)':'var(--muted)'}">${data.email||'לא נמצא'}</span></div>
-            <div style="margin-top:8px;padding:8px 12px;background:rgba(0,230,118,0.08);border-radius:6px;font-size:11px;color:var(--green)">
-              ✅ ניתוח אמיתי הצליח! בונוס ניקוד: +${scoreBonus} נקודות
-            </div>
-          </div>`;
-        // Auto-fill form fields
-        if (data.email) document.getElementById('lf-name').value = data.email;
-        return;
-      }
+      const res = await fetch(`http://localhost:8765/analyze?url=${encodeURIComponent(fullUrl)}`, { signal: AbortSignal.timeout(5000) });
+      if (res.ok) proxyData = await res.json();
     } catch(e) {}
 
-    // Fallback — proxy not running, show instructions
-    const hasDomain = fullUrl.includes('.co.il') || fullUrl.includes('.com') || fullUrl.includes('.org') || fullUrl.includes('.net');
-    const knownPlatforms = ['smarticket','mevalim','bravo','leaan','tickchak','eventer','easytix'];
-    const looksLike = knownPlatforms.some(p => fullUrl.toLowerCase().includes(p));
-    resultEl.innerHTML = `
-      <div style="background:var(--surface2);border-radius:10px;padding:14px 16px;line-height:1.9">
-        <strong style="color:var(--accent);display:block;margin-bottom:8px">🔍 ניתוח בסיסי: ${fullUrl}</strong>
-        <div>🌐 <strong>דומיין:</strong> <span style="color:${hasDomain?'var(--green)':'var(--accent2)'}">${hasDomain?'✓ זוהה':'✗ לא ידוע'}</span></div>
-        <div>🎟 <strong>פלטפורמה בשם ה-URL:</strong> <span style="color:${looksLike?'var(--yellow)':'var(--muted)'}">${looksLike?'✓ נמצאה':'לא זוהתה'}</span></div>
-        <div style="margin-top:10px;background:rgba(255,215,64,0.08);border:1px solid rgba(255,215,64,0.2);border-radius:8px;padding:10px 12px;font-size:11px;line-height:1.8">
-          <strong style="color:var(--yellow)">⚡ לניתוח מלא — הרץ server.py:</strong><br>
-          <code style="color:var(--green);font-size:11px">python server.py</code> בטרמינל<br>
-          לאחר מכן לחץ שוב על "נתח URL"<br>
-          <a href="${fullUrl}" target="_blank" style="color:var(--accent)">→ פתח אתר ידנית</a>
-        </div>
-      </div>`;
+    // Step 2: AI deep analysis via Claude API
+    const competitorInfo = Object.values(competitorData)
+      .map(c => `${c.name}: ${c.weakness}`)
+      .join('; ');
+
+    const proxyContext = proxyData ? `
+מידע שנאסף מהאתר:
+- פלטפורמת כרטיסים: ${proxyData.ticketPlatform || 'לא זוהתה'}
+- מייל נמצא: ${proxyData.email || 'לא נמצא'}
+- רשתות חברתיות: ${proxyData.socialLinks?.join(', ') || 'לא נמצאו'}
+- יש דומיין פרטי: ${proxyData.hasDomain ? 'כן' : 'לא ידוע'}
+` : '';
+
+    const prompt = `אתה מנהל מכירות בכיר ב-XTIX — פלטפורמת כרטיסים ישראלית המציעה widget להטמעה בדומיין פרטי, עמלה 2.5% (לעומת 5-7% בשוק), Dynamic Pricing AI, ו-Audience Intelligence.
+
+נתח את הליד הבא לצורך מכירה:
+- דומיין: ${domain}
+- שם: ${leadName || domain}
+${proxyContext}
+
+מתחרים בשוק: ${competitorInfo}
+
+ספק ניתוח מכירות מעמיק בדיוק בפורמט JSON הבא (ללא markdown, רק JSON נקי):
+{
+  "summary": "2 משפטים קצרים על הליד — מי הם ומה הם עושים",
+  "platform_current": "עם מי הם עובדים כרגע (פלטפורמת כרטיסים)",
+  "platform_weakness": "מה החולשה של המתחרה הנוכחי שלהם",
+  "xtix_pitch": "משפט מכירה ספציפי אחד מחודד לליד הזה",
+  "pain_points": ["כאב 1", "כאב 2", "כאב 3"],
+  "advantages": ["יתרון XTIX 1 רלוונטי לליד זה", "יתרון 2", "יתרון 3"],
+  "discovery_questions": ["שאלה 1 לשיחת discovery", "שאלה 2", "שאלה 3"],
+  "objections": [{"obj": "התנגדות צפויה", "answer": "תשובה"}],
+  "email_subject": "נושא מייל ראשון מותאם אישית",
+  "email_body": "גוף מייל ראשון מלא — 4-6 שורות, בעברית, RTL, אישי לליד זה",
+  "score_factors": {"domain": true, "external_ticketing": true, "active_social": false, "contact_accessible": false},
+  "recommended_cadence": "hot/warm/cool",
+  "segment": "סוג הסגמנט (תרבות/מוזיקה/תיאטרון וכו')"
+}`;
+
+    try {
+      const aiRes = await fetch('https://api.anthropic.com/v1/messages', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          model: 'claude-sonnet-4-20250514',
+          max_tokens: 1000,
+          system: 'אתה מנהל מכירות ב-XTIX. החזר תמיד JSON נקי בלבד, ללא markdown ולא ```json.',
+          messages: [{ role: 'user', content: prompt }]
+        })
+      });
+
+      if (!aiRes.ok) throw new Error('AI API failed');
+      const aiData = await aiRes.json();
+      const rawText = aiData.content?.map(b => b.text || '').join('') || '';
+
+      let analysis;
+      try {
+        const clean = rawText.replace(/```json|```/g, '').trim();
+        analysis = JSON.parse(clean);
+      } catch(e) {
+        throw new Error('JSON parse failed: ' + rawText.substring(0, 100));
+      }
+
+      // Log to Firebase
+      logActivity('url_analyzed_deep', { url: fullUrl, platform: analysis.platform_current, cadence: analysis.recommended_cadence });
+
+      // Calculate score
+      const sf = analysis.score_factors || {};
+      const score = (sf.domain?20:0) + (sf.external_ticketing?15:0) + (sf.active_social?10:0) + (sf.contact_accessible?10:0) + 30;
+      const cadenceColors = { hot: 'var(--green)', warm: 'var(--yellow)', cool: 'var(--accent)' };
+      const cadenceEmoji = { hot: '🔥', warm: '⚡', cool: '🧊' };
+      const cKey = analysis.recommended_cadence || 'warm';
+
+      // Auto-fill name if empty
+      if (nameInput && !nameInput.value.trim()) nameInput.value = leadName || domain;
+
+      // Store for quick-add
+      resultEl.dataset.analysis = JSON.stringify({ ...analysis, domain, score, url: fullUrl });
+
+      resultEl.innerHTML = `
+        <div style="border-radius:12px;overflow:hidden;border:1px solid var(--border)">
+
+          <!-- Header -->
+          <div style="background:linear-gradient(135deg,rgba(79,70,229,0.15),rgba(139,92,246,0.1));padding:16px 20px;border-bottom:1px solid var(--border)">
+            <div style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:8px">
+              <div>
+                <div style="font-size:15px;font-weight:700;color:var(--text)">${leadName || domain}</div>
+                <div style="font-size:12px;color:var(--muted)"><a href="${fullUrl}" target="_blank" style="color:var(--accent)">${domain}</a></div>
+              </div>
+              <div style="display:flex;align-items:center;gap:10px">
+                <div style="background:var(--surface2);border-radius:8px;padding:6px 14px;font-size:13px;font-weight:700;color:${cadenceColors[cKey]}">${cadenceEmoji[cKey]} ${cKey.toUpperCase()}</div>
+                <div style="width:44px;height:44px;border-radius:50%;background:conic-gradient(${cadenceColors[cKey]} ${score*3.6}deg, var(--surface2) 0deg);display:flex;align-items:center;justify-content:center;font-size:13px;font-weight:700;color:${cadenceColors[cKey]}">${score}</div>
+              </div>
+            </div>
+            <div style="margin-top:10px;font-size:12px;color:var(--text);line-height:1.6;background:rgba(0,0,0,0.15);padding:10px 12px;border-radius:8px">${analysis.summary}</div>
+          </div>
+
+          <!-- Platform + Pitch -->
+          <div style="padding:14px 16px;display:grid;grid-template-columns:1fr 1fr;gap:10px;background:var(--surface2);border-bottom:1px solid var(--border)">
+            <div>
+              <div style="font-size:10px;color:var(--muted);margin-bottom:4px;text-transform:uppercase;letter-spacing:1px">עובד עם</div>
+              <div style="font-size:13px;font-weight:600;color:var(--yellow)">⚔️ ${analysis.platform_current || 'לא ידוע'}</div>
+              <div style="font-size:11px;color:var(--muted);margin-top:2px">${analysis.platform_weakness || ''}</div>
+            </div>
+            <div>
+              <div style="font-size:10px;color:var(--muted);margin-bottom:4px;text-transform:uppercase;letter-spacing:1px">הטיעון שלנו</div>
+              <div style="font-size:12px;color:var(--green);line-height:1.5">${analysis.xtix_pitch || ''}</div>
+            </div>
+          </div>
+
+          <!-- Pain Points + Advantages -->
+          <div style="padding:14px 16px;display:grid;grid-template-columns:1fr 1fr;gap:10px;border-bottom:1px solid var(--border)">
+            <div>
+              <div style="font-size:10px;color:var(--muted);margin-bottom:6px;text-transform:uppercase;letter-spacing:1px">כאבים של הליד</div>
+              ${(analysis.pain_points||[]).map(p => `<div style="font-size:11px;color:var(--text);padding:3px 0;display:flex;gap:6px"><span style="color:var(--accent2)">•</span>${p}</div>`).join('')}
+            </div>
+            <div>
+              <div style="font-size:10px;color:var(--muted);margin-bottom:6px;text-transform:uppercase;letter-spacing:1px">יתרונות XTIX לליד זה</div>
+              ${(analysis.advantages||[]).map(a => `<div style="font-size:11px;color:var(--text);padding:3px 0;display:flex;gap:6px"><span style="color:var(--green)">✓</span>${a}</div>`).join('')}
+            </div>
+          </div>
+
+          <!-- Discovery + Objections -->
+          <div style="padding:14px 16px;display:grid;grid-template-columns:1fr 1fr;gap:10px;border-bottom:1px solid var(--border)">
+            <div>
+              <div style="font-size:10px;color:var(--muted);margin-bottom:6px;text-transform:uppercase;letter-spacing:1px">שאלות Discovery</div>
+              ${(analysis.discovery_questions||[]).map((q,i) => `<div style="font-size:11px;color:var(--muted);padding:3px 0">${i+1}. ${q}</div>`).join('')}
+            </div>
+            <div>
+              <div style="font-size:10px;color:var(--muted);margin-bottom:6px;text-transform:uppercase;letter-spacing:1px">התנגדויות צפויות</div>
+              ${(analysis.objections||[]).map(o => `<div style="font-size:11px;padding:4px 0;border-bottom:1px solid rgba(255,255,255,0.05)"><div style="color:var(--yellow)">"${o.obj}"</div><div style="color:var(--green);font-size:10px">→ ${o.answer}</div></div>`).join('')}
+            </div>
+          </div>
+
+          <!-- Generated Email Preview -->
+          <div style="padding:14px 16px;border-bottom:1px solid var(--border)">
+            <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px">
+              <div style="font-size:10px;color:var(--muted);text-transform:uppercase;letter-spacing:1px">✉️ מייל ראשון מותאם אישית</div>
+              <button class="btn" style="font-size:10px;padding:4px 10px" onclick="
+                const d = JSON.parse(this.closest('[data-analysis]')?.dataset?.analysis || document.getElementById('url-analysis-result').dataset.analysis || '{}');
+                navigator.clipboard.writeText(d.email_body||'');
+                this.textContent='✓ הועתק';setTimeout(()=>this.textContent='📋 העתק גוף',2000)">📋 העתק גוף</button>
+            </div>
+            <div style="font-size:12px;color:var(--muted);margin-bottom:4px">📌 נושא: <strong style="color:var(--text)">${analysis.email_subject || ''}</strong></div>
+            <div style="font-size:12px;line-height:1.7;background:var(--surface2);padding:12px;border-radius:8px;color:var(--text);white-space:pre-wrap">${analysis.email_body || ''}</div>
+          </div>
+
+          <!-- CTA -->
+          <div style="padding:14px 16px;display:flex;gap:8px;flex-wrap:wrap">
+            <button class="btn" style="flex:1;min-width:120px" onclick="
+              const d = JSON.parse(document.getElementById('url-analysis-result').dataset.analysis||'{}');
+              const nameEl = document.getElementById('lf-name-url')||document.getElementById('lf-name');
+              const n = (nameEl&&nameEl.value.trim())||d.domain||'ליד חדש';
+              const lead = { id: nextId++, name: n, domain: d.domain||'', type: d.segment||'Lead Finder', platform: d.platform_current||'', email: '', notes: d.summary||'', score: d.score||60, status:'new' };
+              leads.push(lead); saveLeads();
+              logActivity('lead_added_from_analysis', { lead_id: lead.id, lead_name: lead.name, score: lead.score });
+              renderSimpleLead(lead);
+              document.getElementById('total-leads').textContent = leads.length;
+              switchTab('leads', document.querySelector('.tab[onclick*=leads]'));
+              this.textContent='✅ נוסף!';
+            ">➕ הוסף ל-CRM</button>
+            <button class="btn" style="flex:1;min-width:120px" onclick="
+              const d = JSON.parse(document.getElementById('url-analysis-result').dataset.analysis||'{}');
+              navigator.clipboard.writeText(d.email_subject+'\\n\\n'+d.email_body);
+              this.textContent='✓ הועתק';setTimeout(()=>this.textContent='📋 העתק מייל מלא',2000)
+            ">📋 העתק מייל מלא</button>
+          </div>
+        </div>`;
+
+    } catch(err) {
+      // Fallback to basic analysis if AI fails
+      console.warn('AI analysis failed:', err.message);
+      const hasDomain = fullUrl.includes('.co.il') || fullUrl.includes('.com') || fullUrl.includes('.org');
+      resultEl.innerHTML = `
+        <div style="background:var(--surface2);border-radius:10px;padding:14px 16px;line-height:1.9">
+          <strong style="color:var(--accent);display:block;margin-bottom:8px">🔍 ניתוח בסיסי: ${fullUrl}</strong>
+          ${proxyData ? `
+          <div>🎟 <strong>פלטפורמה:</strong> <span style="color:var(--yellow)">${proxyData.ticketPlatform||'לא זוהתה'}</span></div>
+          <div>📧 <strong>מייל:</strong> <span style="color:var(--green)">${proxyData.email||'לא נמצא'}</span></div>
+          <div>📱 <strong>רשתות:</strong> ${proxyData.socialLinks?.join(', ')||'לא נמצאו'}</div>
+          ` : `<div>🌐 <strong>דומיין:</strong> <span style="color:${hasDomain?'var(--green)':'var(--muted)'}">${hasDomain?'✓ זוהה':'לא ידוע'}</span></div>`}
+          <div style="margin-top:10px;background:rgba(255,215,64,0.08);border:1px solid rgba(255,215,64,0.2);border-radius:8px;padding:10px;font-size:11px">
+            <strong style="color:var(--yellow)">⚡ לניתוח AI מלא:</strong><br>
+            ודא שהשרת רץ: <code style="color:var(--green)">python server.py</code><br>
+            שגיאה: ${err.message}
+          </div>
+        </div>`;
+    }
   }
 
   window.resetScorer = function resetScorer() {
@@ -3392,18 +3555,61 @@ IF RESPONSE at any point → Book 30-min MEETING (not call). Prepare ROI deck be
     }, 500);
   }
 
+  // ── Email HTML builder with RTL + signature ──────────────────────
+  function buildEmailHtml(bodyText, senderName) {
+    const name = senderName || 'אורן';
+    const lines = bodyText.split('\n').map(l => `<p style="margin:0 0 8px 0">${l||'&nbsp;'}</p>`).join('');
+    return `<!DOCTYPE html>
+<html dir="rtl" lang="he">
+<head><meta charset="UTF-8"></head>
+<body style="direction:rtl;text-align:right;font-family:Arial,sans-serif;font-size:14px;line-height:1.7;color:#1a1a2e;background:#ffffff;margin:0;padding:0">
+  <div style="max-width:600px;margin:0 auto;padding:32px 24px">
+    <div style="direction:rtl;text-align:right">
+      ${lines}
+    </div>
+    <hr style="border:none;border-top:1px solid #e5e7eb;margin:24px 0">
+    <div style="direction:rtl;text-align:right;font-size:13px;color:#6b7280;line-height:1.8">
+      <strong style="color:#1a1a2e">${name}</strong><br>
+      Sales | <strong style="color:#4f46e5">XTIX.ai</strong><br>
+      <span style="font-size:12px">פלטפורמת כרטיסים חכמה לאמנים ומפיקים</span><br>
+      <a href="https://xtix.ai" style="color:#4f46e5;text-decoration:none;font-size:12px">🌐 xtix.ai</a>
+    </div>
+  </div>
+</body>
+</html>`;
+  }
+
+  // ── Schedule HubSpot reminder after email ─────────────────────────
+  async function scheduleHubspotFollowup(lead, emailNum, subject) {
+    if (!lead || !lead.hubspot_id) return;
+    const followupDays = [3, 5, 7, 14][emailNum - 1] || 7;
+    const followupDate = new Date(Date.now() + followupDays * 86400000).toISOString().split('T')[0];
+    try {
+      await fetch(SERVER + '/reminders', {
+        method: 'POST', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          lead_id: lead.id, lead_name: lead.name,
+          date: followupDate,
+          note: `Follow-up מייל #${emailNum+1} — ${lead.name}`,
+          hubspot_id: lead.hubspot_id,
+          auto: true
+        })
+      });
+      await saveReminderToFirebase({
+        lead_id: lead.id, lead_name: lead.name,
+        date: followupDate,
+        note: `Follow-up מייל #${emailNum+1} — ${lead.name}`,
+        hubspot_id: lead.hubspot_id || '',
+        done: false, auto: true
+      });
+    } catch(e) {}
+  }
+
   // =================== SEND EMAIL FROM CARD ===================
   window.sendEmailFromCard = async function sendEmailFromCard(bodyElId, defaultEmail, leadId) {
     const el = document.getElementById(bodyElId);
     if (!el) return;
-    const raw = el.innerText || el.textContent;
-    // Parse Subject line
-    const subjectMatch = raw.match(/Subject:\s*(.+)/i);
-    const subject = subjectMatch ? subjectMatch[1].trim() : '(ללא נושא)';
-    const bodyText = raw.replace(/Subject:[^\n]+\n?/, '').trim();
-    const bodyHtml = bodyText.replace(/\n/g, '<br>');
 
-    // Get email from lead
     const lead = leads.find(l => l.id === leadId);
     const toEmail = (lead && lead.email && lead.email.includes('@')) ? lead.email : defaultEmail;
 
@@ -3411,25 +3617,48 @@ IF RESPONSE at any point → Book 30-min MEETING (not call). Prepare ROI deck be
       alert('אין כתובת מייל תקינה לליד זה.\nהוסף מייל בפרופיל הליד ונסה שוב.'); return;
     }
 
-    if (!confirm(`שלח מייל ל-${toEmail}?\nנושא: ${subject}`)) return;
+    // Extract subject from first line if it starts with נושא: or Subject:
+    const raw = (el.innerText || el.textContent).trim();
+    let subject = '';
+    let bodyText = raw;
+    const subjectMatch = raw.match(/^(?:נושא|Subject):\s*(.+)/im);
+    if (subjectMatch) {
+      subject = subjectMatch[1].trim();
+      bodyText = raw.replace(/^(?:נושא|Subject):[^\n]+\n?/im, '').trim();
+    } else {
+      // Use first non-empty line as subject
+      const firstLine = raw.split('\n').find(l => l.trim());
+      subject = firstLine ? firstLine.trim().substring(0, 80) : `פנייה מ-XTIX`;
+      bodyText = raw;
+    }
+
+    // Get sender name from config
+    let senderName = 'אורן';
+    try {
+      const cfg = await fetch(SERVER + '/config', { signal: AbortSignal.timeout(1000) });
+      if (cfg.ok) { const c = await cfg.json(); senderName = c.sender_name || senderName; }
+    } catch(e) {}
+
+    const htmlBody = buildEmailHtml(bodyText, senderName);
+
+    if (!confirm(`שלח מייל ל-${toEmail}?\n📌 נושא: ${subject}`)) return;
 
     const btn = event.target;
     btn.textContent = '⏳'; btn.disabled = true;
     try {
       const r = await fetch(SERVER + '/send-email', {
         method: 'POST', headers: {'Content-Type':'application/json'},
-        body: JSON.stringify({ to: toEmail, subject, html: bodyHtml, text: bodyText,
+        body: JSON.stringify({ to: toEmail, subject, html: htmlBody, text: bodyText,
                                hubspot_id: lead ? (lead.hubspot_id || '') : '' }),
         signal: AbortSignal.timeout(12000)
       });
       const d = await r.json();
       if (d.ok) {
         btn.textContent = '✅'; btn.style.background = 'rgba(0,230,118,0.3)';
-        if (lead) { lead.status = 'contacted'; saveLeads(); updateStats(); }
-        // Log email to Firebase
-        const emailNum = bodyElId.match(/\d+$/)?.[0] || 1;
-        logEmailSent(leadId, lead ? lead.name : '', toEmail, subject, parseInt(emailNum));
-        autoSyncLead(leadId);
+        if (lead) { lead.status = 'contacted'; saveLeads(); }
+        const emailNum = parseInt(bodyElId.match(/-(\d+)$/)?.[1] || bodyElId.match(/(\d+)$/)?.[0] || '1');
+        logEmailSent(leadId, lead ? lead.name : '', toEmail, subject, emailNum);
+        autoSyncLead(leadId).then(() => scheduleHubspotFollowup(lead, emailNum, subject));
       } else {
         btn.textContent = '❌'; btn.disabled = false;
         alert('שגיאה: ' + d.error);
