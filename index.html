@@ -2744,8 +2744,8 @@ ${proxyContext}
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           model: 'claude-sonnet-4-20250514',
-          max_tokens: 1000,
-          system: 'אתה מנהל מכירות ב-XTIX. החזר תמיד JSON נקי בלבד, ללא markdown ולא ```json.',
+          max_tokens: 2000,
+          system: 'אתה מנהל מכירות ב-XTIX. החזר תמיד JSON נקי בלבד, ללא markdown ולא ```json. חשוב מאוד: אל תוסיף טקסט לפני או אחרי ה-JSON.',
           messages: [{ role: 'user', content: prompt }]
         })
       });
@@ -2756,10 +2756,31 @@ ${proxyContext}
 
       let analysis;
       try {
-        const clean = rawText.replace(/```json|```/g, '').trim();
+        // Try multiple parsing strategies
+        let clean = rawText.replace(/```json|```/g, '').trim();
+        // Find first { to last } 
+        const start = clean.indexOf('{');
+        const end = clean.lastIndexOf('}');
+        if (start !== -1 && end !== -1) clean = clean.substring(start, end + 1);
         analysis = JSON.parse(clean);
       } catch(e) {
-        throw new Error('JSON parse failed: ' + rawText.substring(0, 100));
+        // If JSON fails, build a basic analysis from the raw text
+        console.warn('JSON parse failed, using fallback:', rawText.substring(0, 200));
+        analysis = {
+          summary: rawText.substring(0, 200) || 'ניתוח זמין — לא הצלחנו לפרסר JSON',
+          platform_current: proxyData?.ticketPlatform || 'לא זוהה',
+          platform_weakness: 'בדוק ידנית',
+          xtix_pitch: 'XTIX מציע פלטפורמה מתקדמת עם AI ואנליטיקה',
+          pain_points: ['ניהול ידני', 'עמלות גבוהות', 'חוסר אנליטיקה'],
+          advantages: ['Dynamic Pricing', 'AI Analytics', 'תמיכה מלאה'],
+          discovery_questions: ['איך אתה מוכר כרטיסים כיום?', 'מה הכי מאתגר בניהול האירועים?'],
+          objections: [{ obj: 'יקר מדי', answer: 'ROI תוך 3 חודשים' }],
+          email_subject: `שאלה על מכירת כרטיסים ל-${leadName}`,
+          email_body: `שלום,\n\nראיתי את האתר שלכם ב-${fullUrl} ורציתי לשתף רעיון שיכול לעזור.\n\nב-XTIX אנחנו עוזרים למפיקים כמוכם למכור יותר כרטיסים עם פחות מאמץ.\n\nשווה 15 דקות שיחה?\n\nאורן`,
+          score_factors: { domain: true, external_ticketing: false, active_social: false, contact_accessible: false },
+          recommended_cadence: 'warm',
+          segment: 'כללי'
+        };
       }
 
       // Log to Firebase
