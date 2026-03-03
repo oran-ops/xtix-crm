@@ -3607,6 +3607,7 @@ ${proxyContext}
 
   // =================== SEND EMAIL FROM CARD ===================
   window.sendEmailFromCard = async function sendEmailFromCard(bodyElId, defaultEmail, leadId) {
+    const btn = event.target; // ← חייב להיות ראשון לפני כל await
     const el = document.getElementById(bodyElId);
     if (!el) return;
 
@@ -3634,7 +3635,6 @@ ${proxyContext}
 
     if (!confirm(`שלח מייל ל-${toEmail}?\n📌 נושא: ${subject}`)) return;
 
-    const btn = event.target;
     btn.textContent = '⏳'; btn.disabled = true;
     try {
       const r = await fetch(SERVER + '/send-email', {
@@ -3654,9 +3654,9 @@ ${proxyContext}
         btn.textContent = '❌'; btn.disabled = false;
         alert('שגיאה: ' + d.error);
       }
-    } catch {
+    } catch(e) {
       btn.textContent = '❌'; btn.disabled = false;
-      alert('server.py לא רץ — הרץ: python server.py');
+      alert('שגיאה בשליחה: ' + e.message);
     }
   }
 
