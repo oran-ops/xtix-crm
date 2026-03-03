@@ -2882,6 +2882,10 @@ ${proxyCtx}
     return enrichedLead;
   }
 
+  // ── Enrichment queue globals ──
+  if (typeof enrichmentQueue   === 'undefined') var enrichmentQueue   = [];
+  if (typeof enrichmentRunning === 'undefined') var enrichmentRunning = false;
+
   async function processEnrichmentQueue() {
     if (enrichmentRunning || enrichmentQueue.length === 0) return;
     enrichmentRunning = true;
