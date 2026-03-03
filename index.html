@@ -347,6 +347,7 @@
   <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-auth-compat.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
 </head>
 <body>
 
@@ -2013,6 +2014,16 @@ IF RESPONSE at any point → Book 30-min MEETING (not call). Prepare ROI deck be
 
             <!-- Results -->
             <div id="hunt-results" style="display:none;margin-top:16px"></div>
+
+            <!-- Saved Searches -->
+            <div id="saved-searches-panel" style="margin-top:16px">
+              <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px">
+                <span style="font-size:11px;font-weight:700;color:var(--muted);letter-spacing:1px;text-transform:uppercase">חיפושים שמורים</span>
+                <span id="saved-count" style="font-size:10px;color:var(--muted)"></span>
+              </div>
+              <div id="saved-searches-list" style="display:flex;flex-direction:column;gap:6px"></div>
+              <div id="saved-searches-empty" style="font-size:11px;color:var(--muted);text-align:center;padding:10px 0;display:none">אין חיפושים שמורים עדיין</div>
+            </div>
           </div>
 
         </div>
@@ -2480,6 +2491,66 @@ IF RESPONSE at any point → Book 30-min MEETING (not call). Prepare ROI deck be
       showStorageStatus('default');
     }
   }
+
+  // ── Export to Excel ────────────────────────────────────────
+  window.exportToExcel = function exportToExcel() {
+    if (!leads || !leads.length) { alert('אין לידים לייצוא'); return; }
+
+    try {
+      var rows = leads.map(function(l) {
+        var e = l.enrichment || {};
+        return {
+          'שם': l.name || '',
+          'דומיין': l.domain || l.url || '',
+          'טלפון': l.phone || '',
+          'מייל': l.email || '',
+          'סטטוס': l.status || '',
+          'מקור': l.source || '',
+          'סגמנט': l.segment || l.type || '',
+          'פלטפורמה': l.platform || e.platform_current || '',
+          'ציון': l.score || '',
+          'דירוג': l.tier || '',
+          'פניות': l.contacted ? 'כן' : 'לא',
+          'סיכום AI': e.summary || '',
+          'חולשת פלטפורמה': e.platform_weakness || '',
+          'עמלות שנתיות': e.estimated_fees || '',
+          'חיסכון ב-XTIX': e.estimated_savings || '',
+          'הערות': l.notes || '',
+          'תאריך יצירה': l.created_at ? new Date(l.created_at).toLocaleDateString('he-IL') : '',
+          'תאריך עדכון': l.updated_at ? new Date(l.updated_at).toLocaleDateString('he-IL') : '',
+          'תאריך ניתוח': e.enriched_at ? new Date(e.enriched_at).toLocaleDateString('he-IL') : ''
+        };
+      });
+
+      var ws = XLSX.utils.json_to_sheet(rows, { skipHeader: false });
+
+      // Auto column widths
+      var cols = Object.keys(rows[0]).map(function(k) {
+        var max = k.length;
+        rows.forEach(function(r) { if (r[k] && String(r[k]).length > max) max = String(r[k]).length; });
+        return { wch: Math.min(max + 2, 50) };
+      });
+      ws['!cols'] = cols;
+
+      var wb = XLSX.utils.book_new();
+      XLSX.utils.book_append_sheet(wb, ws, 'לידים XTIX');
+
+      var date = new Date().toLocaleDateString('he-IL').replace(/\//g, '-');
+      XLSX.writeFile(wb, 'XTIX-Leads-' + date + '.xlsx');
+
+      // Feedback
+      var btn = document.querySelector('.sb-tool-btn[onclick*="exportToExcel"]');
+      if (btn) {
+        var orig = btn.innerHTML;
+        btn.innerHTML = '✅ <span>יוצא!</span>';
+        setTimeout(function() { btn.innerHTML = orig; }, 2000);
+      }
+    } catch(err) {
+      console.error('Export error:', err);
+      alert('שגיאה בייצוא: ' + err.message + '\nוודא שהדפדפן מאפשר הורדות.');
+    }
+  };
+
 
   function showStorageStatus(source) {
     const el = document.getElementById('storage-indicator');
@@ -3052,6 +3123,10 @@ IF RESPONSE at any point → Book 30-min MEETING (not call). Prepare ROI deck be
         + '<button onclick="switchMainTab(&quot;leads&quot;,document.querySelector(&quot;[data-panel=leads]&quot;))" '
         + 'style="margin-top:8px;background:var(--accent);border:none;border-radius:7px;padding:6px 16px;color:#fff;font-size:12px;font-family:Heebo,sans-serif;cursor:pointer">👤 עבור ללידים</button>'
         + '</div>';
+      // Auto-hide after 5s
+      setTimeout(function() {
+        if (msg) { msg.style.transition='opacity 0.5s'; msg.style.opacity='0'; setTimeout(function(){ msg.style.display='none'; msg.style.opacity='1'; }, 500); }
+      }, 5000);
     }
 
     // Switch to leads tab after 2s
@@ -3378,7 +3453,7 @@ ${proxyCtx}
         enrichmentRunning = false;
         var sb = document.getElementById('enrich-status-bar');
         window._enrichTotal = 0;
-        if (sb) { sb.innerHTML = '🎉 ניתוח הושלם לכל הלידים! רענן את הדף לראות תוצאות מלאות.'; setTimeout(function(){ var s=document.getElementById('enrich-status-bar'); if(s)s.remove(); }, 5000); }
+        if (sb) { sb.innerHTML = '🎉 ניתוח הושלם! <span style="font-weight:400;opacity:0.7">כל הלידים נותחו בהצלחה</span>'; setTimeout(function(){ var s=document.getElementById('enrich-status-bar'); if(s){s.style.transition='opacity 0.6s';s.style.opacity='0';setTimeout(function(){s.remove();},600);} }, 4000); }
         return;
       }
 
@@ -3747,7 +3822,11 @@ ${proxyCtx}
       + '<div><span style="color:var(--muted)">עדיפות:</span> <strong>' + (ans.priority||'הכל') + '</strong></div>'
       + '</div>'
       + '<button onclick="window.runHuntSearch()" style="width:100%;background:linear-gradient(135deg,var(--accent),#8b5cf6);border:none;border-radius:8px;padding:11px;color:#fff;font-size:13px;font-weight:800;cursor:pointer;font-family:Heebo,sans-serif;margin-bottom:6px">🚀 חפש לידים עם AI</button>'
-      + '<button onclick="huntState.step=0;huntState.answers={};huntAskNext()" style="width:100%;background:transparent;border:1px solid var(--border);border-radius:8px;padding:8px;color:var(--muted);font-size:12px;cursor:pointer;font-family:Heebo,sans-serif">↺ שנה פרמטרים</button>';
+      + '<div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:5px;margin-top:4px">'
+      + '<button id="btn-save-search" onclick="window.saveCurrentSearch()" style="background:rgba(0,230,118,0.1);border:1px solid rgba(0,230,118,0.25);border-radius:7px;padding:7px 4px;color:var(--green);font-size:11px;font-weight:700;cursor:pointer;font-family:Heebo,sans-serif">💾 שמור</button>'
+      + '<button onclick="window.newHuntSearch()" style="background:rgba(108,99,255,0.1);border:1px solid rgba(108,99,255,0.25);border-radius:7px;padding:7px 4px;color:var(--accent);font-size:11px;font-weight:700;cursor:pointer;font-family:Heebo,sans-serif">✨ חיפוש חדש</button>'
+      + '<button onclick="huntState.step=0;huntState.answers={};huntAskNext()" style="background:transparent;border:1px solid var(--border);border-radius:7px;padding:7px 4px;color:var(--muted);font-size:11px;cursor:pointer;font-family:Heebo,sans-serif">↺ ערוך</button>'
+      + '</div>';
     chat.appendChild(summaryDiv);
     chat.scrollTop = chat.scrollHeight;
     // Keep answers for search, reset step only
@@ -3862,6 +3941,102 @@ ${proxyCtx}
     // Visual feedback on the button
     event && event.target && (event.target.textContent = '✅ נוסף!') && (event.target.disabled = true);
   };
+
+  // ══════════════════════════════════════════════════
+  // SAVED SEARCHES — save/load/delete hunt configs
+  // ══════════════════════════════════════════════════
+  var SAVED_KEY = 'xtix_saved_searches';
+
+  function loadSavedSearches() {
+    try { return JSON.parse(localStorage.getItem(SAVED_KEY) || '[]'); } catch(e) { return []; }
+  }
+  function persistSavedSearches(arr) {
+    try { localStorage.setItem(SAVED_KEY, JSON.stringify(arr)); } catch(e) {}
+  }
+
+  window.renderSavedSearches = function() {
+    var list = document.getElementById('saved-searches-list');
+    var empty = document.getElementById('saved-searches-empty');
+    var count = document.getElementById('saved-count');
+    if (!list) return;
+    var searches = loadSavedSearches();
+    list.innerHTML = '';
+    if (count) count.textContent = searches.length ? searches.length + ' שמורים' : '';
+    if (!searches.length) {
+      if (empty) empty.style.display = 'block';
+      return;
+    }
+    if (empty) empty.style.display = 'none';
+    searches.forEach(function(s, idx) {
+      var row = document.createElement('div');
+      row.style.cssText = 'background:var(--surface2);border:1px solid var(--border);border-radius:9px;padding:10px 12px;display:flex;align-items:center;gap:8px';
+      var tags = [s.segment, s.location, s.size, s.platform, s.freq].filter(Boolean).join(' · ');
+      row.innerHTML = '<div style="flex:1;min-width:0">'
+        + '<div style="font-size:12px;font-weight:700;color:var(--text);margin-bottom:2px">' + (s.name || 'חיפוש ללא שם') + '</div>'
+        + '<div style="font-size:10px;color:var(--muted);overflow:hidden;text-overflow:ellipsis;white-space:nowrap">' + tags + '</div>'
+        + '</div>'
+        + '<button onclick="window.runSavedSearch(' + idx + ')" title="הרץ חיפוש" '
+        + 'style="background:rgba(108,99,255,0.15);border:1px solid rgba(108,99,255,0.3);border-radius:7px;padding:5px 10px;color:var(--accent);font-size:11px;font-weight:700;cursor:pointer;font-family:Heebo,sans-serif;white-space:nowrap">▶ הרץ</button>'
+        + '<button onclick="window.editSavedSearch(' + idx + ')" title="ערוך" '
+        + 'style="background:rgba(255,215,64,0.1);border:1px solid rgba(255,215,64,0.25);border-radius:7px;padding:5px 10px;color:var(--yellow);font-size:11px;cursor:pointer;font-family:Heebo,sans-serif">✏️</button>'
+        + '<button onclick="window.deleteSavedSearch(' + idx + ')" title="מחק" '
+        + 'style="background:rgba(239,68,68,0.1);border:1px solid rgba(239,68,68,0.2);border-radius:7px;padding:5px 10px;color:#EF4444;font-size:11px;cursor:pointer;font-family:Heebo,sans-serif">🗑</button>';
+      list.appendChild(row);
+    });
+  };
+
+  window.saveCurrentSearch = function(name) {
+    var ans = huntState.answers;
+    if (!ans || !Object.keys(ans).length) { alert('אין פרמטרים לשמירה — הרץ חיפוש קודם'); return; }
+    var label = name || prompt('שם לחיפוש (לזיהוי):') || ('חיפוש ' + new Date().toLocaleDateString('he-IL'));
+    var searches = loadSavedSearches();
+    searches.unshift({ name: label, segment: ans.segment||'', location: ans.location||'', size: ans.size||'', platform: ans.platform||'', freq: ans.freq||'', priority: ans.priority||'', savedAt: new Date().toISOString() });
+    persistSavedSearches(searches);
+    window.renderSavedSearches();
+    // Visual feedback
+    var btn = document.getElementById('btn-save-search');
+    if (btn) { btn.textContent = '✅ נשמר!'; setTimeout(function(){ btn.textContent = '💾 שמור חיפוש'; }, 2000); }
+  };
+
+  window.deleteSavedSearch = function(idx) {
+    if (!confirm('למחוק חיפוש זה?')) return;
+    var searches = loadSavedSearches();
+    searches.splice(idx, 1);
+    persistSavedSearches(searches);
+    window.renderSavedSearches();
+  };
+
+  window.editSavedSearch = function(idx) {
+    var searches = loadSavedSearches();
+    var s = searches[idx];
+    var newName = prompt('שנה שם:', s.name);
+    if (newName === null) return;
+    s.name = newName || s.name;
+    persistSavedSearches(searches);
+    // Load params back into huntState for re-run
+    huntState.answers = { segment: s.segment, location: s.location, size: s.size, platform: s.platform, freq: s.freq, priority: s.priority };
+    window.renderSavedSearches();
+    alert('פרמטרים נטענו — לחץ "🚀 חפש לידים עם AI" להריץ מחדש');
+  };
+
+  window.runSavedSearch = function(idx) {
+    var searches = loadSavedSearches();
+    var s = searches[idx];
+    huntState.answers = { segment: s.segment, location: s.location, size: s.size, platform: s.platform, freq: s.freq, priority: s.priority };
+    window.runHuntSearch();
+  };
+
+  window.newHuntSearch = function() {
+    huntState.step = 0;
+    huntState.answers = {};
+    var chat = document.getElementById('hunt-chat');
+    if (chat) chat.innerHTML = '';
+    huntAskNext();
+  };
+
+  // Init saved searches on load
+  setTimeout(window.renderSavedSearches, 800);
+
 
   // =====================================================
 
