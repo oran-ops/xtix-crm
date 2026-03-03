@@ -3641,7 +3641,7 @@ ${proxyContext}
         method: 'POST', headers: {'Content-Type':'application/json'},
         body: JSON.stringify({ to: toEmail, subject, html: htmlBody, text: bodyText,
                                hubspot_id: lead ? (lead.hubspot_id || '') : '' }),
-        signal: AbortSignal.timeout(12000)
+        signal: AbortSignal.timeout(30000)
       });
       const d = await r.json();
       if (d.ok) {
