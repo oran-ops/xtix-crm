@@ -1,0 +1,410 @@
+<!DOCTYPE html>
+<html lang="he" dir="rtl">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>XTIX CRM — Architecture</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Space+Mono:wght@400;700&family=Heebo:wght@300;400;700;900&display=swap');
+
+  :root {
+    --bg: #070710;
+    --surface: #0f0f1a;
+    --surface2: #161625;
+    --border: #1e1e35;
+    --text: #e8e8f0;
+    --muted: #5a5a7a;
+    --green: #00e676;
+    --accent: #4f46e5;
+    --purple: #a78bfa;
+    --yellow: #ffd600;
+    --red: #ff4757;
+    --cyan: #00d4ff;
+  }
+
+  * { margin:0; padding:0; box-sizing:border-box; }
+  body { background:var(--bg); color:var(--text); font-family:'Heebo',sans-serif; min-height:100vh; overflow-x:hidden; }
+
+  /* Background */
+  body::before {
+    content:''; position:fixed; inset:0; z-index:0;
+    background: radial-gradient(ellipse 80% 50% at 20% 20%, rgba(79,70,229,0.08) 0%, transparent 60%),
+                radial-gradient(ellipse 60% 40% at 80% 80%, rgba(0,214,255,0.06) 0%, transparent 50%);
+    pointer-events:none;
+  }
+
+  .page { position:relative; z-index:1; max-width:1200px; margin:0 auto; padding:40px 24px; }
+
+  /* Header */
+  .header { text-align:center; margin-bottom:60px; }
+  .header .badge { display:inline-block; background:rgba(79,70,229,0.2); border:1px solid rgba(79,70,229,0.4); border-radius:20px; padding:4px 16px; font-size:11px; letter-spacing:2px; color:var(--accent); font-family:'Space Mono',monospace; margin-bottom:16px; text-transform:uppercase; }
+  .header h1 { font-size:clamp(28px,5vw,52px); font-weight:900; line-height:1.1; margin-bottom:12px; }
+  .header h1 span { color:var(--purple); }
+  .header p { color:var(--muted); font-size:14px; max-width:500px; margin:0 auto; }
+
+  /* Architecture Flow */
+  .arch-flow { display:grid; grid-template-columns: 1fr auto 1fr auto 1fr; gap:0; align-items:center; margin-bottom:60px; }
+  
+  .arch-node {
+    background:var(--surface);
+    border:1px solid var(--border);
+    border-radius:14px;
+    padding:20px 16px;
+    text-align:center;
+    position:relative;
+    transition:all 0.3s;
+  }
+  .arch-node:hover { border-color:var(--accent); transform:translateY(-3px); box-shadow:0 8px 32px rgba(79,70,229,0.2); }
+  .arch-node .icon { font-size:28px; margin-bottom:8px; }
+  .arch-node .label { font-size:13px; font-weight:700; color:var(--text); margin-bottom:4px; }
+  .arch-node .sublabel { font-size:10px; color:var(--muted); font-family:'Space Mono',monospace; }
+  .arch-node .status { position:absolute; top:10px; left:10px; width:8px; height:8px; border-radius:50%; }
+  .status-ok { background:var(--green); box-shadow:0 0 8px var(--green); animation:pulse 2s infinite; }
+  .status-warn { background:var(--yellow); }
+  .status-pending { background:var(--muted); }
+
+  .arch-arrow { font-size:24px; color:var(--border); padding:0 8px; text-align:center; }
+
+  @keyframes pulse { 0%,100%{opacity:1} 50%{opacity:0.4} }
+
+  /* Full Stack Diagram */
+  .stack-diagram { display:grid; grid-template-columns:repeat(3,1fr); gap:16px; margin-bottom:60px; }
+
+  .stack-layer {
+    background:var(--surface);
+    border:1px solid var(--border);
+    border-radius:14px;
+    padding:20px;
+    position:relative;
+    overflow:hidden;
+  }
+  .stack-layer::before {
+    content:''; position:absolute; top:0; left:0; right:0; height:3px;
+  }
+  .layer-frontend::before { background:linear-gradient(90deg,var(--accent),var(--purple)); }
+  .layer-server::before { background:linear-gradient(90deg,var(--cyan),var(--green)); }
+  .layer-data::before { background:linear-gradient(90deg,var(--yellow),var(--red)); }
+
+  .stack-layer h3 { font-size:12px; letter-spacing:2px; text-transform:uppercase; color:var(--muted); margin-bottom:14px; font-family:'Space Mono',monospace; }
+  .stack-item { display:flex; align-items:center; gap:8px; padding:7px 0; border-bottom:1px solid var(--border); }
+  .stack-item:last-child { border-bottom:none; }
+  .stack-dot { width:6px; height:6px; border-radius:50%; flex-shrink:0; }
+  .dot-green { background:var(--green); }
+  .dot-yellow { background:var(--yellow); }
+  .dot-red { background:var(--red); }
+  .dot-purple { background:var(--purple); }
+  .dot-cyan { background:var(--cyan); }
+  .stack-item-label { font-size:12px; color:var(--text); flex:1; }
+  .stack-item-status { font-size:10px; font-family:'Space Mono',monospace; }
+  .s-ok { color:var(--green); }
+  .s-warn { color:var(--yellow); }
+  .s-todo { color:var(--muted); }
+
+  /* Improvements */
+  .improvements { margin-bottom:60px; }
+  .improvements h2 { font-size:20px; font-weight:700; margin-bottom:20px; display:flex; align-items:center; gap:10px; }
+  .improvements h2::after { content:''; flex:1; height:1px; background:var(--border); }
+
+  .imp-grid { display:grid; grid-template-columns:repeat(auto-fill,minmax(280px,1fr)); gap:14px; }
+  .imp-card {
+    background:var(--surface);
+    border:1px solid var(--border);
+    border-radius:12px;
+    padding:16px;
+    position:relative;
+    overflow:hidden;
+    transition:all 0.3s;
+  }
+  .imp-card:hover { border-color:rgba(167,139,250,0.4); transform:translateY(-2px); }
+  .imp-card .priority { position:absolute; top:12px; left:12px; font-size:9px; font-family:'Space Mono',monospace; padding:2px 8px; border-radius:10px; }
+  .p-high { background:rgba(255,71,87,0.15); color:var(--red); border:1px solid rgba(255,71,87,0.3); }
+  .p-med { background:rgba(255,214,0,0.1); color:var(--yellow); border:1px solid rgba(255,214,0,0.3); }
+  .p-low { background:rgba(0,230,118,0.1); color:var(--green); border:1px solid rgba(0,230,118,0.3); }
+  .imp-card .imp-icon { font-size:24px; margin-bottom:8px; margin-top:20px; }
+  .imp-card .imp-title { font-size:13px; font-weight:700; margin-bottom:6px; }
+  .imp-card .imp-desc { font-size:11px; color:var(--muted); line-height:1.7; }
+  .imp-card .imp-tech { margin-top:10px; display:flex; flex-wrap:wrap; gap:4px; }
+  .imp-tech span { font-size:9px; font-family:'Space Mono',monospace; background:var(--surface2); border:1px solid var(--border); border-radius:4px; padding:2px 6px; color:var(--muted); }
+
+  /* Analysis */
+  .analysis { display:grid; grid-template-columns:1fr 1fr; gap:16px; margin-bottom:60px; }
+  .analysis-card { background:var(--surface); border:1px solid var(--border); border-radius:14px; padding:20px; }
+  .analysis-card h3 { font-size:13px; font-weight:700; margin-bottom:14px; display:flex; align-items:center; gap:8px; }
+  .analysis-item { display:flex; align-items:flex-start; gap:10px; padding:8px 0; border-bottom:1px solid var(--border); font-size:12px; line-height:1.6; }
+  .analysis-item:last-child { border-bottom:none; }
+  .analysis-item .ai { flex-shrink:0; margin-top:2px; }
+
+  /* Roadmap */
+  .roadmap { margin-bottom:40px; }
+  .roadmap h2 { font-size:20px; font-weight:700; margin-bottom:20px; display:flex; align-items:center; gap:10px; }
+  .roadmap h2::after { content:''; flex:1; height:1px; background:var(--border); }
+  .roadmap-track { display:grid; grid-template-columns:repeat(4,1fr); gap:12px; }
+  .roadmap-phase { background:var(--surface); border:1px solid var(--border); border-radius:12px; padding:16px; }
+  .roadmap-phase .phase-num { font-size:10px; font-family:'Space Mono',monospace; color:var(--muted); margin-bottom:8px; }
+  .roadmap-phase .phase-title { font-size:13px; font-weight:700; margin-bottom:10px; }
+  .roadmap-phase ul { list-style:none; }
+  .roadmap-phase ul li { font-size:11px; color:var(--muted); padding:4px 0; display:flex; align-items:center; gap:6px; line-height:1.5; }
+  .roadmap-phase ul li::before { content:'→'; color:var(--accent); flex-shrink:0; }
+  .phase-done { border-color:rgba(0,230,118,0.3); }
+  .phase-done .phase-title { color:var(--green); }
+  .phase-active { border-color:rgba(79,70,229,0.4); background:rgba(79,70,229,0.05); }
+  .phase-active .phase-title { color:var(--purple); }
+
+  @media(max-width:768px) {
+    .arch-flow { grid-template-columns:1fr; }
+    .arch-arrow { transform:rotate(90deg); }
+    .stack-diagram { grid-template-columns:1fr; }
+    .analysis { grid-template-columns:1fr; }
+    .roadmap-track { grid-template-columns:1fr 1fr; }
+  }
+</style>
+</head>
+<body>
+<div class="page">
+
+  <!-- Header -->
+  <div class="header">
+    <div class="badge">XTIX CRM · Architecture Map v2.0</div>
+    <h1>תשתית <span>חכמה</span> לצמיחה</h1>
+    <p>מפת הארכיטקטורה המלאה — מה בנינו, מה עובד, ומה הצעד הבא</p>
+  </div>
+
+  <!-- Flow -->
+  <div style="margin-bottom:16px;font-size:11px;letter-spacing:2px;text-transform:uppercase;color:var(--muted);font-family:'Space Mono',monospace">זרימת המערכת</div>
+  <div class="arch-flow" style="margin-bottom:40px">
+    <div class="arch-node">
+      <div class="status status-ok"></div>
+      <div class="icon">🌐</div>
+      <div class="label">GitHub Pages</div>
+      <div class="sublabel">ממשק משתמש<br>oran-ops.github.io</div>
+    </div>
+    <div class="arch-arrow">⟷</div>
+    <div class="arch-node">
+      <div class="status status-ok"></div>
+      <div class="icon">🚂</div>
+      <div class="label">Railway Server</div>
+      <div class="sublabel">Python API<br>HTTPS · PORT 8765</div>
+    </div>
+    <div class="arch-arrow">⟷</div>
+    <div class="arch-node">
+      <div class="status status-ok"></div>
+      <div class="icon">🔥</div>
+      <div class="label">Firebase</div>
+      <div class="sublabel">Firestore DB<br>Auth · Realtime</div>
+    </div>
+  </div>
+
+  <!-- Side services -->
+  <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:12px;margin-bottom:60px">
+    <div class="arch-node">
+      <div class="status status-warn"></div>
+      <div class="icon">📧</div>
+      <div class="label">Gmail / SendGrid</div>
+      <div class="sublabel">SMTP חסום ב-Railway<br>SendGrid בהמתנה</div>
+    </div>
+    <div class="arch-node">
+      <div class="status status-warn"></div>
+      <div class="icon">🔗</div>
+      <div class="label">HubSpot CRM</div>
+      <div class="sublabel">Sync חד-כיווני<br>Token חסר</div>
+    </div>
+    <div class="arch-node">
+      <div class="status status-ok"></div>
+      <div class="icon">🤖</div>
+      <div class="label">Claude AI</div>
+      <div class="sublabel">דרך Railway Proxy<br>Lead Hunt + Analysis</div>
+    </div>
+    <div class="arch-node">
+      <div class="status status-pending"></div>
+      <div class="icon">📊</div>
+      <div class="label">Analytics</div>
+      <div class="sublabel">מתוכנן<br>לא מחובר עדיין</div>
+    </div>
+  </div>
+
+  <!-- Stack Layers -->
+  <div style="margin-bottom:16px;font-size:11px;letter-spacing:2px;text-transform:uppercase;color:var(--muted);font-family:'Space Mono',monospace">שכבות המערכת</div>
+  <div class="stack-diagram">
+    <div class="stack-layer layer-frontend">
+      <h3>Frontend — GitHub Pages</h3>
+      <div class="stack-item"><div class="stack-dot dot-green"></div><div class="stack-item-label">Dashboard + לידים</div><span class="stack-item-status s-ok">✓ פעיל</span></div>
+      <div class="stack-item"><div class="stack-dot dot-green"></div><div class="stack-item-label">Lead Finder + Scorer</div><span class="stack-item-status s-ok">✓ פעיל</span></div>
+      <div class="stack-item"><div class="stack-dot dot-green"></div><div class="stack-item-label">🤖 AI Hunt</div><span class="stack-item-status s-ok">✓ חדש</span></div>
+      <div class="stack-item"><div class="stack-dot dot-green"></div><div class="stack-item-label">פוזיציינינג מתחרים</div><span class="stack-item-status s-ok">✓ פעיל</span></div>
+      <div class="stack-item"><div class="stack-dot dot-yellow"></div><div class="stack-item-label">שליחת מיילים</div><span class="stack-item-status s-warn">⚠ SendGrid</span></div>
+      <div class="stack-item"><div class="stack-dot dot-purple"></div><div class="stack-item-label">Firebase היסטוריה</div><span class="stack-item-status s-todo">→ בתכנון</span></div>
+    </div>
+    <div class="stack-layer layer-server">
+      <h3>Backend — Railway</h3>
+      <div class="stack-item"><div class="stack-dot dot-green"></div><div class="stack-item-label">Python HTTP Server</div><span class="stack-item-status s-ok">✓ פעיל</span></div>
+      <div class="stack-item"><div class="stack-dot dot-green"></div><div class="stack-item-label">/ai Proxy → Claude</div><span class="stack-item-status s-ok">✓ חדש</span></div>
+      <div class="stack-item"><div class="stack-dot dot-green"></div><div class="stack-item-label">/analyze URL</div><span class="stack-item-status s-ok">✓ פעיל</span></div>
+      <div class="stack-item"><div class="stack-dot dot-yellow"></div><div class="stack-item-label">/send-email</div><span class="stack-item-status s-warn">⚠ SMTP חסום</span></div>
+      <div class="stack-item"><div class="stack-dot dot-green"></div><div class="stack-item-label">/hubspot/sync</div><span class="stack-item-status s-ok">✓ מוכן</span></div>
+      <div class="stack-item"><div class="stack-dot dot-green"></div><div class="stack-item-label">ENV Variables</div><span class="stack-item-status s-ok">✓ מאובטח</span></div>
+    </div>
+    <div class="stack-layer layer-data">
+      <h3>Data — Firebase</h3>
+      <div class="stack-item"><div class="stack-dot dot-green"></div><div class="stack-item-label">לידים (leads)</div><span class="stack-item-status s-ok">✓ פעיל</span></div>
+      <div class="stack-item"><div class="stack-dot dot-green"></div><div class="stack-item-label">פעילות (activity)</div><span class="stack-item-status s-ok">✓ פעיל</span></div>
+      <div class="stack-item"><div class="stack-dot dot-green"></div><div class="stack-item-label">תזכורות (reminders)</div><span class="stack-item-status s-ok">✓ פעיל</span></div>
+      <div class="stack-item"><div class="stack-dot dot-yellow"></div><div class="stack-item-label">ניתוחי AI</div><span class="stack-item-status s-warn">→ בתכנון</span></div>
+      <div class="stack-item"><div class="stack-dot dot-yellow"></div><div class="stack-item-label">היסטוריית Hunt</div><span class="stack-item-status s-warn">→ בתכנון</span></div>
+      <div class="stack-item"><div class="stack-dot dot-purple"></div><div class="stack-item-label">Analytics Events</div><span class="stack-item-status s-todo">→ עתידי</span></div>
+    </div>
+  </div>
+
+  <!-- Improvements -->
+  <div class="improvements">
+    <h2>🚀 הצעות לשיפור</h2>
+    <div class="imp-grid">
+
+      <div class="imp-card">
+        <div class="priority p-high">HIGH</div>
+        <div class="imp-icon">📧</div>
+        <div class="imp-title">SendGrid — שליחת מיילים</div>
+        <div class="imp-desc">SMTP חסום ב-Railway. SendGrid API עובד דרך HTTPS — פתרון קבוע לשליחת מיילים מכל מכשיר, עם tracking פתיחות וקליקים.</div>
+        <div class="imp-tech"><span>SendGrid API</span><span>Railway ENV</span><span>Email Tracking</span></div>
+      </div>
+
+      <div class="imp-card">
+        <div class="priority p-high">HIGH</div>
+        <div class="imp-icon">💾</div>
+        <div class="imp-title">Firebase — שמירת Hunt + ניתוחים</div>
+        <div class="imp-desc">כל חיפוש AI וניתוח ליד יישמר ב-Firebase. תוכל לחזור לתוצאות קודמות, לראות טרנדים, ולהשוות ניתוחים לאורך זמן.</div>
+        <div class="imp-tech"><span>Firestore</span><span>hunt_searches</span><span>lead_analyses</span></div>
+      </div>
+
+      <div class="imp-card">
+        <div class="priority p-high">HIGH</div>
+        <div class="imp-icon">🔗</div>
+        <div class="imp-title">HubSpot Token + סנכרון דו-כיווני</div>
+        <div class="imp-desc">כרגע HubSpot חד-כיווני. עם Token — עדכוני סטטוס מ-HubSpot יחזרו ל-CRM, לוגי מיילים יסונכרנו, ותזכורות יופיעו בשני כיוונים.</div>
+        <div class="imp-tech"><span>HubSpot API</span><span>Webhook</span><span>2-way sync</span></div>
+      </div>
+
+      <div class="imp-card">
+        <div class="priority p-med">MED</div>
+        <div class="imp-icon">🧠</div>
+        <div class="imp-title">AI Deep Analysis — ניתוח מלא לליד</div>
+        <div class="imp-desc">לחיצה על ליד → AI מנתח: אתר, רשתות חברתיות, אירועים אחרונים, מתחרה נוכחי, חולשות, pitch מותאם + רצף מיילים ספציפי.</div>
+        <div class="imp-tech"><span>Claude AI</span><span>Web Search</span><span>Email Cadence</span></div>
+      </div>
+
+      <div class="imp-card">
+        <div class="priority p-med">MED</div>
+        <div class="imp-icon">📊</div>
+        <div class="imp-title">Dashboard Analytics מתקדם</div>
+        <div class="imp-desc">גרפים: שיעור המרה לפי סגמנט, ביצועי מיילים (פתיחות/קליקים), Pipeline velocity, Leaderboard מתחרים.</div>
+        <div class="imp-tech"><span>Chart.js</span><span>Firebase Analytics</span></div>
+      </div>
+
+      <div class="imp-card">
+        <div class="priority p-med">MED</div>
+        <div class="imp-icon">📱</div>
+        <div class="imp-title">Mobile App / PWA</div>
+        <div class="imp-desc">הפוך את ה-CRM ל-PWA — תוכל להשתמש מהטלפון, לקבל push notifications על תזכורות, ולהוסיף לידים מהשטח.</div>
+        <div class="imp-tech"><span>PWA</span><span>Service Worker</span><span>Push API</span></div>
+      </div>
+
+      <div class="imp-card">
+        <div class="priority p-low">LOW</div>
+        <div class="imp-icon">🔔</div>
+        <div class="imp-title">Slack / WhatsApp Alerts</div>
+        <div class="imp-desc">תזכורות אוטומטיות ב-Slack או WhatsApp: "יש לך 3 לידים hot שלא נגעת בהם 7 ימים", "ליד X פתח את המייל שלך".</div>
+        <div class="imp-tech"><span>Slack API</span><span>Twilio</span><span>Webhooks</span></div>
+      </div>
+
+      <div class="imp-card">
+        <div class="priority p-low">LOW</div>
+        <div class="imp-icon">🎯</div>
+        <div class="imp-title">LinkedIn Scraper Integration</div>
+        <div class="imp-desc">חיפוש לידים ישירות מ-LinkedIn על פי תפקיד + תחום + גודל חברה. ייבוא אוטומטי ל-CRM עם ניתוח AI.</div>
+        <div class="imp-tech"><span>LinkedIn API</span><span>Phantombuster</span></div>
+      </div>
+
+    </div>
+  </div>
+
+  <!-- Analysis -->
+  <div style="margin-bottom:16px;font-size:11px;letter-spacing:2px;text-transform:uppercase;color:var(--muted);font-family:'Space Mono',monospace">ניתוח הכלי</div>
+  <div class="analysis">
+    <div class="analysis-card">
+      <h3><span style="color:var(--green)">✓</span> חוזקות</h3>
+      <div class="analysis-item"><span class="ai">✅</span><span>ארכיטקטורה עצמאית — הכל בענן, כלום לוקאלי</span></div>
+      <div class="analysis-item"><span class="ai">✅</span><span>AI Hunt + ניתוח מבוסס מתחרים ספציפי לשוק הישראלי</span></div>
+      <div class="analysis-item"><span class="ai">✅</span><span>פוזיציינינג Salesforce Best Practices מובנה</span></div>
+      <div class="analysis-item"><span class="ai">✅</span><span>Firebase Realtime — כל שינוי נשמר מיד</span></div>
+      <div class="analysis-item"><span class="ai">✅</span><span>Railway Proxy — API keys מוסתרים ומאובטחים</span></div>
+      <div class="analysis-item"><span class="ai">✅</span><span>Lead Scoring אוטומטי 8 פרמטרים</span></div>
+    </div>
+    <div class="analysis-card">
+      <h3><span style="color:var(--yellow)">⚠</span> נקודות לשיפור</h3>
+      <div class="analysis-item"><span class="ai">⚠️</span><span>שליחת מיילים תלויה ב-SendGrid — עדיין לא מחובר</span></div>
+      <div class="analysis-item"><span class="ai">⚠️</span><span>HubSpot ללא Token — סנכרון חד-כיווני בלבד</span></div>
+      <div class="analysis-item"><span class="ai">⚠️</span><span>Hunt תוצאות לא נשמרות ב-Firebase עדיין</span></div>
+      <div class="analysis-item"><span class="ai">⚠️</span><span>אין tracking מיילים (פתיחות / קליקים)</span></div>
+      <div class="analysis-item"><span class="ai">⚠️</span><span>אין Mobile support / PWA</span></div>
+      <div class="analysis-item"><span class="ai">⚠️</span><span>חיפוש Hunt ללא web_search — AI מבוסס ידע קיים</span></div>
+    </div>
+  </div>
+
+  <!-- Roadmap -->
+  <div class="roadmap">
+    <h2>🗺️ Roadmap</h2>
+    <div class="roadmap-track">
+      <div class="roadmap-phase phase-done">
+        <div class="phase-num">PHASE 1 — DONE ✓</div>
+        <div class="phase-title">תשתית בסיס</div>
+        <ul>
+          <li>Firebase + Auth</li>
+          <li>Railway Server</li>
+          <li>Lead Scoring</li>
+          <li>HubSpot Sync</li>
+          <li>GitHub Pages Deploy</li>
+        </ul>
+      </div>
+      <div class="roadmap-phase phase-active">
+        <div class="phase-num">PHASE 2 — עכשיו 🔄</div>
+        <div class="phase-title">AI + מיילים</div>
+        <ul>
+          <li>AI Hunt ✓</li>
+          <li>SendGrid מיילים</li>
+          <li>Firebase Hunt History</li>
+          <li>HubSpot Token</li>
+          <li>Deep Lead Analysis</li>
+        </ul>
+      </div>
+      <div class="roadmap-phase">
+        <div class="phase-num">PHASE 3 — הבא</div>
+        <div class="phase-title">אוטומציה</div>
+        <ul>
+          <li>Email Sequences אוטו</li>
+          <li>Slack Alerts</li>
+          <li>Email Tracking</li>
+          <li>Web Search Hunt</li>
+          <li>LinkedIn Import</li>
+        </ul>
+      </div>
+      <div class="roadmap-phase">
+        <div class="phase-num">PHASE 4 — עתיד</div>
+        <div class="phase-title">Scale</div>
+        <ul>
+          <li>PWA Mobile App</li>
+          <li>Multi-user / Team</li>
+          <li>Advanced Analytics</li>
+          <li>AI Forecasting</li>
+          <li>API ללקוחות</li>
+        </ul>
+      </div>
+    </div>
+  </div>
+
+  <!-- Footer -->
+  <div style="text-align:center;padding:20px 0;border-top:1px solid var(--border);font-size:11px;color:var(--muted);font-family:'Space Mono',monospace">
+    XTIX CRM · Built with Railway + Firebase + Claude AI · 2026
+  </div>
+
+</div>
+</body>
+</html>

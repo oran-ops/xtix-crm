@@ -2492,6 +2492,13 @@ IF RESPONSE at any point → Book 30-min MEETING (not call). Prepare ROI deck be
     if (name === 'leadfinder') initChecklist();
   }
 
+  window.initChecklist=function initChecklist(){
+    var p=document.getElementById('market-leadfinder')||document.getElementById('market-leadfinder-main-clone');
+    if(!p)return;
+    var s=p.querySelector('#lead-score-display')||document.getElementById('lead-score-display');
+    if(s)s.textContent='0';
+  };
+
   // =================== LEAD SCORER ENGINE ===================
 
   const competitorData = {
@@ -3013,6 +3020,18 @@ ${proxyCtx}
   }
 
   // Check server on load
+  async function checkServer() {
+    var el=document.getElementById('server-status');
+    if(!el)return;
+    try{
+      var r=await fetch(SERVER+'/health',{signal:AbortSignal.timeout(4000)});
+      el.textContent=r.ok?'🟢 Server':'🟡 Server';
+      el.style.color=r.ok?'var(--green)':'var(--yellow)';
+    }catch(e){
+      el.textContent='🔴 Server';
+      el.style.color='#ff4444';
+    }
+  }
   setTimeout(checkServer, 800);
   // Load reminders from localStorage and show badge if any due
   (function checkDueReminders() {
@@ -3142,7 +3161,7 @@ ${proxyCtx}
     if (!lead.updated_at) lead.updated_at = lead.created_at;
     if (!lead.source) lead.source = 'manual';
     ensureLeadId(lead);
-    _orig(lead);
+    if(typeof _orig==='function')_orig(lead);
     setTimeout(function(){ patchCard(lead); updateBadge(); }, 80);
   };
 
@@ -3736,7 +3755,7 @@ function addBlueprintTab(lead) {
 /* === PATCH renderSimpleLead === */
 var _rslOrig = window.renderSimpleLead;
 window.renderSimpleLead = function(lead) {
-  if (_rslOrig) _rslOrig(lead);
+  if(typeof _rslOrig==='function'){try{_rslOrig(lead);}catch(e){console.warn('rsl:',e);}}
   if (lead && lead.enrichment && lead.enrichment.email_sequence && lead.enrichment.email_sequence.length) {
     setTimeout(function() { addBlueprintTab(lead); }, 250);
   }
