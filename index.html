@@ -210,6 +210,10 @@
     .container { padding: 14px; }
     .stage-grid { grid-template-columns: 1fr 1fr; }
   }
+  .hunt-chip { background:rgba(167,139,250,0.1);border:1px solid rgba(167,139,250,0.3);border-radius:20px;padding:4px 12px;font-size:11px;color:#a78bfa;cursor:pointer;font-family:'Heebo',sans-serif;transition:all 0.2s }
+  .hunt-chip:hover { background:rgba(167,139,250,0.25) }
+  .hunt-msg-user { background:rgba(79,70,229,0.15);border:1px solid rgba(79,70,229,0.2);border-radius:10px;padding:10px 14px;font-size:12px;color:var(--text);align-self:flex-end;max-width:80%;line-height:1.6 }
+  .hunt-msg-ai { background:rgba(167,139,250,0.08);border:1px solid rgba(167,139,250,0.15);border-radius:10px;padding:12px 14px;font-size:12px;color:var(--text);line-height:1.7 }
 </style>
   <!-- Firebase CDN (compat mode — works without type=module) -->
   <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
@@ -697,9 +701,10 @@
     <div class="meth-panel" id="market-leadfinder">
 
       <!-- Mode Toggle -->
-      <div style="display:flex;gap:8px;margin-bottom:16px">
+      <div style="display:flex;gap:8px;margin-bottom:16px;flex-wrap:wrap">
         <button id="mode-form-btn" onclick="setLeadMode('form')" style="padding:8px 18px;border-radius:8px;border:2px solid var(--accent);background:var(--accent);color:#fff;font-size:12px;font-weight:700;cursor:pointer;font-family:'Heebo',sans-serif">📋 טופס שאלות</button>
         <button id="mode-url-btn" onclick="setLeadMode('url')" style="padding:8px 18px;border-radius:8px;border:2px solid var(--border);background:transparent;color:var(--muted);font-size:12px;font-weight:700;cursor:pointer;font-family:'Heebo',sans-serif">🔗 הזן URL</button>
+        <button id="mode-hunt-btn" onclick="setLeadMode('hunt')" style="padding:8px 18px;border-radius:8px;border:2px solid var(--border);background:transparent;color:var(--muted);font-size:12px;font-weight:700;cursor:pointer;font-family:'Heebo',sans-serif">🤖 AI Hunt</button>
         <span style="font-size:11px;color:var(--muted);align-self:center;margin-right:8px">SF BP #2 Persona + BP #6 Priority — ניקוד אוטומטי לליד חדש</span>
       </div>
 
@@ -846,6 +851,24 @@
             <input id="lf-name-url" type="text" placeholder="שם הליד / חברה" style="width:100%;background:var(--surface2);border:1px solid var(--border);border-radius:7px;padding:8px 12px;color:var(--text);font-size:12px;font-family:'Heebo',sans-serif;outline:none;margin-bottom:12px">
             <button onclick="analyzeUrl()" style="width:100%;background:var(--accent);border:none;border-radius:8px;padding:11px;color:#fff;font-size:13px;font-weight:700;cursor:pointer;font-family:'Heebo',sans-serif">🔍 נתח URL</button>
             <div id="url-analysis-result" style="margin-top:14px;font-size:12px;line-height:1.7;display:none"></div>
+          </div>
+
+          <!-- AI HUNT MODE -->
+          <div id="mode-hunt" style="display:none">
+            <div class="card-title"><div class="dot" style="background:#a78bfa"></div>🤖 AI Lead Hunter — חיפוש לידים אוטומטי</div>
+            <p style="font-size:11px;color:var(--muted);margin-bottom:16px;line-height:1.7">ה-AI ישאל אותך כמה שאלות, יחפש לידים ברשת על פי הפרמטרים שלך, וייצר רשימה מדורגת עם ניתוח מלא לכל ליד.</p>
+
+            <!-- Chat Interface -->
+            <div id="hunt-chat" style="background:var(--bg);border-radius:10px;padding:14px;min-height:200px;max-height:400px;overflow-y:auto;display:flex;flex-direction:column;gap:10px;margin-bottom:12px"></div>
+
+            <!-- Input -->
+            <div style="display:flex;gap:8px">
+              <input id="hunt-input" type="text" placeholder="כתוב תשובה חופשית או לחץ על אחת האפשרויות..." style="flex:1;background:var(--surface2);border:1px solid var(--border);border-radius:8px;padding:9px 12px;color:var(--text);font-size:12px;font-family:'Heebo',sans-serif;outline:none" onkeydown="if(event.key==='Enter')huntSend()">
+              <button onclick="huntSend()" style="background:#a78bfa;border:none;border-radius:8px;padding:9px 16px;color:#fff;font-size:12px;font-weight:700;cursor:pointer;font-family:'Heebo',sans-serif">שלח</button>
+            </div>
+
+            <!-- Results -->
+            <div id="hunt-results" style="display:none;margin-top:16px"></div>
           </div>
 
         </div>
@@ -2501,16 +2524,30 @@ IF RESPONSE at any point → Book 30-min MEETING (not call). Prepare ROI deck be
   window.setLeadMode = function setLeadMode(mode) {
     const formDiv = document.getElementById('mode-form');
     const urlDiv  = document.getElementById('mode-url');
+    const huntDiv = document.getElementById('mode-hunt');
     const fBtn = document.getElementById('mode-form-btn');
     const uBtn = document.getElementById('mode-url-btn');
+    const hBtn = document.getElementById('mode-hunt-btn');
+
+    // Hide all
+    formDiv.style.display = 'none'; urlDiv.style.display = 'none'; huntDiv.style.display = 'none';
+    [fBtn, uBtn, hBtn].forEach(b => { if(b) { b.style.background='transparent'; b.style.borderColor='var(--border)'; b.style.color='var(--muted)'; }});
+
     if (mode === 'form') {
-      formDiv.style.display = 'block'; urlDiv.style.display = 'none';
+      formDiv.style.display = 'block';
       fBtn.style.background = 'var(--accent)'; fBtn.style.borderColor = 'var(--accent)'; fBtn.style.color = '#fff';
-      uBtn.style.background = 'transparent'; uBtn.style.borderColor = 'var(--border)'; uBtn.style.color = 'var(--muted)';
-    } else {
-      formDiv.style.display = 'none'; urlDiv.style.display = 'block';
+    } else if (mode === 'url') {
+      urlDiv.style.display = 'block';
       uBtn.style.background = 'var(--accent)'; uBtn.style.borderColor = 'var(--accent)'; uBtn.style.color = '#fff';
-      fBtn.style.background = 'transparent'; fBtn.style.borderColor = 'var(--border)'; fBtn.style.color = 'var(--muted)';
+    } else if (mode === 'hunt') {
+      huntDiv.style.display = 'block';
+      hBtn.style.background = '#a78bfa'; hBtn.style.borderColor = '#a78bfa'; hBtn.style.color = '#fff';
+      // Init chat if empty
+      const chat = document.getElementById('hunt-chat');
+      if (chat && chat.children.length === 0) {
+        huntState.step = 0; huntState.answers = {};
+        huntAskNext();
+      }
     }
   }
 
@@ -3660,6 +3697,186 @@ ${proxyContext}
     }
   }
 
+
+  // =================== AI LEAD HUNTER ===================
+  const huntState = {
+    step: 0,
+    answers: {},
+    questions: [
+      { key: 'segment', q: 'באיזה סגמנט אתה רוצה לחפש?', chips: ['🎵 מוזיקה','🎭 תיאטרון','😂 סטנד-אפ','⚽ ספורט','🎪 פסטיבלים','🎨 תרבות','🌐 הכל'] },
+      { key: 'competitor', q: 'עם איזה מתחרה הם עובדים כיום? (נחפש לידים שמשתמשים בפלטפורמה זו)', chips: ['Smarticket','Bravo','Mevalim','Tickchak','Leaan','Eventer','לא ידוע / הכל'] },
+      { key: 'tier', q: 'איזה Tier ליד אתה מחפש?', chips: ['Tier 1 — גדולים (500+ כרטיסים)','Tier 2 — בינוניים (100-500)','Tier 3 — קטנים (<100)','הכל'] },
+      { key: 'geo', q: 'איזה אזור גיאוגרפי?', chips: ['מרכז (תל אביב / גוש דן)','צפון','דרום','ירושלים','כל הארץ'] },
+      { key: 'urgency', q: 'כמה לידים אתה רוצה שנחפש?', chips: ['5 לידים ממוקדים','10 לידים','20 לידים — רשימה רחבה'] },
+    ]
+  };
+
+  function huntAddMsg(text, type) {
+    const chat = document.getElementById('hunt-chat');
+    const div = document.createElement('div');
+    div.className = type === 'user' ? 'hunt-msg-user' : 'hunt-msg-ai';
+    div.innerHTML = text;
+    chat.appendChild(div);
+    chat.scrollTop = chat.scrollHeight;
+    return div;
+  }
+
+  function huntAskNext() {
+    const chat = document.getElementById('hunt-chat');
+    const q = huntState.questions[huntState.step];
+    if (!q) { huntStartSearch(); return; }
+    const chips = q.chips.map(c => `<button onclick="huntAnswer(this,'${c}')" class="hunt-chip">${c}</button>`).join('');
+    huntAddMsg(`<strong style="color:#a78bfa">${q.q}</strong><div style="display:flex;flex-wrap:wrap;gap:6px;margin-top:10px">${chips}</div>`, 'ai');
+  }
+
+  window.huntAnswer = function(btn, val) {
+    const clean = val.replace(/[🎵🎭😂⚽🎪🎨🌐]/g, '').trim();
+    huntAddMsg(val, 'user');
+    huntState.answers[huntState.questions[huntState.step].key] = clean;
+    huntState.step++;
+    if (huntState.step < huntState.questions.length) {
+      setTimeout(huntAskNext, 400);
+    } else {
+      setTimeout(huntStartSearch, 400);
+    }
+  }
+
+  window.huntSend = function() {
+    const input = document.getElementById('hunt-input');
+    const val = input.value.trim();
+    if (!val) return;
+    input.value = '';
+    if (huntState.step < huntState.questions.length) {
+      huntAnswer(null, val);
+    }
+  }
+
+  async function huntStartSearch() {
+    const a = huntState.answers;
+    const loadMsg = huntAddMsg(`<div style="text-align:center;padding:16px">
+      <div style="font-size:24px;margin-bottom:8px">🔍</div>
+      <div style="color:#a78bfa;font-weight:700">מחפש לידים...</div>
+      <div style="font-size:11px;color:var(--muted);margin-top:6px">AI סורק את הרשת לפי הפרמטרים שלך</div>
+    </div>`, 'ai');
+
+    const competitorData2 = Object.values(competitorData).map(c => `${c.name}: עמלה ${c.fee}, חולשה: ${c.weakness}`).join('\n');
+
+    const prompt = `אתה מומחה מכירות ב-XTIX — פלטפורמת כרטיסים ישראלית.
+
+פרמטרי חיפוש שהמשתמש בחר:
+- סגמנט: ${a.segment || 'הכל'}
+- מתחרה נוכחי: ${a.competitor || 'הכל'}
+- Tier: ${a.tier || 'הכל'}
+- אזור: ${a.geo || 'כל הארץ'}
+- כמות: ${a.urgency || '10 לידים'}
+
+מידע על מתחרים:
+${competitorData2}
+
+המשימה: צור רשימת לידים פוטנציאלים ריאליסטיים בישראל שמתאימים לפרמטרים.
+לכל ליד ציין שם עסק/אמן, דומיין משוער, סגמנט, מתחרה נוכחי משוער, וסיבה קצרה למה הוא ליד טוב ל-XTIX.
+
+החזר JSON נקי בלבד (ללא markdown):
+{
+  "summary": "משפט סיכום על החיפוש",
+  "leads": [
+    {
+      "name": "שם העסק/אמן",
+      "domain": "domain.co.il",
+      "segment": "סגמנט",
+      "competitor": "פלטפורמה נוכחית",
+      "tier": "1/2/3",
+      "score": 75,
+      "reason": "למה ליד טוב",
+      "pain": "כאב עיקרי",
+      "pitch": "טיעון מכירה אחד"
+    }
+  ]
+}`;
+
+    try {
+      const res = await fetch('https://api.anthropic.com/v1/messages', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          model: 'claude-sonnet-4-20250514',
+          max_tokens: 1000,
+          tools: [{ type: 'web_search_20250305', name: 'web_search' }],
+          system: 'אתה מומחה מכירות ב-XTIX. השתמש ב-web search כדי למצוא לידים ריאליסטיים בישראל. החזר JSON נקי בלבד.',
+          messages: [{ role: 'user', content: prompt }]
+        })
+      });
+
+      const data = await res.json();
+      const rawText = data.content?.map(b => b.text || '').join('') || '';
+      const clean = rawText.replace(/```json|```/g, '').trim();
+      const result = JSON.parse(clean);
+
+      loadMsg.remove();
+      huntShowResults(result, a);
+
+    } catch(e) {
+      loadMsg.innerHTML = `<div style="color:var(--accent2)">❌ שגיאה: ${e.message}</div>`;
+    }
+  }
+
+  function huntShowResults(result, params) {
+    huntAddMsg(`✅ <strong>מצאתי ${result.leads?.length || 0} לידים</strong> — ${result.summary}`, 'ai');
+
+    const container = document.getElementById('hunt-results');
+    container.style.display = 'block';
+    container.innerHTML = `
+      <div style="font-size:11px;color:var(--muted);margin-bottom:10px;text-transform:uppercase;letter-spacing:1px">תוצאות חיפוש — ${params.segment || 'הכל'} | ${params.geo || 'ישראל'}</div>
+      ${(result.leads || []).map((lead, i) => `
+        <div style="background:var(--surface2);border:1px solid var(--border);border-radius:10px;padding:14px;margin-bottom:10px">
+          <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px">
+            <div>
+              <div style="font-weight:700;color:var(--text)">${lead.name}</div>
+              <div style="font-size:11px;color:var(--muted)">${lead.domain || ''} · ${lead.segment || ''}</div>
+            </div>
+            <div style="display:flex;align-items:center;gap:8px">
+              <div style="font-size:11px;color:var(--yellow)">⚔️ ${lead.competitor || ''}</div>
+              <div style="width:36px;height:36px;border-radius:50%;background:conic-gradient(var(--green) ${(lead.score||60)*3.6}deg,var(--surface) 0);display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:700;color:var(--green)">${lead.score||60}</div>
+            </div>
+          </div>
+          <div style="font-size:11px;color:var(--muted);margin-bottom:8px;line-height:1.6">${lead.reason || ''}</div>
+          <div style="font-size:11px;color:var(--green);background:rgba(0,230,118,0.07);padding:6px 10px;border-radius:6px;margin-bottom:8px">💡 ${lead.pitch || ''}</div>
+          <div style="display:flex;gap:6px;flex-wrap:wrap">
+            <button onclick="huntAddToCRM(${JSON.stringify(lead).replace(/"/g,'&quot;')})" style="background:var(--green);border:none;border-radius:6px;padding:5px 12px;font-size:11px;color:#0a0a0f;font-weight:700;cursor:pointer;font-family:'Heebo',sans-serif">➕ הוסף ל-CRM</button>
+            <button onclick="analyzeHuntLead(${JSON.stringify(lead).replace(/"/g,'&quot;')})" style="background:rgba(167,139,250,0.15);border:1px solid rgba(167,139,250,0.3);border-radius:6px;padding:5px 12px;font-size:11px;color:#a78bfa;cursor:pointer;font-family:'Heebo',sans-serif">🔍 נתח עמוק</button>
+          </div>
+        </div>
+      `).join('')}
+      <button onclick="huntReset()" style="width:100%;background:var(--surface2);border:1px solid var(--border);border-radius:8px;padding:10px;color:var(--muted);font-size:12px;cursor:pointer;font-family:'Heebo',sans-serif;margin-top:6px">🔄 חיפוש חדש</button>
+    `;
+  }
+
+  window.huntAddToCRM = function(lead) {
+    const newLead = { id: nextId++, name: lead.name, domain: lead.domain||'', type: lead.segment||'AI Hunt', platform: lead.competitor||'', email:'', notes: lead.reason||'', score: lead.score||60, status:'new' };
+    leads.push(newLead); saveLeads();
+    renderSimpleLead(newLead);
+    document.getElementById('total-leads').textContent = leads.length;
+    logActivity('lead_added_from_hunt', { lead_id: newLead.id, lead_name: newLead.name });
+    event.target.textContent = '✅ נוסף!';
+    event.target.disabled = true;
+  }
+
+  window.analyzeHuntLead = function(lead) {
+    setLeadMode('url');
+    const urlInput = document.getElementById('lf-url');
+    const nameInput = document.getElementById('lf-name-url');
+    if (urlInput) urlInput.value = lead.domain || '';
+    if (nameInput) nameInput.value = lead.name || '';
+    setTimeout(() => analyzeUrl(), 300);
+  }
+
+  window.huntReset = function() {
+    huntState.step = 0;
+    huntState.answers = {};
+    document.getElementById('hunt-chat').innerHTML = '';
+    document.getElementById('hunt-results').style.display = 'none';
+    huntAskNext();
+  }
 
   // Check server on load
   setTimeout(checkServer, 800);
