@@ -3200,41 +3200,78 @@ ${proxyContext}
 
         <!-- ANALYSIS TAB -->
         <div class="lead-tab-panel" id="l${lead.id}-analysis">
-          <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px">
+          ${lead.enrichment ? `
+          <!-- Enrichment Status Bar -->
+          <div style="background:rgba(167,139,250,0.1);border:1px solid rgba(167,139,250,0.2);border-radius:8px;padding:10px 14px;margin-bottom:12px;display:flex;justify-content:space-between;align-items:center">
+            <div style="font-size:11px;color:#a78bfa">✅ תוחקר ע"י Claude AI · ${new Date(lead.enrichment.enriched_at||Date.now()).toLocaleDateString('he-IL')}</div>
+            <button onclick="reEnrichLead(${lead.id})" style="background:rgba(167,139,250,0.2);border:1px solid rgba(167,139,250,0.3);border-radius:6px;padding:4px 10px;font-size:10px;color:#a78bfa;cursor:pointer;font-family:'Heebo',sans-serif">🔄 רענן ניתוח</button>
+          </div>
+          <!-- AI Enrichment Data -->
+          <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:12px">
             <div class="card" style="background:var(--surface2)">
-              <div class="card-title"><div class="dot" style="background:#00a1e0"></div>SF BP #2 — Buyer Persona</div>
-              <div style="font-size:12px;line-height:1.7;color:var(--text)">
-                <strong>סוג:</strong> ${lead.type||'מפיק/מנהל אירועים'}<br>
-                <strong>פלטפורמה:</strong> ${lead.platform||'לא ידוע'}<br>
-                <strong>כאב מרכזי:</strong> עמלות גבוהות + פיצול נתונים<br>
-                <strong>מפתח:</strong> הראה חיסכון בעמלות + שליטה בנתונים
+              <div class="card-title"><div class="dot" style="background:#a78bfa"></div>🤖 תחקיר AI</div>
+              <div style="font-size:12px;line-height:1.8;color:var(--text)">
+                <strong>סגמנט:</strong> ${lead.enrichment.segment||lead.segment||'—'}<br>
+                <strong>פלטפורמה:</strong> ${lead.enrichment.platform_current||'—'}<br>
+                <strong>חולשת פלטפורמה:</strong> <span style="color:var(--yellow)">${lead.enrichment.platform_weakness||'—'}</span><br>
+                <strong>אירועים/שנה:</strong> ${lead.enrichment.events_per_year||'—'}<br>
+                <strong>גודל קהל:</strong> ${lead.enrichment.audience_size||'—'}
               </div>
             </div>
             <div class="card" style="background:var(--surface2)">
-              <div class="card-title"><div class="dot" style="background:var(--accent2)"></div>SF BP #6 — תעדוף</div>
+              <div class="card-title"><div class="dot" style="background:var(--cyan)"></div>📱 רשתות חברתיות</div>
+              <div style="font-size:12px;line-height:1.8;color:var(--text)">
+                ${lead.enrichment.social?.facebook&&lead.enrichment.social.facebook!=='לא נמצא'?`<a href="${lead.enrichment.social.facebook}" target="_blank" style="color:var(--accent)">📘 Facebook</a><br>`:'📘 Facebook: לא נמצא<br>'}
+                ${lead.enrichment.social?.instagram&&lead.enrichment.social.instagram!=='לא נמצא'?`<a href="${lead.enrichment.social.instagram}" target="_blank" style="color:var(--accent)">📸 Instagram</a><br>`:'📸 Instagram: לא נמצא<br>'}
+                <strong>עוקבים משוערים:</strong> ${lead.enrichment.social?.followers_estimate||'—'}
+              </div>
+            </div>
+            <div class="card" style="background:var(--surface2)">
+              <div class="card-title"><div class="dot" style="background:var(--red)"></div>💊 כאבים</div>
+              <div style="font-size:12px;line-height:1.8;color:var(--muted)">
+                ${(lead.enrichment.pain_points||[]).map(p=>`• ${p}`).join('<br>')||'—'}
+              </div>
+            </div>
+            <div class="card" style="background:var(--surface2)">
+              <div class="card-title"><div class="dot" style="background:var(--green)"></div>🏆 יתרונות XTIX</div>
+              <div style="font-size:12px;line-height:1.8;color:var(--muted)">
+                ${(lead.enrichment.xtix_advantages||[]).map(a=>`✓ ${a}`).join('<br>')||'—'}
+              </div>
+            </div>
+          </div>
+          <!-- Pitch -->
+          <div class="card" style="background:rgba(0,230,118,0.07);border:1px solid rgba(0,230,118,0.2);margin-bottom:12px">
+            <div class="card-title"><div class="dot" style="background:var(--green)"></div>🎯 Pitch מותאם</div>
+            <div style="font-size:12px;line-height:1.7;color:var(--text)">${lead.enrichment.pitch||'—'}</div>
+          </div>
+          <!-- Discovery Questions -->
+          <div class="card" style="background:var(--surface2)">
+            <div class="card-title"><div class="dot" style="background:var(--yellow)"></div>❓ שאלות Discovery</div>
+            <div style="font-size:12px;line-height:1.8;color:var(--muted)">
+              ${(lead.enrichment.discovery_questions||[]).map((q,i)=>`${i+1}. ${q}`).join('<br>')||'—'}
+            </div>
+          </div>
+          ` : `
+          <!-- Not yet enriched -->
+          <div style="text-align:center;padding:30px;color:var(--muted)">
+            <div style="font-size:32px;margin-bottom:12px">🤖</div>
+            <div style="font-size:13px;margin-bottom:16px">הליד עדיין לא עבר תחקיר AI</div>
+            <button onclick="reEnrichLead(${lead.id})" style="background:#a78bfa;border:none;border-radius:8px;padding:10px 20px;color:#fff;font-size:13px;font-weight:700;cursor:pointer;font-family:'Heebo',sans-serif">🔍 תחקר עכשיו</button>
+          </div>
+          `}
+          <!-- Always show SF framework -->
+          <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-top:12px">
+            <div class="card" style="background:var(--surface2)">
+              <div class="card-title"><div class="dot" style="background:#00a1e0"></div>SF BP #6 — תעדוף</div>
               <div style="font-size:12px;line-height:1.7">
                 <strong style="color:${scoreColor}">Score: ${lead.score}/100</strong><br>
-                ${lead.score>=80?'<span style="color:var(--green)">🔥 ליד חם — פנה תוך 24 שעות</span>':lead.score>=60?'<span style="color:var(--yellow)">⚡ ליד חמים — פנה תוך שבוע</span>':'<span style="color:var(--muted)">🧊 ליד קר — הכנס ל-Nurture</span>'}<br>
-                ${lead.domain?'<span style="color:var(--green)">✅ יש דומיין פרטי</span><br>':''} 
-                ${lead.platform?'<span style="color:var(--green)">✅ יש פלטפורמת כרטיסים</span>':'<span style="color:var(--muted)">⚠️ לא ידועה פלטפורמה</span>'}
+                ${lead.score>=80?'<span style="color:var(--green)">🔥 חם — פנה תוך 24 שעות</span>':lead.score>=60?'<span style="color:var(--yellow)">⚡ חמים — פנה תוך שבוע</span>':'<span style="color:var(--muted)">🧊 קר — הכנס ל-Nurture</span>'}
               </div>
             </div>
             <div class="card" style="background:var(--surface2)">
-              <div class="card-title"><div class="dot" style="background:var(--yellow)"></div>SF BP #7 — Discovery</div>
-              <div style="font-size:12px;line-height:1.7;color:var(--muted)">
-                "כמה כרטיסים נמכרים לפני יום האירוע?"<br>
-                "מה האחוז עמלה כולל?"<br>
-                "האם הקהל חוזר — ואיך אתה יודע?"<br>
-                "מה הכי מתסכל בניהול הכרטיסים?"
-              </div>
-            </div>
-            <div class="card" style="background:var(--surface2)">
-              <div class="card-title"><div class="dot" style="background:var(--accent)"></div>SF BP #13 — התנגדויות</div>
-              <div style="font-size:12px;line-height:1.7;color:var(--muted)">
-                <strong>"מרוצה מהפלטפורמה"</strong><br>
-                → "ספר לי מה הכי מתסכל בה"<br><br>
-                <strong>"יקר מדי"</strong><br>
-                → הראה חיסכון בעמלות × מספר אירועים
+              <div class="card-title"><div class="dot" style="background:var(--accent)"></div>ציר מיילים מומלץ</div>
+              <div style="font-size:12px;color:var(--muted)">
+                ${lead.enrichment?.recommended_cadence==='hot'?'🔥 Hot — 4 מיילים / 2 שבועות':lead.enrichment?.recommended_cadence==='cool'?'🧊 Cool — 3 מיילים / חודש':'⚡ Warm — 4 מיילים / 3 שבועות'}
               </div>
             </div>
           </div>
@@ -3905,6 +3942,185 @@ ${competitorData2}
     huntAskNext();
   }
 
+  // =================== AUTO-ENRICHMENT PIPELINE ===================
+
+  const enrichmentQueue = [];
+  let enrichmentRunning = false;
+
+  async function autoEnrichLead(lead) {
+    const domain = lead.domain || lead.website || '';
+    if (!domain) return lead;
+    const fullUrl = domain.startsWith('http') ? domain : 'https://' + domain;
+
+    console.log(`[ENRICH] Starting: ${lead.name} (${domain})`);
+
+    // Step 1: Proxy scan
+    let proxyData = null;
+    try {
+      const r = await fetch(`${SERVER}/analyze?url=${encodeURIComponent(fullUrl)}`, { signal: AbortSignal.timeout(8000) });
+      if (r.ok) proxyData = await r.json();
+    } catch(e) {}
+
+    // Step 2: AI full analysis
+    const competitorInfo = Object.values(competitorData).map(c => `${c.name}: עמלה ${c.fee}, חולשה: ${c.weakness}`).join('\n');
+    const proxyCtx = proxyData ? `מידע שנאסף אוטומטית:\n- פלטפורמת כרטיסים: ${proxyData.ticketPlatform||'לא זוהתה'}\n- מייל: ${proxyData.email||'לא נמצא'}\n- רשתות: ${proxyData.socialLinks?.join(', ')||'לא נמצאו'}` : '';
+
+    const prompt = `אתה מנהל מכירות בכיר ב-XTIX. נתח את הליד הבא לעומק ותן תחקיר מכירות מלא.
+
+ליד: ${lead.name}
+דומיין: ${domain}
+טלפון: ${lead.phone||''}
+כתובת: ${lead.address||''}
+סוג: ${lead.type||''}
+${proxyCtx}
+
+מתחרים בשוק:
+${competitorInfo}
+
+החזר JSON נקי בלבד (ללא markdown):
+{
+  "summary": "תיאור קצר של העסק",
+  "segment": "קטגוריה (מוזיקה/תיאטרון/סטנד-אפ/ספורט/פסטיבל/קולנוע/אחר)",
+  "platform_current": "פלטפורמה נוכחית או לא ידוע",
+  "platform_weakness": "חולשת הפלטפורמה הנוכחית",
+  "competitor_tier": "1/2/3",
+  "social": {
+    "facebook": "קישור או לא נמצא",
+    "instagram": "קישור או לא נמצא",
+    "followers_estimate": "הערכת עוקבים"
+  },
+  "events_per_year": "הערכת מספר אירועים בשנה",
+  "audience_size": "הערכת גודל קהל לאירוע",
+  "score": 65,
+  "tier": "1/2/3",
+  "pain_points": ["כאב 1", "כאב 2"],
+  "xtix_advantages": ["יתרון 1", "יתרון 2"],
+  "pitch": "משפט פתיחה מותאם לליד זה",
+  "recommended_cadence": "hot/warm/cool",
+  "email_subject": "נושא מייל ראשון",
+  "email_body": "גוף מייל ראשון בעברית, 3-4 משפטים",
+  "discovery_questions": ["שאלה 1", "שאלה 2"],
+  "score_factors": {
+    "domain": true,
+    "external_ticketing": false,
+    "active_social": true,
+    "contact_accessible": false
+  }
+}`;
+
+    let enriched = {};
+    try {
+      const res = await fetch(SERVER + '/ai', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          model: 'claude-sonnet-4-20250514',
+          max_tokens: 2000,
+          system: 'אתה מנהל מכירות ב-XTIX. החזר JSON נקי בלבד ללא markdown.',
+          messages: [{ role: 'user', content: prompt }]
+        })
+      });
+      const data = await res.json();
+      const raw = data.content?.map(b => b.text||'').join('') || '';
+      const start = raw.indexOf('{'), end = raw.lastIndexOf('}');
+      if (start !== -1 && end !== -1) enriched = JSON.parse(raw.substring(start, end+1));
+    } catch(e) {
+      console.warn('[ENRICH] AI failed:', e.message);
+    }
+
+    // Merge enrichment into lead
+    const enrichedLead = {
+      ...lead,
+      segment:          enriched.segment          || lead.segment || lead.type || 'כללי',
+      platform:         enriched.platform_current || lead.platform || '',
+      score:            enriched.score            || lead.score   || 50,
+      tier:             enriched.tier             || '2',
+      notes:            enriched.summary          || lead.notes   || '',
+      enrichment: {
+        summary:              enriched.summary              || '',
+        platform_current:     enriched.platform_current     || '',
+        platform_weakness:    enriched.platform_weakness    || '',
+        competitor_tier:      enriched.competitor_tier      || '',
+        social:               enriched.social               || {},
+        events_per_year:      enriched.events_per_year      || '',
+        audience_size:        enriched.audience_size        || '',
+        pain_points:          enriched.pain_points          || [],
+        xtix_advantages:      enriched.xtix_advantages      || [],
+        pitch:                enriched.pitch                || '',
+        recommended_cadence:  enriched.recommended_cadence  || 'warm',
+        email_subject:        enriched.email_subject        || '',
+        email_body:           enriched.email_body           || '',
+        discovery_questions:  enriched.discovery_questions  || [],
+        score_factors:        enriched.score_factors        || {},
+        enriched_at:          new Date().toISOString(),
+        enriched_by:          'claude-auto'
+      }
+    };
+
+    console.log(`[ENRICH] Done: ${lead.name} → score ${enrichedLead.score}, platform: ${enrichedLead.platform}`);
+    return enrichedLead;
+  }
+
+  async function processEnrichmentQueue() {
+    if (enrichmentRunning || enrichmentQueue.length === 0) return;
+    enrichmentRunning = true;
+
+    // Show global status bar
+    let statusBar = document.getElementById('enrich-status-bar');
+    if (!statusBar) {
+      statusBar = document.createElement('div');
+      statusBar.id = 'enrich-status-bar';
+      statusBar.style.cssText = 'position:fixed;bottom:0;left:0;right:0;background:rgba(167,139,250,0.95);color:#fff;padding:10px 20px;font-size:12px;font-weight:700;z-index:9999;font-family:Heebo,sans-serif;display:flex;align-items:center;gap:12px';
+      document.body.appendChild(statusBar);
+    }
+
+    while (enrichmentQueue.length > 0) {
+      const lead = enrichmentQueue.shift();
+      const total = enrichmentQueue.length;
+      statusBar.innerHTML = `🤖 מנתח: <strong>${lead.name}</strong> &nbsp;|&nbsp; נותרו בתור: ${total} &nbsp;<span style="font-size:10px;opacity:0.8">כל ליד מ-Clay עובר תחקיר מלא</span>`;
+
+      try {
+        const enrichedLead = await autoEnrichLead(lead);
+
+        // Update in leads array
+        const idx = leads.findIndex(l => l.id === lead.id);
+        if (idx !== -1) leads[idx] = enrichedLead;
+        else leads.push(enrichedLead);
+
+        // Save to Firebase
+        if (typeof db !== 'undefined' && db) {
+          try {
+            await db.collection('leads').doc(String(enrichedLead.id)).set(enrichedLead);
+          } catch(e) { console.warn('Firebase save failed:', e); }
+        }
+
+        // Log activity
+        logActivity('lead_enriched', {
+          lead_id: enrichedLead.id,
+          lead_name: enrichedLead.name,
+          score: enrichedLead.score,
+          platform: enrichedLead.platform,
+          cadence: enrichedLead.enrichment?.recommended_cadence
+        });
+
+        // Re-render lead card
+        const existingCard = document.querySelector(`[data-lead-id="${lead.id}"]`);
+        if (existingCard) existingCard.remove();
+        renderSimpleLead(enrichedLead);
+
+      } catch(e) {
+        console.warn('[ENRICH] Failed for', lead.name, e);
+      }
+
+      // Small delay between leads to avoid rate limiting
+      if (enrichmentQueue.length > 0) await new Promise(r => setTimeout(r, 2000));
+    }
+
+    enrichmentRunning = false;
+    statusBar.innerHTML = '✅ תחקיר הושלם לכל הלידים שנכנסו מ-Clay';
+    setTimeout(() => statusBar.remove(), 4000);
+  }
+
   // Clay Pending Polling — check every 30s for new leads from Clay
   async function pollClayPending() {
     try {
@@ -3915,40 +4131,72 @@ ${competitorData2}
 
       let added = 0;
       for (const lead of pending) {
-        // Check duplicate in Firebase leads
         const exists = leads.some(l => l.domain && l.domain === lead.domain);
         if (exists) continue;
-        // Add to leads array + Firebase
-        lead.id = lead.id || Date.now();
+        lead.id = lead.id || Date.now() + Math.random();
         leads.push(lead);
         added++;
-        renderSimpleLead(lead);
-        if (typeof db !== 'undefined' && db) {
-          try {
-            await db.collection('leads').doc(String(lead.id)).set(lead);
-          } catch(e) { console.warn('Firebase save failed:', e); }
-        }
+        // Add basic card with "analyzing" indicator
+        renderSimpleLead({ ...lead, _enriching: true });
+        // Queue for enrichment
+        enrichmentQueue.push(lead);
       }
 
       if (added > 0) {
         document.getElementById('total-leads').textContent = leads.length;
-        // Clear pending queue on server
+        // Clear server queue
         await fetch(SERVER + '/clay-pending-clear', { method: 'POST' });
         // Show notification
         const notif = document.createElement('div');
-        notif.style.cssText = 'position:fixed;bottom:20px;left:20px;background:#a78bfa;color:#fff;padding:12px 20px;border-radius:10px;font-size:13px;font-weight:700;z-index:9999;font-family:Heebo,sans-serif';
-        notif.textContent = `🤖 Clay: ${added} לידים חדשים נוספו!`;
+        notif.style.cssText = 'position:fixed;top:20px;left:50%;transform:translateX(-50%);background:#a78bfa;color:#fff;padding:12px 24px;border-radius:12px;font-size:13px;font-weight:700;z-index:9999;font-family:Heebo,sans-serif;box-shadow:0 4px 20px rgba(167,139,250,0.4)';
+        notif.textContent = `🤖 Clay: ${added} לידים חדשים — מתחיל תחקיר AI אוטומטי`;
         document.body.appendChild(notif);
-        setTimeout(() => notif.remove(), 4000);
-        logActivity('clay_leads_imported', { count: added });
+        setTimeout(() => notif.remove(), 5000);
+        // Start enrichment pipeline
+        processEnrichmentQueue();
       }
-    } catch(e) { /* silent fail */ }
+    } catch(e) { /* silent */ }
   }
 
   // Poll every 30 seconds
   setInterval(pollClayPending, 30000);
-  // Also poll on load after 3 seconds
+  // Poll on load after 3 seconds
   setTimeout(pollClayPending, 3000);
+
+  window.reEnrichLead = async function(leadId) {
+    const lead = leads.find(l => l.id === leadId);
+    if (!lead) return;
+    const btn = event?.target;
+    if (btn) { btn.textContent = '⏳ מנתח...'; btn.disabled = true; }
+    try {
+      const enrichedLead = await autoEnrichLead(lead);
+      const idx = leads.findIndex(l => l.id === leadId);
+      if (idx !== -1) leads[idx] = enrichedLead;
+      if (typeof db !== 'undefined' && db) {
+        await db.collection('leads').doc(String(leadId)).set(enrichedLead);
+      }
+      logActivity('lead_re_enriched', { lead_id: leadId, lead_name: lead.name });
+      const card = document.getElementById(`lead-${leadId}`);
+      if (card) card.remove();
+      renderSimpleLead(enrichedLead);
+      // Re-open the analysis tab
+      setTimeout(() => {
+        const newCard = document.getElementById(`body-${leadId}`);
+        if (newCard && newCard.style.display === 'none') {
+          document.getElementById(`lead-${leadId}`)?.querySelector('.lead-card-header')?.click();
+        }
+        const analysisTab = document.querySelector(`#l${leadId}-analysis`);
+        if (analysisTab) {
+          document.querySelectorAll(`#body-${leadId} .lead-tab`).forEach(t => t.classList.remove('active'));
+          document.querySelectorAll(`#body-${leadId} .lead-tab-panel`).forEach(p => p.classList.remove('active'));
+          analysisTab.classList.add('active');
+          analysisTab.previousElementSibling?.querySelectorAll('.lead-tab')[1]?.classList.add('active');
+        }
+      }, 300);
+    } catch(e) {
+      if (btn) { btn.textContent = '❌ שגיאה'; btn.disabled = false; }
+    }
+  }
 
   // Check server on load
   setTimeout(checkServer, 800);
