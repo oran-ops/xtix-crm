@@ -2561,7 +2561,7 @@ IF RESPONSE at any point → Book 30-min MEETING (not call). Prepare ROI deck be
   }
 
   window.initChecklist=function initChecklist(){
-    var p=document.getElementById('market-leadfinder')||document.getElementById('market-leadfinder-main-clone');
+    var p=document.getElementById('market-leadfinder')||document.getElementById('tab-leadfinder');
     if(!p)return;
     var s=p.querySelector('#lead-score-display')||document.getElementById('lead-score-display');
     if(s)s.textContent='0';
@@ -3935,27 +3935,6 @@ ${proxyCtx}
   window.selectAllLeads = function() { hsSelectAll(true); };
 
 
-  // ===== FIX 3: Move Lead Finder to main tab bar =====
-  function addLeadFinderTab() {
-    if (document.getElementById('lf-tab-btn')) return;
-    var nav = document.getElementById('sidebar-nav');
-    if (!nav) return;
-
-    // Lead Finder content is already in tab-leadfinder (set in HTML)
-    // Just add the nav button
-    var btn = document.createElement('button');
-    btn.className = 'nav-btn';
-    btn.id = 'lf-tab-btn';
-    btn.setAttribute('data-panel', 'leadfinder');
-    btn.innerHTML = '<span class="nav-icon">🔍</span><span class="nav-label">Lead Finder</span>';
-    btn.onclick = function() { switchMainTab('leadfinder', btn); };
-
-    var btns = nav.querySelectorAll('.nav-btn');
-    if (btns.length >= 2) nav.insertBefore(btn, btns[1]); // after לידים
-    else nav.appendChild(btn);
-  }
-
-  setTimeout(addLeadFinderTab, 1200);
 
 })();
 </script>
@@ -4231,7 +4210,7 @@ addSalesPlaybookPanel();
 })();
 </script>
 
-  <!-- Lead Finder standalone panel -->
+<!-- Lead Finder standalone panel -->
   <div class="panel" id="tab-leadfinder">
     <div id="lf-inner" style="padding:0">
 
@@ -4473,6 +4452,7 @@ addSalesPlaybookPanel();
 </div> <!-- end container -->
 </div> <!-- end main-content -->
 </div> <!-- end app-wrapper -->
+
 
 </body>
 </html>
