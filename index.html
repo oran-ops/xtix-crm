@@ -3016,175 +3016,94 @@ ${proxyCtx}
     const domain = (lead.domain || lead.url || '').replace(/https?:\/\//, '').split('/')[0] || lead.name;
     const fullUrl = 'https://' + domain;
 
-    // Step 1: Try proxy scrape
+    // Step 1: Proxy scrape
     let proxyData = null;
     try {
       const res = await fetch(SERVER + '/analyze?url=' + encodeURIComponent(fullUrl), { signal: AbortSignal.timeout(5000) });
       if (res.ok) proxyData = await res.json();
     } catch(e) {}
 
-    const proxyCtx = proxyData ? `מידע שנאסף מהאתר:
-- פלטפורמת כרטיסים: ${proxyData.ticketPlatform || 'לא זוהתה'}
-- מייל: ${proxyData.email || 'לא נמצא'}
-- רשתות: ${(proxyData.socialLinks||[]).join(', ') || 'לא נמצאו'}
-- דומיין פרטי: ${proxyData.hasDomain ? 'כן' : 'לא ידוע'}` : '';
+    const proxyCtx = proxyData ? `מידע מהאתר: פלטפורמה=${proxyData.ticketPlatform||'?'}, מייל=${proxyData.email||'?'}` : '';
+    const competitorInfo = Object.values(competitorData || {}).map(c => `${c.name}: ${c.weakness}`).join('\n');
 
-    const competitorInfo = Object.values(competitorData || {})
-      .map(c => `${c.name}: ${c.weakness}`).join('\n');
-
-    const prompt = `אתה מנהל מכירות בכיר ב-XTIX.AI — פלטפורמת כרטיסים ישראלית.
-
-יתרונות XTIX שיש להדגיש:
-• עמלה 2.5% בלבד (vs. 5-8% בשוק) — חיסכון ממוצע ₪52,500 לשנה על 10K כרטיסים
-• Widget מוטמע — הקהל לא עוזב את אתר המפיק
-• 100% הנתונים שייכים למפיק (לא לפלטפורמה)
-• AI Analytics + Early Bird אוטומטי + HubSpot/CRM Integration
-• אין חוזה ארוך — מעבר חופשי
-
-מתחרים בשוק:
-${competitorInfo}
-
-====== פרטי הליד ======
-שם: ${lead.name}
-דומיין: ${domain}
-טלפון: ${lead.phone || 'לא ידוע'}
-סוג: ${lead.type || lead.segment || 'לא ידוע'}
-${proxyCtx}
-
-====== המשימה שלך ======
-1. חקור את הליד לעומק — מה הפלטפורמה שלהם, כמה הם משלמים, מה הכאב שלהם
-2. הסק מסקנות ספציפיות (לא כלליות)
-3. כתוב 4 מיילים מלאים — כל אחד מראה מה חקרת לפני שכתבת אותו
-4. כל מייל: research_done (3 פריטים ספציפיים) + what_i_concluded + body מלא + cta
-
-חשוב: כל מייל חייב להראות ידע ספציפי על הליד הזה. מראה שיעורי בית.
-
-החזר JSON נקי בלבד (ללא markdown, ללא backticks):
-{
-  "summary": "2 משפטים ספציפיים",
-  "segment": "קטגוריה",
-  "platform_current": "פלטפורמה נוכחית",
-  "platform_weakness": "חולשה ספציפית",
-  "estimated_annual_tickets": "הערכה",
-  "estimated_annual_fees": "הערכת עמלות (₪)",
-  "estimated_xtix_savings": "חיסכון ב-XTIX (₪)",
-  "competitor_tier": "1/2/3",
-  "social": { "facebook": "", "instagram": "", "followers_estimate": "" },
-  "events_per_year": "הערכה",
-  "audience_size": "הערכה",
-  "score": 65,
-  "tier": "A/B/C",
-  "pain_points": ["כאב 1", "כאב 2"],
-  "xtix_advantages": ["יתרון 1", "יתרון 2"],
-  "pitch": "משפט פתיחה מותאם",
-  "recommended_cadence": "hot/warm/cool",
-  "research_summary": "מה חקרת — מה ראית, מה הסקת, מה המסקנה",
-  "email_sequence": [
-    {
-      "email_num": 1, "day": 1,
-      "subject": "נושא ספציפי",
-      "research_done": ["פריט 1", "פריט 2", "פריט 3"],
-      "what_i_concluded": "מסקנה ספציפית",
-      "body": "גוף מייל מלא — 4-6 שורות",
-      "cta": "CTA ברור"
-    },
-    { "email_num": 2, "day": 4, "subject": "", "research_done": [], "what_i_concluded": "", "body": "", "cta": "" },
-    { "email_num": 3, "day": 8, "subject": "", "research_done": [], "what_i_concluded": "", "body": "", "cta": "" },
-    { "email_num": 4, "day": 14, "subject": "", "research_done": [], "what_i_concluded": "", "body": "", "cta": "" }
-  ],
-  "discovery_questions": ["שאלה 1", "שאלה 2"],
-  "score_factors": { "has_external_ticketing": true, "has_own_domain": true, "active_social": true, "contact_accessible": true, "large_audience": false }
-}`;
-
-    let enriched = {};
-    try {
+    // Helper: call AI with short timeout
+    async function callAI(prompt, maxTokens) {
       const res = await fetch(SERVER + '/ai', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          model: 'claude-sonnet-4-20250514',
-          max_tokens: 2000,
-          system: 'Return ONLY valid JSON. No markdown, no backticks, no explanations. All string values must use escaped quotes. Hebrew text is allowed in values but must not contain unescaped double quotes.',
+          model: 'claude-haiku-4-5-20251001',
+          max_tokens: maxTokens || 1000,
+          system: 'Return ONLY valid JSON. No markdown, no backticks, no extra text.',
           messages: [{ role: 'user', content: prompt }]
         }),
-        signal: AbortSignal.timeout(60000)
+        signal: AbortSignal.timeout(25000)
       });
-      if (res.ok) {
-        const data = await res.json();
-        const textBlock = Array.isArray(data.content) ? data.content.find(b => b.type === 'text') : null;
-        let raw = (textBlock ? textBlock.text : (data.result || data.text || '')).trim();
-        raw = raw.replace(/^```json[\s\S]*?\n/,'').replace(/^```\s*/,'').replace(/\s*```$/,'').trim();
-        // Extract JSON object
-        var jsonStart = raw.indexOf('{');
-        var jsonEnd = raw.lastIndexOf('}');
-        if (jsonStart !== -1 && jsonEnd !== -1) raw = raw.substring(jsonStart, jsonEnd + 1);
-        try {
-          enriched = JSON.parse(raw);
-        } catch(e) {
-          console.warn('[ENRICH] JSON parse failed, trying cleanup:', e.message);
-          try {
-            // Fix unescaped quotes inside Hebrew string values
-            var fixed = raw
-              .replace(/:\s*"([^"]*)"([^",:\[\]{}\/]+)"([^"]*)"\s*([,}\]])/g, ': "$1$2$3"$4')
-              .replace(/([^\\])"\s*([^",:\[\]{}\/\n]{2,})"\s*([,}\]])/g, '$1"$2"$3');
-            enriched = JSON.parse(fixed);
-          } catch(e2) {
-            // Last resort: extract key fields manually
-            console.warn('[ENRICH] Using fallback extraction');
-            var getField = function(key) {
-              var m = raw.match(new RegExp('"' + key + '"\\s*:\\s*"([^"\\n]{0,200})"'));
-              return m ? m[1] : '';
-            };
-            enriched = {
-              summary: getField('summary'),
-              segment: getField('segment'),
-              platform_current: getField('platform_current'),
-              pitch: getField('pitch'),
-              score: parseInt(raw.match(/"score"\s*:\s*(\d+)/)?.[1] || '50'),
-              tier: getField('tier') || 'B',
-              recommended_cadence: getField('recommended_cadence') || 'warm',
-              email_sequence: []
-            };
-          }
-        }
+      if (!res.ok) throw new Error('HTTP ' + res.status);
+      const data = await res.json();
+      const block = Array.isArray(data.content) ? data.content.find(b => b.type === 'text') : null;
+      let raw = (block ? block.text : (data.result || data.text || '')).trim();
+      raw = raw.replace(/^```json\s*/,'').replace(/^```\s*/,'').replace(/\s*```$/,'');
+      const s = raw.indexOf('{'), e = raw.lastIndexOf('}');
+      if (s !== -1 && e !== -1) raw = raw.substring(s, e+1);
+      try { return JSON.parse(raw); } catch(err) {
+        // Manual extraction fallback
+        const get = (k) => { const m = raw.match(new RegExp('"'+k+'"\\s*:\\s*"([^"\\n]{0,200})"')); return m?m[1]:''; };
+        return { summary: get('summary'), segment: get('segment'), platform_current: get('platform_current'),
+          pitch: get('pitch'), score: parseInt((raw.match(/"score"\s*:\s*(\d+)/)||[])[1]||'50'),
+          tier: get('tier')||'B', recommended_cadence: get('recommended_cadence')||'warm',
+          platform_weakness: get('platform_weakness'), pain_points: [], email_sequence: [] };
       }
-    } catch(e) {
-      console.warn('[ENRICH] API error:', e);
     }
 
-    // Build enriched lead
-    const score = parseInt(enriched.score) || lead.score || 50;
+    // CALL 1: Basic analysis (fast, ~10s)
+    const prompt1 = `נתח את הליד הבא עבור XTIX.AI (פלטפורמת כרטיסים, עמלה 2.5% בלבד).
+מתחרים: ${competitorInfo}
+ליד: שם=${lead.name}, דומיין=${domain}, סוג=${lead.type||lead.segment||'?'}, טלפון=${lead.phone||'?'}
+${proxyCtx}
+
+החזר JSON בלבד:
+{"summary":"2 משפטים","segment":"סגמנט","platform_current":"פלטפורמה","platform_weakness":"חולשה","estimated_annual_fees":"₪X","estimated_xtix_savings":"₪X","score":70,"tier":"A/B/C","recommended_cadence":"hot/warm/cool","pitch":"משפט פתיחה","pain_points":["כאב1","כאב2"],"xtix_advantages":["יתרון1","יתרון2"],"discovery_questions":["שאלה1","שאלה2"],"research_summary":"מה חקרת"}`;
+
+    let basic = {};
+    try { basic = await callAI(prompt1, 800); } catch(e) { console.warn('[ENRICH] Call 1 failed:', e.message); }
+
+    // CALL 2: Email sequence (separate, ~15s)
+    const prompt2 = `כתוב 4 מיילים למכירה עבור XTIX.AI ללקוח: ${lead.name} (${domain}).
+פלטפורמה נוכחית: ${basic.platform_current||'לא ידוע'}. כאבים: ${(basic.pain_points||[]).join(', ')||'עמלות גבוהות'}.
+יתרון XTIX: עמלה 2.5% בלבד, widget מוטמע, 100% הנתונים שלך.
+
+החזר JSON בלבד - מערך email_sequence:
+{"email_sequence":[{"email_num":1,"day":1,"subject":"נושא","research_done":["פריט1","פריט2"],"what_i_concluded":"מסקנה","body":"גוף מייל קצר","cta":"CTA"},{"email_num":2,"day":4,"subject":"","research_done":[],"what_i_concluded":"","body":"","cta":""},{"email_num":3,"day":8,"subject":"","research_done":[],"what_i_concluded":"","body":"","cta":""},{"email_num":4,"day":14,"subject":"","research_done":[],"what_i_concluded":"","body":"","cta":""}]}`;
+
+    let emails = { email_sequence: [] };
+    try { emails = await callAI(prompt2, 1200); } catch(e) { console.warn('[ENRICH] Call 2 failed:', e.message); }
+
+    const score = parseInt(basic.score) || 50;
     return {
       ...lead,
       enrichment: {
-        summary:              enriched.summary              || '',
-        segment:              enriched.segment              || lead.type || '',
-        platform_current:     enriched.platform_current     || '',
-        platform_weakness:    enriched.platform_weakness    || '',
-        competitor_tier:      enriched.competitor_tier      || '2',
-        social:               enriched.social               || {},
-        events_per_year:      enriched.events_per_year      || '',
-        audience_size:        enriched.audience_size        || '',
-        pain_points:          enriched.pain_points          || [],
-        xtix_advantages:      enriched.xtix_advantages      || [],
-        pitch:                enriched.pitch                || '',
-        recommended_cadence:  enriched.recommended_cadence  || 'warm',
-        email_subject:        (enriched.email_sequence && enriched.email_sequence[0] && enriched.email_sequence[0].subject) || '',
-        email_body:           (enriched.email_sequence && enriched.email_sequence[0] && enriched.email_sequence[0].body) || '',
-        discovery_questions:  enriched.discovery_questions  || [],
-        score_factors:        enriched.score_factors        || {},
-        enriched_at:          new Date().toISOString(),
-        enriched_by:          'claude-auto',
-        email_sequence:       enriched.email_sequence       || [],
-        research_summary:     enriched.research_summary     || '',
-        estimated_fees:       enriched.estimated_annual_fees   || '',
-        estimated_savings:    enriched.estimated_xtix_savings  || ''
+        summary:             basic.summary             || '',
+        segment:             basic.segment             || lead.type || '',
+        platform_current:    basic.platform_current    || '',
+        platform_weakness:   basic.platform_weakness   || '',
+        estimated_fees:      basic.estimated_annual_fees || '',
+        estimated_savings:   basic.estimated_xtix_savings || '',
+        pain_points:         basic.pain_points         || [],
+        xtix_advantages:     basic.xtix_advantages     || [],
+        pitch:               basic.pitch               || '',
+        recommended_cadence: basic.recommended_cadence || 'warm',
+        discovery_questions: basic.discovery_questions || [],
+        research_summary:    basic.research_summary    || '',
+        email_sequence:      emails.email_sequence     || [],
+        enriched_at:         new Date().toISOString(),
+        enriched_by:         'claude-auto'
       },
       score,
-      tier:     enriched.tier     || (score >= 80 ? 'A' : score >= 60 ? 'B' : 'C'),
-      platform: enriched.platform_current || lead.platform || '',
-      segment:  enriched.segment  || lead.segment || lead.type || '',
-      status:   lead.status       || 'new',
+      tier:     basic.tier     || (score >= 80 ? 'A' : score >= 60 ? 'B' : 'C'),
+      platform: basic.platform_current || lead.platform || '',
+      segment:  basic.segment  || lead.segment || lead.type || '',
+      status:   lead.status    || 'new',
       updated_at: new Date().toISOString()
     };
   };
