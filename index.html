@@ -3800,17 +3800,23 @@ ${competitorData2}
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           model: 'claude-sonnet-4-20250514',
-          max_tokens: 1000,
-          tools: [{ type: 'web_search_20250305', name: 'web_search' }],
-          system: 'אתה מומחה מכירות ב-XTIX. השתמש ב-web search כדי למצוא לידים ריאליסטיים בישראל. החזר JSON נקי בלבד.',
+          max_tokens: 2000,
+          system: 'אתה מומחה מכירות ב-XTIX. צור רשימת לידים ריאליסטיים בישראל לפי הפרמטרים. החזר JSON נקי בלבד ללא markdown.',
           messages: [{ role: 'user', content: prompt }]
         })
       });
 
       const data = await res.json();
       const rawText = data.content?.map(b => b.text || '').join('') || '';
-      const clean = rawText.replace(/```json|```/g, '').trim();
-      const result = JSON.parse(clean);
+      let result;
+      try {
+        const clean = rawText.replace(/```json|```/g, '').trim();
+        // Find JSON object in response
+        const jsonMatch = clean.match(/\{[\s\S]*\}/);
+        result = JSON.parse(jsonMatch ? jsonMatch[0] : clean);
+      } catch(parseErr) {
+        throw new Error('תגובת AI לא תקינה — נסה שוב');
+      }
 
       loadMsg.remove();
       huntShowResults(result, a);

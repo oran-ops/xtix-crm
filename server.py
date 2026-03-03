@@ -303,7 +303,7 @@ class Handler(BaseHTTPRequestHandler):
                     },
                     method='POST'
                 )
-                with urllib.request.urlopen(req, context=ssl_ctx, timeout=60) as r:
+                with urllib.request.urlopen(req, context=ssl_ctx, timeout=90) as r:
                     result = json.loads(r.read().decode('utf-8'))
                 self.json_out(result)
             except urllib.error.HTTPError as e:
