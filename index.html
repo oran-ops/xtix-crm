@@ -2462,20 +2462,36 @@ IF RESPONSE at any point → Book 30-min MEETING (not call). Prepare ROI deck be
       + '</div>'
       + '</div>'
 
-      // Analysis tab
+      // Analysis (SF) tab — shows full enrichment data
       + '<div class="lead-tab-panel" id="l' + lead.id + '-analysis">'
-      + '<div style="font-size:12px;color:var(--muted);padding:12px">'
-      + (enr.discovery_questions && enr.discovery_questions.length 
-        ? '<div style="font-weight:700;margin-bottom:8px;color:var(--text)">שאלות Discovery:</div>'
-          + enr.discovery_questions.map(function(q,i){ return '<div style="padding:4px 0">▸ ' + q + '</div>'; }).join('')
-        : 'לחץ "נתח AI" לקבלת שאלות Discovery')
+      + '<div style="padding:12px;font-size:12px">'
+      + (enr.research_summary ? '<div style="background:rgba(108,99,255,0.08);border-radius:8px;padding:10px;margin-bottom:10px"><div style="font-weight:700;color:var(--accent);margin-bottom:4px">🔍 מחקר</div><div style="color:var(--text);line-height:1.5">' + enr.research_summary + '</div></div>' : '')
+      + (enr.platform_weakness ? '<div style="margin-bottom:8px"><span style="color:var(--muted)">חולשת פלטפורמה: </span><span style="color:#EF4444">' + enr.platform_weakness + '</span></div>' : '')
+      + (enr.estimated_fees ? '<div style="margin-bottom:4px"><span style="color:var(--muted)">עמלות נוכחיות: </span><strong>' + enr.estimated_fees + '</strong></div>' : '')
+      + (enr.estimated_savings ? '<div style="margin-bottom:8px"><span style="color:var(--muted)">חיסכון עם XTIX: </span><strong style="color:#10b981">' + enr.estimated_savings + '</strong></div>' : '')
+      + (enr.discovery_questions && enr.discovery_questions.length
+        ? '<div style="margin-top:8px"><div style="font-weight:700;margin-bottom:6px;color:var(--text)">שאלות Discovery:</div>'
+          + enr.discovery_questions.map(function(q){ return '<div style="padding:3px 0;color:var(--muted)">▸ ' + q + '</div>'; }).join('')
+          + '</div>'
+        : (!enr.research_summary ? '<div style="color:var(--muted)">לחץ "נתח AI" לקבלת ניתוח מלא</div>' : ''))
       + '</div></div>'
 
-      // Emails tab
+      // Emails tab — shows email sequence from enrichment
       + '<div class="lead-tab-panel" id="l' + lead.id + '-emails">'
-      + '<div style="font-size:12px;color:var(--muted);padding:12px">'
-      + (enr.email_subject ? '<div><strong>נושא:</strong> ' + enr.email_subject + '</div><div style="margin-top:8px;white-space:pre-wrap">' + (enr.email_body || '') + '</div>'
-        : 'לחץ "נתח AI" לקבלת מיילים')
+      + '<div style="padding:12px;font-size:12px">'
+      + (enr.email_sequence && enr.email_sequence.length
+        ? enr.email_sequence.map(function(em) {
+            return '<div style="background:rgba(255,255,255,0.03);border:1px solid var(--border);border-radius:8px;padding:10px;margin-bottom:8px">'
+              + '<div style="display:flex;justify-content:space-between;margin-bottom:6px">'
+              + '<strong style="color:var(--accent)">מייל ' + em.email_num + '</strong>'
+              + '<span style="color:var(--muted);font-size:10px">יום ' + (em.day||'?') + '</span>'
+              + '</div>'
+              + (em.subject ? '<div style="font-weight:600;margin-bottom:4px">📧 ' + em.subject + '</div>' : '')
+              + (em.body ? '<div style="color:var(--muted);line-height:1.5;white-space:pre-wrap;margin-bottom:6px">' + em.body + '</div>' : '')
+              + (em.cta ? '<div style="color:#10b981;font-size:11px">→ ' + em.cta + '</div>' : '')
+              + '</div>';
+          }).join('')
+        : '<div style="color:var(--muted)">לחץ "נתח AI" לקבלת מיילים</div>')
       + '</div></div>'
 
       + '</div></div>';
@@ -3238,39 +3254,22 @@ ${proxyCtx}
   // Poll on load after 3 seconds
   setTimeout(pollClayPending, 3000);
 
-  window.reEnrichLead = async function(leadId) {
-    const lead = leads.find(l => l.id === leadId);
+  window.reEnrichLead = function(leadId) {
+    var lead = leads.find(function(l){ return l.id === leadId; });
     if (!lead) return;
-    const btn = event?.target;
-    if (btn) { btn.textContent = '⏳ מנתח...'; btn.disabled = true; }
-    try {
-      const enrichedLead = await autoEnrichLead(lead);
-      const idx = leads.findIndex(l => l.id === leadId);
-      if (idx !== -1) leads[idx] = enrichedLead;
-      if (typeof db !== 'undefined' && db) {
-        await db.collection('leads').doc(String(leadId)).set(enrichedLead);
-      }
-      logActivity('lead_re_enriched', { lead_id: leadId, lead_name: lead.name });
-      const card = document.getElementById(`lead-${leadId}`);
-      if (card) card.remove();
-      renderSimpleLead(enrichedLead);
-      // Re-open the analysis tab
-      setTimeout(() => {
-        const newCard = document.getElementById(`body-${leadId}`);
-        if (newCard && newCard.style.display === 'none') {
-          document.getElementById(`lead-${leadId}`)?.querySelector('.lead-card-header')?.click();
-        }
-        const analysisTab = document.querySelector(`#l${leadId}-analysis`);
-        if (analysisTab) {
-          document.querySelectorAll(`#body-${leadId} .lead-tab`).forEach(t => t.classList.remove('active'));
-          document.querySelectorAll(`#body-${leadId} .lead-tab-panel`).forEach(p => p.classList.remove('active'));
-          analysisTab.classList.add('active');
-          analysisTab.previousElementSibling?.querySelectorAll('.lead-tab')[1]?.classList.add('active');
-        }
-      }, 300);
-    } catch(e) {
-      if (btn) { btn.textContent = '❌ שגיאה'; btn.disabled = false; }
+    var btn = event && event.target ? event.target : null;
+    if (btn) { btn.textContent = '⏳ בתור...'; btn.disabled = true; }
+
+    // Use the queue — same path as bulk enrichment
+    if (typeof enrichmentQueue !== 'undefined') {
+      // Force re-enrich by temporarily clearing enrichment
+      var leadCopy = Object.assign({}, lead, { enrichment: null });
+      enrichmentQueue.unshift(leadCopy); // put at front of queue
     }
+    if (typeof processEnrichmentQueue !== 'undefined') processEnrichmentQueue();
+
+    // Re-enable button after 30s
+    if (btn) setTimeout(function(){ btn.textContent = '🤖 נתח AI'; btn.disabled = false; }, 30000);
   }
 
   // Check server on load
