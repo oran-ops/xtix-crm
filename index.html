@@ -927,28 +927,6 @@
     </div>
     <div id="leads-list">
 
-      <!-- ======= LEAD 1: QUEEN GUARDS ======= -->
-      <div class="lead-card" id="lead-1">
-        <div class="lead-card-header" onclick="toggleLead(1)">
-          <div class="lead-info">
-            <div class="lead-avatar">שמ</div>
-            <div>
-              <div class="lead-name">שומרי המלכה</div>
-              <div class="lead-meta"><span>🎭 מופע טריביוט Queen</span><span>🌐 queen-guards.com</span><span>📍 ישראל</span></div>
-            </div>
-          </div>
-          <div class="lead-badges">
-            <div class="score-ring" style="--score:82"><span>82</span></div>
-            <select class="status-select" onclick="event.stopPropagation()" onchange="updateStats()">
-              <option value="new" selected>🟢 ליד חדש</option>
-              <option value="contacted">📧 נשלח מייל</option>
-              <option value="followup">🔁 Follow-up</option>
-              <option value="meeting">📅 פגישה</option>
-              <option value="closed">✅ נסגר</option>
-            </select>
-            <span style="font-size:18px;color:var(--muted)" id="arrow-1">▼</span>
-          </div>
-        </div>
         <div class="lead-body" id="body-1">
           <div class="lead-tabs">
             <button class="lead-tab active" onclick="switchLeadTab(1,'profile',this)">פרופיל</button>
@@ -1255,28 +1233,6 @@ IF RESPONSE after #2 → send Case Study PDF + ask for Demo slot.
         </div>
       </div>
 
-      <!-- ======= LEAD 2: BEIT LESSIN ======= -->
-      <div class="lead-card" id="lead-2">
-        <div class="lead-card-header" onclick="toggleLead(2)">
-          <div class="lead-info">
-            <div class="lead-avatar" style="background:linear-gradient(135deg,#e84393,#7c3aed)">בל</div>
-            <div>
-              <div class="lead-name">תיאטרון בית ליסין</div>
-              <div class="lead-meta"><span>🎭 תיאטרון — 830+380 מקומות</span><span>🌐 lessin.co.il</span><span>📍 דיזנגוף 101, ת"א</span></div>
-            </div>
-          </div>
-          <div class="lead-badges">
-            <div class="score-ring" style="--score:71"><span>71</span></div>
-            <select class="status-select" onclick="event.stopPropagation()" onchange="updateStats()">
-              <option value="new" selected>🟢 ליד חדש</option>
-              <option value="contacted">📧 נשלח מייל</option>
-              <option value="followup">🔁 Follow-up</option>
-              <option value="meeting">📅 פגישה</option>
-              <option value="closed">✅ נסגר</option>
-            </select>
-            <span style="font-size:18px;color:var(--muted)" id="arrow-2">▼</span>
-          </div>
-        </div>
         <div class="lead-body" id="body-2">
           <div class="lead-tabs">
             <button class="lead-tab active" onclick="switchLeadTab(2,'profile',this)">פרופיל</button>
@@ -2481,6 +2437,22 @@ IF RESPONSE at any point → Book 30-min MEETING (not call). Prepare ROI deck be
           if (lead.id >= nextId) nextId = lead.id + 1;
         });
         leads.sort((a, b) => a.id - b.id);
+        // Merge any locally-added leads not yet in Firebase
+        try {
+          const localRaw = localStorage.getItem(STORAGE_KEY);
+          if (localRaw) {
+            const localLeads = JSON.parse(localRaw);
+            const fbIds = new Set(leads.map(l => l.id));
+            localLeads.forEach(ll => {
+              if (!fbIds.has(ll.id)) {
+                leads.push(ll);
+                // Also save to Firebase so it persists
+                if (db) db.collection(LEADS_COL).doc(String(ll.id)).set(ll).catch(()=>{});
+              }
+            });
+            leads.sort((a, b) => a.id - b.id);
+          }
+        } catch(e) {}
         renderAllLeads();
         updateStats();
         showStorageStatus('firebase');
@@ -2666,14 +2638,12 @@ IF RESPONSE at any point → Book 30-min MEETING (not call). Prepare ROI deck be
   function renderAllLeads() {
     const list = document.getElementById('leads-list');
     if (!list) return;
+    // Remove all dynamic cards
     document.querySelectorAll('.lead-card[data-dynamic="true"]').forEach(el => el.remove());
-    leads.forEach(lead => {
-      if (lead.id > 2) renderSimpleLead(lead);
-      else {
-        const sel = document.querySelector(`#lead-${lead.id} .status-select`);
-        if (sel) sel.value = lead.status || 'new';
-      }
-    });
+    // Also remove any old static hardcoded cards
+    document.querySelectorAll('.lead-card:not([data-dynamic])').forEach(el => el.remove());
+    // Render ALL leads dynamically
+    leads.forEach(lead => renderSimpleLead(lead));
     document.getElementById('total-leads').textContent = leads.length;
   }
 
