@@ -3149,7 +3149,7 @@ ${proxyContext}
     const emailBody4 = `היי,\n\nמייל אחרון — לא רוצה להציק.\n\nשאלה אחת ישירה: האם מכירת הכרטיסים היום מספקת אותכם?\n\nאם כן — הכל טוב. אם יש מה לשפר — 15 דקות ו-XTIX יכולה לענות.\n\nאורן | XTIX.ai`;
 
     const html = `
-    <div class="lead-card" id="lead-${lead.id}" data-dynamic="true">
+    <div class="lead-card" id="lead-${lead.id}" data-lead-id="${lead.id}" data-dynamic="true">
       <div class="lead-card-header" onclick="toggleLead(${lead.id})">
         <div class="lead-info">
           <div class="lead-avatar" style="background:${color}">${initials}</div>
@@ -4104,7 +4104,7 @@ ${competitorInfo}
         });
 
         // Re-render lead card
-        const existingCard = document.querySelector(`[data-lead-id="${lead.id}"]`);
+        const existingCard = document.getElementById(`lead-${lead.id}`);
         if (existingCard) existingCard.remove();
         renderSimpleLead(enrichedLead);
 
@@ -4112,8 +4112,8 @@ ${competitorInfo}
         console.warn('[ENRICH] Failed for', lead.name, e);
       }
 
-      // Small delay between leads to avoid rate limiting
-      if (enrichmentQueue.length > 0) await new Promise(r => setTimeout(r, 2000));
+      // Delay between leads — avoid rate limiting
+      if (enrichmentQueue.length > 0) await new Promise(r => setTimeout(r, 3500));
     }
 
     enrichmentRunning = false;
@@ -4133,13 +4133,14 @@ ${competitorInfo}
       for (const lead of pending) {
         const exists = leads.some(l => l.domain && l.domain === lead.domain);
         if (exists) continue;
-        lead.id = lead.id || Date.now() + Math.random();
+        // Unique ID — never clash with static leads (1,2,3)
+        lead.id = Date.now() + Math.floor(Math.random() * 9000) + 100000;
         leads.push(lead);
         added++;
-        // Add basic card with "analyzing" indicator
+        // Queue for enrichment BEFORE rendering
+        enrichmentQueue.push({...lead});
+        // Render basic card
         renderSimpleLead({ ...lead, _enriching: true });
-        // Queue for enrichment
-        enrichmentQueue.push(lead);
       }
 
       if (added > 0) {
