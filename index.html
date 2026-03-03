@@ -2972,14 +2972,20 @@ ${proxyCtx}
       const res = await fetch(SERVER + '/ai', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ prompt }),
+        body: JSON.stringify({
+          model: 'claude-sonnet-4-20250514',
+          max_tokens: 2000,
+          system: 'אתה מנהל מכירות ב-XTIX. החזר JSON נקי בלבד ללא markdown וללא backticks.',
+          messages: [{ role: 'user', content: prompt }]
+        }),
         signal: AbortSignal.timeout(60000)
       });
       if (res.ok) {
         const data = await res.json();
-        let raw = (data.result || data.content || data.text || '').trim();
+        const textBlock = Array.isArray(data.content) ? data.content.find(b => b.type === 'text') : null;
+        let raw = (textBlock ? textBlock.text : (data.result || data.text || '')).trim();
         raw = raw.replace(/^```json\s*/,'').replace(/^```\s*/,'').replace(/\s*```$/,'');
-        try { enriched = JSON.parse(raw); } catch(e) { console.warn('[ENRICH] JSON parse error:', e); }
+        try { enriched = JSON.parse(raw); } catch(e) { console.warn('[ENRICH] JSON parse error:', e, raw.substring(0,200)); }
       }
     } catch(e) {
       console.warn('[ENRICH] API error:', e);
