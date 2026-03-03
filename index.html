@@ -2378,6 +2378,126 @@ IF RESPONSE at any point → Book 30-min MEETING (not call). Prepare ROI deck be
     el.textContent = txt; el.style.color = color; el.title = title;
   }
 
+  // =================== renderSimpleLead — builds dynamic lead cards ===================
+  window.renderSimpleLead = function renderSimpleLead(lead) {
+    if (!lead || !lead.id) return;
+    var list = document.getElementById('leads-list');
+    if (!list) return;
+
+    // Remove existing card if present
+    var existing = document.getElementById('lead-' + lead.id);
+    if (existing) existing.remove();
+
+    var score = lead.score || 0;
+    var tier  = lead.tier || (score >= 80 ? 'A' : score >= 60 ? 'B' : 'C');
+    var tierColor = tier === 'A' ? '#EF4444' : tier === 'B' ? '#F59E0B' : '#0EA5E9';
+    var initials = (lead.name || '??').substring(0, 2);
+    var statusOptions = [
+      ['new','🟢 ליד חדש'],['contacted','📧 נשלח מייל'],
+      ['followup','🔁 Follow-up'],['meeting','📅 פגישה'],['closed','✅ נסגר']
+    ].map(function(o) {
+      return '<option value="' + o[0] + '"' + (lead.status === o[0] ? ' selected' : '') + '>' + o[1] + '</option>';
+    }).join('');
+
+    var enr = lead.enrichment || {};
+    var platformBadge = (lead.platform || enr.platform_current) 
+      ? '<span style="background:rgba(108,99,255,0.15);border-radius:4px;padding:2px 7px;font-size:10px;color:var(--accent)">' + (lead.platform || enr.platform_current) + '</span>' : '';
+    var cadenceBadge = enr.recommended_cadence 
+      ? '<span style="background:rgba(16,185,129,0.15);border-radius:4px;padding:2px 7px;font-size:10px;color:var(--green)">' + enr.recommended_cadence + '</span>' : '';
+
+    var html = '<div class="lead-card" id="lead-' + lead.id + '" data-dynamic="true"'
+      + ' data-status="' + (lead.status || 'new') + '"'
+      + ' data-score="' + score + '"'
+      + ' data-segment="' + (lead.segment || lead.type || '') + '"'
+      + ' data-source="' + (lead.source || '') + '"'
+      + ' data-name="' + (lead.name || '') + '"'
+      + ' data-domain="' + (lead.domain || '') + '"'
+      + ' data-platform="' + (lead.platform || '') + '">'
+
+      // Header
+      + '<div class="lead-card-header" onclick="toggleLead(' + lead.id + ')">'
+      + '<div class="lead-info">'
+      + '<div class="lead-avatar">' + initials + '</div>'
+      + '<div>'
+      + '<div class="lead-name">' + (lead.name || 'ליד חדש') + '</div>'
+      + '<div class="lead-meta">'
+      + (lead.type || lead.segment ? '<span>🎭 ' + (lead.type || lead.segment) + '</span>' : '')
+      + (lead.domain ? '<span>🌐 ' + lead.domain + '</span>' : '')
+      + (lead.phone ? '<span>📞 ' + lead.phone + '</span>' : '')
+      + '</div>'
+      + '</div></div>'
+      + '<div class="lead-badges">'
+      + '<div class="score-ring" style="--score:' + score + '"><span>' + score + '</span></div>'
+      + '<select class="status-select" data-lead-id="' + lead.id + '" onclick="event.stopPropagation()" onchange="updateStats()">'
+      + statusOptions + '</select>'
+      + platformBadge + cadenceBadge
+      + '<span style="font-size:18px;color:var(--muted)" id="arrow-' + lead.id + '">▼</span>'
+      + '</div></div>'
+
+      // Body
+      + '<div class="lead-body" id="body-' + lead.id + '" style="display:none">'
+      + '<div class="lead-tabs">'
+      + '<button class="lead-tab active" onclick="switchLeadTab(' + lead.id + ','profile',this)">פרופיל</button>'
+      + '<button class="lead-tab" onclick="switchLeadTab(' + lead.id + ','analysis',this)">ניתוח SF</button>'
+      + '<button class="lead-tab" onclick="switchLeadTab(' + lead.id + ','emails',this)">✉️ מיילים</button>'
+      + '</div>'
+
+      // Profile tab
+      + '<div class="lead-tab-panel active" id="l' + lead.id + '-profile">'
+      + '<div class="info-grid">'
+      + '<div class="info-box"><label>שם</label><value>' + (lead.name || '') + '</value></div>'
+      + '<div class="info-box"><label>דומיין</label><value>' + (lead.domain || '') + '</value></div>'
+      + '<div class="info-box"><label>טלפון</label><value>' + (lead.phone || '') + '</value></div>'
+      + '<div class="info-box"><label>מייל</label><value>' + (lead.email || '') + '</value></div>'
+      + '<div class="info-box"><label>פלטפורמה</label><value>' + (lead.platform || enr.platform_current || '') + '</value></div>'
+      + '<div class="info-box"><label>סגמנט</label><value>' + (lead.segment || lead.type || '') + '</value></div>'
+      + (enr.summary ? '<div class="info-box" style="grid-column:1/-1"><label>סיכום AI</label><value>' + enr.summary + '</value></div>' : '')
+      + (enr.pitch ? '<div class="info-box" style="grid-column:1/-1"><label>פתיחה מומלצת</label><value>' + enr.pitch + '</value></div>' : '')
+      + '</div>'
+      + (enr.pain_points && enr.pain_points.length ? '<div style="margin-top:8px"><div style="font-size:10px;color:var(--muted);margin-bottom:4px">כאבים עיקריים:</div>'
+        + enr.pain_points.map(function(p){ return '<span style="background:rgba(239,68,68,0.1);border-radius:4px;padding:2px 8px;font-size:11px;color:#EF4444;margin:2px;display:inline-block">' + p + '</span>'; }).join('')
+        + '</div>' : '')
+      + '<div style="margin-top:10px;display:flex;gap:8px;flex-wrap:wrap">'
+      + '<button onclick="window.reEnrichLead(' + lead.id + ')" style="background:rgba(108,99,255,0.15);border:1px solid rgba(108,99,255,0.3);border-radius:6px;padding:5px 12px;font-size:11px;color:var(--accent);cursor:pointer;font-family:Heebo,sans-serif">🤖 נתח AI</button>'
+      + '</div>'
+      + '</div>'
+
+      // Analysis tab
+      + '<div class="lead-tab-panel" id="l' + lead.id + '-analysis">'
+      + '<div style="font-size:12px;color:var(--muted);padding:12px">'
+      + (enr.discovery_questions && enr.discovery_questions.length 
+        ? '<div style="font-weight:700;margin-bottom:8px;color:var(--text)">שאלות Discovery:</div>'
+          + enr.discovery_questions.map(function(q,i){ return '<div style="padding:4px 0">▸ ' + q + '</div>'; }).join('')
+        : 'לחץ "נתח AI" לקבלת שאלות Discovery')
+      + '</div></div>'
+
+      // Emails tab
+      + '<div class="lead-tab-panel" id="l' + lead.id + '-emails">'
+      + '<div style="font-size:12px;color:var(--muted);padding:12px">'
+      + (enr.email_subject ? '<div><strong>נושא:</strong> ' + enr.email_subject + '</div><div style="margin-top:8px;white-space:pre-wrap">' + (enr.email_body || '') + '</div>'
+        : 'לחץ "נתח AI" לקבלת מיילים')
+      + '</div></div>'
+
+      + '</div></div>';
+
+    list.insertAdjacentHTML('beforeend', html);
+
+    // Wire up status change
+    var sel = document.querySelector('.status-select[data-lead-id="' + lead.id + '"]');
+    if (sel) {
+      sel.addEventListener('change', function() {
+        var l = leads.find(function(x){ return x.id === lead.id; });
+        if (l) {
+          l.status = this.value;
+          l.updated_at = new Date().toISOString();
+          if (typeof db !== 'undefined' && db)
+            db.collection('leads').doc(String(lead.id)).update({status: l.status, updated_at: l.updated_at}).catch(function(){});
+          updateStats();
+        }
+      });
+    }
+  };
+
   function renderAllLeads() {
     const list = document.getElementById('leads-list');
     if (!list) return;
@@ -2984,8 +3104,18 @@ ${proxyCtx}
         const data = await res.json();
         const textBlock = Array.isArray(data.content) ? data.content.find(b => b.type === 'text') : null;
         let raw = (textBlock ? textBlock.text : (data.result || data.text || '')).trim();
-        raw = raw.replace(/^```json\s*/,'').replace(/^```\s*/,'').replace(/\s*```$/,'');
-        try { enriched = JSON.parse(raw); } catch(e) { console.warn('[ENRICH] JSON parse error:', e, raw.substring(0,200)); }
+        raw = raw.replace(/^```json\s*/,'').replace(/^```\s*/,'').replace(/\s*```$/,'').trim();
+        // Remove any text before first { and after last }
+        var jsonStart = raw.indexOf('{');
+        var jsonEnd = raw.lastIndexOf('}');
+        if (jsonStart !== -1 && jsonEnd !== -1) raw = raw.substring(jsonStart, jsonEnd + 1);
+        try { enriched = JSON.parse(raw); } catch(e) {
+          // Try fixing common JSON issues: unescaped quotes inside strings
+          try {
+            var fixed = raw.replace(/([^\\])"([^",:{}\[\]\n]+)"([^",:{}\[\]\n]*)"(?=[,}\]])/g, '$1\"$2\"$3\"');
+            enriched = JSON.parse(fixed);
+          } catch(e2) { console.warn('[ENRICH] JSON parse failed:', e2.message, raw.substring(0,300)); }
+        }
       }
     } catch(e) {
       console.warn('[ENRICH] API error:', e);
