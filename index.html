@@ -34,28 +34,92 @@
   .tab { display: none; }
 
   /* ── SIDEBAR LAYOUT ── */
-  #app-wrapper { display: flex !important; flex-direction: row; min-height: 100vh; }
-  #sidebar { width: 200px; min-width: 200px; background: var(--surface); border-right: 1px solid var(--border); display: flex; flex-direction: column; position: sticky; top: 0; height: 100vh; overflow-y: auto; z-index: 100; flex-shrink: 0; }
-  #sidebar-logo { padding: 20px 16px 14px; border-bottom: 1px solid var(--border); }
-  #sidebar-logo .logo { font-size: 18px; font-weight: 900; letter-spacing: 2px; }
+  /* ── APP LAYOUT ── */
+  #app-wrapper { display: flex !important; flex-direction: row; min-height: 100vh; background: var(--bg); }
+
+  /* ── SIDEBAR ── */
+  #sidebar {
+    width: 210px; min-width: 210px; flex-shrink: 0;
+    background: linear-gradient(180deg, #0e0e18 0%, #0a0a12 100%);
+    border-right: 1px solid rgba(108,99,255,0.12);
+    display: flex; flex-direction: column;
+    position: sticky; top: 0; height: 100vh;
+    overflow-y: auto; z-index: 100;
+  }
+  #sidebar-logo {
+    padding: 22px 18px 16px;
+    border-bottom: 1px solid rgba(255,255,255,0.05);
+  }
+  #sidebar-logo .logo { font-size: 20px; font-weight: 900; letter-spacing: 3px; }
   #sidebar-logo .logo span { color: var(--accent); }
-  #sidebar-stats { padding: 10px 14px; border-bottom: 1px solid var(--border); display: flex; flex-direction: column; gap: 5px; }
-  #sidebar-stats .stat-row { font-size: 11px; color: var(--muted); }
-  #sidebar-stats .stat-row strong { color: var(--text); }
-  #sidebar-nav { flex: 1; padding: 10px 8px; display: flex; flex-direction: column; gap: 2px; }
-  .nav-btn { width: 100%; text-align: right; padding: 10px 12px; border-radius: 8px; border: none; background: none; color: var(--muted); font-family: 'Heebo', sans-serif; font-size: 13px; font-weight: 600; cursor: pointer; transition: all 0.18s; display: flex; align-items: center; gap: 8px; flex-direction: row-reverse; }
-  .nav-btn:hover { background: rgba(255,255,255,0.05); color: var(--text); }
-  .nav-btn.active { background: rgba(108,99,255,0.15); color: var(--accent); border: 1px solid rgba(108,99,255,0.25); }
-  .nav-icon { font-size: 15px; flex-shrink: 0; }
+
+  /* ── NAV ── */
+  #sidebar-nav { padding: 14px 10px 8px; display: flex; flex-direction: column; gap: 3px; }
+  .nav-section-label {
+    font-size: 9px; font-weight: 700; letter-spacing: 1.5px;
+    color: rgba(107,107,138,0.6); text-transform: uppercase;
+    padding: 10px 10px 4px; text-align: right;
+  }
+  .nav-btn {
+    width: 100%; padding: 9px 12px; border-radius: 9px; border: 1px solid transparent;
+    background: none; color: var(--muted);
+    font-family: 'Heebo', sans-serif; font-size: 13px; font-weight: 600;
+    cursor: pointer; transition: all 0.15s;
+    display: flex; align-items: center; gap: 9px; flex-direction: row-reverse;
+    text-align: right;
+  }
+  .nav-btn:hover { background: rgba(255,255,255,0.04); color: var(--text); }
+  .nav-btn.active {
+    background: rgba(108,99,255,0.14);
+    color: var(--accent);
+    border-color: rgba(108,99,255,0.22);
+    box-shadow: 0 0 0 1px rgba(108,99,255,0.08) inset;
+  }
+  .nav-icon { font-size: 14px; flex-shrink: 0; opacity: 0.85; }
   .nav-label { flex: 1; text-align: right; }
-  .nav-sub { padding: 2px 8px 4px; display: none; flex-direction: column; gap: 1px; }
+  .nav-sub { display: none; flex-direction: column; gap: 1px; padding: 2px 0 4px 0; margin: 0 4px; }
   .nav-sub.open { display: flex; }
-  .nav-sub-btn { width: 100%; text-align: right; padding: 7px 28px 7px 8px; border-radius: 6px; border: none; background: none; color: var(--muted); font-family: 'Heebo', sans-serif; font-size: 12px; cursor: pointer; transition: all 0.15s; }
-  .nav-sub-btn:hover { background: rgba(255,255,255,0.04); color: var(--text); }
-  .nav-sub-btn.active { color: var(--accent); font-weight: 700; }
-  #sidebar-bottom { padding: 12px 14px; border-top: 1px solid var(--border); display: flex; flex-direction: column; gap: 5px; }
-  #main-content { flex: 1; min-width: 0; width: calc(100vw - 200px); display: flex; flex-direction: column; overflow-x: hidden; }
-  .container { padding: 20px 24px; flex: 1; width: 100%; box-sizing: border-box; overflow-x: hidden; }
+  .nav-sub-btn {
+    width: 100%; text-align: right; padding: 6px 28px 6px 10px;
+    border-radius: 7px; border: none; background: none;
+    color: var(--muted); font-family: 'Heebo', sans-serif; font-size: 12px;
+    cursor: pointer; transition: all 0.13s;
+  }
+  .nav-sub-btn:hover { background: rgba(255,255,255,0.03); color: var(--text); }
+  .nav-sub-btn.active { color: var(--accent); font-weight: 700; background: rgba(108,99,255,0.07); }
+
+  /* ── SIDEBAR BOTTOM ── */
+  #sidebar-bottom {
+    padding: 14px 12px 16px;
+    border-top: 1px solid rgba(255,255,255,0.05);
+    display: flex; flex-direction: column; gap: 10px;
+  }
+  .sb-stats {
+    display: flex; gap: 6px;
+  }
+  .sb-stat {
+    flex: 1; background: rgba(255,255,255,0.03); border: 1px solid rgba(255,255,255,0.06);
+    border-radius: 8px; padding: 7px 10px; text-align: center;
+  }
+  .sb-val { display: block; font-size: 16px; font-weight: 800; color: var(--text); line-height: 1.2; }
+  .sb-key { display: block; font-size: 9px; color: var(--muted); letter-spacing: 0.5px; margin-top: 1px; }
+  .sb-indicators {
+    display: flex; justify-content: space-between; align-items: center;
+    font-size: 10px; color: var(--muted); padding: 0 2px;
+  }
+  .sb-tools { display: flex; flex-direction: column; gap: 4px; }
+  .sb-tool-btn {
+    width: 100%; padding: 7px 10px; border-radius: 8px;
+    background: rgba(255,255,255,0.03); border: 1px solid rgba(255,255,255,0.07);
+    color: var(--muted); font-family: 'Heebo', sans-serif; font-size: 11px;
+    cursor: pointer; transition: all 0.15s; text-align: right;
+    display: flex; align-items: center; gap: 7px;
+  }
+  .sb-tool-btn:hover { background: rgba(108,99,255,0.08); color: var(--text); border-color: rgba(108,99,255,0.2); }
+
+  /* ── MAIN CONTENT ── */
+  #main-content { flex: 1; min-width: 0; display: flex; flex-direction: column; overflow-x: hidden; }
+  .container { padding: 24px 28px; flex: 1; width: 100%; box-sizing: border-box; overflow-x: hidden; }
   .header { display: none; }
   #leads-list { width: 100% !important; }
   #tab-leads { width: 100% !important; }
@@ -126,10 +190,15 @@
   .btn-green { background: #00a854; }
   .btn-sm { padding: 6px 12px; font-size: 11px; }
 
-  .lead-card { background: var(--surface); border: 1px solid var(--border); border-radius: 14px; margin-bottom: 14px; overflow: hidden; transition: border-color 0.2s; }
-  .lead-card:hover { border-color: rgba(108,99,255,0.4); }
-  .lead-card.expanded { border-color: var(--accent); }
-  .lead-card-header { display: flex; align-items: center; justify-content: space-between; padding: 16px 20px; cursor: pointer; }
+  .lead-card {
+    background: linear-gradient(135deg, rgba(18,18,26,1) 0%, rgba(14,14,22,1) 100%);
+    border: 1px solid var(--border); border-radius: 14px;
+    margin-bottom: 10px; overflow: hidden;
+    transition: border-color 0.2s, box-shadow 0.2s;
+  }
+  .lead-card:hover { border-color: rgba(108,99,255,0.35); box-shadow: 0 2px 16px rgba(108,99,255,0.06); }
+  .lead-card.expanded { border-color: var(--accent); box-shadow: 0 4px 24px rgba(108,99,255,0.1); }
+  .lead-card-header { display: flex; align-items: center; justify-content: space-between; padding: 14px 18px; cursor: pointer; gap: 10px; }
   .lead-info { display: flex; align-items: center; gap: 14px; }
   .lead-avatar { width: 44px; height: 44px; border-radius: 10px; background: linear-gradient(135deg, var(--accent), var(--accent2)); display: flex; align-items: center; justify-content: center; font-weight: 800; font-size: 16px; flex-shrink: 0; }
   .lead-name { font-size: 15px; font-weight: 700; margin-bottom: 3px; }
@@ -301,18 +370,20 @@
 
 <!-- ═══ SIDEBAR ═══ -->
 <div id="sidebar">
+
+  <!-- LOGO -->
   <div id="sidebar-logo">
     <div class="logo">XTIX<span>.</span>CRM</div>
+    <div style="font-size:9px;color:var(--muted);letter-spacing:2px;margin-top:3px;text-align:right">SALES PLATFORM</div>
   </div>
-  <div id="sidebar-stats">
-    <div class="stat-row">לידים: <strong id="total-leads">0</strong></div>
-    <div class="stat-row">פניות: <strong id="contacted-count">0</strong></div>
-    <div class="stat-row" id="server-status" onclick="checkServer()" style="cursor:pointer">⚪ Server</div>
-    <div class="stat-row" id="storage-indicator">💾 נשמר</div>
-  </div>
+
+  <!-- NAV -->
   <nav id="sidebar-nav">
     <button class="nav-btn active" data-panel="leads" onclick="switchMainTab('leads',this)">
       <span class="nav-icon">👤</span><span class="nav-label">לידים</span>
+    </button>
+    <button class="nav-btn" data-panel="leadfinder" onclick="switchMainTab('leadfinder',this)">
+      <span class="nav-icon">🔍</span><span class="nav-label">Lead Finder</span>
     </button>
     <button class="nav-btn" data-panel="market" onclick="switchMainTab('market',this)">
       <span class="nav-icon">🌍</span><span class="nav-label">ניתוח שוק</span>
@@ -320,7 +391,7 @@
     <div class="nav-sub" id="sub-market">
       <button class="nav-sub-btn active" onclick="switchMarket('competitors',this)">🗺 מפת מתחרים</button>
       <button class="nav-sub-btn" onclick="switchMarket('positioning',this)">🎯 פוזיציונינג</button>
-      <button class="nav-sub-btn" onclick="switchMarket('scoring',this)">📊 Scoring Matrix</button>
+      <button class="nav-sub-btn" onclick="switchMarket('scoring',this)">📊 Scoring</button>
     </div>
     <button class="nav-btn" data-panel="methodology" onclick="switchMainTab('methodology',this)">
       <span class="nav-icon">📋</span><span class="nav-label">מתודולוגיה</span>
@@ -329,8 +400,38 @@
       <span class="nav-icon">🔗</span><span class="nav-label">HubSpot</span>
     </button>
   </nav>
+
+  <!-- SPACER -->
+  <div style="flex:1"></div>
+
+  <!-- STATS + TOOLS — BOTTOM -->
   <div id="sidebar-bottom">
-    <button onclick="document.getElementById('csv-import')&&document.getElementById('csv-import').click()" style="width:100%;background:rgba(255,255,255,0.05);border:1px solid var(--border);border-radius:6px;padding:6px;color:var(--muted);font-family:Heebo,sans-serif;font-size:11px;cursor:pointer">📥 ייבוא CSV</button>
+
+    <!-- Stats -->
+    <div class="sb-stats">
+      <div class="sb-stat"><span class="sb-val" id="total-leads">0</span><span class="sb-key">לידים</span></div>
+      <div class="sb-stat"><span class="sb-val" id="contacted-count">0</span><span class="sb-key">פניות</span></div>
+    </div>
+
+    <!-- Status indicators -->
+    <div class="sb-indicators">
+      <span id="server-status" onclick="checkServer()" style="cursor:pointer" title="בדוק חיבור שרת">⚪ Server</span>
+      <span id="storage-indicator" title="סטטוס שמירה">💾</span>
+    </div>
+
+    <!-- Tools -->
+    <div class="sb-tools">
+      <button class="sb-tool-btn" onclick="document.getElementById('csv-import')&&document.getElementById('csv-import').click()" title="ייבוא CSV">
+        📥 <span>ייבוא CSV</span>
+      </button>
+      <button class="sb-tool-btn" onclick="if(window.exportToExcel)exportToExcel();else if(window.exportLeads)exportLeads();" title="ייצוא Excel">
+        📊 <span>ייצוא Excel</span>
+      </button>
+      <button class="sb-tool-btn" onclick="if(window.syncFirebase)syncFirebase();else alert('לחץ פעמיים לסנכרון ידני');" title="סנכרון Firebase">
+        🔄 <span>סנכרון DB</span>
+      </button>
+    </div>
+
   </div>
 </div>
 
@@ -729,243 +830,6 @@
         <div class="apply-row"><span class="apply-icon">🌐</span><span><strong>Marketplace בינלאומי:</strong> אין שום מתחרה ישראלי שמציע גישה לתיירים בינלאומיים.</span></div>
         <div class="apply-row"><span class="apply-icon">📊</span><span><strong>First-party data:</strong> כל מתחרי ה-Marketplace שומרים את נתוני הקהל לעצמם. XTIX מחזיר אותם למפיק.</span></div>
       </div>
-    </div>
-
-    <!-- ======= TAB 3: LEAD FINDER + SCORER ======= -->
-    <div class="meth-panel" id="market-leadfinder" data-hidden="true">
-
-      <!-- Mode Toggle -->
-      <div style="display:flex;gap:8px;margin-bottom:16px;flex-wrap:wrap">
-        <button id="mode-form-btn" onclick="setLeadMode('form')" style="padding:8px 18px;border-radius:8px;border:2px solid var(--accent);background:var(--accent);color:#fff;font-size:12px;font-weight:700;cursor:pointer;font-family:'Heebo',sans-serif">📋 טופס שאלות</button>
-        <button id="mode-url-btn" onclick="setLeadMode('url')" style="padding:8px 18px;border-radius:8px;border:2px solid var(--border);background:transparent;color:var(--muted);font-size:12px;font-weight:700;cursor:pointer;font-family:'Heebo',sans-serif">🔗 הזן URL</button>
-        <button id="mode-hunt-btn" onclick="setLeadMode('hunt')" style="padding:8px 18px;border-radius:8px;border:2px solid var(--border);background:transparent;color:var(--muted);font-size:12px;font-weight:700;cursor:pointer;font-family:'Heebo',sans-serif">🤖 AI Hunt</button>
-        <span style="font-size:11px;color:var(--muted);align-self:center;margin-right:8px">SF BP #2 Persona + BP #6 Priority — ניקוד אוטומטי לליד חדש</span>
-      </div>
-
-      <div style="display:grid;grid-template-columns:1fr 380px;gap:16px;align-items:start">
-
-        <!-- LEFT: Input Panel -->
-        <div class="card" style="position:relative">
-
-          <!-- FORM MODE -->
-          <div id="mode-form">
-            <div class="card-title"><div class="dot" style="background:var(--accent)"></div>פרטי הליד — ענה על 8 שאלות</div>
-
-            <div style="display:flex;flex-direction:column;gap:10px">
-
-              <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px">
-                <div>
-                  <label style="font-size:10px;color:var(--muted);display:block;margin-bottom:4px;letter-spacing:1px;text-transform:uppercase">שם ליד / חברה</label>
-                  <input id="lf-name" type="text" placeholder="שומרי המלכה..." style="width:100%;background:var(--surface2);border:1px solid var(--border);border-radius:7px;padding:8px 12px;color:var(--text);font-size:12px;font-family:'Heebo',sans-serif;outline:none">
-                </div>
-                <div>
-                  <label style="font-size:10px;color:var(--muted);display:block;margin-bottom:4px;letter-spacing:1px;text-transform:uppercase">דומיין (אם יש)</label>
-                  <input id="lf-domain" type="text" placeholder="example.co.il" style="width:100%;background:var(--surface2);border:1px solid var(--border);border-radius:7px;padding:8px 12px;color:var(--text);font-size:12px;font-family:'Heebo',sans-serif;outline:none" oninput="runScorer()">
-                </div>
-              </div>
-
-              <!-- Q1 -->
-              <div style="background:var(--surface2);border-radius:9px;padding:12px 14px">
-                <div style="font-size:12px;font-weight:700;margin-bottom:8px">1. האם יש לליד <strong style="color:var(--accent)">דומיין פרטי פעיל</strong>? <span style="color:var(--accent2);font-size:10px">+20 נק׳</span></div>
-                <div style="display:flex;gap:8px">
-                  <label style="display:flex;align-items:center;gap:6px;cursor:pointer;font-size:12px"><input type="radio" name="q_domain" value="2" onchange="runScorer()" style="accent-color:var(--accent)"> כן, אתר מלא + תוכן</label>
-                  <label style="display:flex;align-items:center;gap:6px;cursor:pointer;font-size:12px"><input type="radio" name="q_domain" value="1" onchange="runScorer()" style="accent-color:var(--accent)"> עמוד פשוט / landing</label>
-                  <label style="display:flex;align-items:center;gap:6px;cursor:pointer;font-size:12px"><input type="radio" name="q_domain" value="0" onchange="runScorer()" style="accent-color:var(--accent)"> לא — רק IG/FB</label>
-                </div>
-              </div>
-
-              <!-- Q2 -->
-              <div style="background:var(--surface2);border-radius:9px;padding:12px 14px">
-                <div style="font-size:12px;font-weight:700;margin-bottom:8px">2. הכרטיסים נמכרים דרך <strong style="color:var(--accent)">פלטפורמה חיצונית</strong>? <span style="color:var(--accent2);font-size:10px">+15 נק׳</span></div>
-                <div style="display:flex;gap:8px;flex-wrap:wrap">
-                  <label style="display:flex;align-items:center;gap:6px;cursor:pointer;font-size:12px"><input type="radio" name="q_platform" value="2" onchange="runScorer()" style="accent-color:var(--accent)"> כן — Smarticket/Bravo/Leaan</label>
-                  <label style="display:flex;align-items:center;gap:6px;cursor:pointer;font-size:12px"><input type="radio" name="q_platform" value="1" onchange="runScorer()" style="accent-color:var(--accent)"> כן — מתחרה אחר</label>
-                  <label style="display:flex;align-items:center;gap:6px;cursor:pointer;font-size:12px"><input type="radio" name="q_platform" value="0" onchange="runScorer()" style="accent-color:var(--accent)"> מוכרים מהאתר / ידני</label>
-                </div>
-              </div>
-
-              <!-- Q3 -->
-              <div style="background:var(--surface2);border-radius:9px;padding:12px 14px">
-                <div style="font-size:12px;font-weight:700;margin-bottom:8px">3. <strong style="color:var(--accent)">כמה אירועים</strong> בשנה? <span style="color:var(--accent2);font-size:10px">+15 נק׳</span></div>
-                <div style="display:flex;gap:8px;flex-wrap:wrap">
-                  <label style="display:flex;align-items:center;gap:6px;cursor:pointer;font-size:12px"><input type="radio" name="q_freq" value="3" onchange="runScorer()" style="accent-color:var(--accent)"> 6+ אירועים</label>
-                  <label style="display:flex;align-items:center;gap:6px;cursor:pointer;font-size:12px"><input type="radio" name="q_freq" value="2" onchange="runScorer()" style="accent-color:var(--accent)"> 2–5 אירועים</label>
-                  <label style="display:flex;align-items:center;gap:6px;cursor:pointer;font-size:12px"><input type="radio" name="q_freq" value="1" onchange="runScorer()" style="accent-color:var(--accent)"> אירוע אחד</label>
-                  <label style="display:flex;align-items:center;gap:6px;cursor:pointer;font-size:12px"><input type="radio" name="q_freq" value="0" onchange="runScorer()" style="accent-color:var(--accent)"> לא ידוע</label>
-                </div>
-              </div>
-
-              <!-- Q4 -->
-              <div style="background:var(--surface2);border-radius:9px;padding:12px 14px">
-                <div style="font-size:12px;font-weight:700;margin-bottom:8px">4. <strong style="color:var(--accent)">גודל אירוע</strong> (כרטיסים)? <span style="color:var(--accent2);font-size:10px">+10 נק׳</span></div>
-                <div style="display:flex;gap:8px;flex-wrap:wrap">
-                  <label style="display:flex;align-items:center;gap:6px;cursor:pointer;font-size:12px"><input type="radio" name="q_size" value="3" onchange="runScorer()" style="accent-color:var(--accent)"> 500+</label>
-                  <label style="display:flex;align-items:center;gap:6px;cursor:pointer;font-size:12px"><input type="radio" name="q_size" value="2" onchange="runScorer()" style="accent-color:var(--accent)"> 100–500</label>
-                  <label style="display:flex;align-items:center;gap:6px;cursor:pointer;font-size:12px"><input type="radio" name="q_size" value="1" onchange="runScorer()" style="accent-color:var(--accent)"> 20–100</label>
-                  <label style="display:flex;align-items:center;gap:6px;cursor:pointer;font-size:12px"><input type="radio" name="q_size" value="0" onchange="runScorer()" style="accent-color:var(--accent)"> מתחת ל-20</label>
-                </div>
-              </div>
-
-              <!-- Q5 -->
-              <div style="background:var(--surface2);border-radius:9px;padding:12px 14px">
-                <div style="font-size:12px;font-weight:700;margin-bottom:8px">5. <strong style="color:var(--accent)">נוכחות ברשתות</strong>? <span style="color:var(--accent2);font-size:10px">+10 נק׳</span></div>
-                <div style="display:flex;gap:8px;flex-wrap:wrap">
-                  <label style="display:flex;align-items:center;gap:6px;cursor:pointer;font-size:12px"><input type="radio" name="q_social" value="2" onchange="runScorer()" style="accent-color:var(--accent)"> פעיל — פוסטים שוטפים + קהל</label>
-                  <label style="display:flex;align-items:center;gap:6px;cursor:pointer;font-size:12px"><input type="radio" name="q_social" value="1" onchange="runScorer()" style="accent-color:var(--accent)"> יש פרופיל, לא פעיל</label>
-                  <label style="display:flex;align-items:center;gap:6px;cursor:pointer;font-size:12px"><input type="radio" name="q_social" value="0" onchange="runScorer()" style="accent-color:var(--accent)"> אין</label>
-                </div>
-              </div>
-
-              <!-- Q6 -->
-              <div style="background:var(--surface2);border-radius:9px;padding:12px 14px">
-                <div style="font-size:12px;font-weight:700;margin-bottom:8px">6. יש <strong style="color:var(--accent)">מייל ישיר</strong> / איש קשר? <span style="color:var(--accent2);font-size:10px">+10 נק׳</span></div>
-                <div style="display:flex;gap:8px">
-                  <label style="display:flex;align-items:center;gap:6px;cursor:pointer;font-size:12px"><input type="radio" name="q_contact" value="2" onchange="runScorer()" style="accent-color:var(--accent)"> כן — מייל ישיר + שם</label>
-                  <label style="display:flex;align-items:center;gap:6px;cursor:pointer;font-size:12px"><input type="radio" name="q_contact" value="1" onchange="runScorer()" style="accent-color:var(--accent)"> טופס / LinkedIn</label>
-                  <label style="display:flex;align-items:center;gap:6px;cursor:pointer;font-size:12px"><input type="radio" name="q_contact" value="0" onchange="runScorer()" style="accent-color:var(--accent)"> לא נמצא</label>
-                </div>
-              </div>
-
-              <!-- Q7 -->
-              <div style="background:var(--surface2);border-radius:9px;padding:12px 14px">
-                <div style="font-size:12px;font-weight:700;margin-bottom:8px">7. <strong style="color:var(--accent)">אירוע קרוב</strong> תוך 60 יום? <span style="color:var(--accent2);font-size:10px">+10 נק׳</span></div>
-                <div style="display:flex;gap:8px">
-                  <label style="display:flex;align-items:center;gap:6px;cursor:pointer;font-size:12px"><input type="radio" name="q_urgency" value="2" onchange="runScorer()" style="accent-color:var(--accent)"> כן — תוך חודש</label>
-                  <label style="display:flex;align-items:center;gap:6px;cursor:pointer;font-size:12px"><input type="radio" name="q_urgency" value="1" onchange="runScorer()" style="accent-color:var(--accent)"> כן — 1–3 חודשים</label>
-                  <label style="display:flex;align-items:center;gap:6px;cursor:pointer;font-size:12px"><input type="radio" name="q_urgency" value="0" onchange="runScorer()" style="accent-color:var(--accent)"> לא / לא ידוע</label>
-                </div>
-              </div>
-
-              <!-- Q8 -->
-              <div style="background:var(--surface2);border-radius:9px;padding:12px 14px">
-                <div style="font-size:12px;font-weight:700;margin-bottom:8px">8. <strong style="color:var(--accent)">סגמנט</strong>? <span style="color:var(--accent2);font-size:10px">+10 נק׳</span></div>
-                <div style="display:flex;gap:8px;flex-wrap:wrap">
-                  <label style="display:flex;align-items:center;gap:6px;cursor:pointer;font-size:12px"><input type="radio" name="q_segment" value="3" onchange="runScorer()" style="accent-color:var(--accent)"> תרבות / מוזיקה / תיאטרון</label>
-                  <label style="display:flex;align-items:center;gap:6px;cursor:pointer;font-size:12px"><input type="radio" name="q_segment" value="2" onchange="runScorer()" style="accent-color:var(--accent)"> ספורט / קומדי / בידור</label>
-                  <label style="display:flex;align-items:center;gap:6px;cursor:pointer;font-size:12px"><input type="radio" name="q_segment" value="1" onchange="runScorer()" style="accent-color:var(--accent)"> כנסים / עסקי</label>
-                  <label style="display:flex;align-items:center;gap:6px;cursor:pointer;font-size:12px"><input type="radio" name="q_segment" value="0" onchange="runScorer()" style="accent-color:var(--accent)"> אחר / לא ידוע</label>
-                </div>
-              </div>
-
-              <!-- Competitor used -->
-              <div style="background:var(--surface2);border-radius:9px;padding:12px 14px">
-                <div style="font-size:12px;font-weight:700;margin-bottom:8px">🔍 <strong style="color:var(--accent)">עם איזה מתחרה עובד?</strong> (להשוואה)</div>
-                <select id="lf-competitor" onchange="runScorer()" style="width:100%;background:var(--bg);border:1px solid var(--border);border-radius:7px;padding:8px 12px;color:var(--text);font-size:12px;font-family:'Heebo',sans-serif;outline:none">
-                  <option value="">-- בחר מתחרה --</option>
-                  <option value="smarticket">SmarTicket</option>
-                  <option value="bravo">Bravo</option>
-                  <option value="leaan">Leaan (לאן)</option>
-                  <option value="kuppattlv">KupatTLV</option>
-                  <option value="tickchak">Tickchak</option>
-                  <option value="easytix">Easytix</option>
-                  <option value="lineapp">Lineapp</option>
-                  <option value="eventobot">Eventobot</option>
-                  <option value="eventer">Eventer</option>
-                  <option value="zygo">Zygo</option>
-                  <option value="glatticket">Glatticket</option>
-                  <option value="eventbuzz">Eventbuzz</option>
-                  <option value="liveticktes">LiveTickets</option>
-                  <option value="goout">GO-OUT / GET IN</option>
-                  <option value="selector">Selector</option>
-                  <option value="eventim">Eventim</option>
-                  <option value="ticketmaster">Ticketmaster</option>
-                  <option value="none">לא עובד עם אף אחד</option>
-                  <option value="unknown">לא ידוע</option>
-                </select>
-              </div>
-
-            </div>
-          </div>
-
-          <!-- URL MODE -->
-          <div id="mode-url" style="display:none">
-            <div class="card-title"><div class="dot" style="background:var(--accent)"></div>הכנס URL של אתר הליד</div>
-            <p style="font-size:11px;color:var(--muted);margin-bottom:14px;line-height:1.6">המערכת תנסה לזהות: דומיין פעיל, כפתורי כרטיסים חיצוניים, נוכחות ברשתות — ותתן ניקוד ראשוני.</p>
-            <input id="lf-url" type="text" placeholder="https://queen-guards.com" style="width:100%;background:var(--surface2);border:1px solid var(--border);border-radius:7px;padding:10px 14px;color:var(--text);font-size:13px;font-family:'Space Mono',sans-serif;outline:none;margin-bottom:12px">
-            <input id="lf-name-url" type="text" placeholder="שם הליד / חברה" style="width:100%;background:var(--surface2);border:1px solid var(--border);border-radius:7px;padding:8px 12px;color:var(--text);font-size:12px;font-family:'Heebo',sans-serif;outline:none;margin-bottom:12px">
-            <button onclick="analyzeUrl()" style="width:100%;background:var(--accent);border:none;border-radius:8px;padding:11px;color:#fff;font-size:13px;font-weight:700;cursor:pointer;font-family:'Heebo',sans-serif">🔍 נתח URL</button>
-            <div id="url-analysis-result" style="margin-top:14px;font-size:12px;line-height:1.7;display:none"></div>
-          </div>
-
-          <!-- AI HUNT MODE -->
-          <div id="mode-hunt" style="display:none">
-            <div class="card-title"><div class="dot" style="background:#a78bfa"></div>🤖 AI Lead Hunter — חיפוש לידים אוטומטי</div>
-            <p style="font-size:11px;color:var(--muted);margin-bottom:16px;line-height:1.7">ה-AI ישאל אותך כמה שאלות, יחפש לידים ברשת על פי הפרמטרים שלך, וייצר רשימה מדורגת עם ניתוח מלא לכל ליד.</p>
-
-            <!-- Chat Interface -->
-            <div id="hunt-chat" style="background:var(--bg);border-radius:10px;padding:14px;min-height:200px;max-height:400px;overflow-y:auto;display:flex;flex-direction:column;gap:10px;margin-bottom:12px"></div>
-
-            <!-- Input -->
-            <div style="display:flex;gap:8px">
-              <input id="hunt-input" type="text" placeholder="כתוב תשובה חופשית או לחץ על אחת האפשרויות..." style="flex:1;background:var(--surface2);border:1px solid var(--border);border-radius:8px;padding:9px 12px;color:var(--text);font-size:12px;font-family:'Heebo',sans-serif;outline:none" onkeydown="if(event.key==='Enter')huntSend()">
-              <button onclick="huntSend()" style="background:#a78bfa;border:none;border-radius:8px;padding:9px 16px;color:#fff;font-size:12px;font-weight:700;cursor:pointer;font-family:'Heebo',sans-serif">שלח</button>
-            </div>
-
-            <!-- Results -->
-            <div id="hunt-results" style="display:none;margin-top:16px"></div>
-          </div>
-
-        </div>
-
-        <!-- RIGHT: Score Panel -->
-        <div style="position:sticky;top:90px;display:flex;flex-direction:column;gap:10px">
-
-          <!-- Score Display -->
-          <div class="card" style="text-align:center;padding:20px">
-            <div style="font-size:10px;letter-spacing:2px;color:var(--muted);margin-bottom:8px;text-transform:uppercase">LEAD SCORE</div>
-            <div id="score-display" style="font-family:'Space Mono',monospace;font-size:52px;font-weight:800;color:var(--green);line-height:1;margin-bottom:6px">0</div>
-            <div style="font-size:11px;color:var(--muted)">מתוך 100</div>
-            <div style="height:6px;background:var(--surface2);border-radius:3px;margin:12px 0;overflow:hidden">
-              <div id="score-bar" style="height:100%;width:0%;background:var(--green);border-radius:3px;transition:width 0.4s ease,background 0.4s ease"></div>
-            </div>
-            <div id="score-verdict" style="font-size:13px;font-weight:700;color:var(--muted);padding:8px;border-radius:7px;background:var(--surface2)">ממתין לנתונים...</div>
-          </div>
-
-          <!-- Competitor Intel -->
-          <div class="card" id="competitor-intel" style="display:none">
-            <div class="card-title"><div class="dot" style="background:var(--accent2)"></div>⚔️ נגד המתחרה</div>
-            <div id="competitor-intel-content" style="font-size:11px;line-height:1.7;color:var(--muted)"></div>
-          </div>
-
-          <!-- Email Cadence Recommendation -->
-          <div class="card" id="cadence-rec" style="display:none">
-            <div class="card-title"><div class="dot" style="background:var(--yellow)"></div>📧 ציר מיילים מומלץ</div>
-            <div id="cadence-rec-content" style="font-size:11px;line-height:1.8;color:var(--muted)"></div>
-          </div>
-
-          <!-- Action Buttons -->
-          <div style="display:flex;flex-direction:column;gap:8px">
-            <button id="btn-add-crm" onclick="addLeadFromScorer()" style="display:none;width:100%;background:var(--green);border:none;border-radius:9px;padding:11px;color:#0a0a0f;font-size:13px;font-weight:800;cursor:pointer;font-family:'Heebo',sans-serif">✅ הוסף ל-CRM</button>
-            <button onclick="resetScorer()" style="width:100%;background:var(--surface2);border:1px solid var(--border);border-radius:9px;padding:10px;color:var(--muted);font-size:12px;font-weight:600;cursor:pointer;font-family:'Heebo',sans-serif">↺ נקה טופס</button>
-          </div>
-
-          <!-- Added confirmation -->
-          <div id="crm-added-msg" style="display:none;background:rgba(0,230,118,0.1);border:1px solid rgba(0,230,118,0.3);border-radius:9px;padding:12px;text-align:center;font-size:12px;color:var(--green);font-weight:700">
-            ✅ הליד נוסף ל-CRM בהצלחה!<br><span style="font-weight:400;color:var(--muted)">עבור ללשונית "לידים" לצפייה</span>
-          </div>
-
-        </div>
-      </div>
-
-      <!-- ICP Reference Card -->
-      <div class="card" style="margin-top:14px">
-        <div class="card-title"><div class="dot" style="background:var(--accent2)"></div>🎯 ICP — Ideal Customer Profile של XTIX</div>
-        <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:12px;font-size:12px">
-          <div>
-            <strong style="color:var(--green);display:block;margin-bottom:5px">✓ מתאים מאוד</strong>
-            <div style="color:var(--muted);line-height:1.8">דומיין פרטי פעיל<br>מוכר דרך Smarticket/Bravo<br>2+ אירועים בשנה<br>100–5,000 כרטיסים<br>תרבות / מוזיקה / תיאטרון</div>
-          </div>
-          <div>
-            <strong style="color:var(--yellow);display:block;margin-bottom:5px">~ בינוני</strong>
-            <div style="color:var(--muted);line-height:1.8">Landing page בלבד<br>מוכר דרך מתחרה אחר<br>אירוע אחד בשנה<br>כנסים / עסקי<br>50–100 כרטיסים</div>
-          </div>
-          <div>
-            <strong style="color:var(--accent2);display:block;margin-bottom:5px">✗ לא מתאים</strong>
-            <div style="color:var(--muted);line-height:1.8">רק IG/FB — אין אתר<br>אירוע חד-פעמי (חתונה)<br>Enterprise + Eventim<br>פחות מ-20 כרטיסים<br>אין כרטיסים כלל</div>
-          </div>
-        </div>
-      </div>
-
     </div>
 
     <!-- ======= TAB 4: SCORING MATRIX ======= -->
@@ -2041,18 +1905,26 @@ IF RESPONSE at any point → Book 30-min MEETING (not call). Prepare ROI deck be
 
 <script>
   // =================== FIREBASE — AUTH + CLOUD PERSISTENCE (compat) ===================
-  firebase.initializeApp({
-    apiKey: "AIzaSyCWSvwxK-66wEcmJzs259XuGHuSH6BxPO0",
-    authDomain: "xtix-crm.firebaseapp.com",
-    projectId: "xtix-crm",
-    storageBucket: "xtix-crm.firebasestorage.app",
-    messagingSenderId: "1077421168434",
-    appId: "1:1077421168434:web:11b0d96c45482c6dc0292b"
-  });
-
-  const db       = firebase.firestore();
-  const auth     = firebase.auth();
-  const provider = new firebase.auth.GoogleAuthProvider();
+  var db = null, auth = null;
+  try {
+    if (typeof firebase !== "undefined") {
+      firebase.initializeApp({
+        apiKey: "AIzaSyCWSvwxK-66wEcmJzs259XuGHuSH6BxPO0",
+        authDomain: "xtix-crm.firebaseapp.com",
+        projectId: "xtix-crm",
+        storageBucket: "xtix-crm.firebasestorage.app",
+        messagingSenderId: "1077421168454",
+        appId: "1:1077421168434:web:11b0d96c45482c6dc0292b"
+      });
+      db   = firebase.firestore();
+      auth = firebase.auth();
+    } else {
+      console.warn("Firebase SDK not loaded — running in offline mode");
+    }
+  } catch(e) {
+    console.warn("Firebase init failed:", e.message);
+  }
+  var provider = (auth && typeof firebase !== "undefined") ? new firebase.auth.GoogleAuthProvider() : null;
 
   // ── Collections ────────────────────────────────────────────────────
   const LEADS_COL      = 'leads';
@@ -2072,7 +1944,7 @@ IF RESPONSE at any point → Book 30-min MEETING (not call). Prepare ROI deck be
       await db.collection(ACTIVITIES_COL).add({
         type,           // 'email_sent' | 'status_change' | 'lead_added' | 'url_analyzed' | 'export' | 'hubspot_sync'
         ...data,
-        timestamp: firebase.firestore.FieldValue.serverTimestamp(),
+        timestamp: (typeof firebase !== "undefined" ? firebase.firestore.FieldValue.serverTimestamp() : new Date().toISOString()),
         user: auth.currentUser ? auth.currentUser.email : 'unknown'
       });
     } catch(e) { console.warn('logActivity failed:', e.message); }
@@ -2086,7 +1958,7 @@ IF RESPONSE at any point → Book 30-min MEETING (not call). Prepare ROI deck be
         hubspot_connected: !!settings.hubspot_token,
         gmail_connected:   !!settings.gmail_user,
         gmail_user:    settings.gmail_user   || '',
-        updated_at:    firebase.firestore.FieldValue.serverTimestamp()
+        updated_at:    (typeof firebase !== "undefined" ? firebase.firestore.FieldValue.serverTimestamp() : new Date().toISOString())
         // NOTE: passwords/tokens NOT stored in Firebase — stay in local server.py only
       }, { merge: true });
     } catch(e) {}
@@ -2104,7 +1976,7 @@ IF RESPONSE at any point → Book 30-min MEETING (not call). Prepare ROI deck be
     try {
       await db.collection(REMINDERS_COL).add({
         ...reminder,
-        created_at: firebase.firestore.FieldValue.serverTimestamp(),
+        created_at: (typeof firebase !== "undefined" ? firebase.firestore.FieldValue.serverTimestamp() : new Date().toISOString()),
         user: auth.currentUser ? auth.currentUser.email : 'unknown'
       });
     } catch(e) {}
@@ -2135,7 +2007,7 @@ IF RESPONSE at any point → Book 30-min MEETING (not call). Prepare ROI deck be
         to,
         subject,
         email_num: emailNum || 1,
-        sent_at:   firebase.firestore.FieldValue.serverTimestamp(),
+        sent_at:   (typeof firebase !== "undefined" ? firebase.firestore.FieldValue.serverTimestamp() : new Date().toISOString()),
         user:      auth.currentUser ? auth.currentUser.email : 'unknown'
       });
       // Also log as activity
@@ -4069,16 +3941,8 @@ ${proxyCtx}
     var nav = document.getElementById('sidebar-nav');
     if (!nav) return;
 
-    // MOVE (not clone) the actual market-leadfinder div into tab-leadfinder
-    var src = document.getElementById('market-leadfinder');
-    var dst = document.getElementById('lf-standalone-content');
-    if (src && dst) {
-      // Move ALL child nodes — this preserves event listeners
-      while (src.firstChild) dst.appendChild(src.firstChild);
-      src.style.display = 'none'; // hide empty source
-    }
-
-    // Add nav button — insert as 3rd item (after לידים, ניתוח שוק)
+    // Lead Finder content is already in tab-leadfinder (set in HTML)
+    // Just add the nav button
     var btn = document.createElement('button');
     btn.className = 'nav-btn';
     btn.id = 'lf-tab-btn';
@@ -4369,7 +4233,241 @@ addSalesPlaybookPanel();
 
   <!-- Lead Finder standalone panel -->
   <div class="panel" id="tab-leadfinder">
-    <div id="lf-standalone-content"></div>
+    <div id="lf-inner" style="padding:0">
+
+      <!-- Mode Toggle -->
+      <div style="display:flex;gap:8px;margin-bottom:16px;flex-wrap:wrap">
+        <button id="mode-form-btn" onclick="setLeadMode('form')" style="padding:8px 18px;border-radius:8px;border:2px solid var(--accent);background:var(--accent);color:#fff;font-size:12px;font-weight:700;cursor:pointer;font-family:'Heebo',sans-serif">📋 טופס שאלות</button>
+        <button id="mode-url-btn" onclick="setLeadMode('url')" style="padding:8px 18px;border-radius:8px;border:2px solid var(--border);background:transparent;color:var(--muted);font-size:12px;font-weight:700;cursor:pointer;font-family:'Heebo',sans-serif">🔗 הזן URL</button>
+        <button id="mode-hunt-btn" onclick="setLeadMode('hunt')" style="padding:8px 18px;border-radius:8px;border:2px solid var(--border);background:transparent;color:var(--muted);font-size:12px;font-weight:700;cursor:pointer;font-family:'Heebo',sans-serif">🤖 AI Hunt</button>
+        <span style="font-size:11px;color:var(--muted);align-self:center;margin-right:8px">SF BP #2 Persona + BP #6 Priority — ניקוד אוטומטי לליד חדש</span>
+      </div>
+
+      <div style="display:grid;grid-template-columns:1fr 380px;gap:16px;align-items:start">
+
+        <!-- LEFT: Input Panel -->
+        <div class="card" style="position:relative">
+
+          <!-- FORM MODE -->
+          <div id="mode-form">
+            <div class="card-title"><div class="dot" style="background:var(--accent)"></div>פרטי הליד — ענה על 8 שאלות</div>
+
+            <div style="display:flex;flex-direction:column;gap:10px">
+
+              <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px">
+                <div>
+                  <label style="font-size:10px;color:var(--muted);display:block;margin-bottom:4px;letter-spacing:1px;text-transform:uppercase">שם ליד / חברה</label>
+                  <input id="lf-name" type="text" placeholder="שומרי המלכה..." style="width:100%;background:var(--surface2);border:1px solid var(--border);border-radius:7px;padding:8px 12px;color:var(--text);font-size:12px;font-family:'Heebo',sans-serif;outline:none">
+                </div>
+                <div>
+                  <label style="font-size:10px;color:var(--muted);display:block;margin-bottom:4px;letter-spacing:1px;text-transform:uppercase">דומיין (אם יש)</label>
+                  <input id="lf-domain" type="text" placeholder="example.co.il" style="width:100%;background:var(--surface2);border:1px solid var(--border);border-radius:7px;padding:8px 12px;color:var(--text);font-size:12px;font-family:'Heebo',sans-serif;outline:none" oninput="runScorer()">
+                </div>
+              </div>
+
+              <!-- Q1 -->
+              <div style="background:var(--surface2);border-radius:9px;padding:12px 14px">
+                <div style="font-size:12px;font-weight:700;margin-bottom:8px">1. האם יש לליד <strong style="color:var(--accent)">דומיין פרטי פעיל</strong>? <span style="color:var(--accent2);font-size:10px">+20 נק׳</span></div>
+                <div style="display:flex;gap:8px">
+                  <label style="display:flex;align-items:center;gap:6px;cursor:pointer;font-size:12px"><input type="radio" name="q_domain" value="2" onchange="runScorer()" style="accent-color:var(--accent)"> כן, אתר מלא + תוכן</label>
+                  <label style="display:flex;align-items:center;gap:6px;cursor:pointer;font-size:12px"><input type="radio" name="q_domain" value="1" onchange="runScorer()" style="accent-color:var(--accent)"> עמוד פשוט / landing</label>
+                  <label style="display:flex;align-items:center;gap:6px;cursor:pointer;font-size:12px"><input type="radio" name="q_domain" value="0" onchange="runScorer()" style="accent-color:var(--accent)"> לא — רק IG/FB</label>
+                </div>
+              </div>
+
+              <!-- Q2 -->
+              <div style="background:var(--surface2);border-radius:9px;padding:12px 14px">
+                <div style="font-size:12px;font-weight:700;margin-bottom:8px">2. הכרטיסים נמכרים דרך <strong style="color:var(--accent)">פלטפורמה חיצונית</strong>? <span style="color:var(--accent2);font-size:10px">+15 נק׳</span></div>
+                <div style="display:flex;gap:8px;flex-wrap:wrap">
+                  <label style="display:flex;align-items:center;gap:6px;cursor:pointer;font-size:12px"><input type="radio" name="q_platform" value="2" onchange="runScorer()" style="accent-color:var(--accent)"> כן — Smarticket/Bravo/Leaan</label>
+                  <label style="display:flex;align-items:center;gap:6px;cursor:pointer;font-size:12px"><input type="radio" name="q_platform" value="1" onchange="runScorer()" style="accent-color:var(--accent)"> כן — מתחרה אחר</label>
+                  <label style="display:flex;align-items:center;gap:6px;cursor:pointer;font-size:12px"><input type="radio" name="q_platform" value="0" onchange="runScorer()" style="accent-color:var(--accent)"> מוכרים מהאתר / ידני</label>
+                </div>
+              </div>
+
+              <!-- Q3 -->
+              <div style="background:var(--surface2);border-radius:9px;padding:12px 14px">
+                <div style="font-size:12px;font-weight:700;margin-bottom:8px">3. <strong style="color:var(--accent)">כמה אירועים</strong> בשנה? <span style="color:var(--accent2);font-size:10px">+15 נק׳</span></div>
+                <div style="display:flex;gap:8px;flex-wrap:wrap">
+                  <label style="display:flex;align-items:center;gap:6px;cursor:pointer;font-size:12px"><input type="radio" name="q_freq" value="3" onchange="runScorer()" style="accent-color:var(--accent)"> 6+ אירועים</label>
+                  <label style="display:flex;align-items:center;gap:6px;cursor:pointer;font-size:12px"><input type="radio" name="q_freq" value="2" onchange="runScorer()" style="accent-color:var(--accent)"> 2–5 אירועים</label>
+                  <label style="display:flex;align-items:center;gap:6px;cursor:pointer;font-size:12px"><input type="radio" name="q_freq" value="1" onchange="runScorer()" style="accent-color:var(--accent)"> אירוע אחד</label>
+                  <label style="display:flex;align-items:center;gap:6px;cursor:pointer;font-size:12px"><input type="radio" name="q_freq" value="0" onchange="runScorer()" style="accent-color:var(--accent)"> לא ידוע</label>
+                </div>
+              </div>
+
+              <!-- Q4 -->
+              <div style="background:var(--surface2);border-radius:9px;padding:12px 14px">
+                <div style="font-size:12px;font-weight:700;margin-bottom:8px">4. <strong style="color:var(--accent)">גודל אירוע</strong> (כרטיסים)? <span style="color:var(--accent2);font-size:10px">+10 נק׳</span></div>
+                <div style="display:flex;gap:8px;flex-wrap:wrap">
+                  <label style="display:flex;align-items:center;gap:6px;cursor:pointer;font-size:12px"><input type="radio" name="q_size" value="3" onchange="runScorer()" style="accent-color:var(--accent)"> 500+</label>
+                  <label style="display:flex;align-items:center;gap:6px;cursor:pointer;font-size:12px"><input type="radio" name="q_size" value="2" onchange="runScorer()" style="accent-color:var(--accent)"> 100–500</label>
+                  <label style="display:flex;align-items:center;gap:6px;cursor:pointer;font-size:12px"><input type="radio" name="q_size" value="1" onchange="runScorer()" style="accent-color:var(--accent)"> 20–100</label>
+                  <label style="display:flex;align-items:center;gap:6px;cursor:pointer;font-size:12px"><input type="radio" name="q_size" value="0" onchange="runScorer()" style="accent-color:var(--accent)"> מתחת ל-20</label>
+                </div>
+              </div>
+
+              <!-- Q5 -->
+              <div style="background:var(--surface2);border-radius:9px;padding:12px 14px">
+                <div style="font-size:12px;font-weight:700;margin-bottom:8px">5. <strong style="color:var(--accent)">נוכחות ברשתות</strong>? <span style="color:var(--accent2);font-size:10px">+10 נק׳</span></div>
+                <div style="display:flex;gap:8px;flex-wrap:wrap">
+                  <label style="display:flex;align-items:center;gap:6px;cursor:pointer;font-size:12px"><input type="radio" name="q_social" value="2" onchange="runScorer()" style="accent-color:var(--accent)"> פעיל — פוסטים שוטפים + קהל</label>
+                  <label style="display:flex;align-items:center;gap:6px;cursor:pointer;font-size:12px"><input type="radio" name="q_social" value="1" onchange="runScorer()" style="accent-color:var(--accent)"> יש פרופיל, לא פעיל</label>
+                  <label style="display:flex;align-items:center;gap:6px;cursor:pointer;font-size:12px"><input type="radio" name="q_social" value="0" onchange="runScorer()" style="accent-color:var(--accent)"> אין</label>
+                </div>
+              </div>
+
+              <!-- Q6 -->
+              <div style="background:var(--surface2);border-radius:9px;padding:12px 14px">
+                <div style="font-size:12px;font-weight:700;margin-bottom:8px">6. יש <strong style="color:var(--accent)">מייל ישיר</strong> / איש קשר? <span style="color:var(--accent2);font-size:10px">+10 נק׳</span></div>
+                <div style="display:flex;gap:8px">
+                  <label style="display:flex;align-items:center;gap:6px;cursor:pointer;font-size:12px"><input type="radio" name="q_contact" value="2" onchange="runScorer()" style="accent-color:var(--accent)"> כן — מייל ישיר + שם</label>
+                  <label style="display:flex;align-items:center;gap:6px;cursor:pointer;font-size:12px"><input type="radio" name="q_contact" value="1" onchange="runScorer()" style="accent-color:var(--accent)"> טופס / LinkedIn</label>
+                  <label style="display:flex;align-items:center;gap:6px;cursor:pointer;font-size:12px"><input type="radio" name="q_contact" value="0" onchange="runScorer()" style="accent-color:var(--accent)"> לא נמצא</label>
+                </div>
+              </div>
+
+              <!-- Q7 -->
+              <div style="background:var(--surface2);border-radius:9px;padding:12px 14px">
+                <div style="font-size:12px;font-weight:700;margin-bottom:8px">7. <strong style="color:var(--accent)">אירוע קרוב</strong> תוך 60 יום? <span style="color:var(--accent2);font-size:10px">+10 נק׳</span></div>
+                <div style="display:flex;gap:8px">
+                  <label style="display:flex;align-items:center;gap:6px;cursor:pointer;font-size:12px"><input type="radio" name="q_urgency" value="2" onchange="runScorer()" style="accent-color:var(--accent)"> כן — תוך חודש</label>
+                  <label style="display:flex;align-items:center;gap:6px;cursor:pointer;font-size:12px"><input type="radio" name="q_urgency" value="1" onchange="runScorer()" style="accent-color:var(--accent)"> כן — 1–3 חודשים</label>
+                  <label style="display:flex;align-items:center;gap:6px;cursor:pointer;font-size:12px"><input type="radio" name="q_urgency" value="0" onchange="runScorer()" style="accent-color:var(--accent)"> לא / לא ידוע</label>
+                </div>
+              </div>
+
+              <!-- Q8 -->
+              <div style="background:var(--surface2);border-radius:9px;padding:12px 14px">
+                <div style="font-size:12px;font-weight:700;margin-bottom:8px">8. <strong style="color:var(--accent)">סגמנט</strong>? <span style="color:var(--accent2);font-size:10px">+10 נק׳</span></div>
+                <div style="display:flex;gap:8px;flex-wrap:wrap">
+                  <label style="display:flex;align-items:center;gap:6px;cursor:pointer;font-size:12px"><input type="radio" name="q_segment" value="3" onchange="runScorer()" style="accent-color:var(--accent)"> תרבות / מוזיקה / תיאטרון</label>
+                  <label style="display:flex;align-items:center;gap:6px;cursor:pointer;font-size:12px"><input type="radio" name="q_segment" value="2" onchange="runScorer()" style="accent-color:var(--accent)"> ספורט / קומדי / בידור</label>
+                  <label style="display:flex;align-items:center;gap:6px;cursor:pointer;font-size:12px"><input type="radio" name="q_segment" value="1" onchange="runScorer()" style="accent-color:var(--accent)"> כנסים / עסקי</label>
+                  <label style="display:flex;align-items:center;gap:6px;cursor:pointer;font-size:12px"><input type="radio" name="q_segment" value="0" onchange="runScorer()" style="accent-color:var(--accent)"> אחר / לא ידוע</label>
+                </div>
+              </div>
+
+              <!-- Competitor used -->
+              <div style="background:var(--surface2);border-radius:9px;padding:12px 14px">
+                <div style="font-size:12px;font-weight:700;margin-bottom:8px">🔍 <strong style="color:var(--accent)">עם איזה מתחרה עובד?</strong> (להשוואה)</div>
+                <select id="lf-competitor" onchange="runScorer()" style="width:100%;background:var(--bg);border:1px solid var(--border);border-radius:7px;padding:8px 12px;color:var(--text);font-size:12px;font-family:'Heebo',sans-serif;outline:none">
+                  <option value="">-- בחר מתחרה --</option>
+                  <option value="smarticket">SmarTicket</option>
+                  <option value="bravo">Bravo</option>
+                  <option value="leaan">Leaan (לאן)</option>
+                  <option value="kuppattlv">KupatTLV</option>
+                  <option value="tickchak">Tickchak</option>
+                  <option value="easytix">Easytix</option>
+                  <option value="lineapp">Lineapp</option>
+                  <option value="eventobot">Eventobot</option>
+                  <option value="eventer">Eventer</option>
+                  <option value="zygo">Zygo</option>
+                  <option value="glatticket">Glatticket</option>
+                  <option value="eventbuzz">Eventbuzz</option>
+                  <option value="liveticktes">LiveTickets</option>
+                  <option value="goout">GO-OUT / GET IN</option>
+                  <option value="selector">Selector</option>
+                  <option value="eventim">Eventim</option>
+                  <option value="ticketmaster">Ticketmaster</option>
+                  <option value="none">לא עובד עם אף אחד</option>
+                  <option value="unknown">לא ידוע</option>
+                </select>
+              </div>
+
+            </div>
+          </div>
+
+          <!-- URL MODE -->
+          <div id="mode-url" style="display:none">
+            <div class="card-title"><div class="dot" style="background:var(--accent)"></div>הכנס URL של אתר הליד</div>
+            <p style="font-size:11px;color:var(--muted);margin-bottom:14px;line-height:1.6">המערכת תנסה לזהות: דומיין פעיל, כפתורי כרטיסים חיצוניים, נוכחות ברשתות — ותתן ניקוד ראשוני.</p>
+            <input id="lf-url" type="text" placeholder="https://queen-guards.com" style="width:100%;background:var(--surface2);border:1px solid var(--border);border-radius:7px;padding:10px 14px;color:var(--text);font-size:13px;font-family:'Space Mono',sans-serif;outline:none;margin-bottom:12px">
+            <input id="lf-name-url" type="text" placeholder="שם הליד / חברה" style="width:100%;background:var(--surface2);border:1px solid var(--border);border-radius:7px;padding:8px 12px;color:var(--text);font-size:12px;font-family:'Heebo',sans-serif;outline:none;margin-bottom:12px">
+            <button onclick="analyzeUrl()" style="width:100%;background:var(--accent);border:none;border-radius:8px;padding:11px;color:#fff;font-size:13px;font-weight:700;cursor:pointer;font-family:'Heebo',sans-serif">🔍 נתח URL</button>
+            <div id="url-analysis-result" style="margin-top:14px;font-size:12px;line-height:1.7;display:none"></div>
+          </div>
+
+          <!-- AI HUNT MODE -->
+          <div id="mode-hunt" style="display:none">
+            <div class="card-title"><div class="dot" style="background:#a78bfa"></div>🤖 AI Lead Hunter — חיפוש לידים אוטומטי</div>
+            <p style="font-size:11px;color:var(--muted);margin-bottom:16px;line-height:1.7">ה-AI ישאל אותך כמה שאלות, יחפש לידים ברשת על פי הפרמטרים שלך, וייצר רשימה מדורגת עם ניתוח מלא לכל ליד.</p>
+
+            <!-- Chat Interface -->
+            <div id="hunt-chat" style="background:var(--bg);border-radius:10px;padding:14px;min-height:200px;max-height:400px;overflow-y:auto;display:flex;flex-direction:column;gap:10px;margin-bottom:12px"></div>
+
+            <!-- Input -->
+            <div style="display:flex;gap:8px">
+              <input id="hunt-input" type="text" placeholder="כתוב תשובה חופשית או לחץ על אחת האפשרויות..." style="flex:1;background:var(--surface2);border:1px solid var(--border);border-radius:8px;padding:9px 12px;color:var(--text);font-size:12px;font-family:'Heebo',sans-serif;outline:none" onkeydown="if(event.key==='Enter')huntSend()">
+              <button onclick="huntSend()" style="background:#a78bfa;border:none;border-radius:8px;padding:9px 16px;color:#fff;font-size:12px;font-weight:700;cursor:pointer;font-family:'Heebo',sans-serif">שלח</button>
+            </div>
+
+            <!-- Results -->
+            <div id="hunt-results" style="display:none;margin-top:16px"></div>
+          </div>
+
+        </div>
+
+        <!-- RIGHT: Score Panel -->
+        <div style="position:sticky;top:90px;display:flex;flex-direction:column;gap:10px">
+
+          <!-- Score Display -->
+          <div class="card" style="text-align:center;padding:20px">
+            <div style="font-size:10px;letter-spacing:2px;color:var(--muted);margin-bottom:8px;text-transform:uppercase">LEAD SCORE</div>
+            <div id="score-display" style="font-family:'Space Mono',monospace;font-size:52px;font-weight:800;color:var(--green);line-height:1;margin-bottom:6px">0</div>
+            <div style="font-size:11px;color:var(--muted)">מתוך 100</div>
+            <div style="height:6px;background:var(--surface2);border-radius:3px;margin:12px 0;overflow:hidden">
+              <div id="score-bar" style="height:100%;width:0%;background:var(--green);border-radius:3px;transition:width 0.4s ease,background 0.4s ease"></div>
+            </div>
+            <div id="score-verdict" style="font-size:13px;font-weight:700;color:var(--muted);padding:8px;border-radius:7px;background:var(--surface2)">ממתין לנתונים...</div>
+          </div>
+
+          <!-- Competitor Intel -->
+          <div class="card" id="competitor-intel" style="display:none">
+            <div class="card-title"><div class="dot" style="background:var(--accent2)"></div>⚔️ נגד המתחרה</div>
+            <div id="competitor-intel-content" style="font-size:11px;line-height:1.7;color:var(--muted)"></div>
+          </div>
+
+          <!-- Email Cadence Recommendation -->
+          <div class="card" id="cadence-rec" style="display:none">
+            <div class="card-title"><div class="dot" style="background:var(--yellow)"></div>📧 ציר מיילים מומלץ</div>
+            <div id="cadence-rec-content" style="font-size:11px;line-height:1.8;color:var(--muted)"></div>
+          </div>
+
+          <!-- Action Buttons -->
+          <div style="display:flex;flex-direction:column;gap:8px">
+            <button id="btn-add-crm" onclick="addLeadFromScorer()" style="display:none;width:100%;background:var(--green);border:none;border-radius:9px;padding:11px;color:#0a0a0f;font-size:13px;font-weight:800;cursor:pointer;font-family:'Heebo',sans-serif">✅ הוסף ל-CRM</button>
+            <button onclick="resetScorer()" style="width:100%;background:var(--surface2);border:1px solid var(--border);border-radius:9px;padding:10px;color:var(--muted);font-size:12px;font-weight:600;cursor:pointer;font-family:'Heebo',sans-serif">↺ נקה טופס</button>
+          </div>
+
+          <!-- Added confirmation -->
+          <div id="crm-added-msg" style="display:none;background:rgba(0,230,118,0.1);border:1px solid rgba(0,230,118,0.3);border-radius:9px;padding:12px;text-align:center;font-size:12px;color:var(--green);font-weight:700">
+            ✅ הליד נוסף ל-CRM בהצלחה!<br><span style="font-weight:400;color:var(--muted)">עבור ללשונית "לידים" לצפייה</span>
+          </div>
+
+        </div>
+      </div>
+
+      <!-- ICP Reference Card -->
+      <div class="card" style="margin-top:14px">
+        <div class="card-title"><div class="dot" style="background:var(--accent2)"></div>🎯 ICP — Ideal Customer Profile של XTIX</div>
+        <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:12px;font-size:12px">
+          <div>
+            <strong style="color:var(--green);display:block;margin-bottom:5px">✓ מתאים מאוד</strong>
+            <div style="color:var(--muted);line-height:1.8">דומיין פרטי פעיל<br>מוכר דרך Smarticket/Bravo<br>2+ אירועים בשנה<br>100–5,000 כרטיסים<br>תרבות / מוזיקה / תיאטרון</div>
+          </div>
+          <div>
+            <strong style="color:var(--yellow);display:block;margin-bottom:5px">~ בינוני</strong>
+            <div style="color:var(--muted);line-height:1.8">Landing page בלבד<br>מוכר דרך מתחרה אחר<br>אירוע אחד בשנה<br>כנסים / עסקי<br>50–100 כרטיסים</div>
+          </div>
+          <div>
+            <strong style="color:var(--accent2);display:block;margin-bottom:5px">✗ לא מתאים</strong>
+            <div style="color:var(--muted);line-height:1.8">רק IG/FB — אין אתר<br>אירוע חד-פעמי (חתונה)<br>Enterprise + Eventim<br>פחות מ-20 כרטיסים<br>אין כרטיסים כלל</div>
+          </div>
+        </div>
+      </div>
+
+    </div>
   </div>
 
 </div> <!-- end container -->
