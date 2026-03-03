@@ -17,6 +17,7 @@ PORT           = int(os.environ.get('PORT', 8765))
 CONFIG_FILE    = os.path.join(os.path.dirname(__file__), 'xtix_config.json')
 REMINDERS_FILE = os.path.join(os.path.dirname(__file__), 'xtix_reminders.json')
 LEADS_FILE     = os.path.join(os.path.dirname(__file__), 'xtix_leads.json')
+CLAY_PENDING_FILE = os.path.join(os.path.dirname(__file__), 'xtix_clay_pending.json')
 
 ssl_ctx = ssl.create_default_context()
 ssl_ctx.check_hostname = False
@@ -84,6 +85,16 @@ def load_leads_file():
 
 def save_leads_file(leads):
     with open(LEADS_FILE,'w',encoding='utf-8') as f: json.dump(leads,f,ensure_ascii=False,indent=2)
+
+def load_clay_pending():
+    if os.path.exists(CLAY_PENDING_FILE):
+        try:
+            with open(CLAY_PENDING_FILE,'r',encoding='utf-8') as f: return json.load(f)
+        except: pass
+    return []
+
+def save_clay_pending(leads):
+    with open(CLAY_PENDING_FILE,'w',encoding='utf-8') as f: json.dump(leads,f,ensure_ascii=False,indent=2)
 
 def analyze_website(url):
     result = {'url':url,'hasDomain':True,'hasExternalTicketing':False,'ticketPlatform':'',
@@ -277,6 +288,8 @@ class Handler(BaseHTTPRequestHandler):
             self.json_out({'ok': True, 'leads': data, 'exists': data is not None})
         elif p.path=='/reminders':
             self.json_out(load_reminders())
+        elif p.path=='/clay-pending':
+            self.json_out(load_clay_pending())
         elif p.path=='/config':
             safe={k:('***' if any(x in k for x in ['password','token']) else v) for k,v in cfg.items()}
             self.json_out(safe)
@@ -289,38 +302,39 @@ class Handler(BaseHTTPRequestHandler):
         if p.path=='/clay-import':
             # Receive leads from Clay and save to local leads file
             try:
-                leads = load_leads_file() or []
-                # Build new lead from Clay data
                 new_lead = {
-                    'id': int(datetime.datetime.now().timestamp() * 1000),
-                    'name':     b.get('name', ''),
-                    'domain':   b.get('website', '').replace('https://','').replace('http://','').split('/')[0],
-                    'website':  b.get('website', ''),
-                    'phone':    b.get('phone', ''),
-                    'address':  b.get('address', ''),
-                    'type':     b.get('type', 'Clay Import'),
-                    'segment':  b.get('segment', ''),
-                    'email':    b.get('email', ''),
-                    'platform': b.get('platform', ''),
-                    'score':    int(b.get('score', 50)),
-                    'status':   'new',
-                    'notes':    f"Imported from Clay | {b.get('description','')}",
-                    'source':   'clay',
+                    'id':      int(datetime.datetime.now().timestamp() * 1000),
+                    'name':    b.get('name', ''),
+                    'domain':  b.get('website', '').replace('https://','').replace('http://','').split('/')[0],
+                    'website': b.get('website', ''),
+                    'phone':   b.get('phone', ''),
+                    'address': b.get('address', ''),
+                    'type':    b.get('type', 'Clay Import'),
+                    'segment': b.get('segment', ''),
+                    'email':   b.get('email', ''),
+                    'platform':b.get('platform', ''),
+                    'score':   int(b.get('score', 50)),
+                    'status':  'new',
+                    'notes':   f"Imported from Clay | {b.get('description','')}",
+                    'source':  'clay',
                 }
-                # Avoid duplicates by domain
                 domain = new_lead['domain']
-                existing = [l for l in leads if l.get('domain','') == domain and domain]
-                if existing:
-                    print(f'  [CLAY] Duplicate skipped: {new_lead["name"]} ({domain})', flush=True)
-                    self.json_out({'ok': True, 'action': 'skipped', 'reason': 'duplicate', 'name': new_lead['name']})
-                    return
-                leads.append(new_lead)
-                save_leads_file(leads)
-                print(f'  [CLAY] Imported: {new_lead["name"]} ({domain})', flush=True)
-                self.json_out({'ok': True, 'action': 'imported', 'id': new_lead['id'], 'name': new_lead['name']})
+                pending = load_clay_pending()
+                if domain and any(l.get('domain') == domain for l in pending):
+                    print(f'  [CLAY] Duplicate skipped: {new_lead["name"]}', flush=True)
+                    self.json_out({'ok': True, 'action': 'skipped', 'name': new_lead['name']}); return
+                pending.append(new_lead)
+                save_clay_pending(pending)
+                print(f'  [CLAY] Queued: {new_lead["name"]} ({domain})', flush=True)
+                self.json_out({'ok': True, 'action': 'queued', 'id': new_lead['id'], 'name': new_lead['name']})
             except Exception as e:
                 print(f'  [CLAY] Error: {e}', flush=True)
                 self.json_out({'ok': False, 'error': str(e)}, 500)
+            return
+
+        if p.path=='/clay-pending-clear':
+            save_clay_pending([])
+            self.json_out({'ok': True})
             return
 
         if p.path=='/ai':
@@ -388,6 +402,8 @@ class Handler(BaseHTTPRequestHandler):
             token=cfg.get('hubspot_token','')
             if not token: self.json_out({'ok':False,'error':'No token'}); return
             self.json_out(log_email_hs(b.get('hubspot_id',''),b.get('subject',''),b.get('html',''),token))
+        elif p.path=='/clay-pending':
+            self.json_out(load_clay_pending())
         elif p.path=='/config':
             current=load_config(); current.update(b); save_config(current)
             self.json_out({'ok':True,'message':'Settings saved'})

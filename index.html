@@ -3905,6 +3905,51 @@ ${competitorData2}
     huntAskNext();
   }
 
+  // Clay Pending Polling — check every 30s for new leads from Clay
+  async function pollClayPending() {
+    try {
+      const res = await fetch(SERVER + '/clay-pending');
+      if (!res.ok) return;
+      const pending = await res.json();
+      if (!pending || pending.length === 0) return;
+
+      let added = 0;
+      for (const lead of pending) {
+        // Check duplicate in Firebase leads
+        const exists = leads.some(l => l.domain && l.domain === lead.domain);
+        if (exists) continue;
+        // Add to leads array + Firebase
+        lead.id = lead.id || Date.now();
+        leads.push(lead);
+        added++;
+        renderSimpleLead(lead);
+        if (typeof db !== 'undefined' && db) {
+          try {
+            await db.collection('leads').doc(String(lead.id)).set(lead);
+          } catch(e) { console.warn('Firebase save failed:', e); }
+        }
+      }
+
+      if (added > 0) {
+        document.getElementById('total-leads').textContent = leads.length;
+        // Clear pending queue on server
+        await fetch(SERVER + '/clay-pending-clear', { method: 'POST' });
+        // Show notification
+        const notif = document.createElement('div');
+        notif.style.cssText = 'position:fixed;bottom:20px;left:20px;background:#a78bfa;color:#fff;padding:12px 20px;border-radius:10px;font-size:13px;font-weight:700;z-index:9999;font-family:Heebo,sans-serif';
+        notif.textContent = `🤖 Clay: ${added} לידים חדשים נוספו!`;
+        document.body.appendChild(notif);
+        setTimeout(() => notif.remove(), 4000);
+        logActivity('clay_leads_imported', { count: added });
+      }
+    } catch(e) { /* silent fail */ }
+  }
+
+  // Poll every 30 seconds
+  setInterval(pollClayPending, 30000);
+  // Also poll on load after 3 seconds
+  setTimeout(pollClayPending, 3000);
+
   // Check server on load
   setTimeout(checkServer, 800);
   // Load reminders from localStorage and show badge if any due
