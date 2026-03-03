@@ -4560,6 +4560,263 @@ ${competitorInfo}
   setInterval(updateBadge, 4000);
 
 })();
+
+</script>
+
+<!-- =================== FIXES v3.1 =================== -->
+<style>
+/* Fix 1: Checkbox tight to avatar */
+.lead-card-header {
+  display: flex !important;
+  align-items: center !important;
+  padding: 12px 16px !important;
+  gap: 0 !important;
+}
+.lead-info {
+  display: flex !important;
+  align-items: center !important;
+  gap: 10px !important;
+  flex: 1 !important;
+  min-width: 0 !important;
+}
+.v3chk {
+  margin: 0 8px 0 0 !important;
+  flex-shrink: 0 !important;
+}
+</style>
+
+<script>
+(function() {
+
+  // ===== FIX 1: Checkbox positioning — inject INSIDE .lead-info, before avatar =====
+  // Override patchCard checkbox injection from v3
+  var _patchCardOrig = window.renderSimpleLead;
+
+  function fixCheckboxPosition(lead) {
+    var card = document.getElementById('lead-' + lead.id);
+    if (!card) return;
+
+    // Remove misplaced checkbox from header (before lead-info)
+    var header = card.querySelector('.lead-card-header');
+    if (!header) return;
+
+    // Find existing v3chk that may be misplaced
+    var existChk = header.querySelector('.v3chk');
+    var leadInfo = header.querySelector('.lead-info');
+    var avatar = header.querySelector('.lead-avatar');
+
+    if (existChk && leadInfo && avatar) {
+      // Move checkbox to be the first child of lead-card-header (right before lead-info)
+      // but visually use flex order
+      existChk.style.cssText = 'width:15px;height:15px;accent-color:var(--accent);cursor:pointer;flex-shrink:0;margin:0 10px 0 0;order:-1';
+    } else if (!existChk && leadInfo) {
+      var chk = document.createElement('input');
+      chk.type = 'checkbox'; chk.className = 'v3chk';
+      chk.dataset.id = lead.id;
+      chk.style.cssText = 'width:15px;height:15px;accent-color:var(--accent);cursor:pointer;flex-shrink:0;margin:0 10px 0 0';
+      chk.onclick = function(e) {
+        e.stopPropagation();
+        // Call v3 chkCh if available
+        if (window.toggleSelAll) {
+          var sel = window._sel3 || (window._sel3 = new Set());
+          if (this.checked) sel.add(lead.id); else sel.delete(lead.id);
+        }
+        // Also call bulkV3 logic via sel3
+        if (typeof sel3 !== 'undefined') {
+          if (this.checked) sel3.add(lead.id); else sel3.delete(lead.id);
+        }
+        var bar = document.getElementById('v3-bulk');
+        var cnt = document.getElementById('v3-bulk-cnt');
+        var allChks = document.querySelectorAll('.v3chk:checked');
+        if (bar) {
+          if (allChks.length > 0) { bar.style.display = 'flex'; if(cnt) cnt.textContent = allChks.length + ' נבחרו'; }
+          else bar.style.display = 'none';
+        }
+      };
+      // Insert right before lead-info
+      header.insertBefore(chk, leadInfo);
+    }
+  }
+
+  // Apply fix to all existing cards after load
+  setTimeout(function() {
+    if (typeof leads !== 'undefined') {
+      leads.forEach(function(l) { fixCheckboxPosition(l); });
+    }
+    // Also observe new cards
+    var list = document.getElementById('leads-list');
+    if (list && window.MutationObserver) {
+      new MutationObserver(function(mutations) {
+        mutations.forEach(function(m) {
+          m.addedNodes.forEach(function(node) {
+            if (node.nodeType === 1 && node.classList && node.classList.contains('lead-card')) {
+              var id = node.id && parseInt(node.id.replace('lead-', ''));
+              if (id) {
+                var l = typeof leads !== 'undefined' && leads.find(function(x){return x.id===id;});
+                if (l) setTimeout(function(){ fixCheckboxPosition(l); }, 100);
+              }
+            }
+          });
+        });
+      }).observe(list, { childList: true, subtree: false });
+    }
+  }, 3000);
+
+
+  // ===== FIX 2: HubSpot — upgrade lead selector with search + bulk =====
+  var _origInitHS = window.initHSLeadSelector;
+  window.initHSLeadSelector = function() {
+    var container = document.getElementById('hs-lead-selector');
+    if (!container) return;
+
+    // Add search + controls above selector
+    var ctrl = document.getElementById('hs-selector-ctrl');
+    if (!ctrl) {
+      ctrl = document.createElement('div');
+      ctrl.id = 'hs-selector-ctrl';
+      ctrl.style.marginBottom = '10px';
+      ctrl.innerHTML =
+        '<div style="display:flex;gap:8px;margin-bottom:8px;align-items:center">' +
+          '<input id="hs-search" type="text" placeholder="🔍 סנן לידים..." ' +
+            'style="flex:1;background:var(--surface2);border:1px solid var(--border);border-radius:7px;padding:6px 10px;color:var(--text);font-size:12px;font-family:Heebo,sans-serif;outline:none" ' +
+            'oninput="filterHSLeads()">' +
+          '<button onclick="hsSelectAll(true)" style="background:rgba(108,99,255,0.15);border:1px solid rgba(108,99,255,0.3);border-radius:6px;padding:5px 12px;font-size:11px;color:var(--accent);cursor:pointer;font-family:Heebo,sans-serif;white-space:nowrap">☑ בחר הכל</button>' +
+          '<button onclick="hsSelectAll(false)" style="background:none;border:1px solid var(--border);border-radius:6px;padding:5px 12px;font-size:11px;color:var(--muted);cursor:pointer;font-family:Heebo,sans-serif;white-space:nowrap">☐ בטל הכל</button>' +
+        '</div>' +
+        '<div style="display:flex;gap:6px;flex-wrap:wrap;margin-bottom:6px">' +
+          '<button onclick="hsFilterStatus(\'\')" class="hs-flt-btn hs-flt-active" data-flt="" style="background:rgba(108,99,255,0.15);border:1px solid rgba(108,99,255,0.3);border-radius:5px;padding:3px 10px;font-size:11px;color:var(--accent);cursor:pointer;font-family:Heebo,sans-serif">הכל</button>' +
+          '<button onclick="hsFilterStatus(\'new\')" class="hs-flt-btn" data-flt="new" style="background:var(--surface2);border:1px solid var(--border);border-radius:5px;padding:3px 10px;font-size:11px;color:var(--muted);cursor:pointer;font-family:Heebo,sans-serif">🟢 חדש</button>' +
+          '<button onclick="hsFilterStatus(\'contacted\')" class="hs-flt-btn" data-flt="contacted" style="background:var(--surface2);border:1px solid var(--border);border-radius:5px;padding:3px 10px;font-size:11px;color:var(--muted);cursor:pointer;font-family:Heebo,sans-serif">📧 נשלח מייל</button>' +
+          '<button onclick="hsFilterStatus(\'meeting\')" class="hs-flt-btn" data-flt="meeting" style="background:var(--surface2);border:1px solid var(--border);border-radius:5px;padding:3px 10px;font-size:11px;color:var(--muted);cursor:pointer;font-family:Heebo,sans-serif">📅 פגישה</button>' +
+          '<span id="hs-sel-count" style="font-size:11px;color:var(--muted);align-self:center;margin-right:auto">0 נבחרו</span>' +
+        '</div>';
+      container.parentNode.insertBefore(ctrl, container);
+    }
+
+    // Build lead rows
+    container.innerHTML = '';
+    if (typeof leads === 'undefined') return;
+    leads.forEach(function(lead) {
+      var row = document.createElement('label');
+      row.className = 'hs-lead-row';
+      row.dataset.status = lead.status || 'new';
+      row.dataset.name = (lead.name || '').toLowerCase();
+      row.style.cssText = 'display:flex;align-items:center;gap:10px;background:var(--surface);border:1px solid var(--border);border-radius:8px;padding:10px 14px;cursor:pointer;font-size:12px;transition:border-color 0.15s';
+
+      var scoreColor = (lead.score||0) >= 80 ? 'var(--green)' : (lead.score||0) >= 60 ? 'var(--yellow)' : 'var(--muted)';
+      var statusIcon = {new:'🟢',contacted:'📧',followup:'🔁',meeting:'📅',closed:'✅'}[lead.status||'new']||'🟢';
+      var syncedBadge = lead.hubspot_id ? '<span style="color:var(--green);font-size:10px">✅ מסונכרן</span>' : '';
+
+      row.innerHTML =
+        '<input type="checkbox" id="hs-chk-'+lead.id+'" checked style="accent-color:var(--accent);width:14px;height:14px;cursor:pointer;flex-shrink:0" onchange="updateHSSelCount()">' +
+        '<div style="flex:1;min-width:0">' +
+          '<div style="font-weight:700;font-size:13px">' + (lead.name||'') + '</div>' +
+          '<div style="font-size:10px;color:var(--muted);margin-top:2px">' +
+            statusIcon + ' ' + (lead.status||'new') +
+            (lead.domain ? ' · ' + lead.domain : '') +
+            (lead.platform ? ' · ' + lead.platform : '') +
+          '</div>' +
+        '</div>' +
+        '<div style="text-align:left;flex-shrink:0">' +
+          '<div style="font-size:12px;font-weight:700;color:'+scoreColor+'">' + (lead.score||0) + '</div>' +
+          syncedBadge +
+          '<span id="hs-result-'+lead.id+'" style="font-size:10px;font-family:monospace;display:block"></span>' +
+        '</div>';
+
+      row.addEventListener('mouseover', function(){ row.style.borderColor = 'rgba(108,99,255,0.4)'; });
+      row.addEventListener('mouseout', function(){ row.style.borderColor = 'var(--border)'; });
+      container.appendChild(row);
+    });
+    updateHSSelCount();
+  };
+
+  window.hsSelectAll = function(checked) {
+    document.querySelectorAll('[id^="hs-chk-"]').forEach(function(c){ c.checked = checked; });
+    updateHSSelCount();
+  };
+
+  window.filterHSLeads = function() {
+    var q = (document.getElementById('hs-search') && document.getElementById('hs-search').value || '').toLowerCase().trim();
+    var flt = window._hsFlt || '';
+    document.querySelectorAll('.hs-lead-row').forEach(function(row) {
+      var matchQ = !q || (row.dataset.name || '').includes(q);
+      var matchF = !flt || (row.dataset.status || '') === flt;
+      row.style.display = matchQ && matchF ? '' : 'none';
+    });
+  };
+
+  window.hsFilterStatus = function(status) {
+    window._hsFlt = status;
+    document.querySelectorAll('.hs-flt-btn').forEach(function(btn) {
+      var active = btn.dataset.flt === status;
+      btn.style.background = active ? 'rgba(108,99,255,0.15)' : 'var(--surface2)';
+      btn.style.color = active ? 'var(--accent)' : 'var(--muted)';
+      btn.style.borderColor = active ? 'rgba(108,99,255,0.3)' : 'var(--border)';
+    });
+    filterHSLeads();
+  };
+
+  window.updateHSSelCount = function() {
+    var n = document.querySelectorAll('[id^="hs-chk-"]:checked').length;
+    var el = document.getElementById('hs-sel-count');
+    if (el) el.textContent = n + ' נבחרו';
+  };
+
+  // Also upgrade selectAllLeads
+  window.selectAllLeads = function() { hsSelectAll(true); };
+
+
+  // ===== FIX 3: Move Lead Finder to main tab bar =====
+  function addLeadFinderTab() {
+    if (document.getElementById('tab-leadfinder-main')) return;
+    var tabBar = document.querySelector('.tabs');
+    if (!tabBar) return;
+
+    // Add new tab button
+    var btn = document.createElement('button');
+    btn.className = 'tab';
+    btn.textContent = '🔍 Lead Finder';
+    btn.onclick = function() { switchToLeadFinder(this); };
+    tabBar.insertBefore(btn, tabBar.children[1]); // right after ניתוח שוק
+
+    // Create new panel that wraps the existing lead finder content
+    var existingPanel = document.getElementById('market-leadfinder');
+    if (!existingPanel) return;
+
+    var newPanel = document.createElement('div');
+    newPanel.className = 'panel';
+    newPanel.id = 'tab-leadfinder-main';
+    newPanel.style.display = 'none';
+
+    // Clone content
+    var clone = existingPanel.cloneNode(true);
+    clone.id = 'market-leadfinder-main-clone';
+    clone.style.display = 'block';
+    // Fix all IDs to avoid conflicts
+    clone.querySelectorAll('[id]').forEach(function(el) {
+      el.id = el.id + '-main';
+    });
+    newPanel.appendChild(clone);
+
+    var container = document.querySelector('.container');
+    if (container) container.appendChild(newPanel);
+
+    // Handle tab switch
+    window.switchToLeadFinder = function(tabBtn) {
+      // Hide all panels
+      document.querySelectorAll('.panel').forEach(function(p){ p.style.display = 'none'; p.classList.remove('active'); });
+      document.querySelectorAll('.tab').forEach(function(t){ t.classList.remove('active'); });
+      tabBtn.classList.add('active');
+      newPanel.style.display = 'block';
+      newPanel.classList.add('active');
+      // Init checklist if needed
+      if (window.initChecklist) initChecklist();
+    };
+  }
+
+  setTimeout(addLeadFinderTab, 1200);
+
+})();
 </script>
 </body>
 </html>
