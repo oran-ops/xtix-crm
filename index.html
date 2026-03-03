@@ -2952,7 +2952,7 @@ ${proxyCtx}
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           model: 'claude-sonnet-4-20250514',
-          max_tokens: 2000,
+          max_tokens: 3000,
           system: 'אתה מנהל מכירות ב-XTIX. החזר JSON נקי בלבד ללא markdown.',
           messages: [{ role: 'user', content: prompt }]
         })
@@ -3095,7 +3095,7 @@ ${proxyCtx}
         body: JSON.stringify({
           model: 'claude-sonnet-4-20250514',
           max_tokens: 2000,
-          system: 'אתה מנהל מכירות ב-XTIX. החזר JSON נקי בלבד ללא markdown וללא backticks.',
+          system: 'Return ONLY valid JSON. No markdown, no backticks, no explanations. All string values must use escaped quotes. Hebrew text is allowed in values but must not contain unescaped double quotes.',
           messages: [{ role: 'user', content: prompt }]
         }),
         signal: AbortSignal.timeout(60000)
@@ -3104,17 +3104,39 @@ ${proxyCtx}
         const data = await res.json();
         const textBlock = Array.isArray(data.content) ? data.content.find(b => b.type === 'text') : null;
         let raw = (textBlock ? textBlock.text : (data.result || data.text || '')).trim();
-        raw = raw.replace(/^```json\s*/,'').replace(/^```\s*/,'').replace(/\s*```$/,'').trim();
-        // Remove any text before first { and after last }
+        raw = raw.replace(/^```json[\s\S]*?\n/,'').replace(/^```\s*/,'').replace(/\s*```$/,'').trim();
+        // Extract JSON object
         var jsonStart = raw.indexOf('{');
         var jsonEnd = raw.lastIndexOf('}');
         if (jsonStart !== -1 && jsonEnd !== -1) raw = raw.substring(jsonStart, jsonEnd + 1);
-        try { enriched = JSON.parse(raw); } catch(e) {
-          // Try fixing common JSON issues: unescaped quotes inside strings
+        try {
+          enriched = JSON.parse(raw);
+        } catch(e) {
+          console.warn('[ENRICH] JSON parse failed, trying cleanup:', e.message);
           try {
-            var fixed = raw.replace(/([^\\])"([^",:{}\[\]\n]+)"([^",:{}\[\]\n]*)"(?=[,}\]])/g, '$1\"$2\"$3\"');
+            // Fix unescaped quotes inside Hebrew string values
+            var fixed = raw
+              .replace(/:\s*"([^"]*)"([^",:\[\]{}\/]+)"([^"]*)"\s*([,}\]])/g, ': "$1$2$3"$4')
+              .replace(/([^\\])"\s*([^",:\[\]{}\/\n]{2,})"\s*([,}\]])/g, '$1"$2"$3');
             enriched = JSON.parse(fixed);
-          } catch(e2) { console.warn('[ENRICH] JSON parse failed:', e2.message, raw.substring(0,300)); }
+          } catch(e2) {
+            // Last resort: extract key fields manually
+            console.warn('[ENRICH] Using fallback extraction');
+            var getField = function(key) {
+              var m = raw.match(new RegExp('"' + key + '"\\s*:\\s*"([^"\\n]{0,200})"'));
+              return m ? m[1] : '';
+            };
+            enriched = {
+              summary: getField('summary'),
+              segment: getField('segment'),
+              platform_current: getField('platform_current'),
+              pitch: getField('pitch'),
+              score: parseInt(raw.match(/"score"\s*:\s*(\d+)/)?.[1] || '50'),
+              tier: getField('tier') || 'B',
+              recommended_cadence: getField('recommended_cadence') || 'warm',
+              email_sequence: []
+            };
+          }
         }
       }
     } catch(e) {
@@ -3162,12 +3184,11 @@ ${proxyCtx}
   if (typeof enrichmentQueue   === 'undefined') var enrichmentQueue   = [];
   if (typeof enrichmentRunning === 'undefined') var enrichmentRunning = false;
 
-  async function processEnrichmentQueue() {
+  function processEnrichmentQueue() {
     if (enrichmentRunning || enrichmentQueue.length === 0) return;
     enrichmentRunning = true;
 
-    // Show global status bar
-    let statusBar = document.getElementById('enrich-status-bar');
+    var statusBar = document.getElementById('enrich-status-bar');
     if (!statusBar) {
       statusBar = document.createElement('div');
       statusBar.id = 'enrich-status-bar';
@@ -3175,57 +3196,45 @@ ${proxyCtx}
       document.body.appendChild(statusBar);
     }
 
-    try {
-    while (enrichmentQueue.length > 0) {
-      const lead = enrichmentQueue.shift();
-      const total = enrichmentQueue.length;
-      statusBar.innerHTML = `🤖 מנתח: <strong>${lead.name}</strong> &nbsp;|&nbsp; נותרו בתור: ${total} &nbsp;<span style="font-size:10px;opacity:0.8">כל ליד מ-Clay עובר תחקיר מלא</span>`;
+    function processNext() {
+      if (enrichmentQueue.length === 0) {
+        enrichmentRunning = false;
+        var sb = document.getElementById('enrich-status-bar');
+        if (sb) { sb.innerHTML = '✅ ניתוח הושלם!'; setTimeout(function(){ var s=document.getElementById('enrich-status-bar'); if(s)s.remove(); }, 3000); }
+        return;
+      }
 
-      try {
-        const enrichedLead = await autoEnrichLead(lead);
+      var lead = enrichmentQueue.shift();
+      var sb = document.getElementById('enrich-status-bar');
+      if (sb) sb.innerHTML = '🤖 מנתח: <strong>' + lead.name + '</strong> &nbsp;|&nbsp; נותרו: ' + enrichmentQueue.length;
 
-        // Update in leads array
-        const idx = leads.findIndex(l => l.id === lead.id);
+      autoEnrichLead(lead).then(function(enrichedLead) {
+        // Update leads array
+        var idx = leads.findIndex(function(l){ return l.id === lead.id; });
         if (idx !== -1) leads[idx] = enrichedLead;
         else leads.push(enrichedLead);
 
         // Save to Firebase
         if (typeof db !== 'undefined' && db) {
-          try {
-            await db.collection('leads').doc(String(enrichedLead.id)).set(enrichedLead);
-          } catch(e) { console.warn('Firebase save failed:', e); }
+          db.collection('leads').doc(String(enrichedLead.id)).set(enrichedLead).catch(function(e){ console.warn('Firebase save:', e); });
         }
 
-        // Log activity
-        logActivity('lead_enriched', {
-          lead_id: enrichedLead.id,
-          lead_name: enrichedLead.name,
-          score: enrichedLead.score,
-          platform: enrichedLead.platform,
-          cadence: enrichedLead.enrichment?.recommended_cadence
-        });
-
-        // Re-render lead card
-        const existingCard = document.getElementById(`lead-${lead.id}`);
-        if (existingCard) existingCard.remove();
+        // Re-render card
+        var existing = document.getElementById('lead-' + lead.id);
+        if (existing) existing.remove();
         renderSimpleLead(enrichedLead);
+        if (typeof updateBadge === 'function') updateBadge();
+        updateStats();
 
-      } catch(e) {
+      }).catch(function(e) {
         console.warn('[ENRICH] Failed for', lead.name, e);
-      }
-
-      // Delay between leads — avoid rate limiting
-      if (enrichmentQueue.length > 0) await new Promise(r => setTimeout(r, 3500));
+      }).finally(function() {
+        // Next lead after 3s delay — non-blocking
+        setTimeout(processNext, 3000);
+      });
     }
 
-    } finally {
-      enrichmentRunning = false;
-      if (statusBar) {
-        statusBar.innerHTML = '✅ ניתוח הושלם!';
-        statusBar.style.pointerEvents = 'none';
-        setTimeout(() => { try { statusBar.remove(); } catch(e){} }, 3000);
-      }
-    }
+    processNext();
   }
 
   // Clay Pending Polling — check every 30s for new leads from Clay
