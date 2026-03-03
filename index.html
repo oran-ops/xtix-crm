@@ -34,8 +34,8 @@
   .tab { display: none; }
 
   /* ── SIDEBAR LAYOUT ── */
-  #app-wrapper { display: flex !important; flex-direction: row-reverse; min-height: 100vh; }
-  #sidebar { width: 200px; min-width: 200px; background: var(--surface); border-left: 1px solid var(--border); display: flex; flex-direction: column; position: sticky; top: 0; height: 100vh; overflow-y: auto; z-index: 100; flex-shrink: 0; }
+  #app-wrapper { display: flex !important; flex-direction: row; min-height: 100vh; }
+  #sidebar { width: 200px; min-width: 200px; background: var(--surface); border-right: 1px solid var(--border); display: flex; flex-direction: column; position: sticky; top: 0; height: 100vh; overflow-y: auto; z-index: 100; flex-shrink: 0; }
   #sidebar-logo { padding: 20px 16px 14px; border-bottom: 1px solid var(--border); }
   #sidebar-logo .logo { font-size: 18px; font-weight: 900; letter-spacing: 2px; }
   #sidebar-logo .logo span { color: var(--accent); }
@@ -54,9 +54,12 @@
   .nav-sub-btn:hover { background: rgba(255,255,255,0.04); color: var(--text); }
   .nav-sub-btn.active { color: var(--accent); font-weight: 700; }
   #sidebar-bottom { padding: 12px 14px; border-top: 1px solid var(--border); display: flex; flex-direction: column; gap: 5px; }
-  #main-content { flex: 1; min-width: 0; display: flex; flex-direction: column; overflow-x: hidden; }
-  .container { padding: 20px 24px; flex: 1; }
-  .header { display: none; }a charset="UTF-8">
+  #main-content { flex: 1; min-width: 0; width: calc(100vw - 200px); display: flex; flex-direction: column; overflow-x: hidden; }
+  .container { padding: 20px 24px; flex: 1; width: 100%; box-sizing: border-box; overflow-x: hidden; }
+  .header { display: none; }
+  #leads-list { width: 100% !important; }
+  #tab-leads { width: 100% !important; }
+  #crm-v3-toolbar { width: 100% !important; }a charset="UTF-8">
 <link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>🎫</text></svg>">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>XTIX Sales CRM</title>
@@ -3588,7 +3591,7 @@ ${proxyCtx}
     if (header && !header.querySelector('.chk-wrap')) {
       var wrap = document.createElement('label');
       wrap.className = 'chk-wrap';
-      wrap.style.cssText = 'display:flex;align-items:center;justify-content:center;width:28px;height:28px;border-radius:7px;border:1.5px solid var(--border);cursor:pointer;flex-shrink:0;transition:all 0.15s;background:transparent;margin-left:8px';
+      wrap.style.cssText = 'display:flex;align-items:center;justify-content:center;width:22px;height:22px;border-radius:6px;border:1.5px solid rgba(255,255,255,0.15);cursor:pointer;flex-shrink:0;transition:all 0.2s;background:transparent;margin-left:10px;margin-right:2px';
       wrap.title = 'בחר ליד';
       wrap.onclick = function(e){ e.stopPropagation(); };
       var chk = document.createElement('input');
@@ -3601,7 +3604,8 @@ ${proxyCtx}
         wrap.style.borderColor = this.checked ? 'var(--accent)' : 'var(--border)';
       };
       wrap.appendChild(chk);
-      header.appendChild(wrap); // append to end (left side in RTL)
+      // Insert at very start of header (right side in RTL layout)
+      header.insertBefore(wrap, header.firstChild);
     }
 
     // XTIX ID + source badge in meta row
@@ -4065,17 +4069,16 @@ ${proxyCtx}
     var nav = document.getElementById('sidebar-nav');
     if (!nav) return;
 
-    // Move market-leadfinder content into tab-leadfinder panel
+    // MOVE (not clone) the actual market-leadfinder div into tab-leadfinder
     var src = document.getElementById('market-leadfinder');
     var dst = document.getElementById('lf-standalone-content');
-    if (src && dst && !dst.hasChildNodes()) {
-      // Clone content (not clone the panel itself)
-      Array.from(src.childNodes).forEach(function(node) {
-        dst.appendChild(node.cloneNode(true));
-      });
+    if (src && dst) {
+      // Move ALL child nodes — this preserves event listeners
+      while (src.firstChild) dst.appendChild(src.firstChild);
+      src.style.display = 'none'; // hide empty source
     }
 
-    // Add nav button after ניתוח שוק
+    // Add nav button — insert as 3rd item (after לידים, ניתוח שוק)
     var btn = document.createElement('button');
     btn.className = 'nav-btn';
     btn.id = 'lf-tab-btn';
@@ -4084,8 +4087,7 @@ ${proxyCtx}
     btn.onclick = function() { switchMainTab('leadfinder', btn); };
 
     var btns = nav.querySelectorAll('.nav-btn');
-    // Insert after index 1 (after ניתוח שוק)
-    if (btns.length > 2) nav.insertBefore(btn, btns[2]);
+    if (btns.length >= 2) nav.insertBefore(btn, btns[1]); // after לידים
     else nav.appendChild(btn);
   }
 
@@ -4244,52 +4246,6 @@ setInterval(function() {
   }
 }, 3000);
 
-/* === RE-ENRICH ALL BUTTON === */
-function addReEnrichBtn() {
-  if (document.getElementById('reenrich-all-v4')) return;
-  var leadsPanel = document.getElementById('tab-leads');
-  if (!leadsPanel) return;
-  var btn = document.createElement('button');
-  btn.id = 'reenrich-all-v4';
-  btn.style.cssText = 'display:block;width:100%;background:linear-gradient(135deg,rgba(108,99,255,0.15),rgba(255,101,132,0.08));border:1px solid rgba(108,99,255,0.35);border-radius:9px;padding:10px 16px;font-size:12px;color:var(--accent);cursor:pointer;font-family:Heebo,sans-serif;margin-bottom:10px;text-align:right;font-weight:600;transition:all 0.2s';
-
-  function refreshText() {
-    var total = typeof leads !== 'undefined' ? leads.length : 0;
-    var withBP = typeof leads !== 'undefined' ? leads.filter(function(l) {
-      return l.enrichment && l.enrichment.email_sequence && l.enrichment.email_sequence.length;
-    }).length : 0;
-    btn.innerHTML = '🤖 עדכן Email Blueprint לכל הלידים'
-      + ' <span style="color:var(--muted);font-weight:400;font-size:11px">— ' + withBP + '/' + total + ' כבר עם Blueprint</span>';
-  }
-  refreshText();
-
-  btn.onclick = function() {
-    var total = typeof leads !== 'undefined' ? leads.length : 0;
-    var needEnrich = typeof leads !== 'undefined' ? leads.filter(function(l){ return !(l.enrichment && l.enrichment.email_sequence && l.enrichment.email_sequence.length > 0); }).length : total;
-    if (needEnrich === 0) { alert('✅ כל הלידים כבר נותחו!'); return; }
-    if (!confirm('לנתח ' + needEnrich + ' לידים שעדיין לא נותחו?' + (needEnrich < total ? '\n(' + (total-needEnrich) + ' לידים כבר נותחו ויידולגו)' : '') + '\nהתהליך ייקח כמה דקות.')) return;
-    if (typeof leads !== 'undefined') {
-      var skipped = 0;
-      leads.forEach(function(l) {
-        // Skip leads that already have enrichment
-        if (l.enrichment && l.enrichment.email_sequence && l.enrichment.email_sequence.length > 0) {
-          skipped++;
-          return;
-        }
-        if (typeof enrichmentQueue !== 'undefined') enrichmentQueue.push(Object.assign({}, l));
-      });
-      if (skipped > 0) console.log('[ENRICH] Skipping ' + skipped + ' already-enriched leads');
-    }
-    if (typeof processEnrichmentQueue !== 'undefined') processEnrichmentQueue();
-    btn.style.opacity = '0.6';
-    btn.innerHTML = '⏳ מעבד... הלידים נשלחים לניתוח AI';
-    setTimeout(refreshText, 6000);
-  };
-
-  var ref = document.getElementById('crm-v3-toolbar') || leadsPanel.querySelector('.leads-toolbar') || document.getElementById('leads-list');
-  if (ref && ref.parentNode) ref.parentNode.insertBefore(btn, ref);
-  else leadsPanel.insertBefore(btn, leadsPanel.firstChild);
-}
 
 /* === SALES PLAYBOOK METHODOLOGY PANEL === */
 function addSalesPlaybookPanel() {
@@ -4396,8 +4352,7 @@ window.calcRoiV4 = function() {
 
 /* === INIT === */
 setTimeout(function() {
-  addReEnrichBtn();
-  addSalesPlaybookPanel();
+addSalesPlaybookPanel();
   if (typeof leads !== 'undefined') {
     _watchLen = leads.length;
     leads.forEach(function(l) {
