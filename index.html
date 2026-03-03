@@ -2,6 +2,7 @@
 <html lang="he" dir="rtl">
 <head>
 <meta charset="UTF-8">
+<link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>🎫</text></svg>">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>XTIX Sales CRM</title>
 <link href="https://fonts.googleapis.com/css2?family=Heebo:wght@300;400;500;600;700;800&family=Space+Mono:wght@400;700&display=swap" rel="stylesheet">
@@ -3024,7 +3025,7 @@ ${proxyCtx}
     var el=document.getElementById('server-status');
     if(!el)return;
     try{
-      var r=await fetch(SERVER+'/health',{signal:AbortSignal.timeout(4000)});
+      var r=await fetch(SERVER+'/analyze?url=xtix.ai',{signal:AbortSignal.timeout(4000)});
       el.textContent=r.ok?'🟢 Server':'🟡 Server';
       el.style.color=r.ok?'var(--green)':'var(--yellow)';
     }catch(e){
