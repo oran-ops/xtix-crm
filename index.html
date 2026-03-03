@@ -30,6 +30,61 @@
 
   .container { max-width: 1300px; margin: 0 auto; padding: 28px; }
 
+  .tabs { display: none; }
+  .tab { display: none; }
+
+  /* ── SIDEBAR LAYOUT ── */
+  #app-wrapper { display: flex !important; flex-direction: row-reverse; min-height: 100vh; }
+  #sidebar { width: 200px; min-width: 200px; background: var(--surface); border-left: 1px solid var(--border); display: flex; flex-direction: column; position: sticky; top: 0; height: 100vh; overflow-y: auto; z-index: 100; flex-shrink: 0; }
+  #sidebar-logo { padding: 20px 16px 14px; border-bottom: 1px solid var(--border); }
+  #sidebar-logo .logo { font-size: 18px; font-weight: 900; letter-spacing: 2px; }
+  #sidebar-logo .logo span { color: var(--accent); }
+  #sidebar-stats { padding: 10px 14px; border-bottom: 1px solid var(--border); display: flex; flex-direction: column; gap: 5px; }
+  #sidebar-stats .stat-row { font-size: 11px; color: var(--muted); }
+  #sidebar-stats .stat-row strong { color: var(--text); }
+  #sidebar-nav { flex: 1; padding: 10px 8px; display: flex; flex-direction: column; gap: 2px; }
+  .nav-btn { width: 100%; text-align: right; padding: 10px 12px; border-radius: 8px; border: none; background: none; color: var(--muted); font-family: 'Heebo', sans-serif; font-size: 13px; font-weight: 600; cursor: pointer; transition: all 0.18s; display: flex; align-items: center; gap: 8px; flex-direction: row-reverse; }
+  .nav-btn:hover { background: rgba(255,255,255,0.05); color: var(--text); }
+  .nav-btn.active { background: rgba(108,99,255,0.15); color: var(--accent); border: 1px solid rgba(108,99,255,0.25); }
+  .nav-icon { font-size: 15px; flex-shrink: 0; }
+  .nav-label { flex: 1; text-align: right; }
+  .nav-sub { padding: 2px 8px 4px; display: none; flex-direction: column; gap: 1px; }
+  .nav-sub.open { display: flex; }
+  .nav-sub-btn { width: 100%; text-align: right; padding: 7px 28px 7px 8px; border-radius: 6px; border: none; background: none; color: var(--muted); font-family: 'Heebo', sans-serif; font-size: 12px; cursor: pointer; transition: all 0.15s; }
+  .nav-sub-btn:hover { background: rgba(255,255,255,0.04); color: var(--text); }
+  .nav-sub-btn.active { color: var(--accent); font-weight: 700; }
+  #sidebar-bottom { padding: 12px 14px; border-top: 1px solid var(--border); display: flex; flex-direction: column; gap: 5px; }
+  #main-content { flex: 1; min-width: 0; display: flex; flex-direction: column; overflow-x: hidden; }
+  .container { padding: 20px 24px; flex: 1; }
+  .header { display: none; }a charset="UTF-8">
+<link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>🎫</text></svg>">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>XTIX Sales CRM</title>
+<link href="https://fonts.googleapis.com/css2?family=Heebo:wght@300;400;500;600;700;800&family=Space+Mono:wght@400;700&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg: #0a0a0f;
+    --surface: #12121a;
+    --surface2: #1a1a26;
+    --border: #2a2a3d;
+    --accent: #6c63ff;
+    --accent2: #ff6584;
+    --green: #00e676;
+    --yellow: #ffd740;
+    --text: #e8e8f0;
+    --muted: #6b6b8a;
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { font-family: 'Heebo', sans-serif; background: var(--bg); color: var(--text); min-height: 100vh; direction: rtl; }
+
+  .header { background: var(--surface); border-bottom: 1px solid var(--border); padding: 14px 28px; display: flex; align-items: center; justify-content: space-between; position: sticky; top: 0; z-index: 100; }
+  .logo { font-family: 'Space Mono', monospace; font-size: 20px; color: var(--accent); letter-spacing: 2px; }
+  .logo span { color: var(--accent2); }
+  .header-stats { display: flex; gap: 20px; font-size: 12px; color: var(--muted); }
+  .header-stats strong { color: var(--text); }
+
+  .container { max-width: 1300px; margin: 0 auto; padding: 28px; }
+
   .tabs { display: flex; gap: 4px; background: var(--surface); border: 1px solid var(--border); border-radius: 12px; padding: 5px; margin-bottom: 28px; width: fit-content; }
   .tab { padding: 9px 22px; border-radius: 8px; cursor: pointer; font-size: 13px; font-weight: 600; color: var(--muted); transition: all 0.2s; border: none; background: none; font-family: 'Heebo', sans-serif; }
   .tab.active { background: var(--accent); color: white; }
@@ -241,78 +296,53 @@
 <!-- =================== APP =================== -->
 <div id="app-wrapper" style="display:none">
 
-<div class="header">
-  <div class="logo">XTIX<span>.</span>CRM</div>
-  <div class="header-stats">
-    <span>לידים: <strong id="total-leads">2</strong></span>
-    <span>פניות נשלחו: <strong id="contacted-count">0</strong></span>
-    <span id="server-status" title="סטטוס server.py" style="font-size:11px;cursor:pointer" onclick="checkServer()">⚪ Server</span>
-    <span id="storage-indicator" style="color:var(--green);font-size:11px;cursor:default" title="נתונים נשמרים אוטומטית">💾 נשמר</span>
-    <button onclick="exportCSV()" style="background:none;border:1px solid var(--border);border-radius:5px;padding:2px 10px;font-size:10px;color:var(--muted);cursor:pointer;font-family:'Heebo',sans-serif" title="ייצוא לידים ל-CSV">📥 CSV</button>
-    <button id="seed-btn" onclick="seedDatabase(false)" title="העלה נתוני CRM ל-Firebase" style="background:none;border:1px solid rgba(16,185,129,0.4);border-radius:5px;padding:2px 10px;font-size:10px;color:var(--green);cursor:pointer;font-family:'Heebo',sans-serif">☁️ Seed DB</button>
-    <button onclick="seedDatabase(true)" title="גיבוי מלא — כתוב מחדש את כל הנתונים" style="background:none;border:1px solid rgba(108,99,255,0.4);border-radius:5px;padding:2px 10px;font-size:10px;color:var(--accent);cursor:pointer;font-family:'Heebo',sans-serif">🔄 גיבוי מלא</button>
-    <button onclick="openSettings()" style="background:none;border:1px solid rgba(108,99,255,0.4);border-radius:5px;padding:2px 10px;font-size:10px;color:var(--accent);cursor:pointer;font-family:'Heebo',sans-serif">⚙️ Settings</button>
-    <button onclick="resetStorage()" style="background:none;border:1px solid var(--border);border-radius:5px;padding:2px 8px;font-size:10px;color:var(--muted);cursor:pointer;font-family:'Heebo',sans-serif">↺ איפוס</button>
-    <span id="user-info" style="display:flex;align-items:center;gap:4px"></span>
+<!-- ═══ SIDEBAR ═══ -->
+<div id="sidebar">
+  <div id="sidebar-logo">
+    <div class="logo">XTIX<span>.</span>CRM</div>
   </div>
-</div>
-
-<!-- =================== SETTINGS MODAL =================== -->
-<div id="settingsModal" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,0.7);z-index:999;align-items:center;justify-content:center">
-  <div style="background:var(--surface);border:1px solid var(--border);border-radius:16px;padding:28px;width:460px;max-width:95vw;position:relative">
-    <div style="font-family:'Space Mono',monospace;font-size:14px;color:var(--accent);margin-bottom:20px">⚙️ SETTINGS</div>
-
-    <div style="font-size:10px;letter-spacing:2px;color:var(--muted);margin-bottom:12px;text-transform:uppercase">Gmail — שליחת מיילים</div>
-    <input id="cfg-gmail-user" type="email" placeholder="your@gmail.com" style="width:100%;background:var(--surface2);border:1px solid var(--border);border-radius:7px;padding:8px 12px;color:var(--text);font-size:12px;font-family:'Heebo',sans-serif;margin-bottom:8px;outline:none">
-    <input id="cfg-gmail-pass" type="password" placeholder="App Password (16 תווים)" style="width:100%;background:var(--surface2);border:1px solid var(--border);border-radius:7px;padding:8px 12px;color:var(--text);font-size:12px;font-family:'Heebo',sans-serif;margin-bottom:4px;outline:none">
-    <div style="font-size:10px;color:var(--muted);margin-bottom:16px">לא הסיסמה הרגילה — <a href="https://myaccount.google.com/apppasswords" target="_blank" style="color:var(--accent)">צור App Password כאן</a></div>
-
-    <input id="cfg-sender-name" type="text" placeholder="שם שולח (למשל: XTIX Sales)" style="width:100%;background:var(--surface2);border:1px solid var(--border);border-radius:7px;padding:8px 12px;color:var(--text);font-size:12px;font-family:'Heebo',sans-serif;margin-bottom:16px;outline:none">
-
-    <div style="font-size:10px;letter-spacing:2px;color:var(--muted);margin-bottom:8px;text-transform:uppercase">HubSpot API Token</div>
-    <input id="cfg-hs-token" type="password" placeholder="pat-na1-xxxxxxxx..." style="width:100%;background:var(--surface2);border:1px solid var(--border);border-radius:7px;padding:8px 12px;color:var(--text);font-size:12px;font-family:'Space Mono',sans-serif;margin-bottom:4px;outline:none">
-    <div style="font-size:10px;color:var(--muted);margin-bottom:20px"><a href="https://app.hubspot.com/user-preferences/api" target="_blank" style="color:var(--accent)">קבל Token כאן</a> — Private App / API Key</div>
-
-    <div id="settings-msg" style="font-size:11px;margin-bottom:12px;display:none"></div>
-    <div style="display:flex;gap:8px">
-      <button onclick="saveSettings()" style="flex:1;background:var(--accent);border:none;border-radius:8px;padding:10px;color:#fff;font-size:13px;font-weight:700;cursor:pointer;font-family:'Heebo',sans-serif">💾 שמור</button>
-      <button onclick="closeSettings()" style="background:var(--surface2);border:1px solid var(--border);border-radius:8px;padding:10px 16px;color:var(--muted);font-size:12px;cursor:pointer;font-family:'Heebo',sans-serif">ביטול</button>
+  <div id="sidebar-stats">
+    <div class="stat-row">לידים: <strong id="total-leads">0</strong></div>
+    <div class="stat-row">פניות: <strong id="contacted-count">0</strong></div>
+    <div class="stat-row" id="server-status" onclick="checkServer()" style="cursor:pointer">⚪ Server</div>
+    <div class="stat-row" id="storage-indicator">💾 נשמר</div>
+  </div>
+  <nav id="sidebar-nav">
+    <button class="nav-btn active" data-panel="leads" onclick="switchMainTab('leads',this)">
+      <span class="nav-icon">👤</span><span class="nav-label">לידים</span>
+    </button>
+    <button class="nav-btn" data-panel="market" onclick="switchMainTab('market',this)">
+      <span class="nav-icon">🌍</span><span class="nav-label">ניתוח שוק</span>
+    </button>
+    <div class="nav-sub" id="sub-market">
+      <button class="nav-sub-btn active" onclick="switchMarket('competitors',this)">🗺 מפת מתחרים</button>
+      <button class="nav-sub-btn" onclick="switchMarket('positioning',this)">🎯 פוזיציונינג</button>
+      <button class="nav-sub-btn" onclick="switchMarket('scoring',this)">📊 Scoring Matrix</button>
     </div>
+    <button class="nav-btn" data-panel="methodology" onclick="switchMainTab('methodology',this)">
+      <span class="nav-icon">📋</span><span class="nav-label">מתודולוגיה</span>
+    </button>
+    <button class="nav-btn" data-panel="hubspot" onclick="switchMainTab('hubspot',this)">
+      <span class="nav-icon">🔗</span><span class="nav-label">HubSpot</span>
+    </button>
+  </nav>
+  <div id="sidebar-bottom">
+    <button onclick="document.getElementById('csv-import')&&document.getElementById('csv-import').click()" style="width:100%;background:rgba(255,255,255,0.05);border:1px solid var(--border);border-radius:6px;padding:6px;color:var(--muted);font-family:Heebo,sans-serif;font-size:11px;cursor:pointer">📥 ייבוא CSV</button>
   </div>
 </div>
 
-<!-- =================== REMINDER MODAL =================== -->
-<div id="reminderModal" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,0.7);z-index:999;align-items:center;justify-content:center">
-  <div style="background:var(--surface);border:1px solid var(--border);border-radius:16px;padding:24px;width:380px;max-width:95vw">
-    <div style="font-size:13px;font-weight:700;color:var(--yellow);margin-bottom:16px">⏰ הוסף תזכורת</div>
-    <input type="hidden" id="rem-lead-id">
-    <input type="hidden" id="rem-lead-name">
-    <input id="rem-date" type="date" style="width:100%;background:var(--surface2);border:1px solid var(--border);border-radius:7px;padding:8px 12px;color:var(--text);font-size:12px;margin-bottom:8px;outline:none">
-    <input id="rem-note" type="text" placeholder="למשל: שלח Email #2" style="width:100%;background:var(--surface2);border:1px solid var(--border);border-radius:7px;padding:8px 12px;color:var(--text);font-size:12px;font-family:'Heebo',sans-serif;margin-bottom:16px;outline:none">
-    <div style="display:flex;gap:8px">
-      <button onclick="saveReminder()" style="flex:1;background:var(--yellow);border:none;border-radius:8px;padding:10px;color:#0a0a0f;font-size:13px;font-weight:700;cursor:pointer;font-family:'Heebo',sans-serif">💾 שמור</button>
-      <button onclick="document.getElementById('reminderModal').style.display='none'" style="background:var(--surface2);border:1px solid var(--border);border-radius:8px;padding:10px 14px;color:var(--muted);font-size:12px;cursor:pointer;font-family:'Heebo',sans-serif">ביטול</button>
-    </div>
-  </div>
-</div>
-
+<!-- ═══ MAIN CONTENT ═══ -->
+<div id="main-content">
 <div class="container">
-  <div class="tabs">
-    <button class="tab active" onclick="switchTab('market',this)">🗺 ניתוח שוק</button>
-    <button class="tab" onclick="switchTab('leads',this)">👤 לידים</button>
-    <button class="tab" onclick="switchTab('methodology',this)">📋 מתודולוגיית מכירה</button>
-    <button class="tab" onclick="switchTab('hubspot',this)">🔗 HubSpot</button>
-  </div>
 
   <!-- =================== MARKET =================== -->
-  <div class="panel active" id="tab-market">
+  <div class="panel" id="tab-market">
     <p class="section-title">🌍 ניתוח שוק — XTIX 2026 | Salesforce Best Practices Framework</p>
 
     <!-- SUB-TABS -->
     <div class="methodology-selector" style="margin-bottom:20px">
       <button class="meth-btn active" onclick="switchMarket('competitors',this)">🗺 מפת מתחרים</button>
       <button class="meth-btn" onclick="switchMarket('positioning',this)">🎯 פוזיציונינג XTIX</button>
-      <button class="meth-btn" onclick="switchMarket('leadfinder',this)">🔍 Lead Finder</button>
       <button class="meth-btn" onclick="switchMarket('scoring',this)">📊 Scoring Matrix</button>
     </div>
 
@@ -699,7 +729,7 @@
     </div>
 
     <!-- ======= TAB 3: LEAD FINDER + SCORER ======= -->
-    <div class="meth-panel" id="market-leadfinder">
+    <div class="meth-panel" id="market-leadfinder" data-hidden="true">
 
       <!-- Mode Toggle -->
       <div style="display:flex;gap:8px;margin-bottom:16px;flex-wrap:wrap">
@@ -1023,7 +1053,7 @@
   </div>
 
   <!-- =================== LEADS =================== -->
-  <div class="panel" id="tab-leads">
+  <div class="panel active" id="tab-leads">
     <div class="leads-toolbar">
       <p class="section-title" style="margin:0">👤 לידים פעילים</p>
       <button class="btn" onclick="document.getElementById('addLeadModal').classList.add('open')">+ הוסף ליד</button>
@@ -2412,7 +2442,12 @@ IF RESPONSE at any point → Book 30-min MEETING (not call). Prepare ROI deck be
       + ' data-source="' + (lead.source || '') + '"'
       + ' data-name="' + (lead.name || '') + '"'
       + ' data-domain="' + (lead.domain || '') + '"'
-      + ' data-platform="' + (lead.platform || '') + '">'
+      + ' data-platform="' + (lead.platform || (lead.enrichment && lead.enrichment.platform_current) || '') + '"'
+      + ' data-updated="' + (lead.updated_at || lead.enrichment && lead.enrichment.enriched_at || '') + '"'
+      + ' data-created="' + (lead.created_at || '') + '"'
+      + ' data-email="' + (lead.email || '') + '"'
+      + ' data-phone="' + (lead.phone || '') + '"'
+      + ' data-xtix-id="' + (lead.xtix_id || '') + '">'
 
       // Header
       + '<div class="lead-card-header" onclick="toggleLead(' + lead.id + ')">'
@@ -2583,21 +2618,33 @@ IF RESPONSE at any point → Book 30-min MEETING (not call). Prepare ROI deck be
 
 
 
-  window.switchTab = function switchTab(name, btn) {
-    // Only touch TOP-LEVEL tabs and panels — never lead-tab-panel or meth-panel
-    var tabBar = document.querySelector('.tabs');
-    if (tabBar) tabBar.querySelectorAll('.tab').forEach(function(t){ t.classList.remove('active'); });
-    // Only hide direct child panels of .container — not nested panels
+  window.switchMainTab = function(name, btn) {
+    // Hide all top-level panels
     var container = document.querySelector('.container');
     if (container) {
       Array.from(container.children).forEach(function(el){
         if (el.classList.contains('panel')) el.classList.remove('active');
       });
     }
+    // Show target panel
     var target = document.getElementById('tab-' + name);
     if (target) target.classList.add('active');
+
+    // Update sidebar nav buttons
+    document.querySelectorAll('.nav-btn').forEach(function(b){ b.classList.remove('active'); });
     if (btn) btn.classList.add('active');
-  }
+
+    // Show/hide sub-menus
+    document.querySelectorAll('.nav-sub').forEach(function(s){ s.classList.remove('open'); });
+    var sub = document.getElementById('sub-' + name);
+    if (sub) sub.classList.add('open');
+  };
+
+  // Legacy switchTab — keep for any old calls
+  window.switchTab = function switchTab(name, btn) {
+    var navBtn = document.querySelector('.nav-btn[data-panel="' + name + '"]');
+    switchMainTab(name, navBtn || btn);
+  };
 
   window.switchLeadTab = function switchLeadTab(leadId, tabName, btn) {
     const body = document.getElementById('body-' + leadId);
@@ -3304,7 +3351,7 @@ ${proxyCtx}
   })();
 
 </script>
-</div> <!-- end app-wrapper -->
+</div></div> <!-- end main-content + app-wrapper -->
 
 <!-- =================== CRM IMPROVEMENTS v3 =================== -->
 <script>
@@ -3536,16 +3583,25 @@ ${proxyCtx}
     card.dataset.segment=lead.segment||lead.type||'';
     card.dataset.xtixId=lead.xtix_id||'';
 
-    // Fix checkbox positioning — inject right before .lead-info
+    // Styled checkbox — left side of header
     var header = card.querySelector('.lead-card-header');
-    if (header && !header.querySelector('.v3chk')) {
-      var chk=document.createElement('input');
-      chk.type='checkbox'; chk.className='v3chk'; chk.dataset.id=lead.id;
-      chk.style.cssText='width:15px;height:15px;accent-color:var(--accent);cursor:pointer;flex-shrink:0;margin:0 6px 0 0;align-self:center';
-      chk.onclick=function(e){e.stopPropagation();chkCh(lead.id,this.checked);};
-      var leadInfo=header.querySelector('.lead-info');
-      if (leadInfo) header.insertBefore(chk, leadInfo);
-      else header.insertBefore(chk, header.firstChild);
+    if (header && !header.querySelector('.chk-wrap')) {
+      var wrap = document.createElement('label');
+      wrap.className = 'chk-wrap';
+      wrap.style.cssText = 'display:flex;align-items:center;justify-content:center;width:28px;height:28px;border-radius:7px;border:1.5px solid var(--border);cursor:pointer;flex-shrink:0;transition:all 0.15s;background:transparent;margin-left:8px';
+      wrap.title = 'בחר ליד';
+      wrap.onclick = function(e){ e.stopPropagation(); };
+      var chk = document.createElement('input');
+      chk.type = 'checkbox'; chk.className = 'v3chk'; chk.dataset.id = lead.id;
+      chk.style.cssText = 'width:14px;height:14px;accent-color:var(--accent);cursor:pointer;margin:0';
+      chk.onclick = function(e){ e.stopPropagation(); };
+      chk.onchange = function(){ 
+        chkCh(lead.id, this.checked);
+        wrap.style.background = this.checked ? 'rgba(108,99,255,0.15)' : 'transparent';
+        wrap.style.borderColor = this.checked ? 'var(--accent)' : 'var(--border)';
+      };
+      wrap.appendChild(chk);
+      header.appendChild(wrap); // append to end (left side in RTL)
     }
 
     // XTIX ID + source badge in meta row
@@ -3615,12 +3671,62 @@ ${proxyCtx}
   window.toggleSelAll=function(){
     var all=document.querySelectorAll('.v3chk');
     var anyOff=Array.from(all).some(function(c){return !c.checked;});
-    all.forEach(function(chk){chk.checked=anyOff;var id=parseInt(chk.dataset.id);if(anyOff)sel3.add(id);else sel3.delete(id);});
+    all.forEach(function(chk){
+      chk.checked=anyOff;
+      var id=parseInt(chk.dataset.id);
+      if(anyOff)sel3.add(id);else sel3.delete(id);
+      var wrap=chk.parentElement;
+      if(wrap&&wrap.classList.contains('chk-wrap')){
+        wrap.style.background=anyOff?'rgba(108,99,255,0.15)':'transparent';
+        wrap.style.borderColor=anyOff?'var(--accent)':'var(--border)';
+      }
+    });
     var btn=document.getElementById('sel-all-v3');if(btn)btn.textContent=anyOff?'☑ בטל הכל':'☐ בחר הכל';
     updBulk();
   };
-  window.clearSelV3=function(){sel3.clear();document.querySelectorAll('.v3chk').forEach(function(c){c.checked=false;});var btn=document.getElementById('sel-all-v3');if(btn)btn.textContent='☐ בחר הכל';updBulk();};
+  window.clearSelV3=function(){
+    sel3.clear();
+    document.querySelectorAll('.v3chk').forEach(function(c){
+      c.checked=false;
+      var wrap=c.parentElement;
+      if(wrap&&wrap.classList.contains('chk-wrap')){
+        wrap.style.background='transparent';
+        wrap.style.borderColor='var(--border)';
+      }
+    });
+    var btn=document.getElementById('sel-all-v3');
+    if(btn)btn.textContent='☐ בחר הכל';
+    updBulk();
+  };
   function updBulk(){var bar=document.getElementById('v3-bulk'),cnt=document.getElementById('v3-bulk-cnt');if(!bar)return;if(sel3.size>0){bar.style.display='flex';if(cnt)cnt.textContent=sel3.size+' נבחרו';}else bar.style.display='none';}
+  window.deleteLead = async function(id) {
+    // Remove from leads array
+    var idx = leads.findIndex(function(l){ return l.id === id; });
+    if (idx !== -1) leads.splice(idx, 1);
+
+    // Remove card from DOM
+    var card = document.getElementById('lead-' + id);
+    if (card) card.remove();
+
+    // Delete from Firebase
+    if (typeof db !== 'undefined' && db) {
+      try { await db.collection('leads').doc(String(id)).delete(); } catch(e) { console.warn('Firebase delete:', e); }
+    }
+
+    // Delete from localStorage backup
+    try {
+      var key = 'xtix_crm_leads';
+      var saved = localStorage.getItem(key);
+      if (saved) {
+        var arr = JSON.parse(saved).filter(function(l){ return l.id !== id; });
+        localStorage.setItem(key, JSON.stringify(arr));
+      }
+    } catch(e) {}
+
+    updateStats();
+    if (typeof updateBadge === 'function') updateBadge();
+  };
+
   window.bulkV3=async function(action){
     var ids=Array.from(sel3);if(!ids.length)return;
     if(action==='delete'){if(!confirm('למחוק '+ids.length+'?'))return;for(var i=0;i<ids.length;i++)if(window.deleteLead)await window.deleteLead(ids[i]);clearSelV3();}
@@ -3955,29 +4061,32 @@ ${proxyCtx}
 
   // ===== FIX 3: Move Lead Finder to main tab bar =====
   function addLeadFinderTab() {
-    // Instead of cloning — just add a tab button that switches to market tab + leadfinder sub-tab
     if (document.getElementById('lf-tab-btn')) return;
-    var tabBar = document.querySelector('.tabs');
-    if (!tabBar) return;
+    var nav = document.getElementById('sidebar-nav');
+    if (!nav) return;
 
+    // Move market-leadfinder content into tab-leadfinder panel
+    var src = document.getElementById('market-leadfinder');
+    var dst = document.getElementById('lf-standalone-content');
+    if (src && dst && !dst.hasChildNodes()) {
+      // Clone content (not clone the panel itself)
+      Array.from(src.childNodes).forEach(function(node) {
+        dst.appendChild(node.cloneNode(true));
+      });
+    }
+
+    // Add nav button after ניתוח שוק
     var btn = document.createElement('button');
-    btn.className = 'tab';
+    btn.className = 'nav-btn';
     btn.id = 'lf-tab-btn';
-    btn.textContent = '🔍 Lead Finder';
-    btn.onclick = function() {
-      // Switch to ניתוח שוק panel
-      var marketBtn = document.querySelector('.tab[onclick*="market"]');
-      if (marketBtn) switchTab('market', marketBtn);
-      // Then activate leadfinder sub-tab
-      setTimeout(function() {
-        var lfBtn = document.querySelector('.meth-btn[onclick*="leadfinder"]');
-        if (lfBtn) switchMarket('leadfinder', lfBtn);
-        // Mark our button active
-        document.querySelectorAll('.tab').forEach(function(t){ t.classList.remove('active'); });
-        btn.classList.add('active');
-      }, 10);
-    };
-    tabBar.insertBefore(btn, tabBar.children[1]);
+    btn.setAttribute('data-panel', 'leadfinder');
+    btn.innerHTML = '<span class="nav-icon">🔍</span><span class="nav-label">Lead Finder</span>';
+    btn.onclick = function() { switchMainTab('leadfinder', btn); };
+
+    var btns = nav.querySelectorAll('.nav-btn');
+    // Insert after index 1 (after ניתוח שוק)
+    if (btns.length > 2) nav.insertBefore(btn, btns[2]);
+    else nav.appendChild(btn);
   }
 
   setTimeout(addLeadFinderTab, 1200);
@@ -4302,5 +4411,15 @@ setTimeout(function() {
 
 })();
 </script>
+
+  <!-- Lead Finder standalone panel -->
+  <div class="panel" id="tab-leadfinder">
+    <div id="lf-standalone-content"></div>
+  </div>
+
+</div> <!-- end container -->
+</div> <!-- end main-content -->
+</div> <!-- end app-wrapper -->
+
 </body>
 </html>
