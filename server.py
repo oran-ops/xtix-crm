@@ -285,6 +285,44 @@ class Handler(BaseHTTPRequestHandler):
 
     def do_POST(self):
         p=urllib.parse.urlparse(self.path); b=self.body(); cfg=load_config()
+
+        if p.path=='/clay-import':
+            # Receive leads from Clay and save to local leads file
+            try:
+                leads = load_leads_file() or []
+                # Build new lead from Clay data
+                new_lead = {
+                    'id': int(datetime.datetime.now().timestamp() * 1000),
+                    'name':     b.get('name', ''),
+                    'domain':   b.get('website', '').replace('https://','').replace('http://','').split('/')[0],
+                    'website':  b.get('website', ''),
+                    'phone':    b.get('phone', ''),
+                    'address':  b.get('address', ''),
+                    'type':     b.get('type', 'Clay Import'),
+                    'segment':  b.get('segment', ''),
+                    'email':    b.get('email', ''),
+                    'platform': b.get('platform', ''),
+                    'score':    int(b.get('score', 50)),
+                    'status':   'new',
+                    'notes':    f"Imported from Clay | {b.get('description','')}",
+                    'source':   'clay',
+                }
+                # Avoid duplicates by domain
+                domain = new_lead['domain']
+                existing = [l for l in leads if l.get('domain','') == domain and domain]
+                if existing:
+                    print(f'  [CLAY] Duplicate skipped: {new_lead["name"]} ({domain})', flush=True)
+                    self.json_out({'ok': True, 'action': 'skipped', 'reason': 'duplicate', 'name': new_lead['name']})
+                    return
+                leads.append(new_lead)
+                save_leads_file(leads)
+                print(f'  [CLAY] Imported: {new_lead["name"]} ({domain})', flush=True)
+                self.json_out({'ok': True, 'action': 'imported', 'id': new_lead['id'], 'name': new_lead['name']})
+            except Exception as e:
+                print(f'  [CLAY] Error: {e}', flush=True)
+                self.json_out({'ok': False, 'error': str(e)}, 500)
+            return
+
         if p.path=='/ai':
             # Proxy to Anthropic API
             api_key = os.environ.get('ANTHROPIC_API_KEY','')
