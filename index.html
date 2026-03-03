@@ -2882,6 +2882,146 @@ ${proxyCtx}
     return enrichedLead;
   }
 
+  // ── autoEnrichLead: run full AI enrichment on a lead object ──
+  window.autoEnrichLead = async function autoEnrichLead(lead) {
+    const domain = (lead.domain || lead.url || '').replace(/https?:\/\//, '').split('/')[0] || lead.name;
+    const fullUrl = 'https://' + domain;
+
+    // Step 1: Try proxy scrape
+    let proxyData = null;
+    try {
+      const res = await fetch(SERVER + '/analyze?url=' + encodeURIComponent(fullUrl), { signal: AbortSignal.timeout(5000) });
+      if (res.ok) proxyData = await res.json();
+    } catch(e) {}
+
+    const proxyCtx = proxyData ? `מידע שנאסף מהאתר:
+- פלטפורמת כרטיסים: ${proxyData.ticketPlatform || 'לא זוהתה'}
+- מייל: ${proxyData.email || 'לא נמצא'}
+- רשתות: ${(proxyData.socialLinks||[]).join(', ') || 'לא נמצאו'}
+- דומיין פרטי: ${proxyData.hasDomain ? 'כן' : 'לא ידוע'}` : '';
+
+    const competitorInfo = Object.values(competitorData || {})
+      .map(c => `${c.name}: ${c.weakness}`).join('\n');
+
+    const prompt = `אתה מנהל מכירות בכיר ב-XTIX.AI — פלטפורמת כרטיסים ישראלית.
+
+יתרונות XTIX שיש להדגיש:
+• עמלה 2.5% בלבד (vs. 5-8% בשוק) — חיסכון ממוצע ₪52,500 לשנה על 10K כרטיסים
+• Widget מוטמע — הקהל לא עוזב את אתר המפיק
+• 100% הנתונים שייכים למפיק (לא לפלטפורמה)
+• AI Analytics + Early Bird אוטומטי + HubSpot/CRM Integration
+• אין חוזה ארוך — מעבר חופשי
+
+מתחרים בשוק:
+${competitorInfo}
+
+====== פרטי הליד ======
+שם: ${lead.name}
+דומיין: ${domain}
+טלפון: ${lead.phone || 'לא ידוע'}
+סוג: ${lead.type || lead.segment || 'לא ידוע'}
+${proxyCtx}
+
+====== המשימה שלך ======
+1. חקור את הליד לעומק — מה הפלטפורמה שלהם, כמה הם משלמים, מה הכאב שלהם
+2. הסק מסקנות ספציפיות (לא כלליות)
+3. כתוב 4 מיילים מלאים — כל אחד מראה מה חקרת לפני שכתבת אותו
+4. כל מייל: research_done (3 פריטים ספציפיים) + what_i_concluded + body מלא + cta
+
+חשוב: כל מייל חייב להראות ידע ספציפי על הליד הזה. מראה שיעורי בית.
+
+החזר JSON נקי בלבד (ללא markdown, ללא backticks):
+{
+  "summary": "2 משפטים ספציפיים",
+  "segment": "קטגוריה",
+  "platform_current": "פלטפורמה נוכחית",
+  "platform_weakness": "חולשה ספציפית",
+  "estimated_annual_tickets": "הערכה",
+  "estimated_annual_fees": "הערכת עמלות (₪)",
+  "estimated_xtix_savings": "חיסכון ב-XTIX (₪)",
+  "competitor_tier": "1/2/3",
+  "social": { "facebook": "", "instagram": "", "followers_estimate": "" },
+  "events_per_year": "הערכה",
+  "audience_size": "הערכה",
+  "score": 65,
+  "tier": "A/B/C",
+  "pain_points": ["כאב 1", "כאב 2"],
+  "xtix_advantages": ["יתרון 1", "יתרון 2"],
+  "pitch": "משפט פתיחה מותאם",
+  "recommended_cadence": "hot/warm/cool",
+  "research_summary": "מה חקרת — מה ראית, מה הסקת, מה המסקנה",
+  "email_sequence": [
+    {
+      "email_num": 1, "day": 1,
+      "subject": "נושא ספציפי",
+      "research_done": ["פריט 1", "פריט 2", "פריט 3"],
+      "what_i_concluded": "מסקנה ספציפית",
+      "body": "גוף מייל מלא — 4-6 שורות",
+      "cta": "CTA ברור"
+    },
+    { "email_num": 2, "day": 4, "subject": "", "research_done": [], "what_i_concluded": "", "body": "", "cta": "" },
+    { "email_num": 3, "day": 8, "subject": "", "research_done": [], "what_i_concluded": "", "body": "", "cta": "" },
+    { "email_num": 4, "day": 14, "subject": "", "research_done": [], "what_i_concluded": "", "body": "", "cta": "" }
+  ],
+  "discovery_questions": ["שאלה 1", "שאלה 2"],
+  "score_factors": { "has_external_ticketing": true, "has_own_domain": true, "active_social": true, "contact_accessible": true, "large_audience": false }
+}`;
+
+    let enriched = {};
+    try {
+      const res = await fetch(SERVER + '/ai', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ prompt }),
+        signal: AbortSignal.timeout(60000)
+      });
+      if (res.ok) {
+        const data = await res.json();
+        let raw = (data.result || data.content || data.text || '').trim();
+        raw = raw.replace(/^```json\s*/,'').replace(/^```\s*/,'').replace(/\s*```$/,'');
+        try { enriched = JSON.parse(raw); } catch(e) { console.warn('[ENRICH] JSON parse error:', e); }
+      }
+    } catch(e) {
+      console.warn('[ENRICH] API error:', e);
+    }
+
+    // Build enriched lead
+    const score = parseInt(enriched.score) || lead.score || 50;
+    return {
+      ...lead,
+      enrichment: {
+        summary:              enriched.summary              || '',
+        segment:              enriched.segment              || lead.type || '',
+        platform_current:     enriched.platform_current     || '',
+        platform_weakness:    enriched.platform_weakness    || '',
+        competitor_tier:      enriched.competitor_tier      || '2',
+        social:               enriched.social               || {},
+        events_per_year:      enriched.events_per_year      || '',
+        audience_size:        enriched.audience_size        || '',
+        pain_points:          enriched.pain_points          || [],
+        xtix_advantages:      enriched.xtix_advantages      || [],
+        pitch:                enriched.pitch                || '',
+        recommended_cadence:  enriched.recommended_cadence  || 'warm',
+        email_subject:        (enriched.email_sequence && enriched.email_sequence[0] && enriched.email_sequence[0].subject) || '',
+        email_body:           (enriched.email_sequence && enriched.email_sequence[0] && enriched.email_sequence[0].body) || '',
+        discovery_questions:  enriched.discovery_questions  || [],
+        score_factors:        enriched.score_factors        || {},
+        enriched_at:          new Date().toISOString(),
+        enriched_by:          'claude-auto',
+        email_sequence:       enriched.email_sequence       || [],
+        research_summary:     enriched.research_summary     || '',
+        estimated_fees:       enriched.estimated_annual_fees   || '',
+        estimated_savings:    enriched.estimated_xtix_savings  || ''
+      },
+      score,
+      tier:     enriched.tier     || (score >= 80 ? 'A' : score >= 60 ? 'B' : 'C'),
+      platform: enriched.platform_current || lead.platform || '',
+      segment:  enriched.segment  || lead.segment || lead.type || '',
+      status:   lead.status       || 'new',
+      updated_at: new Date().toISOString()
+    };
+  };
+
   // ── Enrichment queue globals ──
   if (typeof enrichmentQueue   === 'undefined') var enrichmentQueue   = [];
   if (typeof enrichmentRunning === 'undefined') var enrichmentRunning = false;
@@ -2895,10 +3035,11 @@ ${proxyCtx}
     if (!statusBar) {
       statusBar = document.createElement('div');
       statusBar.id = 'enrich-status-bar';
-      statusBar.style.cssText = 'position:fixed;bottom:0;left:0;right:0;background:rgba(167,139,250,0.95);color:#fff;padding:10px 20px;font-size:12px;font-weight:700;z-index:9999;font-family:Heebo,sans-serif;display:flex;align-items:center;gap:12px';
+      statusBar.style.cssText = 'position:fixed;bottom:0;left:0;right:0;background:rgba(167,139,250,0.95);color:#fff;padding:10px 20px;font-size:12px;font-weight:700;z-index:9999;font-family:Heebo,sans-serif;display:flex;align-items:center;gap:12px;pointer-events:none';
       document.body.appendChild(statusBar);
     }
 
+    try {
     while (enrichmentQueue.length > 0) {
       const lead = enrichmentQueue.shift();
       const total = enrichmentQueue.length;
@@ -2941,9 +3082,14 @@ ${proxyCtx}
       if (enrichmentQueue.length > 0) await new Promise(r => setTimeout(r, 3500));
     }
 
-    enrichmentRunning = false;
-    statusBar.innerHTML = '✅ תחקיר הושלם לכל הלידים שנכנסו מ-Clay';
-    setTimeout(() => statusBar.remove(), 4000);
+    } finally {
+      enrichmentRunning = false;
+      if (statusBar) {
+        statusBar.innerHTML = '✅ ניתוח הושלם!';
+        statusBar.style.pointerEvents = 'none';
+        setTimeout(() => { try { statusBar.remove(); } catch(e){} }, 3000);
+      }
+    }
   }
 
   // Clay Pending Polling — check every 30s for new leads from Clay
