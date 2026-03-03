@@ -3445,10 +3445,10 @@ ${proxyContext}
 
   // =================== SEND EMAIL ===================
   window.sendRealEmail = async function sendRealEmail(to, subject, htmlBody, leadId, hubspotId) {
+    const btn = event.target; // ← לפני כל await
     if (!to || !to.includes('@')) {
       alert('אין כתובת מייל תקינה לליד זה'); return;
     }
-    const btn = event.target;
     btn.textContent = '⏳ שולח...'; btn.disabled = true;
     try {
       const r = await fetch(SERVER + '/send-email', {
