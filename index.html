@@ -1056,6 +1056,7 @@
             <button class="lead-tab active" onclick="switchLeadTab(1,'profile',this)">פרופיל</button>
             <button class="lead-tab" onclick="switchLeadTab(1,'analysis',this)">ניתוח SF</button>
             <button class="lead-tab" onclick="switchLeadTab(1,'emails',this)">✉️ מיילים</button>
+            <button class="lead-tab" onclick="switchLeadTab(1,'blueprint',this)">📧 Blueprint AI</button>
             <button class="lead-tab" onclick="switchLeadTab(1,'internal',this)">מסמך EN</button>
           </div>
 
@@ -1383,6 +1384,7 @@ IF RESPONSE after #2 → send Case Study PDF + ask for Demo slot.
             <button class="lead-tab active" onclick="switchLeadTab(2,'profile',this)">פרופיל</button>
             <button class="lead-tab" onclick="switchLeadTab(2,'analysis',this)">ניתוח SF</button>
             <button class="lead-tab" onclick="switchLeadTab(2,'emails',this)">✉️ מיילים</button>
+            <button class="lead-tab" onclick="switchLeadTab(2,'blueprint',this)">📧 Blueprint AI</button>
             <button class="lead-tab" onclick="switchLeadTab(2,'internal',this)">מסמך EN</button>
           </div>
 
@@ -2712,1299 +2714,106 @@ IF RESPONSE at any point → Book 30-min MEETING (not call). Prepare ROI deck be
 - יש דומיין פרטי: ${proxyData.hasDomain ? 'כן' : 'לא ידוע'}
 ` : '';
 
-    const prompt = `אתה מנהל מכירות בכיר ב-XTIX — פלטפורמת כרטיסים ישראלית המציעה widget להטמעה בדומיין פרטי, עמלה 2.5% (לעומת 5-7% בשוק), Dynamic Pricing AI, ו-Audience Intelligence.
-
-נתח את הליד הבא לצורך מכירה:
-- דומיין: ${domain}
-- שם: ${leadName || domain}
-${proxyContext}
-
-מתחרים בשוק: ${competitorInfo}
-
-ספק ניתוח מכירות מעמיק בדיוק בפורמט JSON הבא (ללא markdown, רק JSON נקי):
-{
-  "summary": "2 משפטים קצרים על הליד — מי הם ומה הם עושים",
-  "platform_current": "עם מי הם עובדים כרגע (פלטפורמת כרטיסים)",
-  "platform_weakness": "מה החולשה של המתחרה הנוכחי שלהם",
-  "xtix_pitch": "משפט מכירה ספציפי אחד מחודד לליד הזה",
-  "pain_points": ["כאב 1", "כאב 2", "כאב 3"],
-  "advantages": ["יתרון XTIX 1 רלוונטי לליד זה", "יתרון 2", "יתרון 3"],
-  "discovery_questions": ["שאלה 1 לשיחת discovery", "שאלה 2", "שאלה 3"],
-  "objections": [{"obj": "התנגדות צפויה", "answer": "תשובה"}],
-  "email_subject": "נושא מייל ראשון מותאם אישית",
-  "email_body": "גוף מייל ראשון מלא — 4-6 שורות, בעברית, RTL, אישי לליד זה",
-  "score_factors": {"domain": true, "external_ticketing": true, "active_social": false, "contact_accessible": false},
-  "recommended_cadence": "hot/warm/cool",
-  "segment": "סוג הסגמנט (תרבות/מוזיקה/תיאטרון וכו')"
-}`;
-
-    try {
-      const aiRes = await fetch(SERVER + '/ai', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          model: 'claude-sonnet-4-20250514',
-          max_tokens: 2000,
-          system: 'אתה מנהל מכירות ב-XTIX. החזר תמיד JSON נקי בלבד, ללא markdown ולא ```json. חשוב מאוד: אל תוסיף טקסט לפני או אחרי ה-JSON.',
-          messages: [{ role: 'user', content: prompt }]
-        })
-      });
-
-      if (!aiRes.ok) throw new Error('AI API failed');
-      const aiData = await aiRes.json();
-      const rawText = aiData.content?.map(b => b.text || '').join('') || '';
-
-      let analysis;
-      try {
-        // Try multiple parsing strategies
-        let clean = rawText.replace(/```json|```/g, '').trim();
-        // Find first { to last } 
-        const start = clean.indexOf('{');
-        const end = clean.lastIndexOf('}');
-        if (start !== -1 && end !== -1) clean = clean.substring(start, end + 1);
-        analysis = JSON.parse(clean);
-      } catch(e) {
-        // If JSON fails, build a basic analysis from the raw text
-        console.warn('JSON parse failed, using fallback:', rawText.substring(0, 200));
-        analysis = {
-          summary: rawText.substring(0, 200) || 'ניתוח זמין — לא הצלחנו לפרסר JSON',
-          platform_current: proxyData?.ticketPlatform || 'לא זוהה',
-          platform_weakness: 'בדוק ידנית',
-          xtix_pitch: 'XTIX מציע פלטפורמה מתקדמת עם AI ואנליטיקה',
-          pain_points: ['ניהול ידני', 'עמלות גבוהות', 'חוסר אנליטיקה'],
-          advantages: ['Dynamic Pricing', 'AI Analytics', 'תמיכה מלאה'],
-          discovery_questions: ['איך אתה מוכר כרטיסים כיום?', 'מה הכי מאתגר בניהול האירועים?'],
-          objections: [{ obj: 'יקר מדי', answer: 'ROI תוך 3 חודשים' }],
-          email_subject: `שאלה על מכירת כרטיסים ל-${leadName}`,
-          email_body: `שלום,\n\nראיתי את האתר שלכם ב-${fullUrl} ורציתי לשתף רעיון שיכול לעזור.\n\nב-XTIX אנחנו עוזרים למפיקים כמוכם למכור יותר כרטיסים עם פחות מאמץ.\n\nשווה 15 דקות שיחה?\n\nאורן`,
-          score_factors: { domain: true, external_ticketing: false, active_social: false, contact_accessible: false },
-          recommended_cadence: 'warm',
-          segment: 'כללי'
-        };
-      }
-
-      // Log to Firebase
-      logActivity('url_analyzed_deep', { url: fullUrl, platform: analysis.platform_current, cadence: analysis.recommended_cadence });
-
-      // Calculate score
-      const sf = analysis.score_factors || {};
-      const score = (sf.domain?20:0) + (sf.external_ticketing?15:0) + (sf.active_social?10:0) + (sf.contact_accessible?10:0) + 30;
-      const cadenceColors = { hot: 'var(--green)', warm: 'var(--yellow)', cool: 'var(--accent)' };
-      const cadenceEmoji = { hot: '🔥', warm: '⚡', cool: '🧊' };
-      const cKey = analysis.recommended_cadence || 'warm';
-
-      // Auto-fill name if empty
-      if (nameInput && !nameInput.value.trim()) nameInput.value = leadName || domain;
-
-      // Store for quick-add
-      resultEl.dataset.analysis = JSON.stringify({ ...analysis, domain, score, url: fullUrl });
-
-      resultEl.innerHTML = `
-        <div style="border-radius:12px;overflow:hidden;border:1px solid var(--border)">
-
-          <!-- Header -->
-          <div style="background:linear-gradient(135deg,rgba(79,70,229,0.15),rgba(139,92,246,0.1));padding:16px 20px;border-bottom:1px solid var(--border)">
-            <div style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:8px">
-              <div>
-                <div style="font-size:15px;font-weight:700;color:var(--text)">${leadName || domain}</div>
-                <div style="font-size:12px;color:var(--muted)"><a href="${fullUrl}" target="_blank" style="color:var(--accent)">${domain}</a></div>
-              </div>
-              <div style="display:flex;align-items:center;gap:10px">
-                <div style="background:var(--surface2);border-radius:8px;padding:6px 14px;font-size:13px;font-weight:700;color:${cadenceColors[cKey]}">${cadenceEmoji[cKey]} ${cKey.toUpperCase()}</div>
-                <div style="width:44px;height:44px;border-radius:50%;background:conic-gradient(${cadenceColors[cKey]} ${score*3.6}deg, var(--surface2) 0deg);display:flex;align-items:center;justify-content:center;font-size:13px;font-weight:700;color:${cadenceColors[cKey]}">${score}</div>
-              </div>
-            </div>
-            <div style="margin-top:10px;font-size:12px;color:var(--text);line-height:1.6;background:rgba(0,0,0,0.15);padding:10px 12px;border-radius:8px">${analysis.summary}</div>
-          </div>
-
-          <!-- Platform + Pitch -->
-          <div style="padding:14px 16px;display:grid;grid-template-columns:1fr 1fr;gap:10px;background:var(--surface2);border-bottom:1px solid var(--border)">
-            <div>
-              <div style="font-size:10px;color:var(--muted);margin-bottom:4px;text-transform:uppercase;letter-spacing:1px">עובד עם</div>
-              <div style="font-size:13px;font-weight:600;color:var(--yellow)">⚔️ ${analysis.platform_current || 'לא ידוע'}</div>
-              <div style="font-size:11px;color:var(--muted);margin-top:2px">${analysis.platform_weakness || ''}</div>
-            </div>
-            <div>
-              <div style="font-size:10px;color:var(--muted);margin-bottom:4px;text-transform:uppercase;letter-spacing:1px">הטיעון שלנו</div>
-              <div style="font-size:12px;color:var(--green);line-height:1.5">${analysis.xtix_pitch || ''}</div>
-            </div>
-          </div>
-
-          <!-- Pain Points + Advantages -->
-          <div style="padding:14px 16px;display:grid;grid-template-columns:1fr 1fr;gap:10px;border-bottom:1px solid var(--border)">
-            <div>
-              <div style="font-size:10px;color:var(--muted);margin-bottom:6px;text-transform:uppercase;letter-spacing:1px">כאבים של הליד</div>
-              ${(analysis.pain_points||[]).map(p => `<div style="font-size:11px;color:var(--text);padding:3px 0;display:flex;gap:6px"><span style="color:var(--accent2)">•</span>${p}</div>`).join('')}
-            </div>
-            <div>
-              <div style="font-size:10px;color:var(--muted);margin-bottom:6px;text-transform:uppercase;letter-spacing:1px">יתרונות XTIX לליד זה</div>
-              ${(analysis.advantages||[]).map(a => `<div style="font-size:11px;color:var(--text);padding:3px 0;display:flex;gap:6px"><span style="color:var(--green)">✓</span>${a}</div>`).join('')}
-            </div>
-          </div>
-
-          <!-- Discovery + Objections -->
-          <div style="padding:14px 16px;display:grid;grid-template-columns:1fr 1fr;gap:10px;border-bottom:1px solid var(--border)">
-            <div>
-              <div style="font-size:10px;color:var(--muted);margin-bottom:6px;text-transform:uppercase;letter-spacing:1px">שאלות Discovery</div>
-              ${(analysis.discovery_questions||[]).map((q,i) => `<div style="font-size:11px;color:var(--muted);padding:3px 0">${i+1}. ${q}</div>`).join('')}
-            </div>
-            <div>
-              <div style="font-size:10px;color:var(--muted);margin-bottom:6px;text-transform:uppercase;letter-spacing:1px">התנגדויות צפויות</div>
-              ${(analysis.objections||[]).map(o => `<div style="font-size:11px;padding:4px 0;border-bottom:1px solid rgba(255,255,255,0.05)"><div style="color:var(--yellow)">"${o.obj}"</div><div style="color:var(--green);font-size:10px">→ ${o.answer}</div></div>`).join('')}
-            </div>
-          </div>
-
-          <!-- Generated Email Preview -->
-          <div style="padding:14px 16px;border-bottom:1px solid var(--border)">
-            <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px">
-              <div style="font-size:10px;color:var(--muted);text-transform:uppercase;letter-spacing:1px">✉️ מייל ראשון מותאם אישית</div>
-              <button class="btn" style="font-size:10px;padding:4px 10px" onclick="
-                const d = JSON.parse(this.closest('[data-analysis]')?.dataset?.analysis || document.getElementById('url-analysis-result').dataset.analysis || '{}');
-                navigator.clipboard.writeText(d.email_body||'');
-                this.textContent='✓ הועתק';setTimeout(()=>this.textContent='📋 העתק גוף',2000)">📋 העתק גוף</button>
-            </div>
-            <div style="font-size:12px;color:var(--muted);margin-bottom:4px">📌 נושא: <strong style="color:var(--text)">${analysis.email_subject || ''}</strong></div>
-            <div style="font-size:12px;line-height:1.7;background:var(--surface2);padding:12px;border-radius:8px;color:var(--text);white-space:pre-wrap">${analysis.email_body || ''}</div>
-          </div>
-
-          <!-- CTA -->
-          <div style="padding:14px 16px;display:flex;gap:8px;flex-wrap:wrap">
-            <button class="btn" style="flex:1;min-width:120px" onclick="
-              const d = JSON.parse(document.getElementById('url-analysis-result').dataset.analysis||'{}');
-              const nameEl = document.getElementById('lf-name-url')||document.getElementById('lf-name');
-              const n = (nameEl&&nameEl.value.trim())||d.domain||'ליד חדש';
-              const lead = { id: nextId++, name: n, domain: d.domain||'', type: d.segment||'Lead Finder', platform: d.platform_current||'', email: '', notes: d.summary||'', score: d.score||60, status:'new' };
-              leads.push(lead); saveLeads();
-              logActivity('lead_added_from_analysis', { lead_id: lead.id, lead_name: lead.name, score: lead.score });
-              renderSimpleLead(lead);
-              document.getElementById('total-leads').textContent = leads.length;
-              switchTab('leads', document.querySelector('.tab[onclick*=leads]'));
-              this.textContent='✅ נוסף!';
-            ">➕ הוסף ל-CRM</button>
-            <button class="btn" style="flex:1;min-width:120px" onclick="
-              const d = JSON.parse(document.getElementById('url-analysis-result').dataset.analysis||'{}');
-              navigator.clipboard.writeText(d.email_subject+'\\n\\n'+d.email_body);
-              this.textContent='✓ הועתק';setTimeout(()=>this.textContent='📋 העתק מייל מלא',2000)
-            ">📋 העתק מייל מלא</button>
-          </div>
-        </div>`;
-
-    } catch(err) {
-      // Fallback to basic analysis if AI fails
-      console.warn('AI analysis failed:', err.message);
-      const hasDomain = fullUrl.includes('.co.il') || fullUrl.includes('.com') || fullUrl.includes('.org');
-      resultEl.innerHTML = `
-        <div style="background:var(--surface2);border-radius:10px;padding:14px 16px;line-height:1.9">
-          <strong style="color:var(--accent);display:block;margin-bottom:8px">🔍 ניתוח בסיסי: ${fullUrl}</strong>
-          ${proxyData ? `
-          <div>🎟 <strong>פלטפורמה:</strong> <span style="color:var(--yellow)">${proxyData.ticketPlatform||'לא זוהתה'}</span></div>
-          <div>📧 <strong>מייל:</strong> <span style="color:var(--green)">${proxyData.email||'לא נמצא'}</span></div>
-          <div>📱 <strong>רשתות:</strong> ${proxyData.socialLinks?.join(', ')||'לא נמצאו'}</div>
-          ` : `<div>🌐 <strong>דומיין:</strong> <span style="color:${hasDomain?'var(--green)':'var(--muted)'}">${hasDomain?'✓ זוהה':'לא ידוע'}</span></div>`}
-          <div style="margin-top:10px;background:rgba(255,215,64,0.08);border:1px solid rgba(255,215,64,0.2);border-radius:8px;padding:10px;font-size:11px">
-            <strong style="color:var(--yellow)">⚡ לניתוח AI מלא:</strong><br>
-            ודא שהשרת רץ: <code style="color:var(--green)">python server.py</code><br>
-            שגיאה: ${err.message}
-          </div>
-        </div>`;
-    }
-  }
-
-  window.resetScorer = function resetScorer() {
-    document.querySelectorAll('#mode-form input[type=radio]').forEach(r => r.checked = false);
-    document.querySelectorAll('#mode-form input[type=text]').forEach(i => i.value = '');
-    document.getElementById('lf-competitor').value = '';
-    const scoreEl = document.getElementById('score-display');
-    if (scoreEl) { scoreEl.textContent = '0'; scoreEl.style.color = 'var(--green)'; }
-    const barEl = document.getElementById('score-bar');
-    if (barEl) { barEl.style.width = '0%'; barEl.style.background = 'var(--green)'; }
-    const verdictEl = document.getElementById('score-verdict');
-    if (verdictEl) { verdictEl.textContent = 'ממתין לנתונים...'; verdictEl.style.background = 'var(--surface2)'; verdictEl.style.color = 'var(--muted)'; }
-    const compCard = document.getElementById('competitor-intel');
-    if (compCard) compCard.style.display = 'none';
-    const cadCard = document.getElementById('cadence-rec');
-    if (cadCard) cadCard.style.display = 'none';
-    const btnCrm = document.getElementById('btn-add-crm');
-    if (btnCrm) btnCrm.style.display = 'none';
-    document.getElementById('crm-added-msg').style.display = 'none';
-  }
-
-  window.addLeadFromScorer = function addLeadFromScorer() {
-    const name = (document.getElementById('lf-name').value || document.getElementById('lf-name-url').value || '').trim();
-    const domain = (document.getElementById('lf-domain').value || '').trim();
-    const score = parseInt(document.getElementById('score-display').textContent) || 0;
-    const competitor = document.getElementById('lf-competitor').value;
-    const cd = competitor && competitorData[competitor] ? competitorData[competitor] : null;
-
-    if (!name) {
-      document.getElementById('score-verdict').textContent = '⚠️ הכנס שם ליד לפני הוספה ל-CRM';
-      return;
-    }
-
-    // Add lead card to leads list
-    const leadsList = document.getElementById('leads-list');
-    if (!leadsList) return;
-
-    // Save to leads array + localStorage
-    const newLead = { id: nextId++, name, domain, type: 'Lead Finder', platform: cd ? cd.name : '', email: '', notes: '', score, status: 'new' };
-    leads.push(newLead);
-    saveLeads();
-
-    const initials = name.trim().split(' ').map(w=>w[0]).join('').substring(0,2).toUpperCase();
-    const scoreColor = score >= 80 ? 'var(--green)' : score >= 60 ? 'var(--yellow)' : 'var(--accent)';
-    const newId = newLead.id;
-    const tier = cd ? cd.name : 'לא ידוע';
-
-    const leadHTML = `
-      <div class="lead-card" id="lead-${newId}" data-dynamic="true" style="border-color:rgba(108,99,255,0.3)">
-        <div class="lead-card-header" onclick="this.nextElementSibling.classList.toggle('open');this.querySelector('span:last-child').textContent=this.nextElementSibling.classList.contains('open')?'▲':'▼'">
-          <div class="lead-info">
-            <div class="lead-avatar" style="background:linear-gradient(135deg,var(--accent),var(--accent2))">${initials}</div>
-            <div>
-              <div class="lead-name">${name}</div>
-              <div class="lead-meta"><span>🆕 ליד חדש מ-Lead Finder</span>${domain?`<span>🌐 ${domain}</span>`:''}${cd?`<span>⚔️ ${tier}</span>`:''}</div>
-            </div>
-          </div>
-          <div class="lead-badges">
-            <div class="score-ring" style="--score:${score}"><span>${score}</span></div>
-            <select class="status-select" onclick="event.stopPropagation()" onchange="updateStats()">
-              <option value="new" selected>🟢 ליד חדש</option>
-              <option value="contacted">📧 נשלח מייל</option>
-              <option value="followup">🔁 Follow-up</option>
-              <option value="meeting">📅 פגישה</option>
-              <option value="closed">✅ נסגר</option>
-            </select>
-            <span style="font-size:18px;color:var(--muted)">▼</span>
-          </div>
-        </div>
-        <div class="lead-body">
-          <div style="padding:4px 0 12px">
-            <div style="background:var(--surface2);border-radius:9px;padding:14px 16px;font-size:12px;line-height:1.8">
-              <strong style="color:${scoreColor}">Lead Score: ${score}/100</strong>${score>=80?' 🔥':score>=60?' ⚡':' 🧊'}<br>
-              ${domain?`<strong>דומיין:</strong> <a href="https://${domain}" target="_blank" style="color:var(--accent)">${domain}</a><br>`:''}
-              ${cd?`<strong>מתחרה:</strong> ${cd.name}<br><strong style="color:var(--green)">הטיעון:</strong> <span style="color:var(--muted)">${cd.pitch}</span>`:''}
-              <div style="margin-top:10px;padding:8px 12px;background:var(--bg);border-radius:6px;font-size:11px;color:var(--yellow)">⚠️ השלם את פרטי הליד בלשונית הפרופיל לאחר הוספה</div>
-            </div>
-          </div>
-        </div>
-      </div>`;
-
-    leadsList.insertAdjacentHTML('afterbegin', leadHTML);
-    updateStats();
-
-    document.getElementById('btn-add-crm').style.display = 'none';
-    document.getElementById('crm-added-msg').style.display = 'block';
-
-    // Switch to leads tab after short delay
-    setTimeout(() => {
-      switchTab('leads', document.querySelector('.tab[onclick*="leads"]'));
-    }, 1800);
-  }
-
-  // Legacy checklist functions (kept for compatibility)
-  const checklistItems = [];
-  window.initChecklist = function initChecklist() {}
-  window.calcChecklist = function calcChecklist() {}
-  window.resetChecklist = function resetChecklist() { resetScorer(); }
-
-  window.closeModal = function closeModal() {
-    document.getElementById('addLeadModal').classList.remove('open');
-  }
-
-  window.updateStats = function updateStats() {
-    const selects = document.querySelectorAll('.status-select');
-    let contacted = 0;
-    selects.forEach(s => {
-      if(s.value !== 'new') contacted++;
-      // sync status back to leads array
-      const card = s.closest('.lead-card');
-      if (card) {
-        const cardId = card.id.replace('lead-','');
-        const id = parseInt(cardId);
-        const lead = leads.find(l => l.id === id);
-        if (lead && lead.status !== s.value) {
-          logActivity('status_change', { lead_id: id, lead_name: lead.name, from: lead.status, to: s.value });
-          lead.status = s.value;
-        } else if (lead) {
-          lead.status = s.value;
-        }
-      }
-    });
-    saveLeads();
-    document.getElementById('contacted-count').textContent = contacted;
-    document.getElementById('contacted-count').textContent = contacted;
-  }
-
-  window.copyEmailEl = function copyEmailEl(id) {
-    const el = document.getElementById(id);
-    if (el) {
-      el.classList.add('open');
-      navigator.clipboard.writeText(el.innerText.trim()).then(() => {
-        event.target.textContent = '✓';
-        setTimeout(() => event.target.textContent = 'העתק', 2000);
-      });
-    }
-  }
-
-  window.copyInternalEl = function copyInternalEl(id) {
-    const el = document.getElementById(id);
-    if (el) {
-      navigator.clipboard.writeText(el.innerText.trim()).then(() => {
-        event.target.textContent = '✓ Copied';
-        setTimeout(() => event.target.textContent = 'Copy', 2000);
-      });
-    }
-  }
-
-  window.deleteLead = async function deleteLead(id) {
-    if (!confirm('למחוק את הליד הזה?')) return;
-    leads = leads.filter(l => l.id !== id);
-    try { await db.collection(LEADS_COL).doc(String(id)).delete(); } catch(e) {}
-    const card = document.getElementById('lead-' + id);
-    if (card) card.remove();
-    document.getElementById('total-leads').textContent = leads.length;
-    logActivity('lead_deleted', { lead_id: id });
-  }
-
-  window.editLead = function editLead(id) {
-    const lead = leads.find(l => l.id === id);
-    if (!lead) return;
-    // Populate modal fields and open
-    document.getElementById('new-name').value     = lead.name    || '';
-    document.getElementById('new-domain').value   = lead.domain  || '';
-    document.getElementById('new-type').value     = lead.type    || '';
-    document.getElementById('new-platform').value = lead.platform|| '';
-    document.getElementById('new-email').value    = lead.email   || '';
-    document.getElementById('new-notes').value    = lead.notes   || '';
-    // Mark modal as edit mode
-    const modal = document.getElementById('addLeadModal');
-    modal.dataset.editId = id;
-    const saveBtn = modal.querySelector('button[onclick="addLead()"]');
-    if (saveBtn) saveBtn.textContent = 'עדכן ליד';
-    modal.classList.add('open');
-  }
-
-  // addLead supports both create and edit mode
-  window.addLead = function addLead() {
-    const modal = document.getElementById('addLeadModal');
-    const editId = modal.dataset.editId ? parseInt(modal.dataset.editId) : null;
-    if (editId) {
-      // Edit mode
-      const lead = leads.find(l => l.id === editId);
-      if (lead) {
-        lead.name     = document.getElementById('new-name').value.trim()     || lead.name;
-        lead.domain   = document.getElementById('new-domain').value.trim();
-        lead.type     = document.getElementById('new-type').value.trim();
-        lead.platform = document.getElementById('new-platform').value.trim();
-        lead.email    = document.getElementById('new-email').value.trim();
-        lead.notes    = document.getElementById('new-notes').value.trim();
-        saveLeads();
-        // Re-render card
-        const old = document.getElementById('lead-' + editId);
-        if (old) old.remove();
-        renderSimpleLead(lead);
-        logActivity('lead_edited', { lead_id: lead.id, lead_name: lead.name });
-      }
-      delete modal.dataset.editId;
-      const saveBtn = modal.querySelector('button[onclick="addLead()"]');
-      if (saveBtn) saveBtn.textContent = 'שמור ליד';
-      closeModal();
-      ['new-name','new-domain','new-platform','new-email','new-notes'].forEach(id => document.getElementById(id).value='');
-      return;
-    }
-    // Original add mode
-    const name = document.getElementById('new-name').value.trim();
-    if (!name) { alert('נא להזין שם'); return; }
-    const lead = {
-      id: nextId,
-      name,
-      domain:   document.getElementById('new-domain').value,
-      type:     document.getElementById('new-type').value,
-      platform: document.getElementById('new-platform').value,
-      email:    document.getElementById('new-email').value,
-      notes:    document.getElementById('new-notes').value,
-      score:    Math.floor(Math.random() * 25) + 55,
-      status:   'new'
-    };
-    leads.push(lead);
-    saveLeads();
-    logActivity('lead_added', { lead_id: lead.id, lead_name: lead.name, score: lead.score, platform: lead.platform });
-    renderSimpleLead(lead);
-    document.getElementById('total-leads').textContent = leads.length;
-    closeModal();
-    ['new-name','new-domain','new-platform','new-email','new-notes'].forEach(id => document.getElementById(id).value='');
-    nextId++;
-  }
-
-  window.renderSimpleLead = function renderSimpleLead(lead) {
-    const initials = (lead.name||'??').substring(0,2);
-    const colors = ['linear-gradient(135deg,#06b6d4,#3b82f6)','linear-gradient(135deg,#f59e0b,#ef4444)','linear-gradient(135deg,#10b981,#059669)','linear-gradient(135deg,#8b5cf6,#ec4899)'];
-    const color = colors[lead.id % 4];
-    const scoreColor = lead.score >= 80 ? 'var(--green)' : lead.score >= 60 ? 'var(--yellow)' : 'var(--accent)';
-    const statusVal = lead.status || 'new';
-    const emailSubject1 = `שאלה אחת על האתר של ${lead.name}`;
-    const emailBody1 = `היי,\n\nנכנסתי לאתר ${lead.domain||lead.name} — ${lead.type||'נראה מעניין'}.\n\nשאלה קצרה: הכרטיסים עוברים ל-${lead.platform||'פלטפורמה חיצונית'} — למה לא ישירות מהאתר שלכם?\n\nXTIX מאפשר להטמיע widget ישירות — הקהל לא יוצא מהדף, הנתונים נשארים אצלכם, עמלה 2.5% לעומת 5–7%.\n\n15 דקות שיחה?\n\nאורן | XTIX.ai`;
-    const emailBody2 = `היי,\n\nרצ"ב נתון אחד: מפיקים שמוכרים מהדומיין הפרטי שלהם רואים 30–40% מהקהל חוזר למופע הבא — כי לראשונה יש להם database של הקהל.\n\nאצלכם עם ${lead.platform||'הפלטפורמה הנוכחית'} — מי מחזיק את הנתונים האלה?\n\nXTIX = פלטפורמה אחת, הנתונים שלכם.\n\n15 דקות שיחה?\n\nאורן | XTIX.ai`;
-    const emailBody3 = `היי,\n\nלקוח שעבד עם מצב דומה לשלכם עבר ל-XTIX לפני 3 חודשים:\n— עמלות ירדו מ-6% ל-2.5%\n— 38% מהקהל חזר למופע הבא\n— מכר 40% מהכרטיסים ב-72 שעות דרך Early Bird לרשימה שנבנתה\n\nאפשר להראות לכם demo ב-${lead.domain||'האתר שלכם'} — 15 דקות?\n\nאורן | XTIX.ai`;
-    const emailBody4 = `היי,\n\nמייל אחרון — לא רוצה להציק.\n\nשאלה אחת ישירה: האם מכירת הכרטיסים היום מספקת אותכם?\n\nאם כן — הכל טוב. אם יש מה לשפר — 15 דקות ו-XTIX יכולה לענות.\n\nאורן | XTIX.ai`;
-
-    const html = `
-    <div class="lead-card" id="lead-${lead.id}" data-lead-id="${lead.id}" data-dynamic="true">
-      <div class="lead-card-header" onclick="toggleLead(${lead.id})">
-        <div class="lead-info">
-          <div class="lead-avatar" style="background:${color}">${initials}</div>
-          <div>
-            <div class="lead-name">${lead.name}</div>
-            <div class="lead-meta">
-              ${lead.type?`<span>🎭 ${lead.type}</span>`:''}
-              ${lead.domain?`<span>🌐 ${lead.domain}</span>`:''}
-              ${lead.platform?`<span>⚙️ ${lead.platform}</span>`:''}
-            </div>
-          </div>
-        </div>
-        <div class="lead-badges">
-          <div class="score-ring" style="--score:${lead.score}"><span>${lead.score}</span></div>
-          <select class="status-select" onclick="event.stopPropagation()" onchange="updateStats()" data-lead-id="${lead.id}">
-            <option value="new"       ${statusVal==='new'      ?'selected':''}>🟢 ליד חדש</option>
-            <option value="contacted" ${statusVal==='contacted'?'selected':''}>📧 נשלח מייל</option>
-            <option value="followup"  ${statusVal==='followup' ?'selected':''}>🔁 Follow-up</option>
-            <option value="meeting"   ${statusVal==='meeting'  ?'selected':''}>📅 פגישה</option>
-            <option value="closed"    ${statusVal==='closed'   ?'selected':''}>✅ נסגר</option>
-          </select>
-          <span style="font-size:18px;color:var(--muted)" id="arrow-${lead.id}">▼</span>
-        </div>
-      </div>
-      <div class="lead-body" id="body-${lead.id}">
-
-        <div class="lead-tabs">
-          <button class="lead-tab active" onclick="switchLeadTab(${lead.id},'profile',this)">פרופיל</button>
-          <button class="lead-tab" onclick="switchLeadTab(${lead.id},'analysis',this)">ניתוח SF</button>
-          <button class="lead-tab" onclick="switchLeadTab(${lead.id},'emails',this)">✉️ מיילים</button>
-          <button class="lead-tab" onclick="switchLeadTab(${lead.id},'actions',this)">⚙️ פעולות</button>
-        </div>
-
-        <!-- PROFILE TAB -->
-        <div class="lead-tab-panel active" id="l${lead.id}-profile">
-          <div class="info-grid">
-            <div class="info-box"><label>שם</label><value>${lead.name}</value></div>
-            <div class="info-box"><label>סוג</label><value>${lead.type||'—'}</value></div>
-            <div class="info-box"><label>דומיין</label><value>${lead.domain?`<a href="https://${lead.domain}" target="_blank" style="color:var(--accent)">${lead.domain}</a>`:'—'}</value></div>
-            <div class="info-box"><label>פלטפורמה</label><value>${lead.platform||'—'}</value></div>
-            <div class="info-box"><label>מייל</label><value>${lead.email||'—'}</value></div>
-            <div class="info-box"><label>Lead Score</label><value style="color:${scoreColor}">${lead.score}/100 ${lead.score>=80?'🔥':lead.score>=60?'⚡':'🧊'}</value></div>
-            ${lead.phone?`<div class="info-box"><label>טלפון</label><value>${lead.phone}</value></div>`:''}
-          </div>
-          ${lead.notes?`<div class="card" style="background:var(--surface2);margin-top:10px;font-size:12px;line-height:1.7">${lead.notes}</div>`:''}
-          ${lead.hubspot_id?`<div style="margin-top:8px;font-size:11px;color:var(--muted)">🔗 HubSpot ID: ${lead.hubspot_id}</div>`:''}
-        </div>
-
-        <!-- ANALYSIS TAB -->
-        <div class="lead-tab-panel" id="l${lead.id}-analysis">
-          ${lead.enrichment ? `
-          <!-- Enrichment Status Bar -->
-          <div style="background:rgba(167,139,250,0.1);border:1px solid rgba(167,139,250,0.2);border-radius:8px;padding:10px 14px;margin-bottom:12px;display:flex;justify-content:space-between;align-items:center">
-            <div style="font-size:11px;color:#a78bfa">✅ תוחקר ע"י Claude AI · ${new Date(lead.enrichment.enriched_at||Date.now()).toLocaleDateString('he-IL')}</div>
-            <button onclick="reEnrichLead(${lead.id})" style="background:rgba(167,139,250,0.2);border:1px solid rgba(167,139,250,0.3);border-radius:6px;padding:4px 10px;font-size:10px;color:#a78bfa;cursor:pointer;font-family:'Heebo',sans-serif">🔄 רענן ניתוח</button>
-          </div>
-          <!-- AI Enrichment Data -->
-          <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:12px">
-            <div class="card" style="background:var(--surface2)">
-              <div class="card-title"><div class="dot" style="background:#a78bfa"></div>🤖 תחקיר AI</div>
-              <div style="font-size:12px;line-height:1.8;color:var(--text)">
-                <strong>סגמנט:</strong> ${lead.enrichment.segment||lead.segment||'—'}<br>
-                <strong>פלטפורמה:</strong> ${lead.enrichment.platform_current||'—'}<br>
-                <strong>חולשת פלטפורמה:</strong> <span style="color:var(--yellow)">${lead.enrichment.platform_weakness||'—'}</span><br>
-                <strong>אירועים/שנה:</strong> ${lead.enrichment.events_per_year||'—'}<br>
-                <strong>גודל קהל:</strong> ${lead.enrichment.audience_size||'—'}
-              </div>
-            </div>
-            <div class="card" style="background:var(--surface2)">
-              <div class="card-title"><div class="dot" style="background:var(--cyan)"></div>📱 רשתות חברתיות</div>
-              <div style="font-size:12px;line-height:1.8;color:var(--text)">
-                ${lead.enrichment.social?.facebook&&lead.enrichment.social.facebook!=='לא נמצא'?`<a href="${lead.enrichment.social.facebook}" target="_blank" style="color:var(--accent)">📘 Facebook</a><br>`:'📘 Facebook: לא נמצא<br>'}
-                ${lead.enrichment.social?.instagram&&lead.enrichment.social.instagram!=='לא נמצא'?`<a href="${lead.enrichment.social.instagram}" target="_blank" style="color:var(--accent)">📸 Instagram</a><br>`:'📸 Instagram: לא נמצא<br>'}
-                <strong>עוקבים משוערים:</strong> ${lead.enrichment.social?.followers_estimate||'—'}
-              </div>
-            </div>
-            <div class="card" style="background:var(--surface2)">
-              <div class="card-title"><div class="dot" style="background:var(--red)"></div>💊 כאבים</div>
-              <div style="font-size:12px;line-height:1.8;color:var(--muted)">
-                ${(lead.enrichment.pain_points||[]).map(p=>`• ${p}`).join('<br>')||'—'}
-              </div>
-            </div>
-            <div class="card" style="background:var(--surface2)">
-              <div class="card-title"><div class="dot" style="background:var(--green)"></div>🏆 יתרונות XTIX</div>
-              <div style="font-size:12px;line-height:1.8;color:var(--muted)">
-                ${(lead.enrichment.xtix_advantages||[]).map(a=>`✓ ${a}`).join('<br>')||'—'}
-              </div>
-            </div>
-          </div>
-          <!-- Pitch -->
-          <div class="card" style="background:rgba(0,230,118,0.07);border:1px solid rgba(0,230,118,0.2);margin-bottom:12px">
-            <div class="card-title"><div class="dot" style="background:var(--green)"></div>🎯 Pitch מותאם</div>
-            <div style="font-size:12px;line-height:1.7;color:var(--text)">${lead.enrichment.pitch||'—'}</div>
-          </div>
-          <!-- Discovery Questions -->
-          <div class="card" style="background:var(--surface2)">
-            <div class="card-title"><div class="dot" style="background:var(--yellow)"></div>❓ שאלות Discovery</div>
-            <div style="font-size:12px;line-height:1.8;color:var(--muted)">
-              ${(lead.enrichment.discovery_questions||[]).map((q,i)=>`${i+1}. ${q}`).join('<br>')||'—'}
-            </div>
-          </div>
-          ` : `
-          <!-- Not yet enriched -->
-          <div style="text-align:center;padding:30px;color:var(--muted)">
-            <div style="font-size:32px;margin-bottom:12px">🤖</div>
-            <div style="font-size:13px;margin-bottom:16px">הליד עדיין לא עבר תחקיר AI</div>
-            <button onclick="reEnrichLead(${lead.id})" style="background:#a78bfa;border:none;border-radius:8px;padding:10px 20px;color:#fff;font-size:13px;font-weight:700;cursor:pointer;font-family:'Heebo',sans-serif">🔍 תחקר עכשיו</button>
-          </div>
-          `}
-          <!-- Always show SF framework -->
-          <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-top:12px">
-            <div class="card" style="background:var(--surface2)">
-              <div class="card-title"><div class="dot" style="background:#00a1e0"></div>SF BP #6 — תעדוף</div>
-              <div style="font-size:12px;line-height:1.7">
-                <strong style="color:${scoreColor}">Score: ${lead.score}/100</strong><br>
-                ${lead.score>=80?'<span style="color:var(--green)">🔥 חם — פנה תוך 24 שעות</span>':lead.score>=60?'<span style="color:var(--yellow)">⚡ חמים — פנה תוך שבוע</span>':'<span style="color:var(--muted)">🧊 קר — הכנס ל-Nurture</span>'}
-              </div>
-            </div>
-            <div class="card" style="background:var(--surface2)">
-              <div class="card-title"><div class="dot" style="background:var(--accent)"></div>ציר מיילים מומלץ</div>
-              <div style="font-size:12px;color:var(--muted)">
-                ${lead.enrichment?.recommended_cadence==='hot'?'🔥 Hot — 4 מיילים / 2 שבועות':lead.enrichment?.recommended_cadence==='cool'?'🧊 Cool — 3 מיילים / חודש':'⚡ Warm — 4 מיילים / 3 שבועות'}
-              </div>
-            </div>
-          </div>
-        </div>
-
-        <!-- EMAILS TAB -->
-        <div class="lead-tab-panel" id="l${lead.id}-emails">
-          <div style="display:flex;flex-direction:column;gap:10px">
-            ${[
-              {num:1, label:'📧 מייל #1 — Discovery Opener', subj: emailSubject1, body: emailBody1, day:'יום 0'},
-              {num:2, label:'📧 מייל #2 — Data + Value',     subj: 'Re: '+emailSubject1, body: emailBody2, day:'יום 5'},
-              {num:3, label:'📧 מייל #3 — Customer Story',  subj: 'מה שקרה ללקוח אחר', body: emailBody3, day:'יום 9'},
-              {num:4, label:'📧 מייל #4 — Break-up',        subj: 'האם מכירת הכרטיסים מספקת?', body: emailBody4, day:'יום 14'},
-            ].map(e => `
-            <div class="card" style="background:var(--surface2)">
-              <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px">
-                <strong style="font-size:13px">${e.label}</strong>
-                <span style="font-size:11px;color:var(--muted)">${e.day}</span>
-              </div>
-              <div style="font-size:11px;color:var(--muted);margin-bottom:8px">נושא: <em>${e.subj}</em></div>
-              <div id="email-body-${lead.id}-${e.num}" class="email-body" style="display:none;font-size:12px;line-height:1.7;white-space:pre-wrap;background:var(--bg);padding:12px;border-radius:8px;margin-bottom:8px">${e.body}</div>
-              <div style="display:flex;gap:8px;flex-wrap:wrap">
-                <button class="btn" style="font-size:11px;padding:5px 12px" onclick="document.getElementById('email-body-${lead.id}-${e.num}').style.display=document.getElementById('email-body-${lead.id}-${e.num}').style.display==='none'?'block':'none'">👁 הצג</button>
-                <button class="btn" style="font-size:11px;padding:5px 12px" onclick="sendEmailFromCard('email-body-${lead.id}-${e.num}','${lead.email||''}',${lead.id})">📤 שלח</button>
-                <button class="btn" style="font-size:11px;padding:5px 12px" onclick="navigator.clipboard.writeText(document.getElementById('email-body-${lead.id}-${e.num}').innerText);this.textContent='✓ הועתק';setTimeout(()=>this.textContent='📋 העתק',2000)">📋 העתק</button>
-                <button class="btn" style="font-size:11px;padding:5px 12px" onclick="openReminder(${lead.id},'${lead.name.replace(/'/,"\\'")}')">🔔 תזכורת</button>
-              </div>
-            </div>`).join('')}
-          </div>
-        </div>
-
-        <!-- ACTIONS TAB -->
-        <div class="lead-tab-panel" id="l${lead.id}-actions">
-          <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px">
-            <div class="card" style="background:var(--surface2)">
-              <div class="card-title">✏️ עריכה</div>
-              <p style="font-size:12px;color:var(--muted);margin-bottom:12px">ערוך את פרטי הליד</p>
-              <button class="btn" onclick="editLead(${lead.id})" style="width:100%">✏️ ערוך ליד</button>
-            </div>
-            <div class="card" style="background:var(--surface2)">
-              <div class="card-title">🔗 HubSpot</div>
-              <p style="font-size:12px;color:var(--muted);margin-bottom:12px">${lead.hubspot_id?`מסונכרן: ${lead.hubspot_id}`:'לא מסונכרן עדיין'}</p>
-              <button class="btn" onclick="autoSyncLead(${lead.id})" style="width:100%">🔗 סנכרן HubSpot</button>
-            </div>
-            <div class="card" style="background:var(--surface2)">
-              <div class="card-title">🔔 תזכורת</div>
-              <p style="font-size:12px;color:var(--muted);margin-bottom:12px">קבע תזכורת לפנייה</p>
-              <button class="btn" onclick="openReminder(${lead.id},'${lead.name.replace(/'/,"\\'")}\")" style="width:100%">🔔 הוסף תזכורת</button>
-            </div>
-            <div class="card" style="background:rgba(220,38,38,0.08);border-color:rgba(220,38,38,0.2)">
-              <div class="card-title" style="color:#ef4444">🗑️ מחיקה</div>
-              <p style="font-size:12px;color:var(--muted);margin-bottom:12px">פעולה בלתי הפיכה</p>
-              <button class="btn" onclick="deleteLead(${lead.id})" style="width:100%;background:rgba(220,38,38,0.15);border-color:rgba(220,38,38,0.3);color:#ef4444">🗑️ מחק ליד</button>
-            </div>
-          </div>
-        </div>
-
-      </div>
-    </div>`;
-    document.getElementById('leads-list').insertAdjacentHTML('beforeend', html);
-  }
-
-  // =================== HUBSPOT ===================
-  window.initHSLeadSelector = function initHSLeadSelector() {
-    const container = document.getElementById('hs-lead-selector');
-    if (!container) return;
-    container.innerHTML = '';
-    leads.forEach(lead => {
-      const row = document.createElement('label');
-      row.style.cssText = 'display:flex;align-items:center;gap:10px;background:var(--surface);border:1px solid var(--border);border-radius:8px;padding:10px 14px;cursor:pointer;font-size:12px;transition:border-color 0.15s';
-      row.innerHTML = `
-        <input type="checkbox" id="hs-chk-${lead.id}" checked style="accent-color:var(--accent);width:14px;height:14px;cursor:pointer;flex-shrink:0">
-        <span style="flex:1"><strong>${lead.name}</strong> <span style="color:var(--muted);font-size:11px">— ${lead.type} | Score: ${lead.score}/100</span></span>
-        <span id="hs-result-${lead.id}" style="font-size:10px;font-family:monospace;min-width:70px;text-align:left"></span>
-      `;
-      row.addEventListener('mouseover', () => row.style.borderColor = 'rgba(108,99,255,0.4)');
-      row.addEventListener('mouseout', () => row.style.borderColor = 'var(--border)');
-      container.appendChild(row);
-    });
-  }
-
-  window.selectAllLeads = function selectAllLeads() {
-    leads.forEach(l => {
-      const chk = document.getElementById('hs-chk-' + l.id);
-      if (chk) chk.checked = true;
-    });
-  }
-
-  window.toggleTokenVisibility = function toggleTokenVisibility() {
-    const input = document.getElementById('hs-api-key');
-    const btn = document.getElementById('toggle-vis-btn');
-    if (!input || !btn) return;
-    if (input.type === 'password') {
-      input.type = 'text';
-      btn.textContent = '🙈 הסתר';
-    } else {
-      input.type = 'password';
-      btn.textContent = '👁 הצג';
-    }
-  }
-
-  window.pushToHubspot = async function pushToHubspot() {
-    const apiKey = document.getElementById('hs-api-key').value.trim();
-    const statusEl = document.getElementById('hs-status');
-
-    if (!apiKey) {
-      statusEl.style.color = 'var(--accent2)';
-      statusEl.textContent = '⚠️ נא להזין HubSpot Private App Token';
-      return;
-    }
-    if (!apiKey.startsWith('pat-')) {
-      statusEl.style.color = 'var(--accent2)';
-      statusEl.textContent = '⚠️ Token לא תקין — חייב להתחיל ב- pat-';
-      return;
-    }
-
-    const selected = leads.filter(l => {
-      const chk = document.getElementById('hs-chk-' + l.id);
-      return chk && chk.checked;
-    });
-
-    if (selected.length === 0) {
-      statusEl.style.color = 'var(--accent2)';
-      statusEl.textContent = '⚠️ לא נבחרו לידים לשליחה';
-      return;
-    }
-
-    statusEl.style.color = 'var(--muted)';
-    statusEl.textContent = `⏳ שולח ${selected.length} לידים ל-HubSpot...`;
-
-    const headers = { 'Content-Type': 'application/json', 'Authorization': `Bearer ${apiKey}` };
-    let success = 0, errors = 0;
-
-    for (const lead of selected) {
-      const resultEl = document.getElementById('hs-result-' + lead.id);
-      if (resultEl) { resultEl.style.color = 'var(--muted)'; resultEl.textContent = '⏳ שולח...'; }
-      try {
-        // 1. Create Company
-        let companyId = null;
-        const compRes = await fetch('https://api.hubapi.com/crm/v3/objects/companies', {
-          method: 'POST', headers,
-          body: JSON.stringify({ properties: {
-            name: lead.name,
-            domain: lead.domain || '',
-            website: lead.domain ? 'https://' + lead.domain : '',
-            industry: 'ENTERTAINMENT',
-            description: `XTIX Lead | Type: ${lead.type} | Platform: ${lead.platform} | Score: ${lead.score}/100`
-          }})
-        });
-        if (compRes.ok) { const cd = await compRes.json(); companyId = cd.id; }
-
-        // 2. Create Contact
-        const isEmail = lead.email && lead.email.includes('@');
-        const contactProps = {
-          firstname: lead.name, lastname: '(XTIX)',
-          company: lead.name,
-          website: lead.domain ? 'https://' + lead.domain : '',
-          hs_lead_status: lead.status === 'new' ? 'NEW' : 'IN_PROGRESS',
-          lifecyclestage: 'lead',
-          description: `Score: ${lead.score}/100 | Platform: ${lead.platform} | Type: ${lead.type}`
-        };
-        if (isEmail) contactProps.email = lead.email;
-
-        const contRes = await fetch('https://api.hubapi.com/crm/v3/objects/contacts', {
-          method: 'POST', headers,
-          body: JSON.stringify({ properties: contactProps })
-        });
-
-        if (contRes.ok || contRes.status === 409) {
-          success++;
-          if (resultEl) { resultEl.style.color = 'var(--green)'; resultEl.textContent = '✅ נוסף'; }
-          // 3. Associate contact → company
-          if (companyId && contRes.ok) {
-            const contData = await contRes.json();
-            await fetch(`https://api.hubapi.com/crm/v3/objects/contacts/${contData.id}/associations/companies/${companyId}/contact_to_company`, {
-              method: 'PUT', headers
-            }).catch(() => {});
-          }
-        } else {
-          errors++;
-          const err = await contRes.json().catch(() => ({}));
-          if (resultEl) { resultEl.style.color = 'var(--accent2)'; resultEl.textContent = '❌ ' + (err.message || 'שגיאה'); }
-        }
-      } catch(e) {
-        errors++;
-        if (resultEl) { resultEl.style.color = 'var(--accent2)'; resultEl.textContent = '❌ CORS'; }
-      }
-    }
-
-    if (errors === 0) {
-      statusEl.style.color = 'var(--green)';
-      statusEl.textContent = `✅ ${success} לידים נוספו ל-HubSpot בהצלחה! בדוק ב-Contacts.`;
-    } else if (success > 0) {
-      statusEl.style.color = 'var(--yellow)';
-      statusEl.textContent = `⚠️ ${success} הצליחו, ${errors} נכשלו. אם יש CORS — פתח מ-localhost.`;
-    } else {
-      statusEl.style.color = 'var(--accent2)';
-      statusEl.textContent = `❌ כל הלידים נכשלו. בדוק Token ופתח את הקובץ מ-localhost.`;
-    }
-  }
-
-  // Init selector when HubSpot tab opens
-  document.querySelector('.tab[onclick*="hubspot"]').addEventListener('click', () => {
-    setTimeout(initHSLeadSelector, 100);
-  });
-
-  // =================== SERVER + SETTINGS ===================
-
-  window.checkServer = async function checkServer() {
-    const el = document.getElementById('server-status');
-    try {
-      const r = await fetch(SERVER + '/ping', { signal: AbortSignal.timeout(2000) });
-      const d = await r.json();
-      el.textContent = '🟢 Server';
-      el.style.color = 'var(--green)';
-      el.title = `Server v${d.version} | Gmail:${d.gmail?'✅':'❌'} | HubSpot:${d.hubspot?'✅':'❌'}`;
-    } catch {
-      el.textContent = '🔴 Server';
-      el.style.color = 'var(--accent2)';
-      el.title = 'server.py לא רץ — הרץ: python server.py';
-    }
-  }
-
-  window.openSettings = async function openSettings() {
-    const modal = document.getElementById('settingsModal');
-    modal.style.display = 'flex';
-    // Load current config
-    try {
-      const r = await fetch(SERVER + '/config', { signal: AbortSignal.timeout(2000) });
-      const cfg = await r.json();
-      document.getElementById('cfg-gmail-user').value    = cfg.gmail_user || '';
-      document.getElementById('cfg-sender-name').value   = cfg.sender_name || '';
-      // tokens shown as *** — don't fill password fields
-    } catch { }
-  }
-
-  window.closeSettings = function closeSettings() {
-    document.getElementById('settingsModal').style.display = 'none';
-  }
-
-  window.saveSettings = async function saveSettings() {
-    const msg = document.getElementById('settings-msg');
-    const body = {
-      gmail_user:          document.getElementById('cfg-gmail-user').value.trim(),
-      gmail_app_password:  document.getElementById('cfg-gmail-pass').value.trim(),
-      sender_name:         document.getElementById('cfg-sender-name').value.trim() || 'XTIX Sales',
-      hubspot_token:       document.getElementById('cfg-hs-token').value.trim(),
-    };
-    // Remove empty — don't overwrite with blanks
-    Object.keys(body).forEach(k => { if (!body[k]) delete body[k]; });
-    try {
-      const r = await fetch(SERVER + '/config', {
-        method: 'POST', headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(body), signal: AbortSignal.timeout(3000)
-      });
-      const d = await r.json();
-      msg.style.display = 'block';
-      msg.style.color = d.ok ? 'var(--green)' : 'var(--accent2)';
-      msg.textContent = d.ok ? '✅ הגדרות נשמרו!' : '❌ ' + d.error;
-      if (d.ok) { saveSettingsToFirebase(body); setTimeout(closeSettings, 1200); checkServer(); }
-    } catch {
-      msg.style.display = 'block'; msg.style.color = 'var(--accent2)';
-      msg.textContent = '❌ server.py לא רץ — הרץ: python server.py';
-    }
-  }
-
-  // =================== SEND EMAIL ===================
-  window.sendRealEmail = async function sendRealEmail(to, subject, htmlBody, leadId, hubspotId) {
-    const btn = event.target; // ← לפני כל await
-    if (!to || !to.includes('@')) {
-      alert('אין כתובת מייל תקינה לליד זה'); return;
-    }
-    btn.textContent = '⏳ שולח...'; btn.disabled = true;
-    try {
-      const r = await fetch(SERVER + '/send-email', {
-        method: 'POST', headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ to, subject, html: htmlBody, hubspot_id: hubspotId || '' }),
-        signal: AbortSignal.timeout(10000)
-      });
-      const d = await r.json();
-      if (d.ok) {
-        btn.textContent = '✅ נשלח!'; btn.style.background = 'var(--green)'; btn.style.color = '#0a0a0f';
-        // Update lead status to 'contacted'
-        const lead = leads.find(l => l.id === leadId);
-        if (lead) { lead.status = 'contacted'; saveLeads(); updateStats(); }
-        // Auto-sync to HubSpot
-        autoSyncLead(leadId);
-      } else {
-        btn.textContent = '❌ שגיאה'; btn.style.background = 'var(--accent2)';
-        alert('שגיאה: ' + d.error);
-        btn.disabled = false;
-      }
-    } catch {
-      btn.textContent = '❌ Server כבוי';
-      alert('server.py לא רץ. הרץ: python server.py');
-      btn.disabled = false;
-    }
-  }
-
-  // =================== EXPORT CSV ===================
-  window.exportCSV = function exportCSV() {
-    logActivity('export', { format: 'CSV', leads_count: leads.length });
-    const data = encodeURIComponent(JSON.stringify(leads));
-    const url  = SERVER + '/export/csv?data=' + data;
-    // Try server first, fallback to client-side
-    fetch(SERVER + '/ping', { signal: AbortSignal.timeout(1500) })
-      .then(() => { window.open(url, '_blank'); })
-      .catch(() => {
-        // Client-side CSV fallback
-        const fields = ['id','name','domain','type','platform','email','score','status','notes'];
-        const rows   = [fields.join(',')];
-        leads.forEach(l => rows.push(fields.map(f => `"${(l[f]||'').toString().replace(/"/g,'""')}"`).join(',')));
-        const blob = new Blob(['\uFEFF' + rows.join('\n')], { type: 'text/csv;charset=utf-8' });
-        const a = document.createElement('a');
-        a.href = URL.createObjectURL(blob); a.download = 'xtix-leads.csv'; a.click();
-      });
-  }
-
-  // =================== REMINDERS ===================
-  window.openReminder = function openReminder(leadId, leadName) {
-    document.getElementById('rem-lead-id').value   = leadId;
-    document.getElementById('rem-lead-name').value = leadName;
-    document.getElementById('rem-date').value       = new Date(Date.now() + 7*86400000).toISOString().split('T')[0];
-    document.getElementById('rem-note').value       = '';
-    document.getElementById('reminderModal').style.display = 'flex';
-  }
-
-  window.saveReminder = async function saveReminder() {
-    const body = {
-      lead_id:   document.getElementById('rem-lead-id').value,
-      lead_name: document.getElementById('rem-lead-name').value,
-      date:      document.getElementById('rem-date').value,
-      note:      document.getElementById('rem-note').value,
-    };
-    try {
-      await fetch(SERVER + '/reminders', {
-        method: 'POST', headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(body)
-      });
-    } catch { }
-    // Save to Firebase
-    saveReminderToFirebase({ ...body, done: false });
-    // Save locally too
-    const reminders = JSON.parse(localStorage.getItem('xtix_reminders') || '[]');
-    reminders.push({ ...body, id: Date.now(), done: false });
-    localStorage.setItem('xtix_reminders', JSON.stringify(reminders));
-    document.getElementById('reminderModal').style.display = 'none';
-    alert(`✅ תזכורת נשמרה: ${body.date} — ${body.note}`);
-  }
-
-  // =================== AUTO HUBSPOT SYNC ===================
-  window.autoSyncLead = async function autoSyncLead(leadId) {
-    const lead = leads.find(l => l.id === leadId);
-    if (!lead) return;
-    try {
-      const r = await fetch(SERVER + '/hubspot/sync', {
-        method: 'POST', headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ lead }), signal: AbortSignal.timeout(8000)
-      });
-      const d = await r.json();
-      if (d.ok && d.hubspot_id) {
-        lead.hubspot_id = d.hubspot_id; saveLeads();
-        logActivity('hubspot_sync', { lead_id: leadId, lead_name: lead.name, hubspot_id: d.hubspot_id, action: d.action });
-        console.log(`HubSpot sync: ${lead.name} → ${d.action} (${d.hubspot_id})`);
-      }
-    } catch { } // Silent — server might not be running
-  }
-
-  // Auto-sync on status change
-  const _origUpdateStats = window.updateStats;
-  window.updateStats = function updateStats() {
-    _origUpdateStats();
-    // Sync changed leads to HubSpot after short delay
-    setTimeout(() => {
-      leads.forEach(l => { if (l.status && l.status !== 'new') autoSyncLead(l.id); });
-    }, 500);
-  }
-
-  // ── Email HTML builder with RTL + signature ──────────────────────
-  function buildEmailHtml(bodyText, senderName) {
-    const name = senderName || 'אורן';
-    const lines = bodyText.split('\n').map(l => `<p style="margin:0 0 8px 0">${l||'&nbsp;'}</p>`).join('');
-    return `<!DOCTYPE html>
-<html dir="rtl" lang="he">
-<head><meta charset="UTF-8"></head>
-<body style="direction:rtl;text-align:right;font-family:Arial,sans-serif;font-size:14px;line-height:1.7;color:#1a1a2e;background:#ffffff;margin:0;padding:0">
-  <div style="max-width:600px;margin:0 auto;padding:32px 24px">
-    <div style="direction:rtl;text-align:right">
-      ${lines}
-    </div>
-    <hr style="border:none;border-top:1px solid #e5e7eb;margin:24px 0">
-    <div style="direction:rtl;text-align:right;font-size:13px;color:#6b7280;line-height:1.8">
-      <strong style="color:#1a1a2e">${name}</strong><br>
-      Sales | <strong style="color:#4f46e5">XTIX.ai</strong><br>
-      <span style="font-size:12px">פלטפורמת כרטיסים חכמה לאמנים ומפיקים</span><br>
-      <a href="https://xtix.ai" style="color:#4f46e5;text-decoration:none;font-size:12px">🌐 xtix.ai</a>
-    </div>
-  </div>
-</body>
-</html>`;
-  }
-
-  // ── Schedule HubSpot reminder after email ─────────────────────────
-  async function scheduleHubspotFollowup(lead, emailNum, subject) {
-    if (!lead || !lead.hubspot_id) return;
-    const followupDays = [3, 5, 7, 14][emailNum - 1] || 7;
-    const followupDate = new Date(Date.now() + followupDays * 86400000).toISOString().split('T')[0];
-    try {
-      await fetch(SERVER + '/reminders', {
-        method: 'POST', headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          lead_id: lead.id, lead_name: lead.name,
-          date: followupDate,
-          note: `Follow-up מייל #${emailNum+1} — ${lead.name}`,
-          hubspot_id: lead.hubspot_id,
-          auto: true
-        })
-      });
-      await saveReminderToFirebase({
-        lead_id: lead.id, lead_name: lead.name,
-        date: followupDate,
-        note: `Follow-up מייל #${emailNum+1} — ${lead.name}`,
-        hubspot_id: lead.hubspot_id || '',
-        done: false, auto: true
-      });
-    } catch(e) {}
-  }
-
-  // =================== SEND EMAIL FROM CARD ===================
-  window.sendEmailFromCard = async function sendEmailFromCard(bodyElId, defaultEmail, leadId) {
-    const btn = event.target; // ← חייב להיות ראשון לפני כל await
-    const el = document.getElementById(bodyElId);
-    if (!el) return;
-
-    const lead = leads.find(l => l.id === leadId);
-    const toEmail = (lead && lead.email && lead.email.includes('@')) ? lead.email : defaultEmail;
-
-    if (!toEmail || !toEmail.includes('@')) {
-      alert('אין כתובת מייל תקינה לליד זה.\nהוסף מייל בפרופיל הליד ונסה שוב.'); return;
-    }
-
-    // Extract subject and body
-    const raw = (el.innerText || el.textContent).trim();
-    const subjectMatch = raw.match(/Subject:\s*([^\n\r]+)/i);
-    const subject = subjectMatch ? subjectMatch[1].trim() : 'פנייה מ-XTIX';
-    const bodyText = raw.replace(/Subject:[^\n\r]+[\n\r]*/i, '').trim();
-
-    // Get sender name from config
-    let senderName = 'אורן';
-    try {
-      const cfg = await fetch(SERVER + '/config', { signal: AbortSignal.timeout(1000) });
-      if (cfg.ok) { const c = await cfg.json(); senderName = c.sender_name || senderName; }
-    } catch(e) {}
-
-    const htmlBody = buildEmailHtml(bodyText, senderName);
-
-    if (!confirm(`שלח מייל ל-${toEmail}?\n📌 נושא: ${subject}`)) return;
-
-    btn.textContent = '⏳'; btn.disabled = true;
-    try {
-      const r = await fetch(SERVER + '/send-email', {
-        method: 'POST', headers: {'Content-Type':'application/json'},
-        body: JSON.stringify({ to: toEmail, subject, html: htmlBody, text: bodyText,
-                               hubspot_id: lead ? (lead.hubspot_id || '') : '' }),
-        signal: AbortSignal.timeout(150000)
-      });
-      const d = await r.json();
-      if (d.ok) {
-        btn.textContent = '✅'; btn.style.background = 'rgba(0,230,118,0.3)';
-        if (lead) { lead.status = 'contacted'; saveLeads(); }
-        const emailNum = parseInt(bodyElId.match(/-(\d+)$/)?.[1] || bodyElId.match(/(\d+)$/)?.[0] || '1');
-        logEmailSent(leadId, lead ? lead.name : '', toEmail, subject, emailNum);
-        autoSyncLead(leadId).then(() => scheduleHubspotFollowup(lead, emailNum, subject));
-      } else {
-        btn.textContent = '❌'; btn.disabled = false;
-        alert('שגיאה: ' + d.error);
-      }
-    } catch(e) {
-      btn.textContent = '❌'; btn.disabled = false;
-      alert('שגיאה בשליחה: ' + e.message);
-    }
-  }
-
-
-  // =================== AI LEAD HUNTER ===================
-  const huntState = {
-    step: 0,
-    answers: {},
-    questions: [
-      { key: 'segment', q: 'באיזה סגמנט אתה רוצה לחפש?', chips: ['🎵 מוזיקה','🎭 תיאטרון','😂 סטנד-אפ','⚽ ספורט','🎪 פסטיבלים','🎨 תרבות','🌐 הכל'] },
-      { key: 'competitor', q: 'עם איזה מתחרה הם עובדים כיום? (נחפש לידים שמשתמשים בפלטפורמה זו)', chips: ['Smarticket','Bravo','Mevalim','Tickchak','Leaan','Eventer','לא ידוע / הכל'] },
-      { key: 'tier', q: 'איזה Tier ליד אתה מחפש?', chips: ['Tier 1 — גדולים (500+ כרטיסים)','Tier 2 — בינוניים (100-500)','Tier 3 — קטנים (<100)','הכל'] },
-      { key: 'geo', q: 'איזה אזור גיאוגרפי?', chips: ['מרכז (תל אביב / גוש דן)','צפון','דרום','ירושלים','כל הארץ'] },
-      { key: 'urgency', q: 'כמה לידים אתה רוצה שנחפש?', chips: ['5 לידים ממוקדים','10 לידים','20 לידים — רשימה רחבה'] },
-    ]
-  };
-
-  function huntAddMsg(text, type) {
-    const chat = document.getElementById('hunt-chat');
-    const div = document.createElement('div');
-    div.className = type === 'user' ? 'hunt-msg-user' : 'hunt-msg-ai';
-    div.innerHTML = text;
-    chat.appendChild(div);
-    chat.scrollTop = chat.scrollHeight;
-    return div;
-  }
-
-  function huntAskNext() {
-    const chat = document.getElementById('hunt-chat');
-    const q = huntState.questions[huntState.step];
-    if (!q) { huntStartSearch(); return; }
-    const chips = q.chips.map(c => `<button onclick="huntAnswer(this,'${c}')" class="hunt-chip">${c}</button>`).join('');
-    huntAddMsg(`<strong style="color:#a78bfa">${q.q}</strong><div style="display:flex;flex-wrap:wrap;gap:6px;margin-top:10px">${chips}</div>`, 'ai');
-  }
-
-  window.huntAnswer = function(btn, val) {
-    const clean = val.replace(/[🎵🎭😂⚽🎪🎨🌐]/g, '').trim();
-    huntAddMsg(val, 'user');
-    huntState.answers[huntState.questions[huntState.step].key] = clean;
-    huntState.step++;
-    if (huntState.step < huntState.questions.length) {
-      setTimeout(huntAskNext, 400);
-    } else {
-      setTimeout(huntStartSearch, 400);
-    }
-  }
-
-  window.huntSend = function() {
-    const input = document.getElementById('hunt-input');
-    const val = input.value.trim();
-    if (!val) return;
-    input.value = '';
-    if (huntState.step < huntState.questions.length) {
-      huntAnswer(null, val);
-    }
-  }
-
-  async function huntStartSearch() {
-    const a = huntState.answers;
-    const loadMsg = huntAddMsg(`<div style="text-align:center;padding:16px">
-      <div style="font-size:24px;margin-bottom:8px">🔍</div>
-      <div style="color:#a78bfa;font-weight:700">מחפש לידים...</div>
-      <div style="font-size:11px;color:var(--muted);margin-top:6px">AI סורק את הרשת לפי הפרמטרים שלך</div>
-    </div>`, 'ai');
-
-    const competitorData2 = Object.values(competitorData).map(c => `${c.name}: עמלה ${c.fee}, חולשה: ${c.weakness}`).join('\n');
-
-    const prompt = `אתה מומחה מכירות ב-XTIX — פלטפורמת כרטיסים ישראלית.
-
-פרמטרי חיפוש שהמשתמש בחר:
-- סגמנט: ${a.segment || 'הכל'}
-- מתחרה נוכחי: ${a.competitor || 'הכל'}
-- Tier: ${a.tier || 'הכל'}
-- אזור: ${a.geo || 'כל הארץ'}
-- כמות: ${a.urgency || '10 לידים'}
-
-מידע על מתחרים:
-${competitorData2}
-
-המשימה: צור רשימת לידים פוטנציאלים ריאליסטיים בישראל שמתאימים לפרמטרים.
-לכל ליד ציין שם עסק/אמן, דומיין משוער, סגמנט, מתחרה נוכחי משוער, וסיבה קצרה למה הוא ליד טוב ל-XTIX.
-
-החזר JSON נקי בלבד (ללא markdown):
-{
-  "summary": "משפט סיכום על החיפוש",
-  "leads": [
-    {
-      "name": "שם העסק/אמן",
-      "domain": "domain.co.il",
-      "segment": "סגמנט",
-      "competitor": "פלטפורמה נוכחית",
-      "tier": "1/2/3",
-      "score": 75,
-      "reason": "למה ליד טוב",
-      "pain": "כאב עיקרי",
-      "pitch": "טיעון מכירה אחד"
-    }
-  ]
-}`;
-
-    try {
-      const res = await fetch(SERVER + '/ai', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          model: 'claude-sonnet-4-20250514',
-          max_tokens: 2000,
-          system: 'אתה מומחה מכירות ב-XTIX. צור רשימת לידים ריאליסטיים בישראל לפי הפרמטרים. החזר JSON נקי בלבד ללא markdown.',
-          messages: [{ role: 'user', content: prompt }]
-        })
-      });
-
-      const data = await res.json();
-      const rawText = data.content?.map(b => b.text || '').join('') || '';
-      let result;
-      try {
-        const clean = rawText.replace(/```json|```/g, '').trim();
-        // Find JSON object in response
-        const jsonMatch = clean.match(/\{[\s\S]*\}/);
-        result = JSON.parse(jsonMatch ? jsonMatch[0] : clean);
-      } catch(parseErr) {
-        throw new Error('תגובת AI לא תקינה — נסה שוב');
-      }
-
-      loadMsg.remove();
-      huntShowResults(result, a);
-
-    } catch(e) {
-      loadMsg.innerHTML = `<div style="color:var(--accent2)">❌ שגיאה: ${e.message}</div>`;
-    }
-  }
-
-  function huntShowResults(result, params) {
-    huntAddMsg(`✅ <strong>מצאתי ${result.leads?.length || 0} לידים</strong> — ${result.summary}`, 'ai');
-
-    const container = document.getElementById('hunt-results');
-    container.style.display = 'block';
-    container.innerHTML = `
-      <div style="font-size:11px;color:var(--muted);margin-bottom:10px;text-transform:uppercase;letter-spacing:1px">תוצאות חיפוש — ${params.segment || 'הכל'} | ${params.geo || 'ישראל'}</div>
-      ${(result.leads || []).map((lead, i) => `
-        <div style="background:var(--surface2);border:1px solid var(--border);border-radius:10px;padding:14px;margin-bottom:10px">
-          <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px">
-            <div>
-              <div style="font-weight:700;color:var(--text)">${lead.name}</div>
-              <div style="font-size:11px;color:var(--muted)">${lead.domain || ''} · ${lead.segment || ''}</div>
-            </div>
-            <div style="display:flex;align-items:center;gap:8px">
-              <div style="font-size:11px;color:var(--yellow)">⚔️ ${lead.competitor || ''}</div>
-              <div style="width:36px;height:36px;border-radius:50%;background:conic-gradient(var(--green) ${(lead.score||60)*3.6}deg,var(--surface) 0);display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:700;color:var(--green)">${lead.score||60}</div>
-            </div>
-          </div>
-          <div style="font-size:11px;color:var(--muted);margin-bottom:8px;line-height:1.6">${lead.reason || ''}</div>
-          <div style="font-size:11px;color:var(--green);background:rgba(0,230,118,0.07);padding:6px 10px;border-radius:6px;margin-bottom:8px">💡 ${lead.pitch || ''}</div>
-          <div style="display:flex;gap:6px;flex-wrap:wrap">
-            <button onclick="huntAddToCRM(${JSON.stringify(lead).replace(/"/g,'&quot;')})" style="background:var(--green);border:none;border-radius:6px;padding:5px 12px;font-size:11px;color:#0a0a0f;font-weight:700;cursor:pointer;font-family:'Heebo',sans-serif">➕ הוסף ל-CRM</button>
-            <button onclick="analyzeHuntLead(${JSON.stringify(lead).replace(/"/g,'&quot;')})" style="background:rgba(167,139,250,0.15);border:1px solid rgba(167,139,250,0.3);border-radius:6px;padding:5px 12px;font-size:11px;color:#a78bfa;cursor:pointer;font-family:'Heebo',sans-serif">🔍 נתח עמוק</button>
-          </div>
-        </div>
-      `).join('')}
-      <button onclick="huntReset()" style="width:100%;background:var(--surface2);border:1px solid var(--border);border-radius:8px;padding:10px;color:var(--muted);font-size:12px;cursor:pointer;font-family:'Heebo',sans-serif;margin-top:6px">🔄 חיפוש חדש</button>
-    `;
-  }
-
-  window.huntAddToCRM = function(lead) {
-    const newLead = { id: nextId++, name: lead.name, domain: lead.domain||'', type: lead.segment||'AI Hunt', platform: lead.competitor||'', email:'', notes: lead.reason||'', score: lead.score||60, status:'new' };
-    leads.push(newLead); saveLeads();
-    renderSimpleLead(newLead);
-    document.getElementById('total-leads').textContent = leads.length;
-    logActivity('lead_added_from_hunt', { lead_id: newLead.id, lead_name: newLead.name });
-    event.target.textContent = '✅ נוסף!';
-    event.target.disabled = true;
-  }
-
-  window.analyzeHuntLead = function(lead) {
-    setLeadMode('url');
-    const urlInput = document.getElementById('lf-url');
-    const nameInput = document.getElementById('lf-name-url');
-    if (urlInput) urlInput.value = lead.domain || '';
-    if (nameInput) nameInput.value = lead.name || '';
-    setTimeout(() => analyzeUrl(), 300);
-  }
-
-  window.huntReset = function() {
-    huntState.step = 0;
-    huntState.answers = {};
-    document.getElementById('hunt-chat').innerHTML = '';
-    document.getElementById('hunt-results').style.display = 'none';
-    huntAskNext();
-  }
-
-  // =================== AUTO-ENRICHMENT PIPELINE ===================
-
-  const enrichmentQueue = [];
-  let enrichmentRunning = false;
-
-  async function autoEnrichLead(lead) {
-    const domain = lead.domain || lead.website || '';
-    if (!domain) return lead;
-    const fullUrl = domain.startsWith('http') ? domain : 'https://' + domain;
-
-    console.log(`[ENRICH] Starting: ${lead.name} (${domain})`);
-
-    // Step 1: Proxy scan
-    let proxyData = null;
-    try {
-      const r = await fetch(`${SERVER}/analyze?url=${encodeURIComponent(fullUrl)}`, { signal: AbortSignal.timeout(8000) });
-      if (r.ok) proxyData = await r.json();
-    } catch(e) {}
-
-    // Step 2: AI full analysis
-    const competitorInfo = Object.values(competitorData).map(c => `${c.name}: עמלה ${c.fee}, חולשה: ${c.weakness}`).join('\n');
-    const proxyCtx = proxyData ? `מידע שנאסף אוטומטית:\n- פלטפורמת כרטיסים: ${proxyData.ticketPlatform||'לא זוהתה'}\n- מייל: ${proxyData.email||'לא נמצא'}\n- רשתות: ${proxyData.socialLinks?.join(', ')||'לא נמצאו'}` : '';
-
-    const prompt = `אתה מנהל מכירות בכיר ב-XTIX. נתח את הליד הבא לעומק ותן תחקיר מכירות מלא.
-
-ליד: ${lead.name}
-דומיין: ${domain}
-טלפון: ${lead.phone||''}
-כתובת: ${lead.address||''}
-סוג: ${lead.type||''}
-${proxyCtx}
-
-מתחרים בשוק:
+    const prompt = `אתה מנהל מכירות בכיר ב-XTIX.AI — פלטפורמת כרטיסים ישראלית.
+
+יתרונות XTIX שיש להדגיש:
+• עמלה 2.5% בלבד (vs. 5-8% בשוק) — חיסכון ממוצע ₪52,500 לשנה על 10K כרטיסים
+• Widget מוטמע — הקהל לא עוזב את אתר המפיק
+• 100% הנתונים שייכים למפיק (לא לפלטפורמה)
+• AI Analytics + Early Bird אוטומטי + HubSpot/CRM Integration
+• אין חוזה ארוך — מעבר חופשי
+
+מתחרים בשוק לניתוח:
 ${competitorInfo}
 
-החזר JSON נקי בלבד (ללא markdown):
+====== פרטי הליד לניתוח ======
+שם: ${lead.name}
+דומיין: ${domain}
+טלפון: ${lead.phone || 'לא ידוע'}
+סוג: ${lead.type || 'לא ידוע'}
+${proxyCtx}
+
+====== המשימה שלך ======
+1. חקור את הליד לעומק על פי הנתונים שיש לך
+2. הסק מסקנות ספציפיות (לא כלליות) על:
+   - פלטפורמה שהם משתמשים בה ומה החולשה שלה
+   - כמה עמלה הם משלמים (הערכה מחושבת)
+   - מה הכאב המרכזי שלהם
+   - מה ה-ROI הספציפי שהם יקבלו מ-XTIX
+3. כתוב 4 מיילים מלאים — כל אחד מראה מה חקרת לפני שכתבת אותו
+
+חשוב: כל מייל חייב להראות ידע ספציפי על הליד הזה — לא template כללי.
+כל מייל חייב להציג את "שיעורי הבית" שעשית לפני הפנייה.
+
+החזר JSON נקי בלבד (ללא markdown, ללא backticks):
 {
-  "summary": "תיאור קצר של העסק",
+  "summary": "2 משפטים ספציפיים על הליד — מי הם ומה הם עושים",
   "segment": "קטגוריה (מוזיקה/תיאטרון/סטנד-אפ/ספורט/פסטיבל/קולנוע/אחר)",
-  "platform_current": "פלטפורמה נוכחית או לא ידוע",
-  "platform_weakness": "חולשת הפלטפורמה הנוכחית",
+  "platform_current": "פלטפורמה נוכחית שזוהתה או לא ידוע",
+  "platform_weakness": "החולשה הספציפית של הפלטפורמה שלהם ביחס ל-XTIX",
+  "estimated_annual_tickets": "הערכת כמות כרטיסים שנתית",
+  "estimated_annual_fees": "הערכת עמלות שנתיות שמשלמים (₪)",
+  "estimated_xtix_savings": "חיסכון שנתי משוער ב-XTIX (₪)",
   "competitor_tier": "1/2/3",
   "social": {
-    "facebook": "קישור או לא נמצא",
-    "instagram": "קישור או לא נמצא",
-    "followers_estimate": "הערכת עוקבים"
+    "facebook": "URL או לא נמצא",
+    "instagram": "URL או לא נמצא",
+    "followers_estimate": "הערכת עוקבים מצטברת בכל הפלטפורמות"
   },
   "events_per_year": "הערכת מספר אירועים בשנה",
-  "audience_size": "הערכת גודל קהל לאירוע",
+  "audience_size": "הערכת גודל קהל ממוצע לאירוע",
   "score": 65,
-  "tier": "1/2/3",
-  "pain_points": ["כאב 1", "כאב 2"],
-  "xtix_advantages": ["יתרון 1", "יתרון 2"],
-  "pitch": "משפט פתיחה מותאם לליד זה",
+  "tier": "A/B/C",
+  "pain_points": ["כאב ספציפי 1 לליד זה", "כאב ספציפי 2"],
+  "xtix_advantages": ["יתרון 1 ספציפי לליד זה", "יתרון 2"],
+  "pitch": "משפט פתיחה מותאם לליד זה — ספציפי, לא כללי",
   "recommended_cadence": "hot/warm/cool",
-  "email_subject": "נושא מייל ראשון",
-  "email_body": "גוף מייל ראשון בעברית, 3-4 משפטים",
-  "discovery_questions": ["שאלה 1", "שאלה 2"],
+  "research_summary": "מה חקרת לפני הפנייה — מה ראית, מה הסקת, מה המסקנה הספציפית",
+  "email_sequence": [
+    {
+      "email_num": 1,
+      "day": 1,
+      "subject": "נושא ספציפי לליד זה — מבוסס על מחקר",
+      "research_done": ["מה בדקת לפני כתיבת מייל זה — פריט 1", "פריט 2", "פריט 3"],
+      "what_i_concluded": "מה הסקת מהמחקר — ומה זה אומר לגבי הפנייה",
+      "body": "גוף המייל המלא — ספציפי לליד, מציג ידע, לא template. 4-6 שורות.",
+      "cta": "CTA ספציפי וברור"
+    },
+    {
+      "email_num": 2,
+      "day": 4,
+      "subject": "נושא עם נתון ספציפי שחישבת",
+      "research_done": ["חישוב עמלות ספציפי לליד זה", "מה ראית ב-Instagram/Facebook", "פריט 3"],
+      "what_i_concluded": "מה הסקת — ומה הROI הספציפי שלהם",
+      "body": "גוף המייל עם נתונים מחושבים ספציפית לליד. מראה שעשית עבודה.",
+      "cta": "הצעה לשיחה 15 דקות עם demo על הדומיין שלהם"
+    },
+    {
+      "email_num": 3,
+      "day": 8,
+      "subject": "Social Proof — לקוח דומה",
+      "research_done": ["מצאת לקוח XTIX עם פרופיל דומה — אותו סגמנט/פלטפורמה", "מה התוצאות שלו"],
+      "what_i_concluded": "למה הסיפור הזה רלוונטי ספציפית לליד הזה",
+      "body": "סיפור לקוח דומה עם מספרים ספציפיים. הצג 3 נקודות: עמלות, קהל חוזר, Early Bird.",
+      "cta": "Demo חי על הדומיין שלהם — 15 דקות"
+    },
+    {
+      "email_num": 4,
+      "day": 14,
+      "subject": "מייל אחרון — [שם], ישיר",
+      "research_done": ["3 מיילים נשלחו ללא תשובה — מה זה אומר?", "Break-up email = reply גבוה"],
+      "what_i_concluded": "שאלה ישירה אחת + כבוד לזמן = תשובה. מטרה: כן או לא, לסגור לולאה.",
+      "body": "מייל Break-up — קצר, ישיר, אנושי. שאלה אחת על שביעות רצון. הצעה ברורה.",
+      "cta": "כן / לא — שניהם תשובה תקפה"
+    }
+  ],
+  "discovery_questions": ["שאלה ספציפית 1 לליד זה", "שאלה ספציפית 2"],
   "score_factors": {
-    "domain": true,
-    "external_ticketing": false,
+    "has_external_ticketing": true,
+    "has_own_domain": true,
     "active_social": true,
-    "contact_accessible": false
+    "contact_accessible": true,
+    "large_audience": false
   }
 }`;
 
@@ -4053,7 +2862,11 @@ ${competitorInfo}
         discovery_questions:  enriched.discovery_questions  || [],
         score_factors:        enriched.score_factors        || {},
         enriched_at:          new Date().toISOString(),
-        enriched_by:          'claude-auto'
+        enriched_by:          'claude-auto',
+        email_sequence:    enriched.email_sequence    || [],
+        research_summary:  enriched.research_summary  || "",
+        estimated_fees:    enriched.estimated_annual_fees || "",
+        estimated_savings: enriched.estimated_xtix_savings || ""
       }
     };
 
@@ -4815,6 +3628,315 @@ ${competitorInfo}
   }
 
   setTimeout(addLeadFinderTab, 1200);
+
+})();
+</script>
+
+<style>
+.bp-card{border-radius:10px;overflow:hidden;margin-bottom:12px;border:2px solid var(--border)}
+.bp-hdr{padding:11px 16px}
+.bp-sec{padding:10px 16px;border-top:1px solid rgba(255,255,255,0.07)}
+.bp-lbl{font-size:9px;text-transform:uppercase;letter-spacing:1px;color:var(--muted);margin-bottom:6px;font-weight:700}
+.bp-ri{font-size:11px;padding:3px 0;display:flex;gap:6px;color:var(--text);line-height:1.5}
+.bp-body{font-size:12px;color:var(--text);line-height:1.8;white-space:pre-wrap;background:var(--surface2);border-radius:7px;padding:10px 14px;margin-top:4px}
+.bp-cta{font-size:11px;font-weight:700;padding:4px 12px;border-radius:5px;display:inline-flex;align-items:center;gap:6px;margin-top:8px}
+.bp-roi{display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px;margin-bottom:12px}
+.bp-rbox{background:var(--surface2);border-radius:8px;padding:9px 12px;border:1px solid var(--border)}
+</style>
+<script>
+(function(){
+
+/* === RENDER BLUEPRINT FOR A LEAD === */
+window.renderBlueprintForLead = function(lead) {
+  var cid = 'bp-container-' + lead.id;
+  var container = document.getElementById(cid);
+  if (!container) return;
+  if (container.dataset.rendered === '1') return;
+  var e = lead.enrichment;
+  if (!e || !e.email_sequence || !e.email_sequence.length) {
+    container.innerHTML = '<div style="padding:16px;text-align:center;color:var(--muted);font-size:12px">אין Blueprint זמין — לחץ "נתח AI" להפעלה</div>';
+    return;
+  }
+  container.dataset.rendered = '1';
+  var html = '';
+
+  if (e.research_summary) {
+    html += '<div style="background:rgba(108,99,255,0.08);border:1px solid rgba(108,99,255,0.25);border-radius:9px;padding:12px 16px;margin-bottom:14px">'
+      + '<div style="font-size:10px;font-weight:700;color:var(--accent);text-transform:uppercase;letter-spacing:1px;margin-bottom:7px">🔍 מה ה-AI חקר לפני כתיבת ה-Blueprint:</div>'
+      + '<div style="font-size:12px;color:var(--text);line-height:1.7">' + (e.research_summary || '') + '</div></div>';
+  }
+
+  if (e.estimated_fees || e.estimated_savings || e.platform_current) {
+    html += '<div class="bp-roi">'
+      + roiBox('⚙️ פלטפורמה', e.platform_current || lead.platform || 'לא ידוע', '#6C63FF')
+      + roiBox('💸 עמלה שנתית', e.estimated_fees || '—', '#EF4444')
+      + roiBox('💚 חיסכון ב-XTIX', e.estimated_savings || '—', '#10B981')
+      + '</div>';
+  }
+
+  var COLORS = ['#0EA5E9','#10B981','#FF6B35','#6C63FF'];
+  var LABELS = ['פתיחת דלת — שאלה חכמה','ערך + ROI מחושב','Social Proof — לקוח דומה','Break-up — ישיר ואנושי'];
+
+  (e.email_sequence || []).forEach(function(em, idx) {
+    var c = COLORS[idx] || '#6C63FF';
+    var research = (em.research_done || []).map(function(r) {
+      return '<div class="bp-ri"><span style="color:' + c + ';flex-shrink:0;font-weight:700">•</span><span>' + r + '</span></div>';
+    }).join('');
+    var concluded = em.what_i_concluded
+      ? '<div style="margin-top:8px;padding:7px 10px;background:rgba(108,99,255,0.1);border-radius:7px;border-right:3px solid ' + c + '">'
+        + '<div style="font-size:10px;color:var(--muted);margin-bottom:3px">💡 מסקנה:</div>'
+        + '<div style="font-size:11px;color:var(--text)">' + em.what_i_concluded + '</div></div>' : '';
+
+    html += '<div class="bp-card" style="border-color:' + c + '">'
+      + '<div class="bp-hdr" style="background:' + c + '">'
+      + '<div style="font-size:13px;font-weight:800;color:#fff">📧 מייל #' + em.email_num + ' — יום ' + em.day + '</div>'
+      + '<div style="font-size:11px;color:rgba(255,255,255,0.85);margin-top:3px;font-style:italic">נושא: &quot;' + (em.subject || '') + '&quot;</div>'
+      + '<div style="font-size:10px;color:rgba(255,255,255,0.6);margin-top:2px">' + (LABELS[idx] || '') + '</div></div>'
+      + (research ? '<div class="bp-sec" style="background:rgba(108,99,255,0.04)">'
+        + '<div class="bp-lbl">🔍 מה חקרתי לפני כתיבת המייל:</div>'
+        + research + concluded + '</div>' : '')
+      + '<div class="bp-sec">'
+      + '<div class="bp-lbl">✉️ גוף המייל:</div>'
+      + '<div class="bp-body">' + (em.body || '') + '</div>'
+      + '<div class="bp-cta" style="background:' + c + '22;color:' + c + ';border:1px solid ' + c + '44">📌 CTA: ' + (em.cta || '') + '</div>'
+      + '</div></div>';
+  });
+
+  container.innerHTML = html;
+};
+
+function roiBox(label, val, color) {
+  return '<div class="bp-rbox"><div style="font-size:10px;color:var(--muted);margin-bottom:4px">' + label + '</div>'
+    + '<div style="font-size:13px;font-weight:700;color:' + color + '">' + val + '</div></div>';
+}
+
+/* === ADD BLUEPRINT TAB TO ANY LEAD CARD === */
+function addBlueprintTab(lead) {
+  var body = document.getElementById('body-' + lead.id);
+  if (!body) return;
+  var tabs = body.querySelector('.lead-tabs');
+  if (tabs && !tabs.querySelector('[data-bptab="' + lead.id + '"]')) {
+    var btn = document.createElement('button');
+    btn.className = 'lead-tab';
+    btn.setAttribute('data-bptab', lead.id);
+    btn.innerHTML = '📧 Blueprint AI';
+    btn.onclick = function() { if (window.switchLeadTab) switchLeadTab(lead.id, 'blueprint', btn); };
+    tabs.appendChild(btn);
+  }
+  if (!document.getElementById('l' + lead.id + '-blueprint')) {
+    var panel = document.createElement('div');
+    panel.className = 'lead-tab-panel';
+    panel.id = 'l' + lead.id + '-blueprint';
+    panel.innerHTML = '<div id="bp-container-' + lead.id + '" style="padding:8px 0"></div>';
+    body.appendChild(panel);
+  }
+  renderBlueprintForLead(lead);
+}
+
+/* === PATCH renderSimpleLead === */
+var _rslOrig = window.renderSimpleLead;
+window.renderSimpleLead = function(lead) {
+  if (_rslOrig) _rslOrig(lead);
+  if (lead && lead.enrichment && lead.enrichment.email_sequence && lead.enrichment.email_sequence.length) {
+    setTimeout(function() { addBlueprintTab(lead); }, 250);
+  }
+};
+
+/* === UNIVERSAL SOURCE HOOKS === */
+function queueEnrich(lead) {
+  if (typeof enrichmentQueue === 'undefined' || typeof processEnrichmentQueue === 'undefined') return;
+  if (lead.enrichment && lead.enrichment.email_sequence && lead.enrichment.email_sequence.length) return;
+  enrichmentQueue.push(Object.assign({}, lead));
+  processEnrichmentQueue();
+}
+
+var _addLeadOrig = window.addLead;
+if (_addLeadOrig) {
+  window.addLead = async function() {
+    await _addLeadOrig.apply(this, arguments);
+    setTimeout(function() {
+      if (typeof leads !== 'undefined' && leads.length > 0) queueEnrich(leads[leads.length - 1]);
+    }, 800);
+  };
+}
+
+['importLeadsFromCSV','importLeadsFromData','processCSVImport','loadCSV','bulkImport'].forEach(function(fn) {
+  if (!window[fn]) return;
+  var orig = window[fn];
+  window[fn] = function() {
+    var before = typeof leads !== 'undefined' ? leads.length : 0;
+    var r = orig.apply(this, arguments);
+    setTimeout(function() {
+      if (typeof leads !== 'undefined') leads.slice(before).forEach(queueEnrich);
+    }, 1500);
+    return r;
+  };
+});
+
+var _watchLen = 0;
+setInterval(function() {
+  if (typeof leads === 'undefined') return;
+  if (leads.length > _watchLen) {
+    leads.slice(_watchLen).forEach(queueEnrich);
+    _watchLen = leads.length;
+  }
+}, 3000);
+
+/* === RE-ENRICH ALL BUTTON === */
+function addReEnrichBtn() {
+  if (document.getElementById('reenrich-all-v4')) return;
+  var leadsPanel = document.getElementById('tab-leads');
+  if (!leadsPanel) return;
+  var btn = document.createElement('button');
+  btn.id = 'reenrich-all-v4';
+  btn.style.cssText = 'display:block;width:100%;background:linear-gradient(135deg,rgba(108,99,255,0.15),rgba(255,101,132,0.08));border:1px solid rgba(108,99,255,0.35);border-radius:9px;padding:10px 16px;font-size:12px;color:var(--accent);cursor:pointer;font-family:Heebo,sans-serif;margin-bottom:10px;text-align:right;font-weight:600;transition:all 0.2s';
+
+  function refreshText() {
+    var total = typeof leads !== 'undefined' ? leads.length : 0;
+    var withBP = typeof leads !== 'undefined' ? leads.filter(function(l) {
+      return l.enrichment && l.enrichment.email_sequence && l.enrichment.email_sequence.length;
+    }).length : 0;
+    btn.innerHTML = '🤖 עדכן Email Blueprint לכל הלידים'
+      + ' <span style="color:var(--muted);font-weight:400;font-size:11px">— ' + withBP + '/' + total + ' כבר עם Blueprint</span>';
+  }
+  refreshText();
+
+  btn.onclick = function() {
+    var total = typeof leads !== 'undefined' ? leads.length : 0;
+    if (!confirm('לשלוח את כל ' + total + ' הלידים לניתוח AI מלא?\nהתהליך ייקח כמה דקות.')) return;
+    if (typeof leads !== 'undefined') {
+      leads.forEach(function(l) {
+        if (typeof enrichmentQueue !== 'undefined') enrichmentQueue.push(Object.assign({}, l));
+      });
+    }
+    if (typeof processEnrichmentQueue !== 'undefined') processEnrichmentQueue();
+    btn.style.opacity = '0.6';
+    btn.innerHTML = '⏳ מעבד... הלידים נשלחים לניתוח AI';
+    setTimeout(refreshText, 6000);
+  };
+
+  var ref = document.getElementById('crm-v3-toolbar') || leadsPanel.querySelector('.leads-toolbar') || document.getElementById('leads-list');
+  if (ref && ref.parentNode) ref.parentNode.insertBefore(btn, ref);
+  else leadsPanel.insertBefore(btn, leadsPanel.firstChild);
+}
+
+/* === SALES PLAYBOOK METHODOLOGY PANEL === */
+function addSalesPlaybookPanel() {
+  if (document.getElementById('market-v4meth')) return;
+  var methTab = document.getElementById('tab-methodology');
+  if (!methTab) return;
+  var btnBar = methTab.querySelector('.methodology-selector');
+  if (btnBar && !btnBar.querySelector('[data-v4meth]')) {
+    var b = document.createElement('button');
+    b.className = 'meth-btn'; b.setAttribute('data-v4meth','1'); b.textContent = '🎯 Sales Playbook';
+    b.onclick = function() { if (window.switchMarket) switchMarket('v4meth', b); };
+    btnBar.appendChild(b);
+  }
+  var panel = document.createElement('div');
+  panel.className = 'meth-panel'; panel.id = 'market-v4meth';
+  panel.innerHTML = buildPlaybookHTML();
+  methTab.appendChild(panel);
+}
+
+function buildPlaybookHTML() {
+  var h = '<div style="max-width:820px">';
+
+  h += '<div style="background:linear-gradient(135deg,#1A1A2E,#2D2B55);border-radius:12px;padding:20px 24px;margin-bottom:20px">'
+    + '<div style="font-size:15px;font-weight:700;color:#fff;margin-bottom:6px">🎯 XTIX Sales Playbook v2</div>'
+    + '<div style="font-size:11px;color:#AAAACC;line-height:1.7">מבוסס על: Salesforce 18 BPs · HubSpot Pain Discovery · Intercom SaaS · SPIN · Sandler<br>'
+    + 'כל ליד: מחקר → מסקנה → 4 מיילים מותאמים אישית → Discovery questions</div></div>';
+
+  h += '<div style="font-size:11px;font-weight:700;color:var(--accent);margin-bottom:10px;text-transform:uppercase;letter-spacing:1px">⚡ עקרונות הבסיס</div>'
+    + '<div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:20px">'
+    + ['אל תדבר על XTIX — דבר על הכסף שהוא מפסיד היום',
+       'כל ליד מקבל ניתוח AI לפני פנייה — מגיעים עם נתונים ספציפיים',
+       'שאלה חכמה שווה יותר מ-10 משפטי מכירה — יחס דיבור 30/70',
+       'כל מייל מראה שיעורי בית — ספציפי לליד, לא template כללי'
+      ].map(function(t,i) {
+        return '<div style="background:rgba(108,99,255,0.1);border:1px solid rgba(108,99,255,0.25);border-radius:8px;padding:10px 14px;display:flex;gap:10px;align-items:flex-start">'
+          + '<span style="background:var(--accent);color:#fff;border-radius:50%;width:20px;height:20px;display:flex;align-items:center;justify-content:center;font-size:10px;font-weight:700;flex-shrink:0">'+(i+1)+'</span>'
+          + '<span style="font-size:12px;color:var(--text);line-height:1.5">'+t+'</span></div>';
+      }).join('') + '</div>';
+
+  h += '<div style="font-size:11px;font-weight:700;color:var(--accent);margin-bottom:10px;text-transform:uppercase;letter-spacing:1px">🔍 Four Fs — Pain Discovery</div>'
+    + '<div style="border:1px solid var(--border);border-radius:10px;overflow:hidden;margin-bottom:20px">'
+    + '<div style="display:grid;grid-template-columns:1.2fr 2fr 1.5fr 1.5fr;background:rgba(108,99,255,0.15);padding:7px 14px;font-size:10px;font-weight:700;color:var(--accent);text-transform:uppercase"><div>שלב</div><div>שאלה</div><div>מה לומדים</div><div>איך XTIX עונה</div></div>'
+    + [['F1 — First','איך אתם מוכרים כרטיסים היום?','פלטפורמה, עמלות, תהליך','מבין המצב — לא מוכר','6C63FF'],
+       ['F2 — Finest','מה הכי נוח בפלטפורמה הנוכחית?','מה חשוב → לא לשבור','מציע המשכיות + שיפור','0EA5E9'],
+       ['F3 — Failure','מי מחזיק את נתוני הקהל?','כאב הנתונים — pain ראשי','מדגיש data ownership','EF4444'],
+       ['F4 — Future','איך נראה הופע הבא עם 40% קהל חוזר?','חזון + מוטיבציה','מחבר XTIX לחזון שלהם','10B981']
+      ].map(function(r,i) {
+        return '<div style="display:grid;grid-template-columns:1.2fr 2fr 1.5fr 1.5fr;padding:9px 14px;border-top:1px solid var(--border);font-size:11px;background:'+(i%2===0?'rgba(255,255,255,0.02)':'transparent')+'">'
+          + '<div style="font-weight:700;color:#'+r[4]+'">'+r[0]+'</div>'
+          + '<div style="color:var(--muted);font-style:italic">'+r[1]+'</div>'
+          + '<div>'+r[2]+'</div><div style="color:var(--green)">'+r[3]+'</div></div>';
+      }).join('') + '</div>';
+
+  h += '<div style="font-size:11px;font-weight:700;color:var(--accent);margin-bottom:10px;text-transform:uppercase;letter-spacing:1px">📊 Scoring Tiers</div>'
+    + '<div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px;margin-bottom:20px">'
+    + [['A','80+','24 שעות','4 מיילים + שיחה','239,68,68','EF4444'],
+       ['B','60-79','48 שעות','3 מיילים','245,158,11','F59E0B'],
+       ['C','<60','שבוע+','2 מיילים + חימום','14,165,233','0EA5E9']
+      ].map(function(t) {
+        return '<div style="background:rgba('+t[4]+',0.08);border:1px solid rgba('+t[4]+',0.25);border-radius:9px;padding:12px;text-align:center">'
+          + '<div style="font-size:20px;font-weight:800;color:#'+t[5]+'">Tier '+t[0]+'</div>'
+          + '<div style="font-size:12px;color:var(--muted);margin:3px 0">ציון '+t[1]+'</div>'
+          + '<div style="font-size:11px;color:var(--text)">פנייה תוך '+t[2]+'</div>'
+          + '<div style="font-size:11px;color:var(--text)">'+t[3]+'</div></div>';
+      }).join('') + '</div>';
+
+  h += '<div style="font-size:11px;font-weight:700;color:var(--accent);margin-bottom:10px;text-transform:uppercase;letter-spacing:1px">💰 ROI Calculator</div>'
+    + '<div style="background:rgba(16,185,129,0.06);border:1px solid rgba(16,185,129,0.2);border-radius:10px;padding:16px 20px;margin-bottom:20px">'
+    + '<div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:10px;margin-bottom:12px">'
+    + '<div><label style="font-size:10px;color:var(--muted);display:block;margin-bottom:4px">כרטיסים שנתי</label><input id="roi-t" type="number" value="10000" style="width:100%;background:var(--surface2);border:1px solid var(--border);border-radius:6px;padding:6px 8px;color:var(--text);font-size:13px" oninput="calcRoiV4()"></div>'
+    + '<div><label style="font-size:10px;color:var(--muted);display:block;margin-bottom:4px">מחיר ממוצע (₪)</label><input id="roi-p" type="number" value="150" style="width:100%;background:var(--surface2);border:1px solid var(--border);border-radius:6px;padding:6px 8px;color:var(--text);font-size:13px" oninput="calcRoiV4()"></div>'
+    + '<div><label style="font-size:10px;color:var(--muted);display:block;margin-bottom:4px">עמלה נוכחית (%)</label><input id="roi-f" type="number" value="6" style="width:100%;background:var(--surface2);border:1px solid var(--border);border-radius:6px;padding:6px 8px;color:var(--text);font-size:13px" oninput="calcRoiV4()"></div>'
+    + '</div><div id="roi-res-v4"></div></div>';
+
+  h += '<div style="font-size:11px;font-weight:700;color:var(--accent);margin-bottom:10px;text-transform:uppercase;letter-spacing:1px">🛡 טיפול בהתנגדויות</div>'
+    + '<div style="border:1px solid var(--border);border-radius:10px;overflow:hidden;margin-bottom:20px">'
+    + '<div style="display:grid;grid-template-columns:1.5fr 1.2fr 2fr;background:rgba(108,99,255,0.15);padding:7px 14px;font-size:10px;font-weight:700;color:var(--accent);text-transform:uppercase"><div>ההתנגדות</div><div>מה מסתתר</div><div>תגובה</div></div>'
+    + [['מרוצים מהפלטפורמה','לא ראה ערך לשנות','מה הכי אהבתם? אם XTIX שומר + מוסיף data — 15 דקות?'],
+       ['אין זמן עכשיו','לא רואה ROI','אם מראה כמה משלמים מיותר — 15 דקות?'],
+       ['יקר / לא בתקציב','לא חיבר חיסכון','2.5% vs כמה עכשיו? ההפרש מממן את עצמו.'],
+       ['לא מכיר XTIX','חסר social proof','האם [לקוח ידוע] מספיק? הם עברו לפני 6 חודשים.'],
+       ['נחשוב על זה','לא מספיק urgency','מה גורם להתלבט? בואו נפתור עכשיו.']
+      ].map(function(r,i) {
+        return '<div style="display:grid;grid-template-columns:1.5fr 1.2fr 2fr;padding:9px 14px;border-top:1px solid var(--border);font-size:11px;background:'+(i%2===0?'rgba(255,255,255,0.02)':'transparent')+'">'
+          + '<div style="color:var(--accent2);font-style:italic">"'+r[0]+'"</div>'
+          + '<div style="color:var(--muted)">'+r[1]+'</div>'
+          + '<div style="color:var(--green)">'+r[2]+'</div></div>';
+      }).join('') + '</div>';
+
+  h += '</div>';
+  return h;
+}
+
+window.calcRoiV4 = function() {
+  var t=parseFloat(document.getElementById('roi-t').value)||0;
+  var p=parseFloat(document.getElementById('roi-p').value)||0;
+  var f=parseFloat(document.getElementById('roi-f').value)||0;
+  var rev=t*p,cur=rev*f/100,xtix=rev*2.5/100,sav=cur-xtix;
+  var el=document.getElementById('roi-res-v4');if(!el)return;
+  el.innerHTML='<div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px">'
+    +[['הכנסה שנתית','₪'+rev.toLocaleString('he-IL'),'#6C63FF'],['עמלה נוכחית ('+f+'%)','₪'+Math.round(cur).toLocaleString('he-IL'),'#EF4444'],['חיסכון ב-XTIX','₪'+Math.round(sav).toLocaleString('he-IL'),'#10B981']]
+    .map(function(r){return '<div style="background:var(--surface2);border-radius:8px;padding:9px 12px;border:1px solid var(--border);text-align:center"><div style="font-size:10px;color:var(--muted);margin-bottom:3px">'+r[0]+'</div><div style="font-size:15px;font-weight:700;color:'+r[2]+'">'+r[1]+'</div></div>';}).join('')+'</div>';
+};
+
+/* === INIT === */
+setTimeout(function() {
+  addReEnrichBtn();
+  addSalesPlaybookPanel();
+  if (typeof leads !== 'undefined') {
+    _watchLen = leads.length;
+    leads.forEach(function(l) {
+      if (l.enrichment && l.enrichment.email_sequence && l.enrichment.email_sequence.length) {
+        setTimeout(function() { addBlueprintTab(l); }, 400);
+      }
+    });
+  }
+  setTimeout(function() { if (window.calcRoiV4) calcRoiV4(); }, 2500);
+}, 2500);
 
 })();
 </script>
