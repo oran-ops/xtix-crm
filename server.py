@@ -141,18 +141,26 @@ def analyze_website(url):
 # ── Gmail ──────────────────────────────────────────────────────────────────
 def send_gmail(cfg, to_email, subject, body_html, body_text=''):
     u = cfg.get('gmail_user',''); p = cfg.get('gmail_app_password','')
+    print(f'  [EMAIL] to={to_email} user={u} pass_set={bool(p)}', flush=True)
     if not u or not p: return {'ok':False,'error':'Gmail not configured. Open Settings in CRM.'}
     msg = MIMEMultipart('alternative')
     msg['Subject']=subject; msg['From']=f"{cfg.get('sender_name','XTIX')} <{u}>"; msg['To']=to_email
     if body_text: msg.attach(MIMEText(body_text,'plain','utf-8'))
     msg.attach(MIMEText(body_html,'html','utf-8'))
     try:
-        with smtplib.SMTP_SSL('smtp.gmail.com',465) as s:
-            s.login(u,p); s.sendmail(u,to_email,msg.as_string())
+        print('  [EMAIL] Connecting SMTP...', flush=True)
+        with smtplib.SMTP_SSL('smtp.gmail.com', 465, timeout=25) as s:
+            print('  [EMAIL] Login...', flush=True)
+            s.login(u,p)
+            print('  [EMAIL] Sending...', flush=True)
+            s.sendmail(u,to_email,msg.as_string())
+        print(f'  [EMAIL] SUCCESS', flush=True)
         return {'ok':True,'message':f'נשלח ל-{to_email}'}
-    except smtplib.SMTPAuthenticationError:
+    except smtplib.SMTPAuthenticationError as e:
+        print(f'  [EMAIL] AUTH ERROR: {e}', flush=True)
         return {'ok':False,'error':'Gmail auth failed — check App Password in CRM Settings'}
     except Exception as e:
+        print(f'  [EMAIL] ERROR: {e}', flush=True)
         return {'ok':False,'error':str(e)}
 
 # ── HubSpot ────────────────────────────────────────────────────────────────
