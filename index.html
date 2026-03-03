@@ -3180,11 +3180,16 @@ ${proxyCtx}
       }).catch(function(e) {
         console.warn('[ENRICH] Failed for', lead.name, e);
         var sb3 = document.getElementById('enrich-status-bar');
-        if (sb3) sb3.innerHTML = '⚠️ <strong>' + lead.name + '</strong> — נכשל, ממשיך לבא...';
-      }).finally(function() {
-        // Next lead after 2s delay
-        setTimeout(processNext, 2000);
-      });
+        // On 429 rate limit — requeue the lead and wait longer
+        if (e && e.message && (e.message.indexOf('429') !== -1 || e.message.indexOf('Too Many') !== -1)) {
+          enrichmentQueue.unshift(lead); // put back at front
+          if (sb3) sb3.innerHTML = '⏳ Rate limit — ממתין 20 שניות...';
+          setTimeout(processNext, 20000);
+        } else {
+          if (sb3) sb3.innerHTML = '⚠️ <strong>' + lead.name + '</strong> — נכשל, ממשיך לבא...';
+          setTimeout(processNext, 8000);
+        }
+      }).finally(function() {});
     }
 
     processNext();
