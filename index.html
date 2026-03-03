@@ -4007,50 +4007,29 @@ ${proxyCtx}
 
   // ===== FIX 3: Move Lead Finder to main tab bar =====
   function addLeadFinderTab() {
-    if (document.getElementById('tab-leadfinder-main')) return;
+    // Instead of cloning — just add a tab button that switches to market tab + leadfinder sub-tab
+    if (document.getElementById('lf-tab-btn')) return;
     var tabBar = document.querySelector('.tabs');
     if (!tabBar) return;
 
-    // Add new tab button
     var btn = document.createElement('button');
     btn.className = 'tab';
+    btn.id = 'lf-tab-btn';
     btn.textContent = '🔍 Lead Finder';
-    btn.onclick = function() { switchToLeadFinder(this); };
-    tabBar.insertBefore(btn, tabBar.children[1]); // right after ניתוח שוק
-
-    // Create new panel that wraps the existing lead finder content
-    var existingPanel = document.getElementById('market-leadfinder');
-    if (!existingPanel) return;
-
-    var newPanel = document.createElement('div');
-    newPanel.className = 'panel';
-    newPanel.id = 'tab-leadfinder-main';
-    newPanel.style.display = 'none';
-
-    // Clone content
-    var clone = existingPanel.cloneNode(true);
-    clone.id = 'market-leadfinder-main-clone';
-    clone.style.display = 'block';
-    // Fix all IDs to avoid conflicts
-    clone.querySelectorAll('[id]').forEach(function(el) {
-      el.id = el.id + '-main';
-    });
-    newPanel.appendChild(clone);
-
-    var container = document.querySelector('.container');
-    if (container) container.appendChild(newPanel);
-
-    // Handle tab switch
-    window.switchToLeadFinder = function(tabBtn) {
-      // Hide all panels
-      document.querySelectorAll('.panel').forEach(function(p){ p.style.display = 'none'; p.classList.remove('active'); });
-      document.querySelectorAll('.tab').forEach(function(t){ t.classList.remove('active'); });
-      tabBtn.classList.add('active');
-      newPanel.style.display = 'block';
-      newPanel.classList.add('active');
-      // Init checklist if needed
-      if (window.initChecklist) initChecklist();
+    btn.onclick = function() {
+      // Switch to ניתוח שוק panel
+      var marketBtn = document.querySelector('.tab[onclick*="market"]');
+      if (marketBtn) switchTab('market', marketBtn);
+      // Then activate leadfinder sub-tab
+      setTimeout(function() {
+        var lfBtn = document.querySelector('.meth-btn[onclick*="leadfinder"]');
+        if (lfBtn) switchMarket('leadfinder', lfBtn);
+        // Mark our button active
+        document.querySelectorAll('.tab').forEach(function(t){ t.classList.remove('active'); });
+        btn.classList.add('active');
+      }, 10);
     };
+    tabBar.insertBefore(btn, tabBar.children[1]);
   }
 
   setTimeout(addLeadFinderTab, 1200);
