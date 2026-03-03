@@ -2992,6 +2992,108 @@ IF RESPONSE at any point → Book 30-min MEETING (not call). Prepare ROI deck be
     document.getElementById('crm-added-msg').style.display = 'none';
   }
 
+  // ── הוסף ל-CRM מהסקורר ──────────────────────────────────────
+  window.addLeadFromScorer = function addLeadFromScorer() {
+    var name    = (document.getElementById('lf-name') || {}).value || '';
+    var domain  = (document.getElementById('lf-domain') || {}).value || '';
+
+    if (!name.trim()) {
+      alert('נא להזין שם ליד לפני ההוספה ל-CRM');
+      return;
+    }
+
+    // Collect all scorer answers
+    function gv(id) { var el = document.getElementById(id); return el ? el.value : ''; }
+    function gr(name) {
+      var el = document.querySelector('input[name="' + name + '"]:checked');
+      return el ? el.value : '';
+    }
+
+    var scoreEl = document.getElementById('score-display');
+    var score   = scoreEl ? parseInt(scoreEl.textContent) || 0 : 0;
+
+    var segment   = gr('q_segment') || 'כללי';
+    var platform  = gr('q_platform');
+    var sizeVal   = gr('q_size');
+    var competitor = gv('lf-competitor');
+
+    var segMap  = {'1':'קהילה קטנה','2':'בינוני','3':'גדול','':'כללי'};
+    var platMap = {'0':'לא ידוע','1':'SmarTicket/Bravo/Leaan','2':'כן - מתחרה אחר','':'לא ידוע'};
+
+    var now = new Date().toISOString();
+    var id  = Date.now();
+
+    var lead = {
+      id:         id,
+      name:       name.trim(),
+      domain:     domain.trim(),
+      status:     'new',
+      source:     'scorer',
+      score:      score,
+      segment:    segment,
+      platform:   platMap[platform] || platform || '',
+      competitor: competitor || '',
+      created_at: now,
+      updated_at: now,
+      notes:      'נוסף מה-Lead Finder Scorer — ציון: ' + score
+    };
+
+    // Add to global leads array
+    if (typeof leads !== 'undefined') {
+      leads.push(lead);
+    }
+
+    // Render the card
+    if (typeof renderSimpleLead === 'function') {
+      renderSimpleLead(lead);
+    }
+
+    // Save to Firebase / localStorage
+    if (typeof db !== 'undefined' && db) {
+      db.collection('leads').doc(String(id)).set(lead).catch(function(e) {
+        console.warn('Firebase save error:', e);
+      });
+    }
+    try {
+      var saved = JSON.parse(localStorage.getItem('xtix_crm_leads') || '[]');
+      saved.push(lead);
+      localStorage.setItem('xtix_crm_leads', JSON.stringify(saved));
+    } catch(e) {}
+
+    if (typeof updateStats === 'function') updateStats();
+    if (typeof updateBadge === 'function') updateBadge();
+
+    // ✅ Success feedback
+    var btn = document.getElementById('btn-add-crm');
+    var msg = document.getElementById('crm-added-msg');
+
+    if (btn) {
+      btn.textContent = '✅ נוסף!';
+      btn.style.background = 'rgba(0,230,118,0.2)';
+      btn.style.color = 'var(--green)';
+      btn.style.border = '1px solid var(--green)';
+      btn.disabled = true;
+    }
+    if (msg) {
+      msg.style.display = 'block';
+      msg.innerHTML = '<div style="background:rgba(0,230,118,0.12);border:1px solid rgba(0,230,118,0.35);border-radius:9px;padding:12px 16px;font-size:13px;color:var(--green);text-align:center">'
+        + '✅ <strong>' + name.trim() + '</strong> נוסף ל-CRM בהצלחה!'
+        + '<br><span style="font-size:11px;color:var(--muted);margin-top:4px;display:block">עבור ללידים לצפייה בכרטיס</span>'
+        + '<button onclick="switchMainTab(&quot;leads&quot;,document.querySelector(&quot;[data-panel=leads]&quot;))" '
+        + 'style="margin-top:8px;background:var(--accent);border:none;border-radius:7px;padding:6px 16px;color:#fff;font-size:12px;font-family:Heebo,sans-serif;cursor:pointer">👤 עבור ללידים</button>'
+        + '</div>';
+    }
+
+    // Switch to leads tab after 2s
+    setTimeout(function() {
+      var leadsBtn = document.querySelector('[data-panel="leads"]');
+      if (leadsBtn && typeof switchMainTab === 'function') {
+        switchMainTab('leads', leadsBtn);
+      }
+    }, 2500);
+  };
+
+
   window.analyzeUrl = async function analyzeUrl() {
     const url = (document.getElementById('lf-url').value || '').trim();
     const nameInput = document.getElementById('lf-name-url') || document.getElementById('lf-name');
@@ -3595,9 +3697,12 @@ ${proxyCtx}
     var chat = document.getElementById('hunt-chat');
     if (!chat) return;
     var questions = [
-      { key: 'segment', text: 'באיזה סגמנט תרבות תרצה לחפש לידים? (מוזיקה / תיאטרון / סטנד-אפ / ספורט / פסטיבל)', opts: ['מוזיקה', 'תיאטרון', 'סטנד-אפ', 'ספורט', 'פסטיבל', 'הכל'] },
-      { key: 'location', text: 'מאיזה אזור? (תל אביב / ירושלים / חיפה / ארצי)', opts: ['תל אביב', 'ירושלים', 'חיפה', 'ארצי'] },
-      { key: 'size', text: 'גודל קהל? (קטן <500 / בינוני 500-2000 / גדול 2000+)', opts: ['קטן', 'בינוני', 'גדול'] }
+      { key: 'segment',   text: 'באיזה סגמנט תרצה לחפש?', opts: ['מוזיקה', 'תיאטרון', 'סטנד-אפ', 'ספורט', 'פסטיבל', 'קולנוע', 'הכל'] },
+      { key: 'location',  text: 'מאיזה אזור?', opts: ['תל אביב', 'ירושלים', 'חיפה', 'באר שבע', 'ארצי'] },
+      { key: 'size',      text: 'גודל קהל ממוצע לאירוע?', opts: ['קטן (<500)', 'בינוני (500-2000)', 'גדול (2000+)'] },
+      { key: 'platform',  text: 'פלטפורמת כרטיסים נוכחית?', opts: ['SmarTicket', 'Bravo', 'Leaan', 'אחרת', 'לא יודע'] },
+      { key: 'freq',      text: 'כמה אירועים בשנה?', opts: ['1-3', '4-10', '10+'] },
+      { key: 'priority',  text: 'עדיפות חיפוש?', opts: ['הכי חמים (Hot)', 'בינוני (Warm)', 'הכל'] }
     ];
     var step = huntState.step;
     if (step >= questions.length) {
@@ -3658,15 +3763,135 @@ ${proxyCtx}
     var chat = document.getElementById('hunt-chat');
     if (!chat) return;
     var ans = huntState.answers;
-    var summary = document.createElement('div');
-    summary.style.cssText = 'background:rgba(16,185,129,0.1);border:1px solid rgba(16,185,129,0.3);border-radius:8px;padding:12px 14px;font-size:12px;color:var(--green)';
-    summary.innerHTML = '<div style="font-weight:700;margin-bottom:6px">✅ חיפוש מוגדר!</div>'
-      + '<div>סגמנט: ' + (ans.segment||'הכל') + ' | אזור: ' + (ans.location||'ארצי') + ' | גודל: ' + (ans.size||'כל') + '</div>'
-      + '<div style="margin-top:6px;font-size:11px;color:var(--muted)">השתמש ב-URL הן בחיפוש גוגל: <strong>site:instagram.com OR site:facebook.com ' + (ans.segment||'אירועים') + ' ' + (ans.location||'ישראל') + '</strong></div>';
-    chat.appendChild(summary);
+
+    // Build summary
+    var summaryDiv = document.createElement('div');
+    summaryDiv.style.cssText = 'background:rgba(16,185,129,0.08);border:1px solid rgba(16,185,129,0.25);border-radius:10px;padding:14px 16px;font-size:12px;margin-bottom:8px';
+    summaryDiv.innerHTML = '<div style="font-weight:800;color:var(--green);margin-bottom:8px;font-size:13px">✅ פרמטרים הוגדרו</div>'
+      + '<div style="display:grid;grid-template-columns:1fr 1fr;gap:6px;margin-bottom:10px">'
+      + '<div><span style="color:var(--muted)">סגמנט:</span> <strong>' + (ans.segment||'הכל') + '</strong></div>'
+      + '<div><span style="color:var(--muted)">אזור:</span> <strong>' + (ans.location||'ארצי') + '</strong></div>'
+      + '<div><span style="color:var(--muted)">גודל קהל:</span> <strong>' + (ans.size||'כל') + '</strong></div>'
+      + '<div><span style="color:var(--muted)">פלטפורמה:</span> <strong>' + (ans.platform||'כל') + '</strong></div>'
+      + '<div><span style="color:var(--muted)">תדירות:</span> <strong>' + (ans.freq||'כל') + '</strong></div>'
+      + '<div><span style="color:var(--muted)">עדיפות:</span> <strong>' + (ans.priority||'הכל') + '</strong></div>'
+      + '</div>'
+      + '<button onclick="window.runHuntSearch()" style="width:100%;background:linear-gradient(135deg,var(--accent),#8b5cf6);border:none;border-radius:8px;padding:11px;color:#fff;font-size:13px;font-weight:800;cursor:pointer;font-family:Heebo,sans-serif;margin-bottom:6px">🚀 חפש לידים עם AI</button>'
+      + '<button onclick="huntState.step=0;huntState.answers={};huntAskNext()" style="width:100%;background:transparent;border:1px solid var(--border);border-radius:8px;padding:8px;color:var(--muted);font-size:12px;cursor:pointer;font-family:Heebo,sans-serif">↺ שנה פרמטרים</button>';
+    chat.appendChild(summaryDiv);
     chat.scrollTop = chat.scrollHeight;
-    huntState.step = 0; huntState.answers = {};
+    // Keep answers for search, reset step only
+    huntState.step = 0;
   }
+
+  window.runHuntSearch = async function runHuntSearch() {
+    var chat = document.getElementById('hunt-chat');
+    var resultsEl = document.getElementById('hunt-results');
+    var ans = huntState.answers;
+    if (!chat) return;
+
+    // Show loading
+    var loadDiv = document.createElement('div');
+    loadDiv.id = 'hunt-loading';
+    loadDiv.style.cssText = 'background:rgba(108,99,255,0.1);border-radius:8px;padding:12px 14px;font-size:12px;color:var(--accent);text-align:center';
+    loadDiv.innerHTML = '🤖 AI מחפש לידים מתאימים...<br><span style="font-size:10px;color:var(--muted)">עשוי לקחת 15-20 שניות</span>';
+    chat.appendChild(loadDiv);
+    chat.scrollTop = chat.scrollHeight;
+
+    var prompt = [
+      'אתה מנהל מכירות ב-XTIX.AI. חפש 5 לידים ישראלים אמיתיים.',
+      'סגמנט: ' + (ans.segment||'הכל') + ' | אזור: ' + (ans.location||'ארצי'),
+      'גודל: ' + (ans.size||'כל') + ' | פלטפורמה: ' + (ans.platform||'כל'),
+      'תדירות: ' + (ans.freq||'כל') + ' | עדיפות: ' + (ans.priority||'הכל'),
+      'החזר JSON: {"leads":[{"name":"שם","domain":"example.co.il","phone":"03-XXX","segment":"סגמנט","platform":"פלטפורמה","score":75,"reason":"סיבה"}]}',
+      '5 ארגונים ישראלים אמיתיים בלבד.'
+    ].join(' ');
+
+    try {
+      var res = await fetch('https://xtix-crm-production.up.railway.app/ai', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          model: 'claude-haiku-4-5-20251001',
+          max_tokens: 1000,
+          system: 'Return ONLY valid JSON. No markdown.',
+          messages: [{ role: 'user', content: prompt }]
+        }),
+        signal: AbortSignal.timeout(25000)
+      });
+      var data = await res.json();
+      var raw = (data.content||[]).map(function(b){return b.text||'';}).join('');
+      var s = raw.indexOf('{'), e = raw.lastIndexOf('}');
+      var parsed = JSON.parse(raw.substring(s, e+1));
+      var foundLeads = parsed.leads || [];
+
+      loadDiv.remove();
+
+      if (!foundLeads.length) {
+        var noRes = document.createElement('div');
+        noRes.style.cssText = 'color:var(--muted);font-size:12px;padding:8px';
+        noRes.textContent = 'לא נמצאו לידים — נסה פרמטרים שונים.';
+        chat.appendChild(noRes);
+        return;
+      }
+
+      var resDiv = document.createElement('div');
+      resDiv.style.cssText = 'display:flex;flex-direction:column;gap:8px';
+      foundLeads.forEach(function(lead) {
+        var card = document.createElement('div');
+        card.style.cssText = 'background:var(--surface2);border:1px solid var(--border);border-radius:9px;padding:12px 14px';
+        card.innerHTML = '<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px">'
+          + '<strong style="color:var(--text);font-size:13px">' + (lead.name||'') + '</strong>'
+          + '<span style="background:rgba(108,99,255,0.15);color:var(--accent);border-radius:20px;padding:2px 8px;font-size:11px;font-weight:700">' + (lead.score||'?') + '</span>'
+          + '</div>'
+          + (lead.domain ? '<div style="font-size:11px;color:var(--muted);margin-bottom:4px">🌐 ' + lead.domain + '</div>' : '')
+          + (lead.phone  ? '<div style="font-size:11px;color:var(--muted);margin-bottom:4px">📞 ' + lead.phone + '</div>' : '')
+          + (lead.platform ? '<div style="font-size:11px;color:var(--muted);margin-bottom:6px">🎫 ' + lead.platform + '</div>' : '')
+          + (lead.reason ? '<div style="font-size:11px;color:var(--green);margin-bottom:8px">' + lead.reason + '</div>' : '')
+          + '<button onclick="huntAddLead(' + JSON.stringify(lead).replace(/"/g, '&quot;') + ')" '
+          + 'style="width:100%;background:rgba(0,230,118,0.1);border:1px solid rgba(0,230,118,0.3);border-radius:7px;padding:7px;color:var(--green);font-size:12px;font-weight:700;cursor:pointer;font-family:Heebo,sans-serif">➕ הוסף ל-CRM</button>';
+        resDiv.appendChild(card);
+      });
+      chat.appendChild(resDiv);
+      chat.scrollTop = chat.scrollHeight;
+
+    } catch(e) {
+      loadDiv.remove();
+      var errDiv = document.createElement('div');
+      errDiv.style.cssText = 'color:#EF4444;font-size:12px;padding:8px;background:rgba(239,68,68,0.08);border-radius:8px';
+      errDiv.textContent = '⚠️ שגיאה בחיפוש: ' + e.message;
+      chat.appendChild(errDiv);
+    }
+  };
+
+  window.huntAddLead = function huntAddLead(lead) {
+    var now = new Date().toISOString();
+    var newLead = {
+      id: Date.now(),
+      name: lead.name || '',
+      domain: lead.domain || '',
+      phone: lead.phone || '',
+      segment: lead.segment || '',
+      platform: lead.platform || '',
+      score: lead.score || 50,
+      status: 'new',
+      source: 'ai-hunt',
+      created_at: now,
+      updated_at: now,
+      notes: 'נמצא ע"י AI Hunt. ' + (lead.reason || '')
+    };
+    if (typeof leads !== 'undefined') leads.push(newLead);
+    if (typeof renderSimpleLead === 'function') renderSimpleLead(newLead);
+    if (typeof db !== 'undefined' && db) db.collection('leads').doc(String(newLead.id)).set(newLead).catch(function(){});
+    try {
+      var s = JSON.parse(localStorage.getItem('xtix_crm_leads')||'[]');
+      s.push(newLead); localStorage.setItem('xtix_crm_leads', JSON.stringify(s));
+    } catch(e) {}
+    if (typeof updateStats === 'function') updateStats();
+    if (typeof updateBadge === 'function') updateBadge();
+    // Visual feedback on the button
+    event && event.target && (event.target.textContent = '✅ נוסף!') && (event.target.disabled = true);
+  };
 
   // =====================================================
 
