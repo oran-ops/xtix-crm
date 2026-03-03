@@ -285,6 +285,35 @@ class Handler(BaseHTTPRequestHandler):
 
     def do_POST(self):
         p=urllib.parse.urlparse(self.path); b=self.body(); cfg=load_config()
+        if p.path=='/ai':
+            # Proxy to Anthropic API
+            api_key = os.environ.get('ANTHROPIC_API_KEY','')
+            if not api_key:
+                self.json_out({'error':'ANTHROPIC_API_KEY not set in Railway Variables'},500); return
+            try:
+                payload = json.dumps(b).encode('utf-8')
+                req = urllib.request.Request(
+                    'https://api.anthropic.com/v1/messages',
+                    data=payload,
+                    headers={
+                        'Content-Type': 'application/json',
+                        'x-api-key': api_key,
+                        'anthropic-version': '2023-06-01',
+                        'anthropic-beta': 'web-search-2025-03-05'
+                    },
+                    method='POST'
+                )
+                with urllib.request.urlopen(req, context=ssl_ctx, timeout=60) as r:
+                    result = json.loads(r.read().decode('utf-8'))
+                self.json_out(result)
+            except urllib.error.HTTPError as e:
+                err = e.read().decode('utf-8')
+                print(f'  [AI] HTTP Error {e.code}: {err}', flush=True)
+                self.json_out({'error': err}, e.code)
+            except Exception as e:
+                print(f'  [AI] Error: {e}', flush=True)
+                self.json_out({'error': str(e)}, 500)
+            return
         if p.path=='/send-email':
             r=send_gmail(cfg,b.get('to',''),b.get('subject',''),b.get('html',b.get('body','')),b.get('text',''))
             if r['ok'] and cfg.get('hubspot_token') and b.get('hubspot_id'):
