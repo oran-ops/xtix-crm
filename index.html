@@ -2435,7 +2435,7 @@ IF RESPONSE at any point → Book 30-min MEETING (not call). Prepare ROI deck be
       + '</div></div>'
 
       // Body
-      + '<div class="lead-body" id="body-' + lead.id + '" style="display:none">'
+      + '<div class="lead-body" id="body-' + lead.id + '">'
       + '<div class="lead-tabs">'
       + '<button class="lead-tab active" onclick="switchLeadTab('+lead.id+',\'profile\',this)">פרופיל</button>'
       + '<button class="lead-tab" onclick="switchLeadTab('+lead.id+',\'analysis\',this)">ניתוח SF</button>'
@@ -3128,13 +3128,21 @@ ${proxyCtx}
       if (enrichmentQueue.length === 0) {
         enrichmentRunning = false;
         var sb = document.getElementById('enrich-status-bar');
-        if (sb) { sb.innerHTML = '✅ ניתוח הושלם!'; setTimeout(function(){ var s=document.getElementById('enrich-status-bar'); if(s)s.remove(); }, 3000); }
+        window._enrichTotal = 0;
+        if (sb) { sb.innerHTML = '🎉 ניתוח הושלם לכל הלידים! רענן את הדף לראות תוצאות מלאות.'; setTimeout(function(){ var s=document.getElementById('enrich-status-bar'); if(s)s.remove(); }, 5000); }
         return;
       }
 
       var lead = enrichmentQueue.shift();
       var sb = document.getElementById('enrich-status-bar');
       if (sb) sb.innerHTML = '🤖 מנתח: <strong>' + lead.name + '</strong> &nbsp;|&nbsp; נותרו: ' + enrichmentQueue.length;
+
+      // Update status bar: show which lead + progress
+      var total_in_queue = enrichmentQueue.length + 1;
+      var done = (window._enrichTotal || total_in_queue) - enrichmentQueue.length;
+      if (!window._enrichTotal) window._enrichTotal = total_in_queue;
+      var sb = document.getElementById('enrich-status-bar');
+      if (sb) sb.innerHTML = '🤖 מנתח: <strong>' + lead.name + '</strong> &nbsp;|&nbsp; ' + done + '/' + window._enrichTotal + ' &nbsp;<span style="opacity:0.7;font-size:10px">⏳ עד 25 שניות לליד</span>';
 
       autoEnrichLead(lead).then(function(enrichedLead) {
         // Update leads array
@@ -3147,18 +3155,35 @@ ${proxyCtx}
           db.collection('leads').doc(String(enrichedLead.id)).set(enrichedLead).catch(function(e){ console.warn('Firebase save:', e); });
         }
 
-        // Re-render card
+        // Re-render card with success indicator
         var existing = document.getElementById('lead-' + lead.id);
         if (existing) existing.remove();
         renderSimpleLead(enrichedLead);
         if (typeof updateBadge === 'function') updateBadge();
         updateStats();
 
+        // Flash green on the card to show success
+        setTimeout(function() {
+          var card = document.getElementById('lead-' + enrichedLead.id);
+          if (card) {
+            card.style.transition = 'box-shadow 0.3s';
+            card.style.boxShadow = '0 0 0 2px #10b981';
+            setTimeout(function(){ if(card) card.style.boxShadow = ''; }, 2000);
+          }
+        }, 100);
+
+        // Update status bar: success
+        var sb2 = document.getElementById('enrich-status-bar');
+        var doneSoFar = (window._enrichTotal || 1) - enrichmentQueue.length;
+        if (sb2) sb2.innerHTML = '✅ <strong>' + enrichedLead.name + '</strong> — ציון ' + (enrichedLead.score||'?') + ' | Tier ' + (enrichedLead.tier||'?') + ' &nbsp;|&nbsp; ' + doneSoFar + '/' + (window._enrichTotal||'?') + ' הושלמו';
+
       }).catch(function(e) {
         console.warn('[ENRICH] Failed for', lead.name, e);
+        var sb3 = document.getElementById('enrich-status-bar');
+        if (sb3) sb3.innerHTML = '⚠️ <strong>' + lead.name + '</strong> — נכשל, ממשיך לבא...';
       }).finally(function() {
-        // Next lead after 3s delay — non-blocking
-        setTimeout(processNext, 3000);
+        // Next lead after 2s delay
+        setTimeout(processNext, 2000);
       });
     }
 
@@ -4127,11 +4152,20 @@ function addReEnrichBtn() {
 
   btn.onclick = function() {
     var total = typeof leads !== 'undefined' ? leads.length : 0;
-    if (!confirm('לשלוח את כל ' + total + ' הלידים לניתוח AI מלא?\nהתהליך ייקח כמה דקות.')) return;
+    var needEnrich = typeof leads !== 'undefined' ? leads.filter(function(l){ return !(l.enrichment && l.enrichment.email_sequence && l.enrichment.email_sequence.length > 0); }).length : total;
+    if (needEnrich === 0) { alert('✅ כל הלידים כבר נותחו!'); return; }
+    if (!confirm('לנתח ' + needEnrich + ' לידים שעדיין לא נותחו?' + (needEnrich < total ? '\n(' + (total-needEnrich) + ' לידים כבר נותחו ויידולגו)' : '') + '\nהתהליך ייקח כמה דקות.')) return;
     if (typeof leads !== 'undefined') {
+      var skipped = 0;
       leads.forEach(function(l) {
+        // Skip leads that already have enrichment
+        if (l.enrichment && l.enrichment.email_sequence && l.enrichment.email_sequence.length > 0) {
+          skipped++;
+          return;
+        }
         if (typeof enrichmentQueue !== 'undefined') enrichmentQueue.push(Object.assign({}, l));
       });
+      if (skipped > 0) console.log('[ENRICH] Skipping ' + skipped + ' already-enriched leads');
     }
     if (typeof processEnrichmentQueue !== 'undefined') processEnrichmentQueue();
     btn.style.opacity = '0.6';
