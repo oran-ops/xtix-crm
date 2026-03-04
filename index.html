@@ -193,7 +193,6 @@
 
   .panel { display: none !important; }
   .panel.active { display: block !important; }
-  #tab-aichat { overflow: hidden; }
 
   .section-title { font-size: 11px; font-weight: 700; letter-spacing: 3px; text-transform: uppercase; color: var(--muted); margin-bottom: 14px; }
 
@@ -335,7 +334,7 @@
   .apply-icon { font-size: 14px; flex-shrink: 0; }
 
   /* HUBSPOT */
-  .hs-section { width: 100%; max-width: 100%; }
+  .hs-section { max-width: 700px; }
   .hs-card { background: var(--surface); border: 1px solid var(--border); border-radius: 14px; padding: 24px; margin-bottom: 16px; }
   .hs-title { font-size: 15px; font-weight: 700; margin-bottom: 6px; display: flex; align-items: center; gap: 10px; }
   .hs-badge { font-size: 10px; background: rgba(255,122,0,0.15); color: #ff7a00; border: 1px solid rgba(255,122,0,0.3); border-radius: 5px; padding: 2px 8px; font-weight: 700; }
@@ -383,6 +382,19 @@
   <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-auth-compat.js"></script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+<script>
+// Fix panel DOM structure - move orphaned panels into container
+document.addEventListener('DOMContentLoaded', function() {
+  var container = document.querySelector('.container');
+  if (!container) return;
+  ['tab-methodology','tab-hubspot','tab-leadfinder','tab-aichat'].forEach(function(id) {
+    var el = document.getElementById(id);
+    if (el && el.parentElement !== container) {
+      container.appendChild(el);
+    }
+  });
+});
+</script>
 </head>
 <body>
 
@@ -1805,7 +1817,7 @@ IF RESPONSE at any point → Book 30-min MEETING (not call). Prepare ROI deck be
 
   <!-- =================== HUBSPOT =================== -->
   <div class="panel" id="tab-hubspot">
-    <div class="hs-section">
+    <div class="hs-section" style="max-width:780px">
       <p class="section-title">🔗 HubSpot API — Push ישיר</p>
 
       <!-- STEP 1: HOW TO GET TOKEN -->
@@ -1881,7 +1893,7 @@ IF RESPONSE at any point → Book 30-min MEETING (not call). Prepare ROI deck be
 
 <!-- Lead Finder standalone panel -->
   <div class="panel" id="tab-leadfinder">
-    <div id="lf-inner">
+    <div id="lf-inner" style="max-width:900px">
 
       <!-- Mode Toggle -->
       <div style="display:flex;gap:8px;margin-bottom:16px;flex-wrap:wrap">
@@ -2426,9 +2438,7 @@ IF RESPONSE at any point → Book 30-min MEETING (not call). Prepare ROI deck be
       if (btn) {
         alert(msg);
         btn.textContent = '✅ גובה'; btn.style.color = 'var(--green)';
-      } else {
-        console.log('[SEED] auto-seed done:', results);
-      }
+      } else { console.log('[SEED] auto-done'); }
 
     } catch(e) {
       alert('שגיאה: ' + e.message);
@@ -2816,20 +2826,13 @@ IF RESPONSE at any point → Book 30-min MEETING (not call). Prepare ROI deck be
 
 
   window.switchMainTab = function(name, btn) {
-    // Hide ALL panels in document (not just container children)
-    document.querySelectorAll('.panel').forEach(function(el){
-      el.classList.remove('active');
-    });
-    // Show target panel
+    document.querySelectorAll('.panel').forEach(function(el){ el.classList.remove('active'); });
     var target = document.getElementById('tab-' + name);
     if (target) target.classList.add('active');
-    // Scroll to top on panel change
     var mc = document.getElementById('main-content');
     if (mc) mc.scrollTop = 0;
-    // Update sidebar nav buttons
     document.querySelectorAll('.nav-btn').forEach(function(b){ b.classList.remove('active'); });
     if (btn) btn.classList.add('active');
-    // Show/hide sub-menus
     document.querySelectorAll('.nav-sub').forEach(function(s){ s.classList.remove('open'); });
     var sub = document.getElementById('sub-' + name);
     if (sub) sub.classList.add('open');
@@ -3988,31 +3991,13 @@ ${proxyCtx}
   // SAVED LEAD RESULTS — save/delete found leads per search
   // Structure: { id, name, params, leads[], savedAt }
   // ══════════════════════════════════════════════════
-  var SAVED_KEY = 'xtix_saved_searches';
-  var HUNT_COL  = 'hunt_searches';
-  var _lastFoundLeads = [];
-  var _savedSearchesCache = [];
-
-  async function loadSavedSearchesFirebase() {
-    try {
-      if (typeof db==='undefined'||!db) throw '';
-      var snap=await db.collection(HUNT_COL).orderBy('savedAt','desc').limit(50).get();
-      return snap.docs.map(function(d){return Object.assign({_fbId:d.id},d.data());});
-    } catch(e){try{return JSON.parse(localStorage.getItem(SAVED_KEY)||'[]');}catch(e2){return[];}}
-  }
-  async function persistSavedSearchFirebase(s) {
-    try{if(typeof db!=='undefined'&&db){var id=String(s.id||Date.now());await db.collection(HUNT_COL).doc(id).set(s);s._fbId=id;}}catch(e){}
-    try{var a=JSON.parse(localStorage.getItem(SAVED_KEY)||'[]');a=a.filter(function(x){return x.id!==s.id;});a.unshift(s);localStorage.setItem(SAVED_KEY,JSON.stringify(a.slice(0,50)));}catch(e){}
-  }
-  async function deleteSavedSearchFirebase(id,fbId) {
-    try{if(typeof db!=='undefined'&&db)await db.collection(HUNT_COL).doc(String(fbId||id)).delete();}catch(e){}
-    try{var a=JSON.parse(localStorage.getItem(SAVED_KEY)||'[]');localStorage.setItem(SAVED_KEY,JSON.stringify(a.filter(function(x){return x.id!==id;})));}catch(e){}
-  }
+  var SAVED_KEY='xtix_saved_searches',HUNT_COL='hunt_searches',_lastFoundLeads=[],_savedSearchesCache=[];
+  async function loadSavedSearchesFirebase(){try{if(typeof db==='undefined'||!db)throw'';var s=await db.collection(HUNT_COL).orderBy('savedAt','desc').limit(50).get();return s.docs.map(function(d){return Object.assign({_fbId:d.id},d.data());});}catch(e){try{return JSON.parse(localStorage.getItem(SAVED_KEY)||'[]');}catch(e2){return[];}}}
+  async function persistSavedSearchFirebase(s){try{if(typeof db!=='undefined'&&db){var id=String(s.id||Date.now());await db.collection(HUNT_COL).doc(id).set(s);s._fbId=id;}}catch(e){}try{var a=JSON.parse(localStorage.getItem(SAVED_KEY)||'[]');a=a.filter(function(x){return x.id!==s.id;});a.unshift(s);localStorage.setItem(SAVED_KEY,JSON.stringify(a.slice(0,50)));}catch(e){}}
+  async function deleteSavedSearchFirebase(id,fbId){try{if(typeof db!=='undefined'&&db)await db.collection(HUNT_COL).doc(String(fbId||id)).delete();}catch(e){}try{var a=JSON.parse(localStorage.getItem(SAVED_KEY)||'[]');localStorage.setItem(SAVED_KEY,JSON.stringify(a.filter(function(x){return x.id!==id;})));}catch(e){}}
   function loadSavedSearches(){return _savedSearchesCache;}
   function persistSavedSearches(arr){_savedSearchesCache=arr;try{localStorage.setItem(SAVED_KEY,JSON.stringify(arr));}catch(e){}}
-  setTimeout(function(){
-    loadSavedSearchesFirebase().then(function(arr){_savedSearchesCache=arr;if(typeof window.renderSavedSearches==='function')window.renderSavedSearches();});
-  },2000);
+  setTimeout(function(){loadSavedSearchesFirebase().then(function(arr){_savedSearchesCache=arr;if(typeof window.renderSavedSearches==='function')window.renderSavedSearches();});},2000);
 
   // Called after successful hunt — saves leads to _lastFoundLeads
   function setLastFoundLeads(leadsArr, params) {
@@ -4957,7 +4942,7 @@ addSalesPlaybookPanel();
 
   <!-- ══════════ AI CHAT PANEL ══════════ -->
   <div class="panel" id="tab-aichat">
-    <div id="aichat-wrap" style="display:flex;flex-direction:column;height:calc(100vh - 52px);max-width:100%;margin:0 auto">
+    <div id="aichat-wrap" style="display:flex;flex-direction:column;height:calc(100vh - 80px);max-width:860px;margin:0 auto">
 
       <!-- Header -->
       <div style="display:flex;align-items:center;gap:12px;padding-bottom:16px;border-bottom:1px solid var(--border);margin-bottom:16px;flex-shrink:0">
@@ -5018,13 +5003,10 @@ addSalesPlaybookPanel();
 // AI CHAT — Claude via Railway proxy
 // ═══════════════════════════════════════════════════════════
 (function() {
-  var AI_SERVER = 'https://xtix-crm-production.up.railway.app/ai';
-  var CHAT_COL  = 'ai_chat_history';
-  var aiHistory = [];
-  var aiThinking = false;
-  var aiSessionId = 'session_' + Date.now();
+  var AI_SERVER='https://xtix-crm-production.up.railway.app/ai',CHAT_COL='ai_chat_history';
+  var aiHistory=[],aiThinking=false,aiSessionId='session_'+Date.now();
   async function saveChatToFirebase(){try{if(typeof db==='undefined'||!db||!aiHistory.length)return;await db.collection(CHAT_COL).doc(aiSessionId).set({sessionId:aiSessionId,messages:aiHistory,updatedAt:new Date().toISOString(),messageCount:aiHistory.length});}catch(e){}}
-  async function loadRecentChatsFirebase(){try{if(typeof db==='undefined'||!db)return[];var snap=await db.collection(CHAT_COL).orderBy('updatedAt','desc').limit(10).get();return snap.docs.map(function(d){return d.data();});}catch(e){return[];}}
+  async function loadRecentChatsFirebase(){try{if(typeof db==='undefined'||!db)return[];var s=await db.collection(CHAT_COL).orderBy('updatedAt','desc').limit(10).get();return s.docs.map(function(d){return d.data();});}catch(e){return[];}}
   var _cst=null;function scheduleChatSave(){if(_cst)clearTimeout(_cst);_cst=setTimeout(saveChatToFirebase,1500);}
 
   var SYSTEM_PROMPT = [
@@ -5154,52 +5136,48 @@ addSalesPlaybookPanel();
   };
 
   window.loadChatHistory = async function() {
-    var sessions = await loadRecentChatsFirebase();
-    var list = document.getElementById('ai-messages');
-    if (!list) return;
-    if (!sessions.length) { addMessage('claude', 'אין שיחות שמורות עדיין.'); return; }
-    var picker = document.createElement('div');
-    picker.style.cssText = 'background:var(--surface2);border:1px solid var(--border);border-radius:10px;padding:12px 14px;margin-bottom:8px;font-size:12px';
-    var html = '<div style="font-weight:700;color:var(--accent);margin-bottom:8px">📂 שיחות שמורות בענן:</div>';
+    var sessions=await loadRecentChatsFirebase();
+    var list=document.getElementById('ai-messages');
+    if(!list)return;
+    if(!sessions.length){addMessage('claude','אין שיחות שמורות עדיין.');return;}
+    var picker=document.createElement('div');
+    picker.style.cssText='background:var(--surface2);border:1px solid var(--border);border-radius:10px;padding:12px 14px;margin-bottom:8px;font-size:12px';
+    var html='<div style="font-weight:700;color:var(--accent);margin-bottom:8px">📂 שיחות שמורות:</div>';
     sessions.forEach(function(s,i){
       var d=new Date(s.updatedAt).toLocaleDateString('he-IL');
       var c=Math.floor((s.messageCount||0)/2);
-      html+='<div style="display:flex;align-items:center;justify-content:space-between;padding:6px 0;border-bottom:1px solid var(--border)">'
-        +'<span style="color:var(--text)">'+d+' — '+c+' הודעות</span>'
-        +'<button onclick="window.restoreChatSession('+i+')" style="background:rgba(108,99,255,0.15);border:1px solid rgba(108,99,255,0.3);border-radius:6px;padding:3px 10px;font-size:11px;color:var(--accent);cursor:pointer;font-family:Heebo,sans-serif">טען</button>'
-        +'</div>';
+      html+='<div style="display:flex;align-items:center;justify-content:space-between;padding:6px 0;border-bottom:1px solid var(--border)"><span style="color:var(--text)">'+d+' — '+c+' הודעות</span><button onclick="window.restoreChatSession('+i+')" style="background:rgba(108,99,255,0.15);border:1px solid rgba(108,99,255,0.3);border-radius:6px;padding:3px 10px;font-size:11px;color:var(--accent);cursor:pointer;font-family:Heebo,sans-serif">טען</button></div>';
     });
-    picker.innerHTML=html; list.appendChild(picker); list.scrollTop=list.scrollHeight;
+    picker.innerHTML=html;list.appendChild(picker);list.scrollTop=list.scrollHeight;
     window._chatSessions=sessions;
   };
-  window.restoreChatSession = function(idx) {
+  window.restoreChatSession=function(idx){
     var s=(window._chatSessions||[])[idx];
-    if(!s||!s.messages) return;
+    if(!s||!s.messages)return;
     var list=document.getElementById('ai-messages');
-    if(!list) return;
-    list.innerHTML=''; aiHistory=s.messages.slice();
+    if(!list)return;
+    list.innerHTML='';aiHistory=s.messages.slice();
     aiHistory.forEach(function(m){addMessage(m.role==='user'?'user':'claude',m.content);});
     var ti=document.getElementById('ai-token-info');
-    if(ti) ti.textContent=Math.floor(aiHistory.length/2)+' הודעות בשיח';
+    if(ti)ti.textContent=Math.floor(aiHistory.length/2)+' הודעות';
     list.scrollTop=list.scrollHeight;
   };
-  window.clearAiChat = function clearAiChat() {
-    if (aiHistory.length && !confirm('למחוק את כל השיחה?')) return;
-    if (aiHistory.length) saveChatToFirebase();
-    aiHistory=[]; aiSessionId='session_'+Date.now();
-    var list=document.getElementById('ai-messages');
-    if(list) list.innerHTML='';
-    var ti=document.getElementById('ai-token-info');
-    if(ti) ti.textContent='';
+  window.clearAiChat=function clearAiChat(){
+    if(aiHistory.length&&!confirm('למחוק את כל השיחה?'))return;
+    if(aiHistory.length)saveChatToFirebase();
+    aiHistory=[];aiSessionId='session_'+Date.now();
+    var list=document.getElementById('ai-messages');if(list)list.innerHTML='';
+    var ti=document.getElementById('ai-token-info');if(ti)ti.textContent='';
     setStatus(false);
     setTimeout(function(){
-      addMessage('claude',[
-        'שלום! אני Claude, העוזר AI שלך ב-XTIX.CRM 👋','',
-        'אני יכול לעזור לך עם:',
-        '• כתיבת מיילים ומסרים ללידים',
-        '• ניתוח לידים ואסטרטגיית מכירות',
-        '• מענה על כל שאלה','','איך אוכל לעזור?'
-      ].join('\n'));
+      addMessage('claude','שלום! אני Claude, העוזר AI שלך ב-XTIX.CRM 👋
+
+אני יכול לעזור לך עם:
+• כתיבת מיילים ומסרים ללידים
+• ניתוח לידים ואסטרטגיית מכירות
+• מענה על כל שאלה
+
+איך אוכל לעזור?');
     },100);
   };
 
@@ -5876,6 +5854,7 @@ if (_origRender) {
 
 })();
 </script>
+
 
 
 
