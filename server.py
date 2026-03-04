@@ -96,6 +96,22 @@ def load_clay_pending():
 def save_clay_pending(leads):
     with open(CLAY_PENDING_FILE,'w',encoding='utf-8') as f: json.dump(leads,f,ensure_ascii=False,indent=2)
 
+
+# ════════════════════════════════════════════════════════
+# WEBHOOK — unified lead intake (Clay, API, Zapier, etc.)
+# ════════════════════════════════════════════════════════
+WEBHOOK_FILE = os.path.join(os.path.dirname(__file__), 'webhook_pending.json')
+
+def load_webhook_pending():
+    try:
+        if os.path.exists(WEBHOOK_FILE):
+            return json.load(open(WEBHOOK_FILE, encoding='utf-8'))
+    except: pass
+    return []
+
+def save_webhook_pending(leads):
+    json.dump(leads, open(WEBHOOK_FILE, 'w', encoding='utf-8'), ensure_ascii=False)
+
 def analyze_website(url):
     result = {'url':url,'hasDomain':True,'hasExternalTicketing':False,'ticketPlatform':'',
               'hasActiveSocial':False,'socialLinks':[],'email':'','title':'','phone':'',
@@ -290,6 +306,8 @@ class Handler(BaseHTTPRequestHandler):
             self.json_out(load_reminders())
         elif p.path=='/clay-pending':
             self.json_out(load_clay_pending())
+        elif p.path=='/webhook/pending':
+            self.json_out({'leads': load_webhook_pending()})
         elif p.path=='/config':
             safe={k:('***' if any(x in k for x in ['password','token']) else v) for k,v in cfg.items()}
             self.json_out(safe)
@@ -404,6 +422,46 @@ class Handler(BaseHTTPRequestHandler):
             self.json_out(log_email_hs(b.get('hubspot_id',''),b.get('subject',''),b.get('html',''),token))
         elif p.path=='/clay-pending':
             self.json_out(load_clay_pending())
+        elif p.path=='/webhook/lead':
+            # Universal lead intake — accepts from Clay, Zapier, n8n, direct API
+            try:
+                import datetime as _dt
+                new_lead = {
+                    'id':       int(_dt.datetime.now().timestamp() * 1000) + __import__('random').randint(0,9999),
+                    'name':     b.get('name','') or b.get('company','') or '(ללא שם)',
+                    'domain':   (b.get('domain','') or b.get('website','')).replace('https://','').replace('http://','').split('/')[0],
+                    'website':  b.get('website',''),
+                    'email':    b.get('email',''),
+                    'phone':    b.get('phone',''),
+                    'address':  b.get('address',''),
+                    'type':     b.get('type','') or b.get('segment',''),
+                    'platform': b.get('platform',''),
+                    'score':    int(b.get('score',0) or 0),
+                    'status':   'new',
+                    'source':   b.get('source','webhook'),
+                    'notes':    b.get('notes','') or b.get('description',''),
+                    'created_at': _dt.datetime.utcnow().isoformat() + 'Z',
+                    'enrichment': {},
+                    'ai_analysis': {'status': 'none'}
+                }
+                # De-duplicate by domain
+                pending = load_webhook_pending()
+                domain = new_lead['domain']
+                if domain and any(l.get('domain') == domain for l in pending):
+                    print(f'  [WEBHOOK] Duplicate: {new_lead["name"]}', flush=True)
+                    self.json_out({'ok': True, 'action': 'duplicate', 'name': new_lead['name']}); return
+                pending.append(new_lead)
+                save_webhook_pending(pending)
+                print(f'  [WEBHOOK] Queued: {new_lead["name"]} ({domain})', flush=True)
+                self.json_out({'ok': True, 'action': 'queued', 'id': new_lead['id'], 'name': new_lead['name']})
+            except Exception as e:
+                print(f'  [WEBHOOK] Error: {e}', flush=True)
+                self.json_out({'ok': False, 'error': str(e)}, 500)
+            return
+        elif p.path=='/webhook/clear':
+            save_webhook_pending([])
+            self.json_out({'ok': True})
+            return
         elif p.path=='/config':
             current=load_config(); current.update(b); save_config(current)
             self.json_out({'ok':True,'message':'Settings saved'})
