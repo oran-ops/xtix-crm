@@ -35,7 +35,8 @@
 
   /* ── SIDEBAR LAYOUT ── */
   /* ── APP LAYOUT ── */
-  #app-wrapper { display: flex !important; flex-direction: row; min-height: 100vh; background: var(--bg); }
+  #app-wrapper { display: flex !important; flex-direction: row; min-height: 100vh; max-height: 100vh; background: var(--bg); overflow: hidden; }
+  #main-content { flex: 1; min-width: 0; display: flex; flex-direction: column; height: 100vh; overflow-y: auto; overflow-x: hidden; }
 
   /* ── SIDEBAR ── */
   #sidebar {
@@ -43,7 +44,7 @@
     background: linear-gradient(180deg, #0e0e18 0%, #0a0a12 100%);
     border-right: 1px solid rgba(108,99,255,0.12);
     display: flex; flex-direction: column;
-    position: sticky; top: 0; height: 100vh;
+    position: sticky; top: 0; height: 100vh; max-height: 100vh;
     overflow-y: auto; z-index: 100;
   }
   #sidebar-logo {
@@ -194,8 +195,8 @@
   .tab.active { background: var(--accent); color: white; }
   .tab:hover:not(.active) { color: var(--text); background: var(--surface2); }
 
-  .panel { display: none; }
-  .panel.active { display: block; }
+  .panel { display: none !important; }
+  .panel.active { display: block !important; }
 
   .section-title { font-size: 11px; font-weight: 700; letter-spacing: 3px; text-transform: uppercase; color: var(--muted); margin-bottom: 14px; }
 
@@ -2421,12 +2422,16 @@ IF RESPONSE at any point → Book 30-min MEETING (not call). Prepare ROI deck be
         await batch.commit();
       }
 
-      const msg = force
-        ? `✅ גיבוי מלא הושלם!\n\n📊 מתחרים: ${SEED_COMPETITORS.length}\n📧 תבניות מייל: ${SEED_EMAIL_TEMPLATES.length}\n📋 מתודולוגיה: ${SEED_METHODOLOGY.length} BP\n⏱️ Cadences: ${SEED_CADENCES.length}\n⚙️ Config: ✓`
-        : `✅ Seed הושלם!\n\nנתונים חדשים שהועלו:\n• מתחרים: ${results.competitors}\n• מיילים: ${results.emails}\n• מתודולוגיה: ${results.methodology}\n• Cadences: ${results.cadences}`;
-
-      alert(msg);
-      if (btn) { btn.textContent = '✅ גובה'; btn.style.color = 'var(--green)'; }
+      // Only show popup when manually triggered (button click), never on auto-seed
+      if (btn) {
+        const msg = force
+          ? `✅ גיבוי מלא הושלם!\n\n📊 מתחרים: ${SEED_COMPETITORS.length}\n📧 תבניות מייל: ${SEED_EMAIL_TEMPLATES.length}\n📋 מתודולוגיה: ${SEED_METHODOLOGY.length} BP\n⏱️ Cadences: ${SEED_CADENCES.length}\n⚙️ Config: ✓`
+          : `✅ Seed הושלם!\n\nנתונים חדשים שהועלו:\n• מתחרים: ${results.competitors}\n• מיילים: ${results.emails}\n• מתודולוגיה: ${results.methodology}\n• Cadences: ${results.cadences}`;
+        alert(msg);
+        btn.textContent = '✅ גובה'; btn.style.color = 'var(--green)';
+      } else {
+        console.log('[SEED] Auto-seed complete:', results);
+      }
 
     } catch(e) {
       alert('שגיאה: ' + e.message);
@@ -2814,21 +2819,20 @@ IF RESPONSE at any point → Book 30-min MEETING (not call). Prepare ROI deck be
 
 
   window.switchMainTab = function(name, btn) {
-    // Hide all top-level panels
-    var container = document.querySelector('.container');
-    if (container) {
-      Array.from(container.children).forEach(function(el){
-        if (el.classList.contains('panel')) el.classList.remove('active');
-      });
-    }
+    // Hide ALL panels in the entire document (not just container children)
+    document.querySelectorAll('.panel').forEach(function(el){
+      el.classList.remove('active');
+      el.style.display = '';  // reset any inline display
+    });
     // Show target panel
     var target = document.getElementById('tab-' + name);
-    if (target) target.classList.add('active');
-
+    if (target) {
+      target.classList.add('active');
+      target.style.display = 'block';
+    }
     // Update sidebar nav buttons
     document.querySelectorAll('.nav-btn').forEach(function(b){ b.classList.remove('active'); });
     if (btn) btn.classList.add('active');
-
     // Show/hide sub-menus
     document.querySelectorAll('.nav-sub').forEach(function(s){ s.classList.remove('open'); });
     var sub = document.getElementById('sub-' + name);
@@ -4002,7 +4006,6 @@ ${proxyCtx}
       try { return JSON.parse(localStorage.getItem(SAVED_KEY) || '[]'); } catch(e2) { return []; }
     }
   }
-
   async function persistSavedSearchFirebase(searchObj) {
     try {
       if (typeof db !== 'undefined' && db) {
@@ -4010,46 +4013,35 @@ ${proxyCtx}
         await db.collection(HUNT_COL).doc(docId).set(searchObj);
         searchObj._fbId = docId;
       }
-    } catch(e) { console.warn('[HUNT] Firebase save failed:', e); }
+    } catch(e) {}
     try {
       var arr = JSON.parse(localStorage.getItem(SAVED_KEY) || '[]');
       arr = arr.filter(function(s){ return s.id !== searchObj.id; });
       arr.unshift(searchObj);
-      localStorage.setItem(SAVED_KEY, JSON.stringify(arr.slice(0, 50)));
+      localStorage.setItem(SAVED_KEY, JSON.stringify(arr.slice(0,50)));
     } catch(e) {}
   }
-
   async function deleteSavedSearchFirebase(searchId, fbId) {
-    try {
-      if (typeof db !== 'undefined' && db)
-        await db.collection(HUNT_COL).doc(String(fbId || searchId)).delete();
-    } catch(e) {}
+    try { if (typeof db !== 'undefined' && db) await db.collection(HUNT_COL).doc(String(fbId||searchId)).delete(); } catch(e) {}
     try {
       var arr = JSON.parse(localStorage.getItem(SAVED_KEY) || '[]');
       localStorage.setItem(SAVED_KEY, JSON.stringify(arr.filter(function(s){ return s.id !== searchId; })));
     } catch(e) {}
   }
-
   async function updateSavedSearchFirebase(searchObj) {
-    try {
-      if (typeof db !== 'undefined' && db)
-        await db.collection(HUNT_COL).doc(String(searchObj._fbId || searchObj.id)).set(searchObj);
-    } catch(e) {}
+    try { if (typeof db !== 'undefined' && db) await db.collection(HUNT_COL).doc(String(searchObj._fbId||searchObj.id)).set(searchObj); } catch(e) {}
     try {
       var arr = JSON.parse(localStorage.getItem(SAVED_KEY) || '[]');
       var idx = arr.findIndex(function(s){ return s.id === searchObj.id; });
       if (idx !== -1) arr[idx] = searchObj; else arr.unshift(searchObj);
-      localStorage.setItem(SAVED_KEY, JSON.stringify(arr.slice(0, 50)));
+      localStorage.setItem(SAVED_KEY, JSON.stringify(arr.slice(0,50)));
     } catch(e) {}
   }
-
   function loadSavedSearches() { return _savedSearchesCache; }
   function persistSavedSearches(arr) {
     _savedSearchesCache = arr;
     try { localStorage.setItem(SAVED_KEY, JSON.stringify(arr)); } catch(e) {}
   }
-
-  // Load from Firebase on init
   setTimeout(function() {
     loadSavedSearchesFirebase().then(function(arr){
       _savedSearchesCache = arr;
@@ -4190,8 +4182,6 @@ ${proxyCtx}
       searches.splice(searchIdx, 1);
     }
     persistSavedSearches(searches);
-    // sync updated search to Firebase (if still exists)
-    if (searches[searchIdx]) updateSavedSearchFirebase(searches[searchIdx]);
     window.renderSavedSearches();
   };
 
@@ -5014,7 +5004,7 @@ addSalesPlaybookPanel();
 
   <!-- ══════════ AI CHAT PANEL ══════════ -->
   <div class="panel" id="tab-aichat">
-    <div id="aichat-wrap" style="display:flex;flex-direction:column;height:calc(100vh - 80px);max-width:860px;margin:0 auto">
+    <div id="aichat-wrap" style="display:flex;flex-direction:column;height:calc(100vh - 60px);max-height:calc(100vh - 60px);max-width:860px;margin:0 auto">
 
       <!-- Header -->
       <div style="display:flex;align-items:center;gap:12px;padding-bottom:16px;border-bottom:1px solid var(--border);margin-bottom:16px;flex-shrink:0">
@@ -5027,7 +5017,7 @@ addSalesPlaybookPanel();
           <div id="ai-status-dot" style="width:8px;height:8px;border-radius:50%;background:var(--muted);margin-top:4px"></div>
           <span id="ai-status-txt" style="font-size:11px;color:var(--muted)">לא מחובר</span>
         </div>
-        <button onclick="window.loadChatHistory()" title="שיחות שמורות" style="background:rgba(108,99,255,0.08);border:1px solid rgba(108,99,255,0.25);border-radius:8px;padding:6px 12px;color:var(--accent);font-size:11px;cursor:pointer;font-family:Heebo,sans-serif">📂 היסטוריה</button>
+        <button onclick="window.loadChatHistory()" style="background:rgba(108,99,255,0.08);border:1px solid rgba(108,99,255,0.25);border-radius:8px;padding:6px 12px;color:var(--accent);font-size:11px;cursor:pointer;font-family:Heebo,sans-serif">📂 היסטוריה</button>
         <button onclick="clearAiChat()" title="נקה שיחה" style="background:rgba(255,255,255,0.04);border:1px solid var(--border);border-radius:8px;padding:6px 12px;color:var(--muted);font-size:11px;cursor:pointer;font-family:Heebo,sans-serif">🗑 נקה שיחה</button>
       </div>
 
@@ -5077,11 +5067,10 @@ addSalesPlaybookPanel();
 (function() {
   var AI_SERVER = 'https://xtix-crm-production.up.railway.app/ai';
   var CHAT_COL  = 'ai_chat_history';
-  var aiHistory = [];   // { role, content } — full conversation
+  var aiHistory = [];
   var aiThinking = false;
-  var aiSessionId = 'session_' + Date.now(); // unique per page load
+  var aiSessionId = 'session_' + Date.now();
 
-  // ── Save/load chat history to Firebase ────────────────────────
   async function saveChatToFirebase() {
     try {
       if (typeof db === 'undefined' || !db || !aiHistory.length) return;
@@ -5091,19 +5080,15 @@ addSalesPlaybookPanel();
         updatedAt: new Date().toISOString(),
         messageCount: aiHistory.length
       });
-    } catch(e) { /* silent — chat still works without save */ }
+    } catch(e) {}
   }
-
   async function loadRecentChatsFirebase() {
     try {
       if (typeof db === 'undefined' || !db) return [];
-      var snap = await db.collection(CHAT_COL)
-        .orderBy('updatedAt', 'desc').limit(10).get();
+      var snap = await db.collection(CHAT_COL).orderBy('updatedAt','desc').limit(10).get();
       return snap.docs.map(function(d){ return d.data(); });
     } catch(e) { return []; }
   }
-
-  // Auto-save after each exchange (debounced)
   var _chatSaveTimer = null;
   function scheduleChatSave() {
     if (_chatSaveTimer) clearTimeout(_chatSaveTimer);
@@ -5211,6 +5196,7 @@ addSalesPlaybookPanel();
       showTyping(false);
       addMessage('claude', reply);
       aiHistory.push({ role: 'assistant', content: reply });
+      scheduleChatSave();
 
       // Update token info
       var ti = document.getElementById('ai-token-info');
@@ -5236,7 +5222,6 @@ addSalesPlaybookPanel();
     }
   };
 
-  // ── Firebase chat history helpers ─────────────────────────────
   window.loadChatHistory = async function() {
     var sessions = await loadRecentChatsFirebase();
     var list = document.getElementById('ai-messages');
@@ -5299,7 +5284,7 @@ addSalesPlaybookPanel();
     }, 100);
   };
 
-  // Show welcome on first load of this panel
+    // Show welcome on first load of this panel
   document.addEventListener('DOMContentLoaded', function() {
     setTimeout(window.clearAiChat, 600);
   });
@@ -5972,6 +5957,7 @@ if (_origRender) {
 
 })();
 </script>
+
 
 
 </body>
