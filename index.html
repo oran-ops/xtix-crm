@@ -6289,7 +6289,7 @@ Blueprint לכל מייל:
             <div class="brain-card-body">
               <div class="brain-info-row">
                 <span class="brain-info-lbl">מודל</span>
-                <span class="brain-info-val">gemini-1.5-pro</span>
+                <span class="brain-info-val">gemini-2.0-flash</span>
               </div>
               <div class="brain-info-row">
                 <span class="brain-info-lbl">קבל Key</span>
@@ -9154,34 +9154,50 @@ window.testAIKey = async function(engine) {
   if (statusEl) { statusEl.style.color = 'var(--muted)'; statusEl.textContent = 'שולח בקשת בדיקה...'; }
 
   var ok = false;
+  var errMsg = '';
   try {
     if (engine === 'gpt') {
+      // Use gpt-4o-mini for test — cheaper, same auth
       var res = await fetch('https://api.openai.com/v1/chat/completions', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + key },
         body: JSON.stringify({
-          model: 'gpt-4o',
+          model: 'gpt-4o-mini',
           messages: [{ role: 'user', content: 'Reply with one word: OK' }],
           max_tokens: 5
         }),
-        signal: AbortSignal.timeout(12000)
+        signal: AbortSignal.timeout(15000)
       });
       var data = await res.json();
-      ok = !!(data.choices && data.choices[0]);
+      if (data.choices && data.choices[0]) {
+        ok = true;
+      } else if (data.error) {
+        errMsg = data.error.code === 'invalid_api_key' ? 'Key שגוי' :
+                 data.error.code === 'insufficient_quota' ? 'אין קרדיט — הוסף ב-platform.openai.com' :
+                 data.error.message || 'שגיאה לא ידועה';
+      }
     } else if (engine === 'gemini') {
-      var res = await fetch(
-        'https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-pro:generateContent?key=' + key,
+      // Use gemini-2.0-flash — free tier, fast
+      var res2 = await fetch(
+        'https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=' + key,
         {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ contents: [{ parts: [{ text: 'Reply with one word: OK' }] }] }),
-          signal: AbortSignal.timeout(12000)
+          signal: AbortSignal.timeout(15000)
         }
       );
-      var data = await res.json();
-      ok = !!(data.candidates && data.candidates[0]);
+      var data2 = await res2.json();
+      if (data2.candidates && data2.candidates[0]) {
+        ok = true;
+      } else if (data2.error) {
+        errMsg = data2.error.status === 'INVALID_ARGUMENT' ? 'Key שגוי' :
+                 data2.error.status === 'PERMISSION_DENIED' ? 'Key לא מורשה — בדוק ב-aistudio.google.com' :
+                 data2.error.message || 'שגיאה לא ידועה';
+      }
     }
   } catch(e) {
+    errMsg = e.name === 'TimeoutError' ? 'Timeout — בדוק חיבור אינטרנט' : e.message;
     console.warn('[Brain] Key test error:', e.message);
   }
 
@@ -9189,10 +9205,12 @@ window.testAIKey = async function(engine) {
   if (statusEl) {
     if (ok) {
       statusEl.style.color = '#10b981';
-      statusEl.textContent = '✅ Key תקין! המנוע מוכן.';
+      statusEl.textContent = engine === 'gpt' ? '✅ GPT-4o מחובר ✓' : '✅ Gemini 2.0 Flash מחובר ✓';
+      // Auto-save on successful test
+      if (_brainKeys[engine]) updateKeyUI(engine, true);
     } else {
       statusEl.style.color = '#ef4444';
-      statusEl.textContent = '❌ Key לא תקין — בדוק שוב';
+      statusEl.textContent = '❌ ' + (errMsg || 'Key לא תקין — בדוק שוב');
     }
   }
 };
