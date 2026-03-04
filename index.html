@@ -35,8 +35,7 @@
 
   /* ── SIDEBAR LAYOUT ── */
   /* ── APP LAYOUT ── */
-  #app-wrapper { display: flex !important; flex-direction: row; min-height: 100vh; max-height: 100vh; background: var(--bg); overflow: hidden; }
-  #main-content { flex: 1; min-width: 0; display: flex; flex-direction: column; height: 100vh; overflow-y: auto; overflow-x: hidden; }
+  #app-wrapper { display: flex !important; flex-direction: row; height: 100vh; max-height: 100vh; overflow: hidden; background: var(--bg); }
 
   /* ── SIDEBAR ── */
   #sidebar {
@@ -44,8 +43,7 @@
     background: linear-gradient(180deg, #0e0e18 0%, #0a0a12 100%);
     border-right: 1px solid rgba(108,99,255,0.12);
     display: flex; flex-direction: column;
-    position: sticky; top: 0; height: 100vh; max-height: 100vh;
-    overflow-y: auto; z-index: 100;
+    height: 100vh; overflow-y: auto; z-index: 100;
   }
   #sidebar-logo {
     padding: 22px 18px 16px;
@@ -119,8 +117,10 @@
   .sb-tool-btn:hover { background: rgba(108,99,255,0.08); color: var(--text); border-color: rgba(108,99,255,0.2); }
 
   /* ── MAIN CONTENT ── */
-  #main-content { flex: 1; min-width: 0; display: flex; flex-direction: column; overflow-x: hidden; }
-  .container { padding: 24px 28px; flex: 1; width: 100%; box-sizing: border-box; overflow-x: hidden; }
+  #main-content { flex: 1; min-width: 0; display: flex; flex-direction: column; height: 100vh; overflow-y: auto; overflow-x: hidden; }
+  /* When aichat active — override container padding so chat fills screen */
+  .container:has(#tab-aichat.active) { padding: 0 !important; }
+  .container { padding: 24px 28px; flex: 1; width: 100%; box-sizing: border-box; overflow-x: hidden; min-height: 0; }
   .header { display: none; }
   #leads-list { width: 100% !important; }
   #tab-leads { width: 100% !important; }
@@ -195,8 +195,11 @@
   .tab.active { background: var(--accent); color: white; }
   .tab:hover:not(.active) { color: var(--text); background: var(--surface2); }
 
-  .panel { display: none !important; }
+  .panel { display: none !important; width: 100%; }
   .panel.active { display: block !important; }
+  /* AI Chat gets full height — no extra padding */
+  #tab-aichat { padding: 0 !important; }
+  #tab-aichat .container { padding: 0 !important; }
 
   .section-title { font-size: 11px; font-weight: 700; letter-spacing: 3px; text-transform: uppercase; color: var(--muted); margin-bottom: 14px; }
 
@@ -2422,7 +2425,7 @@ IF RESPONSE at any point → Book 30-min MEETING (not call). Prepare ROI deck be
         await batch.commit();
       }
 
-      // Only show popup when manually triggered (button click), never on auto-seed
+      // Only show popup when manually triggered (has btn), silent on auto-seed
       if (btn) {
         const msg = force
           ? `✅ גיבוי מלא הושלם!\n\n📊 מתחרים: ${SEED_COMPETITORS.length}\n📧 תבניות מייל: ${SEED_EMAIL_TEMPLATES.length}\n📋 מתודולוגיה: ${SEED_METHODOLOGY.length} BP\n⏱️ Cadences: ${SEED_CADENCES.length}\n⚙️ Config: ✓`
@@ -2430,7 +2433,7 @@ IF RESPONSE at any point → Book 30-min MEETING (not call). Prepare ROI deck be
         alert(msg);
         btn.textContent = '✅ גובה'; btn.style.color = 'var(--green)';
       } else {
-        console.log('[SEED] Auto-seed complete:', results);
+        console.log('[SEED] Auto-seed done:', results);
       }
 
     } catch(e) {
@@ -2819,20 +2822,22 @@ IF RESPONSE at any point → Book 30-min MEETING (not call). Prepare ROI deck be
 
 
   window.switchMainTab = function(name, btn) {
-    // Hide ALL panels in the entire document (not just container children)
+    // Hide ALL panels everywhere in the DOM
     document.querySelectorAll('.panel').forEach(function(el){
       el.classList.remove('active');
-      el.style.display = '';  // reset any inline display
     });
-    // Show target panel
+    // Show only the target panel
     var target = document.getElementById('tab-' + name);
-    if (target) {
-      target.classList.add('active');
-      target.style.display = 'block';
-    }
+    if (target) target.classList.add('active');
+
+    // Scroll main-content back to top
+    var mc = document.getElementById('main-content');
+    if (mc) mc.scrollTop = 0;
+
     // Update sidebar nav buttons
     document.querySelectorAll('.nav-btn').forEach(function(b){ b.classList.remove('active'); });
     if (btn) btn.classList.add('active');
+
     // Show/hide sub-menus
     document.querySelectorAll('.nav-sub').forEach(function(s){ s.classList.remove('open'); });
     var sub = document.getElementById('sub-' + name);
@@ -4006,48 +4011,22 @@ ${proxyCtx}
       try { return JSON.parse(localStorage.getItem(SAVED_KEY) || '[]'); } catch(e2) { return []; }
     }
   }
-  async function persistSavedSearchFirebase(searchObj) {
-    try {
-      if (typeof db !== 'undefined' && db) {
-        var docId = String(searchObj.id || Date.now());
-        await db.collection(HUNT_COL).doc(docId).set(searchObj);
-        searchObj._fbId = docId;
-      }
-    } catch(e) {}
-    try {
-      var arr = JSON.parse(localStorage.getItem(SAVED_KEY) || '[]');
-      arr = arr.filter(function(s){ return s.id !== searchObj.id; });
-      arr.unshift(searchObj);
-      localStorage.setItem(SAVED_KEY, JSON.stringify(arr.slice(0,50)));
-    } catch(e) {}
+  async function persistSavedSearchFirebase(s) {
+    try { if (typeof db!=='undefined'&&db) { var id=String(s.id||Date.now()); await db.collection(HUNT_COL).doc(id).set(s); s._fbId=id; } } catch(e){}
+    try { var a=JSON.parse(localStorage.getItem(SAVED_KEY)||'[]'); a=a.filter(function(x){return x.id!==s.id;}); a.unshift(s); localStorage.setItem(SAVED_KEY,JSON.stringify(a.slice(0,50))); } catch(e){}
   }
-  async function deleteSavedSearchFirebase(searchId, fbId) {
-    try { if (typeof db !== 'undefined' && db) await db.collection(HUNT_COL).doc(String(fbId||searchId)).delete(); } catch(e) {}
-    try {
-      var arr = JSON.parse(localStorage.getItem(SAVED_KEY) || '[]');
-      localStorage.setItem(SAVED_KEY, JSON.stringify(arr.filter(function(s){ return s.id !== searchId; })));
-    } catch(e) {}
+  async function deleteSavedSearchFirebase(id,fbId) {
+    try { if (typeof db!=='undefined'&&db) await db.collection(HUNT_COL).doc(String(fbId||id)).delete(); } catch(e){}
+    try { var a=JSON.parse(localStorage.getItem(SAVED_KEY)||'[]'); localStorage.setItem(SAVED_KEY,JSON.stringify(a.filter(function(x){return x.id!==id;}))); } catch(e){}
   }
-  async function updateSavedSearchFirebase(searchObj) {
-    try { if (typeof db !== 'undefined' && db) await db.collection(HUNT_COL).doc(String(searchObj._fbId||searchObj.id)).set(searchObj); } catch(e) {}
-    try {
-      var arr = JSON.parse(localStorage.getItem(SAVED_KEY) || '[]');
-      var idx = arr.findIndex(function(s){ return s.id === searchObj.id; });
-      if (idx !== -1) arr[idx] = searchObj; else arr.unshift(searchObj);
-      localStorage.setItem(SAVED_KEY, JSON.stringify(arr.slice(0,50)));
-    } catch(e) {}
+  async function updateSavedSearchFirebase(s) {
+    try { if (typeof db!=='undefined'&&db) await db.collection(HUNT_COL).doc(String(s._fbId||s.id)).set(s); } catch(e){}
+    try { var a=JSON.parse(localStorage.getItem(SAVED_KEY)||'[]'); var i=a.findIndex(function(x){return x.id===s.id;}); if(i!==-1)a[i]=s;else a.unshift(s); localStorage.setItem(SAVED_KEY,JSON.stringify(a.slice(0,50))); } catch(e){}
   }
   function loadSavedSearches() { return _savedSearchesCache; }
-  function persistSavedSearches(arr) {
-    _savedSearchesCache = arr;
-    try { localStorage.setItem(SAVED_KEY, JSON.stringify(arr)); } catch(e) {}
-  }
+  function persistSavedSearches(arr) { _savedSearchesCache=arr; try{localStorage.setItem(SAVED_KEY,JSON.stringify(arr));}catch(e){} }
   setTimeout(function() {
-    loadSavedSearchesFirebase().then(function(arr){
-      _savedSearchesCache = arr;
-      try { localStorage.setItem(SAVED_KEY, JSON.stringify(arr)); } catch(e) {}
-      if (typeof window.renderSavedSearches === 'function') window.renderSavedSearches();
-    });
+    loadSavedSearchesFirebase().then(function(arr){ _savedSearchesCache=arr; if(typeof window.renderSavedSearches==='function') window.renderSavedSearches(); });
   }, 2000);
 
   // Called after successful hunt — saves leads to _lastFoundLeads
@@ -4146,17 +4125,9 @@ ${proxyCtx}
     var params = [ans.segment, ans.location, ans.size, ans.platform].filter(Boolean).join(' · ');
     var label = prompt('שם לרשימה זו:', params || ('חיפוש ' + new Date().toLocaleDateString('he-IL')));
     if (label === null) return;
-    var newSearch = {
-      id: Date.now(),
-      name: label || params || 'חיפוש',
-      params: ans,
-      leads: _lastFoundLeads.slice(),
-      savedAt: new Date().toISOString()
-    };
-    var searches = loadSavedSearches();
-    searches.unshift(newSearch);
-    persistSavedSearches(searches);
-    persistSavedSearchFirebase(newSearch);
+    var ns={id:Date.now(),name:label||params||'חיפוש',params:ans,leads:_lastFoundLeads.slice(),savedAt:new Date().toISOString()};
+    var searches=loadSavedSearches(); searches.unshift(ns);
+    persistSavedSearches(searches); persistSavedSearchFirebase(ns);
     window.renderSavedSearches();
     var btn = document.getElementById('btn-save-search');
     if (btn) { btn.textContent = '✅ נשמר!'; setTimeout(function(){ btn.textContent = '💾 שמור'; }, 2000); }
@@ -4165,10 +4136,8 @@ ${proxyCtx}
   // Delete entire saved search
   window.deleteSavedSearch = function(idx) {
     if (!confirm('למחוק רשימה זו?')) return;
-    var searches = loadSavedSearches();
-    var removed = searches.splice(idx, 1)[0];
-    persistSavedSearches(searches);
-    if (removed) deleteSavedSearchFirebase(removed.id, removed._fbId);
+    var searches=loadSavedSearches(); var removed=searches.splice(idx,1)[0];
+    persistSavedSearches(searches); if(removed) deleteSavedSearchFirebase(removed.id,removed._fbId);
     window.renderSavedSearches();
   };
 
@@ -5004,7 +4973,7 @@ addSalesPlaybookPanel();
 
   <!-- ══════════ AI CHAT PANEL ══════════ -->
   <div class="panel" id="tab-aichat">
-    <div id="aichat-wrap" style="display:flex;flex-direction:column;height:calc(100vh - 60px);max-height:calc(100vh - 60px);max-width:860px;margin:0 auto">
+    <div id="aichat-wrap" style="display:flex;flex-direction:column;height:calc(100vh - 56px);max-width:860px;margin:0 auto;overflow:hidden">
 
       <!-- Header -->
       <div style="display:flex;align-items:center;gap:12px;padding-bottom:16px;border-bottom:1px solid var(--border);margin-bottom:16px;flex-shrink:0">
@@ -5073,27 +5042,19 @@ addSalesPlaybookPanel();
 
   async function saveChatToFirebase() {
     try {
-      if (typeof db === 'undefined' || !db || !aiHistory.length) return;
-      await db.collection(CHAT_COL).doc(aiSessionId).set({
-        sessionId: aiSessionId,
-        messages: aiHistory,
-        updatedAt: new Date().toISOString(),
-        messageCount: aiHistory.length
-      });
-    } catch(e) {}
+      if (typeof db==='undefined'||!db||!aiHistory.length) return;
+      await db.collection(CHAT_COL).doc(aiSessionId).set({ sessionId:aiSessionId, messages:aiHistory, updatedAt:new Date().toISOString(), messageCount:aiHistory.length });
+    } catch(e){}
   }
   async function loadRecentChatsFirebase() {
     try {
-      if (typeof db === 'undefined' || !db) return [];
-      var snap = await db.collection(CHAT_COL).orderBy('updatedAt','desc').limit(10).get();
-      return snap.docs.map(function(d){ return d.data(); });
-    } catch(e) { return []; }
+      if (typeof db==='undefined'||!db) return [];
+      var snap=await db.collection(CHAT_COL).orderBy('updatedAt','desc').limit(10).get();
+      return snap.docs.map(function(d){return d.data();});
+    } catch(e){return[];}
   }
-  var _chatSaveTimer = null;
-  function scheduleChatSave() {
-    if (_chatSaveTimer) clearTimeout(_chatSaveTimer);
-    _chatSaveTimer = setTimeout(saveChatToFirebase, 1500);
-  }
+  var _chatSaveTimer=null;
+  function scheduleChatSave(){if(_chatSaveTimer)clearTimeout(_chatSaveTimer);_chatSaveTimer=setTimeout(saveChatToFirebase,1500);}
 
   var SYSTEM_PROMPT = [
     'אתה Claude — עוזר AI חכם ומקצועי שמשולב ב-XTIX.CRM.',
@@ -5230,58 +5191,48 @@ addSalesPlaybookPanel();
     var picker = document.createElement('div');
     picker.style.cssText = 'background:var(--surface2);border:1px solid var(--border);border-radius:10px;padding:12px 14px;margin-bottom:8px;font-size:12px';
     var html = '<div style="font-weight:700;color:var(--accent);margin-bottom:8px">📂 שיחות שמורות בענן:</div>';
-    sessions.forEach(function(s, i) {
-      var d = new Date(s.updatedAt).toLocaleDateString('he-IL');
-      var count = Math.floor((s.messageCount || 0) / 2);
-      html += '<div style="display:flex;align-items:center;justify-content:space-between;padding:6px 0;border-bottom:1px solid var(--border)">'
-        + '<span style="color:var(--text)">' + d + ' — ' + count + ' הודעות</span>'
-        + '<button onclick="window.restoreChatSession(' + i + ')" style="background:rgba(108,99,255,0.15);border:1px solid rgba(108,99,255,0.3);border-radius:6px;padding:3px 10px;font-size:11px;color:var(--accent);cursor:pointer;font-family:Heebo,sans-serif">טען</button>'
-        + '</div>';
+    sessions.forEach(function(s,i){
+      var d=new Date(s.updatedAt).toLocaleDateString('he-IL');
+      var c=Math.floor((s.messageCount||0)/2);
+      html+='<div style="display:flex;align-items:center;justify-content:space-between;padding:6px 0;border-bottom:1px solid var(--border)">'
+        +'<span style="color:var(--text)">'+d+' — '+c+' הודעות</span>'
+        +'<button onclick="window.restoreChatSession('+i+')" style="background:rgba(108,99,255,0.15);border:1px solid rgba(108,99,255,0.3);border-radius:6px;padding:3px 10px;font-size:11px;color:var(--accent);cursor:pointer;font-family:Heebo,sans-serif">טען</button>'
+        +'</div>';
     });
-    picker.innerHTML = html;
-    list.appendChild(picker);
-    list.scrollTop = list.scrollHeight;
-    window._chatSessions = sessions;
+    picker.innerHTML=html; list.appendChild(picker); list.scrollTop=list.scrollHeight;
+    window._chatSessions=sessions;
   };
 
   window.restoreChatSession = function(idx) {
-    var sessions = window._chatSessions || [];
-    var session = sessions[idx];
-    if (!session || !session.messages) return;
-    var list = document.getElementById('ai-messages');
-    if (!list) return;
-    list.innerHTML = '';
-    aiHistory = session.messages.slice();
-    aiHistory.forEach(function(msg) {
-      addMessage(msg.role === 'user' ? 'user' : 'claude', msg.content);
-    });
-    var ti = document.getElementById('ai-token-info');
-    if (ti) ti.textContent = Math.floor(aiHistory.length / 2) + ' הודעות בשיח';
-    list.scrollTop = list.scrollHeight;
+    var s=(window._chatSessions||[])[idx];
+    if(!s||!s.messages) return;
+    var list=document.getElementById('ai-messages');
+    if(!list) return;
+    list.innerHTML=''; aiHistory=s.messages.slice();
+    aiHistory.forEach(function(m){ addMessage(m.role==='user'?'user':'claude',m.content); });
+    var ti=document.getElementById('ai-token-info');
+    if(ti) ti.textContent=Math.floor(aiHistory.length/2)+' הודעות בשיח';
+    list.scrollTop=list.scrollHeight;
   };
 
   window.clearAiChat = function clearAiChat() {
     if (aiHistory.length && !confirm('למחוק את כל השיחה?')) return;
     if (aiHistory.length) saveChatToFirebase();
-    aiHistory = [];
-    aiSessionId = 'session_' + Date.now();
-    var list = document.getElementById('ai-messages');
-    if (list) list.innerHTML = '';
-    var ti = document.getElementById('ai-token-info');
-    if (ti) ti.textContent = '';
+    aiHistory=[]; aiSessionId='session_'+Date.now();
+    var list=document.getElementById('ai-messages');
+    if(list) list.innerHTML='';
+    var ti=document.getElementById('ai-token-info');
+    if(ti) ti.textContent='';
     setStatus(false);
-    setTimeout(function() {
-      addMessage('claude', [
-        'שלום! אני Claude, העוזר AI שלך ב-XTIX.CRM 👋',
-        '',
+    setTimeout(function(){
+      addMessage('claude',[
+        'שלום! אני Claude, העוזר AI שלך ב-XTIX.CRM 👋','',
         'אני יכול לעזור לך עם:',
         '• כתיבת מיילים ומסרים ללידים',
         '• ניתוח לידים ואסטרטגיית מכירות',
-        '• מענה על כל שאלה',
-        '',
-        'איך אוכל לעזור?'
+        '• מענה על כל שאלה','','איך אוכל לעזור?'
       ].join('\n'));
-    }, 100);
+    },100);
   };
 
     // Show welcome on first load of this panel
@@ -5957,6 +5908,7 @@ if (_origRender) {
 
 })();
 </script>
+
 
 
 
