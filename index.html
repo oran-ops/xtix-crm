@@ -1221,6 +1221,393 @@ input::placeholder, textarea::placeholder { color: var(--t3); }
 .hs-status-label { color: var(--t3); }
 .hs-status-val { color: var(--t1); font-weight: 700; }
 @media (max-width: 900px) { .hs-layout { grid-template-columns: 1fr; } }
+
+/* ═══════════════════════════════════════════════════════
+   AI BRAIN PANEL — Full Styles
+═══════════════════════════════════════════════════════ */
+.brain-wrap {
+  padding: 24px 28px;
+  max-width: 1100px;
+  margin: 0 auto;
+  direction: rtl;
+}
+.brain-header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  margin-bottom: 24px;
+  gap: 20px;
+  flex-wrap: wrap;
+}
+.brain-tag {
+  font-size: 10px;
+  font-weight: 800;
+  letter-spacing: 1.5px;
+  color: #a78bfa;
+  background: rgba(124,58,237,0.12);
+  border: 1px solid rgba(124,58,237,0.25);
+  border-radius: 5px;
+  padding: 3px 10px;
+  display: inline-block;
+  margin-bottom: 8px;
+}
+.brain-title {
+  font-size: 22px;
+  font-weight: 800;
+  color: var(--text);
+  margin: 0 0 4px;
+}
+.brain-sub {
+  font-size: 12px;
+  color: var(--muted);
+  margin: 0;
+}
+.brain-header-stats {
+  display: flex;
+  gap: 16px;
+}
+.brain-stat {
+  background: rgba(255,255,255,0.04);
+  border: 1px solid rgba(255,255,255,0.08);
+  border-radius: 10px;
+  padding: 10px 18px;
+  text-align: center;
+  min-width: 70px;
+}
+.brain-stat-val {
+  font-size: 20px;
+  font-weight: 800;
+  color: #a78bfa;
+}
+.brain-stat-lbl {
+  font-size: 10px;
+  color: var(--muted);
+  margin-top: 2px;
+}
+/* Brain Tabs */
+.brain-tabs {
+  display: flex;
+  gap: 4px;
+  margin-bottom: 20px;
+  border-bottom: 1px solid rgba(255,255,255,0.07);
+  padding-bottom: 0;
+}
+.brain-tab {
+  background: none;
+  border: none;
+  border-bottom: 2px solid transparent;
+  padding: 8px 16px;
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--muted);
+  cursor: pointer;
+  font-family: Heebo, sans-serif;
+  transition: color 0.2s, border-color 0.2s;
+  margin-bottom: -1px;
+}
+.brain-tab.active {
+  color: #a78bfa;
+  border-bottom-color: #a78bfa;
+}
+.brain-panel { display: none; }
+.brain-panel.active { display: block; }
+
+/* Grid layouts */
+.brain-grid-2 {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 16px;
+}
+.brain-grid-3 {
+  display: grid;
+  grid-template-columns: 1fr 1fr 1fr;
+  gap: 16px;
+  margin-bottom: 20px;
+}
+@media (max-width: 800px) {
+  .brain-grid-2, .brain-grid-3 { grid-template-columns: 1fr; }
+}
+/* Cards */
+.brain-card {
+  background: rgba(255,255,255,0.03);
+  border: 1px solid rgba(255,255,255,0.08);
+  border-radius: 12px;
+  padding: 18px;
+  transition: border-color 0.2s;
+}
+.brain-card-active {
+  border-color: rgba(124,58,237,0.35);
+  background: rgba(124,58,237,0.06);
+}
+.brain-card:hover { border-color: rgba(255,255,255,0.14); }
+.brain-card-header {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-bottom: 14px;
+}
+.brain-engine-icon { font-size: 20px; }
+.brain-card-title { font-size: 13px; font-weight: 700; color: var(--text); }
+.brain-card-sub { font-size: 11px; color: var(--muted); margin-top: 2px; }
+.brain-status-badge {
+  margin-right: auto;
+  font-size: 10px;
+  font-weight: 700;
+  padding: 3px 10px;
+  border-radius: 20px;
+  background: rgba(255,255,255,0.05);
+  border: 1px solid rgba(255,255,255,0.1);
+  color: var(--muted);
+  white-space: nowrap;
+}
+.brain-status-badge.active {
+  background: rgba(16,185,129,0.12);
+  border-color: rgba(16,185,129,0.3);
+  color: #10b981;
+}
+.brain-card-body { font-size: 12px; }
+.brain-info-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 5px 0;
+  border-bottom: 1px solid rgba(255,255,255,0.04);
+  font-size: 11px;
+}
+.brain-info-lbl { color: var(--muted); }
+.brain-info-val { color: var(--text); font-weight: 600; }
+.brain-link {
+  color: #a78bfa;
+  text-decoration: none;
+  font-size: 11px;
+  font-weight: 600;
+}
+.brain-link:hover { text-decoration: underline; }
+.brain-key-row {
+  display: flex;
+  gap: 6px;
+  margin-top: 12px;
+}
+.brain-key-input {
+  flex: 1;
+  background: rgba(0,0,0,0.3);
+  border: 1px solid rgba(255,255,255,0.1);
+  border-radius: 7px;
+  padding: 7px 10px;
+  font-size: 12px;
+  color: var(--text);
+  font-family: monospace;
+  direction: ltr;
+}
+.brain-key-input:focus {
+  outline: none;
+  border-color: #a78bfa;
+}
+.brain-toggle-key {
+  background: rgba(255,255,255,0.06);
+  border: 1px solid rgba(255,255,255,0.1);
+  border-radius: 7px;
+  padding: 0 10px;
+  font-size: 14px;
+  cursor: pointer;
+  color: var(--muted);
+}
+.brain-save-btn {
+  background: rgba(124,58,237,0.15);
+  border: 1px solid rgba(124,58,237,0.3);
+  border-radius: 7px;
+  padding: 6px 16px;
+  font-size: 11px;
+  font-weight: 700;
+  color: #a78bfa;
+  cursor: pointer;
+  font-family: Heebo, sans-serif;
+  transition: background 0.2s;
+}
+.brain-save-btn:hover { background: rgba(124,58,237,0.25); }
+.brain-test-btn {
+  background: rgba(16,185,129,0.1);
+  border: 1px solid rgba(16,185,129,0.25);
+  border-radius: 7px;
+  padding: 6px 14px;
+  font-size: 11px;
+  font-weight: 700;
+  color: #10b981;
+  cursor: pointer;
+  font-family: Heebo, sans-serif;
+}
+/* Engine mode selector */
+.brain-mode-options { display: flex; flex-direction: column; gap: 8px; }
+.brain-mode-opt { display: flex; align-items: center; gap: 10px; cursor: pointer; }
+.brain-mode-opt input[type="radio"] { accent-color: #a78bfa; width: 15px; height: 15px; cursor: pointer; }
+.brain-mode-label {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  background: rgba(255,255,255,0.03);
+  border: 1px solid rgba(255,255,255,0.07);
+  border-radius: 8px;
+  padding: 8px 12px;
+  flex: 1;
+  transition: border-color 0.2s;
+}
+.brain-mode-opt:has(input:checked) .brain-mode-label {
+  border-color: rgba(124,58,237,0.4);
+  background: rgba(124,58,237,0.08);
+}
+.brain-mode-icon { font-size: 18px; }
+/* Decisions list */
+.brain-decisions-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 0 0 12px;
+  border-bottom: 1px solid rgba(255,255,255,0.06);
+  margin-bottom: 12px;
+}
+.brain-decision-row {
+  display: grid;
+  grid-template-columns: 1fr 80px 80px 80px 90px 40px;
+  align-items: center;
+  gap: 12px;
+  padding: 10px 14px;
+  background: rgba(255,255,255,0.02);
+  border: 1px solid rgba(255,255,255,0.06);
+  border-radius: 9px;
+  margin-bottom: 6px;
+  cursor: pointer;
+  transition: border-color 0.15s, background 0.15s;
+  font-size: 12px;
+}
+.brain-decision-row:hover {
+  border-color: rgba(124,58,237,0.3);
+  background: rgba(124,58,237,0.05);
+}
+.brain-decision-name { font-weight: 700; color: var(--text); }
+.brain-decision-date { font-size: 10px; color: var(--muted); margin-top: 2px; }
+.brain-consensus-high { color: #10b981; font-weight: 700; font-size: 11px; }
+.brain-consensus-med { color: #F59E0B; font-weight: 700; font-size: 11px; }
+.brain-consensus-low { color: #ef4444; font-weight: 700; font-size: 11px; }
+.brain-outcome-pending { color: var(--muted); font-size: 11px; }
+.brain-outcome-correct { color: #10b981; font-size: 11px; font-weight: 700; }
+.brain-outcome-wrong { color: #ef4444; font-size: 11px; font-weight: 700; }
+/* Decision detail modal */
+.brain-detail-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0,0,0,0.75);
+  backdrop-filter: blur(4px);
+  z-index: 9000;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+.brain-detail-modal {
+  background: #141418;
+  border: 1px solid rgba(124,58,237,0.3);
+  border-radius: 16px;
+  padding: 28px;
+  width: 720px;
+  max-width: 95vw;
+  max-height: 85vh;
+  overflow-y: auto;
+  direction: rtl;
+  box-shadow: 0 32px 80px rgba(0,0,0,0.7);
+}
+.brain-detail-title {
+  font-size: 16px;
+  font-weight: 800;
+  color: var(--text);
+  margin-bottom: 20px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+.brain-engines-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr 1fr;
+  gap: 12px;
+  margin-bottom: 16px;
+}
+.brain-engine-block {
+  background: rgba(255,255,255,0.03);
+  border: 1px solid rgba(255,255,255,0.08);
+  border-radius: 10px;
+  padding: 12px;
+}
+.brain-engine-block-title {
+  font-size: 11px;
+  font-weight: 800;
+  color: var(--muted);
+  letter-spacing: 0.5px;
+  margin-bottom: 8px;
+}
+.brain-engine-score {
+  font-size: 28px;
+  font-weight: 800;
+  color: #a78bfa;
+  margin-bottom: 4px;
+}
+.brain-engine-detail {
+  font-size: 10px;
+  color: var(--muted);
+  line-height: 1.6;
+}
+.brain-meta-block {
+  background: rgba(124,58,237,0.08);
+  border: 1px solid rgba(124,58,237,0.3);
+  border-radius: 10px;
+  padding: 14px;
+  margin-bottom: 12px;
+}
+.brain-meta-title {
+  font-size: 11px;
+  font-weight: 800;
+  color: #a78bfa;
+  margin-bottom: 8px;
+  letter-spacing: 0.5px;
+}
+.brain-meta-reasoning {
+  font-size: 12px;
+  color: var(--text);
+  line-height: 1.75;
+}
+.brain-outcome-btn {
+  background: rgba(16,185,129,0.1);
+  border: 1px solid rgba(16,185,129,0.25);
+  border-radius: 7px;
+  padding: 7px 16px;
+  font-size: 11px;
+  font-weight: 700;
+  color: #10b981;
+  cursor: pointer;
+  font-family: Heebo, sans-serif;
+  margin-left: 8px;
+}
+.brain-outcome-btn.wrong {
+  background: rgba(239,68,68,0.1);
+  border-color: rgba(239,68,68,0.25);
+  color: #ef4444;
+}
+/* Performance tab */
+.brain-perf-card {
+  background: rgba(255,255,255,0.03);
+  border: 1px solid rgba(255,255,255,0.08);
+  border-radius: 12px;
+  padding: 20px;
+  text-align: center;
+}
+.brain-perf-icon { font-size: 24px; margin-bottom: 8px; }
+.brain-perf-val { font-size: 28px; font-weight: 800; color: #a78bfa; margin-bottom: 4px; }
+.brain-perf-lbl { font-size: 12px; font-weight: 700; color: var(--text); margin-bottom: 4px; }
+.brain-perf-sub { font-size: 10px; color: var(--muted); }
+.brain-segment-table {
+  background: rgba(255,255,255,0.02);
+  border: 1px solid rgba(255,255,255,0.07);
+  border-radius: 12px;
+  padding: 16px;
+}
+
 </style>
 
   <!-- Firebase CDN (compat mode — works without type=module) -->
@@ -1302,6 +1689,11 @@ document.addEventListener("DOMContentLoaded",function(){
     </button>
     <button class="nav-btn" data-panel="hubspot" onclick="switchMainTab('hubspot',this)">
       <span class="nav-icon"><svg width="14" height="14" viewBox="0 0 14 14" fill="none"><path d="M7 1.5l4.5 2.5v5L7 12.5 2.5 9v-5z" stroke="currentColor" stroke-width="1.3" stroke-linejoin="round"/></svg></span><span class="nav-label">HubSpot</span>
+    </button>
+    <button class="nav-btn" data-panel="aibrain" onclick="switchMainTab('aibrain',this)">
+      <span class="nav-icon"><svg width="14" height="14" viewBox="0 0 14 14" fill="none"><path d="M7 1.5C4.5 1.5 2.5 3.3 2.5 5.5c0 1.2.5 2.2 1.4 3 .3.3.6.8.6 1.3V11h5v-1.2c0-.5.3-1 .6-1.3.9-.8 1.4-1.8 1.4-3C11.5 3.3 9.5 1.5 7 1.5z" stroke="currentColor" stroke-width="1.3" stroke-linejoin="round"/><path d="M5.5 11v1a1.5 1.5 0 003 0v-1" stroke="currentColor" stroke-width="1.3" stroke-linecap="round"/><path d="M5 7h4M7 5v4" stroke="currentColor" stroke-width="1.1" stroke-linecap="round" opacity=".5"/></svg></span>
+      <span class="nav-label">AI Brain</span>
+      <span id="brain-badge" style="display:none;background:linear-gradient(135deg,#7c3aed,#a78bfa);color:#fff;border-radius:10px;padding:1px 7px;font-size:9px;font-weight:700;margin-right:auto">0</span>
     </button>
     <button class="nav-btn" data-panel="tasks" onclick="switchMainTab('tasks',this)" id="nav-tasks">
       <span class="nav-icon"><svg width="14" height="14" viewBox="0 0 14 14" fill="none"><rect x="2" y="2" width="10" height="10" rx="2" stroke="currentColor" stroke-width="1.3"/><path d="M5 7l2 2 4-3.5" stroke="currentColor" stroke-width="1.3" stroke-linecap="round" stroke-linejoin="round" opacity=".6"/></svg></span><span class="nav-label">משימות</span>
@@ -3575,7 +3967,8 @@ BP18: Nurture existing customers — repeat customers spend 67% more
         `;
       }
       loadLeadsAsync();
-      ensureMethodologyInFirebase(); // pre-load methodology
+      ensureMethodologyInFirebase();
+      initBrain(); // ← Triple Engine init // pre-load methodology
       seedAllCollections(false); // auto-seed missing collections silently
       seedCompetitorsIfEmpty();
       logActivity('login', { email: user.email, name: user.displayName });
@@ -5787,7 +6180,223 @@ Blueprint לכל מייל:
 
 </script>
 
-<!-- =================== FIXES v3.1 =================== -->
+
+  <!-- =================== AI BRAIN =================== -->
+  <div class="panel" id="tab-aibrain">
+    <div class="brain-wrap">
+
+      <!-- Header -->
+      <div class="brain-header">
+        <div class="brain-header-left">
+          <div class="brain-tag">TRIPLE ENGINE</div>
+          <h1 class="brain-title">🧠 AI Brain — מוח מרכזי</h1>
+          <p class="brain-sub">Claude · GPT-4o · Gemini עובדים יחד. Meta-Judge מחליט.</p>
+        </div>
+        <div class="brain-header-stats">
+          <div class="brain-stat">
+            <div class="brain-stat-val" id="brain-total-decisions">0</div>
+            <div class="brain-stat-lbl">החלטות</div>
+          </div>
+          <div class="brain-stat">
+            <div class="brain-stat-val" id="brain-accuracy">—</div>
+            <div class="brain-stat-lbl">דיוק</div>
+          </div>
+          <div class="brain-stat">
+            <div class="brain-stat-val" id="brain-consensus-rate">—</div>
+            <div class="brain-stat-lbl">הסכמה</div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Tabs -->
+      <div class="brain-tabs">
+        <button class="brain-tab active" onclick="switchBrainTab('settings',this)">⚙️ הגדרות API</button>
+        <button class="brain-tab" onclick="switchBrainTab('decisions',this)">📋 היסטוריית החלטות</button>
+        <button class="brain-tab" onclick="switchBrainTab('performance',this)">📈 ביצועים</button>
+      </div>
+
+      <!-- TAB: Settings -->
+      <div class="brain-panel active" id="brain-tab-settings">
+        <div class="brain-grid-2">
+
+          <!-- Claude (already active) -->
+          <div class="brain-card brain-card-active">
+            <div class="brain-card-header">
+              <span class="brain-engine-icon">🟣</span>
+              <div>
+                <div class="brain-card-title">Claude (Anthropic)</div>
+                <div class="brain-card-sub">המנוע הראשי — Meta-Judge</div>
+              </div>
+              <span class="brain-status-badge active">✓ פעיל</span>
+            </div>
+            <div class="brain-card-body">
+              <div class="brain-info-row">
+                <span class="brain-info-lbl">מודל</span>
+                <span class="brain-info-val">claude-sonnet-4-20250514</span>
+              </div>
+              <div class="brain-info-row">
+                <span class="brain-info-lbl">תפקיד</span>
+                <span class="brain-info-val">ניתוח + Meta-Judge סופי</span>
+              </div>
+              <div class="brain-info-row">
+                <span class="brain-info-lbl">API Key</span>
+                <span class="brain-info-val" style="color:var(--green)">✓ מוגדר ב-Railway</span>
+              </div>
+            </div>
+          </div>
+
+          <!-- GPT-4o -->
+          <div class="brain-card" id="brain-card-gpt">
+            <div class="brain-card-header">
+              <span class="brain-engine-icon">🟢</span>
+              <div>
+                <div class="brain-card-title">GPT-4o (OpenAI)</div>
+                <div class="brain-card-sub">מנוע משני — ניתוח כמותי</div>
+              </div>
+              <span class="brain-status-badge" id="gpt-status-badge">○ לא מוגדר</span>
+            </div>
+            <div class="brain-card-body">
+              <div class="brain-info-row">
+                <span class="brain-info-lbl">מודל</span>
+                <span class="brain-info-val">gpt-4o</span>
+              </div>
+              <div class="brain-info-row">
+                <span class="brain-info-lbl">קבל Key</span>
+                <a href="https://platform.openai.com/api-keys" target="_blank" class="brain-link">platform.openai.com →</a>
+              </div>
+              <div class="brain-key-row">
+                <input type="password" id="gpt-key-input" class="brain-key-input" placeholder="sk-..." />
+                <button class="brain-toggle-key" onclick="toggleKeyVisibility('gpt-key-input',this)">👁</button>
+              </div>
+              <div style="display:flex;gap:8px;margin-top:10px">
+                <button class="brain-save-btn" onclick="saveAIKey('gpt')">💾 שמור</button>
+                <button class="brain-test-btn" onclick="testAIKey('gpt')" id="gpt-test-btn">🧪 בדוק</button>
+              </div>
+              <div id="gpt-key-status" style="font-size:11px;margin-top:6px;min-height:16px"></div>
+            </div>
+          </div>
+
+          <!-- Gemini -->
+          <div class="brain-card" id="brain-card-gemini">
+            <div class="brain-card-header">
+              <span class="brain-engine-icon">🔵</span>
+              <div>
+                <div class="brain-card-title">Gemini (Google)</div>
+                <div class="brain-card-sub">מנוע שלישי — זיהוי patterns</div>
+              </div>
+              <span class="brain-status-badge" id="gemini-status-badge">○ לא מוגדר</span>
+            </div>
+            <div class="brain-card-body">
+              <div class="brain-info-row">
+                <span class="brain-info-lbl">מודל</span>
+                <span class="brain-info-val">gemini-1.5-pro</span>
+              </div>
+              <div class="brain-info-row">
+                <span class="brain-info-lbl">קבל Key</span>
+                <a href="https://aistudio.google.com/app/apikey" target="_blank" class="brain-link">aistudio.google.com →</a>
+              </div>
+              <div class="brain-key-row">
+                <input type="password" id="gemini-key-input" class="brain-key-input" placeholder="AIza..." />
+                <button class="brain-toggle-key" onclick="toggleKeyVisibility('gemini-key-input',this)">👁</button>
+              </div>
+              <div style="display:flex;gap:8px;margin-top:10px">
+                <button class="brain-save-btn" onclick="saveAIKey('gemini')">💾 שמור</button>
+                <button class="brain-test-btn" onclick="testAIKey('gemini')" id="gemini-test-btn">🧪 בדוק</button>
+              </div>
+              <div id="gemini-key-status" style="font-size:11px;margin-top:6px;min-height:16px"></div>
+            </div>
+          </div>
+
+          <!-- Engine Mode -->
+          <div class="brain-card">
+            <div class="brain-card-header">
+              <span class="brain-engine-icon">⚡</span>
+              <div>
+                <div class="brain-card-title">מצב מנוע</div>
+                <div class="brain-card-sub">בחר איך הניתוח יתבצע</div>
+              </div>
+            </div>
+            <div class="brain-card-body">
+              <div class="brain-mode-options">
+                <label class="brain-mode-opt">
+                  <input type="radio" name="engine_mode" value="triple" id="mode-triple">
+                  <div class="brain-mode-label">
+                    <span class="brain-mode-icon">🔺</span>
+                    <div>
+                      <div style="font-weight:700;font-size:12px">Triple Engine</div>
+                      <div style="font-size:10px;color:var(--muted)">Claude + GPT + Gemini → Meta-Judge</div>
+                    </div>
+                  </div>
+                </label>
+                <label class="brain-mode-opt">
+                  <input type="radio" name="engine_mode" value="claude_only" id="mode-claude" checked>
+                  <div class="brain-mode-label">
+                    <span class="brain-mode-icon">🟣</span>
+                    <div>
+                      <div style="font-weight:700;font-size:12px">Claude בלבד</div>
+                      <div style="font-size:10px;color:var(--muted)">המצב הנוכחי — מהיר יותר</div>
+                    </div>
+                  </div>
+                </label>
+              </div>
+              <button class="brain-save-btn" style="margin-top:12px;width:100%" onclick="saveEngineMode()">💾 שמור מצב</button>
+              <div id="mode-status" style="font-size:11px;margin-top:6px;min-height:16px;text-align:center"></div>
+            </div>
+          </div>
+
+        </div><!-- /brain-grid-2 -->
+      </div><!-- /brain-tab-settings -->
+
+      <!-- TAB: Decisions History -->
+      <div class="brain-panel" id="brain-tab-decisions">
+        <div class="brain-decisions-header">
+          <div style="font-size:13px;font-weight:700;color:var(--text)">היסטוריית החלטות</div>
+          <div style="font-size:11px;color:var(--muted)">לחץ על שורה לפירוט מלא של החשיבה</div>
+        </div>
+        <div id="brain-decisions-list">
+          <div style="text-align:center;padding:48px;color:var(--muted);font-size:13px">
+            <div style="font-size:32px;margin-bottom:12px">🧠</div>
+            <div>עדיין אין החלטות</div>
+            <div style="font-size:11px;margin-top:6px">נתח ליד עם Triple Engine כדי להתחיל</div>
+          </div>
+        </div>
+      </div>
+
+      <!-- TAB: Performance -->
+      <div class="brain-panel" id="brain-tab-performance">
+        <div class="brain-grid-3">
+          <div class="brain-perf-card">
+            <div class="brain-perf-icon">🎯</div>
+            <div class="brain-perf-val" id="perf-accuracy-val">—</div>
+            <div class="brain-perf-lbl">דיוק כולל</div>
+            <div class="brain-perf-sub" id="perf-accuracy-sub">ממתין לנתונים</div>
+          </div>
+          <div class="brain-perf-card">
+            <div class="brain-perf-icon">🤝</div>
+            <div class="brain-perf-val" id="perf-consensus-val">—</div>
+            <div class="brain-perf-lbl">שיעור הסכמה</div>
+            <div class="brain-perf-sub" id="perf-consensus-sub">% מהניתוחים עם הסכמה גבוהה</div>
+          </div>
+          <div class="brain-perf-card">
+            <div class="brain-perf-icon">⚡</div>
+            <div class="brain-perf-val" id="perf-overrides-val">—</div>
+            <div class="brain-perf-lbl">Meta-Judge overrides</div>
+            <div class="brain-perf-sub" id="perf-overrides-sub">פעמים שהחליט נגד הרוב</div>
+          </div>
+        </div>
+
+        <div class="brain-segment-table">
+          <div style="font-size:12px;font-weight:700;color:var(--text);margin-bottom:12px">דיוק לפי סגמנט</div>
+          <div id="brain-segment-breakdown">
+            <div style="color:var(--muted);font-size:12px;text-align:center;padding:24px">ממתין לנתונים מספיקים</div>
+          </div>
+        </div>
+      </div>
+
+    </div><!-- /brain-wrap -->
+  </div><!-- /tab-aibrain -->
+
+  <!-- =================== FIXES v3.1 =================== -->
 <style>
 /* Fix 1: Checkbox + card layout */
 .lead-card-header {
@@ -8440,6 +9049,551 @@ window.methTab = function(tabName) {
   // Activate button
   var btn = document.querySelector('.mn-btn[data-tab="' + tabName + '"]');
   if (btn) btn.classList.add('active');
+};
+
+
+
+
+
+// ════════════════════════════════════════════════════════════════
+//  AI BRAIN — Triple Engine + Meta-Judge + Firebase Memory
+//  Stage 1: Settings, Key Management, UI, Firebase structure
+// ════════════════════════════════════════════════════════════════
+
+const AI_DECISIONS_COL = 'ai_decisions';
+const AI_KEYS_DOC      = 'ai_keys';
+const AI_CONFIG_DOC    = 'ai_config';
+
+// ── In-memory state ──────────────────────────────────────────
+var _brainKeys = { gpt: '', gemini: '' };
+var _engineMode = 'claude_only';  // 'claude_only' | 'triple'
+var _brainDecisions = [];
+
+// ── Tab switcher ─────────────────────────────────────────────
+window.switchBrainTab = function(name, btn) {
+  document.querySelectorAll('.brain-tab').forEach(b => b.classList.remove('active'));
+  document.querySelectorAll('.brain-panel').forEach(p => p.classList.remove('active'));
+  var panel = document.getElementById('brain-tab-' + name);
+  if (panel) panel.classList.add('active');
+  if (btn) btn.classList.add('active');
+  if (name === 'decisions') loadBrainDecisions();
+  if (name === 'performance') loadBrainPerformance();
+};
+
+// ── Key visibility toggle ─────────────────────────────────────
+window.toggleKeyVisibility = function(inputId, btn) {
+  var inp = document.getElementById(inputId);
+  if (!inp) return;
+  if (inp.type === 'password') {
+    inp.type = 'text';
+    btn.textContent = '🙈';
+  } else {
+    inp.type = 'password';
+    btn.textContent = '👁';
+  }
+};
+
+// ── Save API Key to Firebase + localStorage ───────────────────
+window.saveAIKey = async function(engine) {
+  var inputId = engine + '-key-input';
+  var statusId = engine + '-key-status';
+  var badgeId  = engine + '-status-badge';
+  var inp = document.getElementById(inputId);
+  var statusEl = document.getElementById(statusId);
+  if (!inp || !inp.value.trim()) {
+    if (statusEl) { statusEl.style.color='#ef4444'; statusEl.textContent='נא להזין API Key'; }
+    return;
+  }
+  var key = inp.value.trim();
+
+  // Save to localStorage as fallback
+  try { localStorage.setItem('xtix_ai_key_' + engine, key); } catch(e) {}
+
+  // Save to Firebase
+  try {
+    if (typeof db !== 'undefined' && db) {
+      var existing = {};
+      try {
+        var snap = await db.collection('settings').doc(AI_KEYS_DOC).get();
+        if (snap.exists) existing = snap.data();
+      } catch(e2) {}
+      existing[engine + '_key'] = key;
+      existing['updated_at'] = new Date().toISOString();
+      await db.collection('settings').doc(AI_KEYS_DOC).set(existing, { merge: true });
+    }
+  } catch(e) {
+    console.warn('[Brain] Firebase save failed:', e.message);
+  }
+
+  // Update in-memory
+  _brainKeys[engine] = key;
+
+  // Update UI
+  if (statusEl) {
+    statusEl.style.color = '#10b981';
+    statusEl.textContent = '✓ נשמר בהצלחה';
+    setTimeout(() => { if(statusEl) statusEl.textContent = ''; }, 3000);
+  }
+  var badge = document.getElementById(badgeId);
+  if (badge) {
+    badge.textContent = '✓ פעיל';
+    badge.className = 'brain-status-badge active';
+  }
+};
+
+// ── Test API Key ──────────────────────────────────────────────
+window.testAIKey = async function(engine) {
+  var key = document.getElementById(engine + '-key-input')?.value.trim() || _brainKeys[engine];
+  var statusEl = document.getElementById(engine + '-key-status');
+  var btn = document.getElementById(engine + '-test-btn');
+  if (!key) {
+    if (statusEl) { statusEl.style.color='#ef4444'; statusEl.textContent='נא להזין Key קודם'; }
+    return;
+  }
+  if (btn) { btn.textContent = '⏳ בודק...'; btn.disabled = true; }
+  if (statusEl) { statusEl.style.color = 'var(--muted)'; statusEl.textContent = 'שולח בקשת בדיקה...'; }
+
+  var ok = false;
+  try {
+    if (engine === 'gpt') {
+      var res = await fetch('https://api.openai.com/v1/chat/completions', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + key },
+        body: JSON.stringify({
+          model: 'gpt-4o',
+          messages: [{ role: 'user', content: 'Reply with one word: OK' }],
+          max_tokens: 5
+        }),
+        signal: AbortSignal.timeout(12000)
+      });
+      var data = await res.json();
+      ok = !!(data.choices && data.choices[0]);
+    } else if (engine === 'gemini') {
+      var res = await fetch(
+        'https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-pro:generateContent?key=' + key,
+        {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ contents: [{ parts: [{ text: 'Reply with one word: OK' }] }] }),
+          signal: AbortSignal.timeout(12000)
+        }
+      );
+      var data = await res.json();
+      ok = !!(data.candidates && data.candidates[0]);
+    }
+  } catch(e) {
+    console.warn('[Brain] Key test error:', e.message);
+  }
+
+  if (btn) { btn.textContent = '🧪 בדוק'; btn.disabled = false; }
+  if (statusEl) {
+    if (ok) {
+      statusEl.style.color = '#10b981';
+      statusEl.textContent = '✅ Key תקין! המנוע מוכן.';
+    } else {
+      statusEl.style.color = '#ef4444';
+      statusEl.textContent = '❌ Key לא תקין — בדוק שוב';
+    }
+  }
+};
+
+// ── Save Engine Mode ──────────────────────────────────────────
+window.saveEngineMode = async function() {
+  var modeEl = document.querySelector('input[name="engine_mode"]:checked');
+  var mode = modeEl ? modeEl.value : 'claude_only';
+  _engineMode = mode;
+  try { localStorage.setItem('xtix_engine_mode', mode); } catch(e) {}
+  try {
+    if (typeof db !== 'undefined' && db) {
+      await db.collection('settings').doc(AI_CONFIG_DOC).set({
+        engine_mode: mode,
+        updated_at: new Date().toISOString()
+      }, { merge: true });
+    }
+  } catch(e) {}
+  var statusEl = document.getElementById('mode-status');
+  if (statusEl) {
+    statusEl.style.color = mode === 'triple' ? '#a78bfa' : '#10b981';
+    statusEl.textContent = mode === 'triple'
+      ? '🔺 Triple Engine פעיל — Claude + GPT + Gemini'
+      : '🟣 Claude בלבד פעיל';
+    setTimeout(() => { if(statusEl) statusEl.textContent = ''; }, 4000);
+  }
+};
+
+// ── Load keys + config on startup ────────────────────────────
+async function loadBrainConfig() {
+  // localStorage fallback
+  try {
+    var gk = localStorage.getItem('xtix_ai_key_gpt') || '';
+    var gmk = localStorage.getItem('xtix_ai_key_gemini') || '';
+    var em = localStorage.getItem('xtix_engine_mode') || 'claude_only';
+    if (gk) _brainKeys.gpt = gk;
+    if (gmk) _brainKeys.gemini = gmk;
+    _engineMode = em;
+    _applyBrainConfigToUI();
+  } catch(e) {}
+
+  // Firebase override
+  try {
+    if (typeof db !== 'undefined' && db) {
+      var snap = await db.collection('settings').doc(AI_KEYS_DOC).get();
+      if (snap.exists) {
+        var d = snap.data();
+        if (d.gpt_key)    { _brainKeys.gpt    = d.gpt_key;    try { localStorage.setItem('xtix_ai_key_gpt', d.gpt_key); } catch(e){} }
+        if (d.gemini_key) { _brainKeys.gemini = d.gemini_key; try { localStorage.setItem('xtix_ai_key_gemini', d.gemini_key); } catch(e){} }
+      }
+      var cfgSnap = await db.collection('settings').doc(AI_CONFIG_DOC).get();
+      if (cfgSnap.exists && cfgSnap.data().engine_mode) {
+        _engineMode = cfgSnap.data().engine_mode;
+        try { localStorage.setItem('xtix_engine_mode', _engineMode); } catch(e) {}
+      }
+    }
+  } catch(e) { console.warn('[Brain] Config load failed:', e.message); }
+
+  _applyBrainConfigToUI();
+}
+
+function _applyBrainConfigToUI() {
+  // Update key inputs (show masked)
+  ['gpt','gemini'].forEach(function(engine) {
+    var inp = document.getElementById(engine + '-key-input');
+    var badge = document.getElementById(engine + '-status-badge');
+    if (_brainKeys[engine]) {
+      if (inp && !inp.value) inp.value = _brainKeys[engine];
+      if (badge) { badge.textContent = '✓ פעיל'; badge.className = 'brain-status-badge active'; }
+    }
+  });
+  // Engine mode radio
+  var modeRadio = document.getElementById(_engineMode === 'triple' ? 'mode-triple' : 'mode-claude');
+  if (modeRadio) modeRadio.checked = true;
+  // Update status indicator
+  var modeStatus = document.getElementById('mode-status');
+  if (modeStatus && _engineMode === 'triple') {
+    modeStatus.style.color = '#a78bfa';
+    modeStatus.textContent = '🔺 Triple Engine פעיל';
+  }
+}
+
+// ── Load decisions from Firebase ─────────────────────────────
+async function loadBrainDecisions() {
+  var listEl = document.getElementById('brain-decisions-list');
+  if (!listEl) return;
+  listEl.innerHTML = '<div style="text-align:center;padding:32px;color:var(--muted);font-size:12px">⏳ טוען...</div>';
+
+  try {
+    if (typeof db !== 'undefined' && db) {
+      var snap = await db.collection(AI_DECISIONS_COL)
+        .orderBy('timestamp', 'desc')
+        .limit(50)
+        .get();
+      _brainDecisions = [];
+      snap.forEach(doc => _brainDecisions.push({ id: doc.id, ...doc.data() }));
+    }
+  } catch(e) {
+    console.warn('[Brain] Decisions load failed:', e.message);
+    // Try localStorage fallback
+    try {
+      var local = JSON.parse(localStorage.getItem('xtix_brain_decisions') || '[]');
+      _brainDecisions = local.slice(0, 50);
+    } catch(e2) {}
+  }
+
+  _renderDecisionsList();
+  _updateBrainStats();
+}
+
+function _renderDecisionsList() {
+  var listEl = document.getElementById('brain-decisions-list');
+  if (!listEl) return;
+  if (!_brainDecisions.length) {
+    listEl.innerHTML = '<div style="text-align:center;padding:48px;color:var(--muted);font-size:13px"><div style="font-size:32px;margin-bottom:12px">🧠</div><div>עדיין אין החלטות</div><div style="font-size:11px;margin-top:6px">נתח ליד עם Triple Engine כדי להתחיל</div></div>';
+    return;
+  }
+
+  // Header row
+  var html = '<div class="brain-decision-row" style="cursor:default;opacity:0.5;pointer-events:none">' +
+    '<div style="font-weight:700">ליד</div>' +
+    '<div style="font-weight:700">ציון</div>' +
+    '<div style="font-weight:700">הסכמה</div>' +
+    '<div style="font-weight:700">מנועים</div>' +
+    '<div style="font-weight:700">תוצאה</div>' +
+    '<div></div>' +
+    '</div>';
+
+  _brainDecisions.forEach(function(d) {
+    var consensusClass = d.consensus === 'high' ? 'brain-consensus-high'
+      : d.consensus === 'medium' ? 'brain-consensus-med' : 'brain-consensus-low';
+    var consensusLabel = d.consensus === 'high' ? '✅ גבוהה'
+      : d.consensus === 'medium' ? '⚠️ בינונית' : '❌ נמוכה';
+    var outcomeHtml = d.outcome === null || d.outcome === undefined
+      ? '<span class="brain-outcome-pending">ממתין...</span>'
+      : d.was_correct
+        ? '<span class="brain-outcome-correct">✅ נכון</span>'
+        : '<span class="brain-outcome-wrong">❌ טעות</span>';
+    var enginesUsed = [d.claude_raw ? '🟣' : '', d.gpt_raw ? '🟢' : '', d.gemini_raw ? '🔵' : ''].filter(Boolean).join('');
+    var date = d.timestamp ? new Date(d.timestamp).toLocaleDateString('he-IL') : '';
+
+    html += '<div class="brain-decision-row" data-did="' + d.id + '" onclick="showDecisionDetail(this.dataset.did)">' +
+      '<div><div class="brain-decision-name">' + (d.lead_name || 'ליד') + '</div><div class="brain-decision-date">' + date + '</div></div>' +
+      '<div style="font-weight:800;color:#a78bfa;font-size:15px">' + (d.final_score || '—') + '</div>' +
+      '<div class="' + consensusClass + '">' + consensusLabel + '</div>' +
+      '<div style="font-size:16px;letter-spacing:2px">' + enginesUsed + '</div>' +
+      outcomeHtml +
+      '<div style="color:var(--muted);font-size:16px">›</div>' +
+      '</div>';
+  });
+
+  listEl.innerHTML = html;
+}
+
+function _updateBrainStats() {
+  var total = _brainDecisions.length;
+  document.getElementById('brain-total-decisions').textContent = total;
+
+  var decided = _brainDecisions.filter(d => d.outcome !== null && d.outcome !== undefined);
+  if (decided.length > 0) {
+    var correct = decided.filter(d => d.was_correct).length;
+    var pct = Math.round((correct / decided.length) * 100);
+    document.getElementById('brain-accuracy').textContent = pct + '%';
+  }
+
+  var highConsensus = _brainDecisions.filter(d => d.consensus === 'high').length;
+  if (total > 0) {
+    document.getElementById('brain-consensus-rate').textContent = Math.round((highConsensus/total)*100) + '%';
+  }
+}
+
+// ── Show decision detail modal ────────────────────────────────
+window.showDecisionDetail = function(decisionId) {
+  var d = _brainDecisions.find(x => x.id === decisionId);
+  if (!d) return;
+
+  var overrideNote = d.meta_override
+    ? '<div style="background:rgba(239,68,68,0.08);border:1px solid rgba(239,68,68,0.25);border-radius:8px;padding:10px 14px;margin-bottom:12px;font-size:11px;color:#ef4444;font-weight:700">⚡ Meta-Judge Override — החליט נגד הרוב</div>'
+    : '';
+
+  var disagreementsHtml = '';
+  if (d.disagreements && d.disagreements.length) {
+    disagreementsHtml = '<div style="background:rgba(245,158,11,0.06);border:1px solid rgba(245,158,11,0.2);border-radius:8px;padding:10px 14px;margin-bottom:12px">' +
+      '<div style="font-size:11px;font-weight:700;color:#F59E0B;margin-bottom:6px">⚠️ נקודות מחלוקת</div>' +
+      d.disagreements.map(function(dis) {
+        return '<div style="font-size:11px;color:var(--text);margin-bottom:3px">▸ ' + dis + '</div>';
+      }).join('') + '</div>';
+  }
+
+  var outcomeSection = '';
+  if (d.outcome === null || d.outcome === undefined) {
+    outcomeSection = '<div style="border-top:1px solid rgba(255,255,255,0.07);padding-top:16px;margin-top:4px">' +
+      '<div style="font-size:11px;color:var(--muted);margin-bottom:8px">עדכן תוצאה — האם ההחלטה הייתה נכונה?</div>' +
+      '<button class="brain-outcome-btn" data-did="' + decisionId + '" data-correct="true" onclick="markDecisionOutcome(this.dataset.did,this.dataset.correct===\'true\')">✅ נכון — העסקה נסגרה</button>' +
+      '<button class="brain-outcome-btn wrong" data-did="' + decisionId + '" data-correct="false" onclick="markDecisionOutcome(this.dataset.did,this.dataset.correct===\'true\')">❌ טעות — לא נסגר</button>' +
+      '</div>';
+  } else {
+    outcomeSection = '<div style="border-top:1px solid rgba(255,255,255,0.07);padding-top:12px;margin-top:4px;font-size:12px">' +
+      (d.was_correct
+        ? '<span style="color:#10b981;font-weight:700">✅ ההחלטה הייתה נכונה — העסקה נסגרה</span>'
+        : '<span style="color:#ef4444;font-weight:700">❌ ההחלטה הייתה שגויה — עסקה לא נסגרה</span>') +
+      (d.outcome_date ? '<span style="color:var(--muted);font-size:10px;margin-right:8px">' + new Date(d.outcome_date).toLocaleDateString("he-IL") + '</span>' : '') +
+      '</div>';
+  }
+
+  var modal = document.createElement('div');
+  modal.className = 'brain-detail-overlay';
+  modal.id = 'brain-detail-overlay';
+  modal.onclick = function(e) { if(e.target === modal) modal.remove(); };
+  modal.innerHTML = '<div class="brain-detail-modal">' +
+    '<div class="brain-detail-title">' +
+      '<span>🧠 ' + (d.lead_name || 'ליד') + ' — פירוט חשיבה</span>' +
+      '<button onclick="var ov=document.getElementById(\'brain-detail-overlay\');if(ov)ov.remove()" style="background:rgba(255,255,255,0.08);border:1px solid rgba(255,255,255,0.12);border-radius:7px;padding:4px 12px;font-size:12px;color:var(--muted);cursor:pointer">✕ סגור</button>' +
+    '</div>' +
+    overrideNote +
+    '<div class="brain-engines-grid">' +
+      _engineBlock('🟣 Claude', d.claude_raw) +
+      _engineBlock('🟢 GPT-4o', d.gpt_raw) +
+      _engineBlock('🔵 Gemini', d.gemini_raw) +
+    '</div>' +
+    '<div class="brain-meta-block">' +
+      '<div class="brain-meta-title">⚡ META-JUDGE — החלטה סופית</div>' +
+      '<div style="font-size:24px;font-weight:800;color:#a78bfa;margin-bottom:8px">ציון: ' + (d.final_score || '—') + '</div>' +
+      '<div class="brain-meta-reasoning">' + (d.meta_reasoning || 'אין נימוק') + '</div>' +
+    '</div>' +
+    disagreementsHtml +
+    outcomeSection +
+    '</div>';
+  document.body.appendChild(modal);
+};
+
+function _engineBlock(label, rawData) {
+  if (!rawData) {
+    return '<div class="brain-engine-block" style="opacity:0.4">' +
+      '<div class="brain-engine-block-title">' + label + '</div>' +
+      '<div style="font-size:12px;color:var(--muted)">לא הופעל</div>' +
+      '</div>';
+  }
+  var score = rawData.score || '—';
+  var platform = rawData.platform_current || rawData.platform || '';
+  var cadence = rawData.recommended_cadence || '';
+  var summary = rawData.summary || '';
+  return '<div class="brain-engine-block">' +
+    '<div class="brain-engine-block-title">' + label + '</div>' +
+    '<div class="brain-engine-score">' + score + '</div>' +
+    '<div class="brain-engine-detail">' +
+      (platform ? 'פלטפורמה: ' + platform + '<br>' : '') +
+      (cadence ? 'Cadence: ' + cadence + '<br>' : '') +
+      (summary ? summary.substring(0, 80) + (summary.length > 80 ? '...' : '') : '') +
+    '</div>' +
+    '</div>';
+}
+
+// ── Mark decision outcome (learning feedback) ─────────────────
+window.markDecisionOutcome = async function(decisionId, wasCorrect) {
+  var overlay = document.getElementById('brain-detail-overlay');
+  if (overlay) overlay.remove();
+
+  var now = new Date().toISOString();
+  var updateData = {
+    outcome: wasCorrect ? 'closed' : 'lost',
+    was_correct: wasCorrect,
+    outcome_date: now
+  };
+
+  // Update Firebase
+  try {
+    if (typeof db !== 'undefined' && db) {
+      await db.collection(AI_DECISIONS_COL).doc(decisionId).update(updateData);
+    }
+  } catch(e) { console.warn('[Brain] Outcome update failed:', e.message); }
+
+  // Update local cache
+  var idx = _brainDecisions.findIndex(d => d.id === decisionId);
+  if (idx >= 0) Object.assign(_brainDecisions[idx], updateData);
+
+  // Re-render
+  _renderDecisionsList();
+  _updateBrainStats();
+
+  // Feedback
+  var msg = wasCorrect ? '✅ מעולה — המוח למד מהצלחה זו' : '🧠 הובן — המוח ילמד מהטעות הזו';
+  var toast = document.createElement('div');
+  toast.style.cssText = 'position:fixed;bottom:70px;left:50%;transform:translateX(-50%);background:rgba(17,12,34,0.97);border:1px solid rgba(124,58,237,0.4);border-radius:10px;padding:10px 24px;font-size:13px;color:#a78bfa;font-family:Heebo,sans-serif;z-index:9999;font-weight:700';
+  toast.textContent = msg;
+  document.body.appendChild(toast);
+  setTimeout(() => toast.remove(), 3000);
+};
+
+// ── Performance tab ───────────────────────────────────────────
+async function loadBrainPerformance() {
+  await loadBrainDecisions();
+  var decided = _brainDecisions.filter(d => d.outcome !== null && d.outcome !== undefined);
+  var total = _brainDecisions.length;
+
+  // Accuracy
+  var perfAcc = document.getElementById('perf-accuracy-val');
+  var perfAccSub = document.getElementById('perf-accuracy-sub');
+  if (decided.length > 0) {
+    var correct = decided.filter(d => d.was_correct).length;
+    var pct = Math.round((correct / decided.length) * 100);
+    if (perfAcc) perfAcc.textContent = pct + '%';
+    if (perfAccSub) perfAccSub.textContent = correct + ' מתוך ' + decided.length + ' החלטות מוחלטות';
+  } else {
+    if (perfAcc) perfAcc.textContent = '—';
+    if (perfAccSub) perfAccSub.textContent = 'ממתין לאישור תוצאות';
+  }
+
+  // Consensus
+  var perfCons = document.getElementById('perf-consensus-val');
+  var perfConsSub = document.getElementById('perf-consensus-sub');
+  if (total > 0) {
+    var high = _brainDecisions.filter(d => d.consensus === 'high').length;
+    if (perfCons) perfCons.textContent = Math.round((high/total)*100) + '%';
+    if (perfConsSub) perfConsSub.textContent = high + ' מתוך ' + total + ' ניתוחים עם הסכמה גבוהה';
+  }
+
+  // Overrides
+  var perfOvr = document.getElementById('perf-overrides-val');
+  var perfOvrSub = document.getElementById('perf-overrides-sub');
+  var overrides = _brainDecisions.filter(d => d.meta_override).length;
+  if (perfOvr) perfOvr.textContent = total > 0 ? overrides : '—';
+  if (perfOvrSub) perfOvrSub.textContent = total > 0
+    ? overrides + ' פעמים Meta-Judge החליט נגד הרוב'
+    : 'ממתין לנתונים';
+
+  // Segment breakdown
+  var segEl = document.getElementById('brain-segment-breakdown');
+  if (segEl && _brainDecisions.length > 0) {
+    var segs = {};
+    _brainDecisions.forEach(function(d) {
+      var seg = d.lead_segment || 'כללי';
+      if (!segs[seg]) segs[seg] = { total: 0, correct: 0 };
+      segs[seg].total++;
+      if (d.was_correct) segs[seg].correct++;
+    });
+    var segHtml = Object.entries(segs).map(function(kv) {
+      var seg = kv[0], data = kv[1];
+      var pct = data.total > 0 ? Math.round((data.correct/data.total)*100) : null;
+      var color = pct === null ? 'var(--muted)' : pct >= 70 ? '#10b981' : pct >= 50 ? '#F59E0B' : '#ef4444';
+      return '<div style="display:flex;align-items:center;gap:10px;padding:8px 0;border-bottom:1px solid rgba(255,255,255,0.04)">' +
+        '<div style="flex:1;font-size:12px;color:var(--text)">' + seg + '</div>' +
+        '<div style="font-size:11px;color:var(--muted)">' + data.total + ' ניתוחים</div>' +
+        '<div style="font-size:12px;font-weight:700;color:' + color + ';min-width:40px;text-align:left">' +
+          (pct !== null ? pct + '%' : '—') + '</div>' +
+        '</div>';
+    }).join('');
+    segEl.innerHTML = segHtml || '<div style="color:var(--muted);font-size:12px;text-align:center;padding:16px">ממתין לנתונים מספיקים</div>';
+  }
+}
+
+// ── Save decision to Firebase (called by Triple Engine later) ─
+window.saveBrainDecision = async function(decision) {
+  // decision: { lead_id, lead_name, lead_segment, claude_raw, gpt_raw, gemini_raw,
+  //             final_score, consensus, meta_reasoning, meta_override, disagreements }
+  var doc = Object.assign({}, decision, {
+    timestamp: new Date().toISOString(),
+    outcome: null,
+    was_correct: null,
+    outcome_date: null
+  });
+
+  var docId = 'dec_' + Date.now();
+
+  // Save to Firebase
+  try {
+    if (typeof db !== 'undefined' && db) {
+      await db.collection(AI_DECISIONS_COL).doc(docId).set(doc);
+    }
+  } catch(e) {
+    console.warn('[Brain] Decision save failed:', e.message);
+    // localStorage fallback
+    try {
+      var local = JSON.parse(localStorage.getItem('xtix_brain_decisions') || '[]');
+      local.unshift(Object.assign({ id: docId }, doc));
+      localStorage.setItem('xtix_brain_decisions', JSON.stringify(local.slice(0, 100)));
+    } catch(e2) {}
+  }
+
+  // Update badge
+  var badge = document.getElementById('brain-badge');
+  if (badge) {
+    var count = parseInt(badge.textContent || '0') + 1;
+    badge.textContent = count;
+    badge.style.display = 'inline-block';
+  }
+
+  return docId;
+};
+
+// ── Get brain keys (for Triple Engine use) ───────────────────
+window.getBrainKeys = function() { return Object.assign({}, _brainKeys); };
+window.getEngineMode = function() { return _engineMode; };
+
+// ── Init on login ─────────────────────────────────────────────
+var _brainInitialized = false;
+window.initBrain = async function() {
+  if (_brainInitialized) return;
+  _brainInitialized = true;
+  await loadBrainConfig();
+  console.log('[Brain] Initialized — mode:', _engineMode);
 };
 
 
