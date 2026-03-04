@@ -443,6 +443,10 @@ document.addEventListener("DOMContentLoaded",function(){
     <button class="nav-btn" data-panel="hubspot" onclick="switchMainTab('hubspot',this)">
       <span class="nav-icon">🔗</span><span class="nav-label">HubSpot</span>
     </button>
+    <button class="nav-btn" data-panel="tasks" onclick="switchMainTab('tasks',this)" id="nav-tasks">
+      <span class="nav-icon">✅</span><span class="nav-label">משימות</span>
+      <span id="tasks-badge" style="display:none;background:#ef4444;color:#fff;border-radius:10px;padding:1px 6px;font-size:9px;font-weight:800;margin-right:4px">0</span>
+    </button>
     <button class="nav-btn" data-panel="aichat" onclick="switchMainTab('aichat',this)">
       <span class="nav-icon">🤖</span><span class="nav-label">AI Chat</span>
     </button>
@@ -5035,7 +5039,182 @@ addSalesPlaybookPanel();
   </div>
 
 </div> <!-- end container -->
-</div> <!-- end main-content -->
+</div> 
+  <!-- ═══ TASKS PANEL ═══ -->
+  <div class="panel" id="tab-tasks">
+    <div id="tasks-root" style="max-width:900px;margin:0 auto;padding:8px 0">
+
+      <!-- Header -->
+      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:20px">
+        <div>
+          <div style="font-size:20px;font-weight:800;color:var(--text)">✅ לוח משימות</div>
+          <div style="font-size:11px;color:var(--muted);margin-top:2px">ניהול משותף — אורן ו-Claude</div>
+        </div>
+        <button onclick="window.openAddTask()" 
+          style="background:var(--accent);border:none;border-radius:10px;padding:9px 20px;
+                 color:#fff;font-size:13px;font-weight:700;cursor:pointer;font-family:Heebo,sans-serif;
+                 display:flex;align-items:center;gap:6px">
+          + משימה חדשה
+        </button>
+      </div>
+
+      <!-- Filter bar -->
+      <div style="display:flex;gap:8px;margin-bottom:16px;flex-wrap:wrap">
+        <button onclick="window.filterTasks('all')" class="task-filter-btn active" data-filter="all"
+          style="background:rgba(108,99,255,0.15);border:1px solid rgba(108,99,255,0.35);border-radius:8px;
+                 padding:5px 14px;font-size:11px;color:var(--accent);cursor:pointer;font-family:Heebo,sans-serif;font-weight:700">
+          הכל
+        </button>
+        <button onclick="window.filterTasks('open')" class="task-filter-btn" data-filter="open"
+          style="background:rgba(255,255,255,0.04);border:1px solid var(--border);border-radius:8px;
+                 padding:5px 14px;font-size:11px;color:var(--muted);cursor:pointer;font-family:Heebo,sans-serif">
+          🔵 פתוח
+        </button>
+        <button onclick="window.filterTasks('inprogress')" class="task-filter-btn" data-filter="inprogress"
+          style="background:rgba(255,255,255,0.04);border:1px solid var(--border);border-radius:8px;
+                 padding:5px 14px;font-size:11px;color:var(--muted);cursor:pointer;font-family:Heebo,sans-serif">
+          🟡 בעבודה
+        </button>
+        <button onclick="window.filterTasks('done')" class="task-filter-btn" data-filter="done"
+          style="background:rgba(255,255,255,0.04);border:1px solid var(--border);border-radius:8px;
+                 padding:5px 14px;font-size:11px;color:var(--muted);cursor:pointer;font-family:Heebo,sans-serif">
+          ✅ הושלם
+        </button>
+        <div style="margin-right:auto;display:flex;gap:6px">
+          <button onclick="window.filterTasks('claude')" class="task-filter-btn" data-filter="claude"
+            style="background:rgba(108,99,255,0.06);border:1px solid rgba(108,99,255,0.2);border-radius:8px;
+                   padding:5px 14px;font-size:11px;color:var(--muted);cursor:pointer;font-family:Heebo,sans-serif">
+            🤖 Claude
+          </button>
+          <button onclick="window.filterTasks('oran')" class="task-filter-btn" data-filter="oran"
+            style="background:rgba(16,185,129,0.06);border:1px solid rgba(16,185,129,0.2);border-radius:8px;
+                   padding:5px 14px;font-size:11px;color:var(--muted);cursor:pointer;font-family:Heebo,sans-serif">
+            👤 אורן
+          </button>
+          <button onclick="window.filterTasks('together')" class="task-filter-btn" data-filter="together"
+            style="background:rgba(245,158,11,0.06);border:1px solid rgba(245,158,11,0.2);border-radius:8px;
+                   padding:5px 14px;font-size:11px;color:var(--muted);cursor:pointer;font-family:Heebo,sans-serif">
+            🤝 ביחד
+          </button>
+        </div>
+      </div>
+
+      <!-- Priority columns -->
+      <div id="tasks-board" style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:14px">
+        <div>
+          <div style="font-size:11px;font-weight:800;color:#ef4444;margin-bottom:10px;display:flex;align-items:center;gap:6px">
+            🔴 דחוף <span id="count-urgent" style="background:rgba(239,68,68,0.15);border-radius:10px;padding:1px 7px;font-size:10px">0</span>
+          </div>
+          <div id="col-urgent"></div>
+        </div>
+        <div>
+          <div style="font-size:11px;font-weight:800;color:#F59E0B;margin-bottom:10px;display:flex;align-items:center;gap:6px">
+            🟡 חשוב <span id="count-important" style="background:rgba(245,158,11,0.15);border-radius:10px;padding:1px 7px;font-size:10px">0</span>
+          </div>
+          <div id="col-important"></div>
+        </div>
+        <div>
+          <div style="font-size:11px;font-weight:800;color:#10b981;margin-bottom:10px;display:flex;align-items:center;gap:6px">
+            🟢 רגיל <span id="count-normal" style="background:rgba(16,185,129,0.15);border-radius:10px;padding:1px 7px;font-size:10px">0</span>
+          </div>
+          <div id="col-normal"></div>
+        </div>
+      </div>
+
+      <!-- Empty state -->
+      <div id="tasks-empty" style="display:none;text-align:center;padding:60px 20px">
+        <div style="font-size:48px;margin-bottom:12px">📋</div>
+        <div style="font-size:14px;color:var(--muted)">אין משימות עדיין</div>
+        <button onclick="window.openAddTask()" style="margin-top:16px;background:var(--accent);border:none;border-radius:8px;padding:8px 20px;color:#fff;font-size:12px;cursor:pointer;font-family:Heebo,sans-serif;font-weight:700">+ הוסף משימה ראשונה</button>
+      </div>
+
+    </div>
+  </div>
+
+  <!-- Add/Edit Task Modal -->
+  <div id="task-modal" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,0.6);z-index:9000;align-items:center;justify-content:center">
+    <div style="background:var(--card);border:1px solid var(--border);border-radius:16px;padding:24px;width:480px;max-width:95vw;font-family:Heebo,sans-serif">
+      <div style="font-size:16px;font-weight:800;color:var(--text);margin-bottom:18px" id="task-modal-title">+ משימה חדשה</div>
+
+      <div style="margin-bottom:12px">
+        <label style="font-size:11px;color:var(--muted);display:block;margin-bottom:4px">כותרת *</label>
+        <input id="task-inp-title" type="text" placeholder="מה צריך לעשות?"
+          style="width:100%;background:rgba(255,255,255,0.06);border:1px solid var(--border);border-radius:8px;
+                 padding:9px 12px;color:var(--text);font-size:13px;font-family:Heebo,sans-serif;box-sizing:border-box">
+      </div>
+
+      <div style="margin-bottom:12px">
+        <label style="font-size:11px;color:var(--muted);display:block;margin-bottom:4px">תיאור / הערות</label>
+        <textarea id="task-inp-desc" placeholder="פרטים נוספים, קונטקסט, לינקים..."
+          style="width:100%;background:rgba(255,255,255,0.06);border:1px solid var(--border);border-radius:8px;
+                 padding:9px 12px;color:var(--text);font-size:12px;font-family:Heebo,sans-serif;
+                 min-height:80px;resize:vertical;box-sizing:border-box"></textarea>
+      </div>
+
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:12px">
+        <div>
+          <label style="font-size:11px;color:var(--muted);display:block;margin-bottom:4px">עדיפות</label>
+          <select id="task-inp-priority"
+            style="width:100%;background:rgba(255,255,255,0.06);border:1px solid var(--border);border-radius:8px;
+                   padding:8px 10px;color:var(--text);font-size:12px;font-family:Heebo,sans-serif">
+            <option value="urgent">🔴 דחוף</option>
+            <option value="important" selected>🟡 חשוב</option>
+            <option value="normal">🟢 רגיל</option>
+          </select>
+        </div>
+        <div>
+          <label style="font-size:11px;color:var(--muted);display:block;margin-bottom:4px">מבצע</label>
+          <select id="task-inp-owner"
+            style="width:100%;background:rgba(255,255,255,0.06);border:1px solid var(--border);border-radius:8px;
+                   padding:8px 10px;color:var(--text);font-size:12px;font-family:Heebo,sans-serif">
+            <option value="together">🤝 ביחד</option>
+            <option value="claude">🤖 Claude</option>
+            <option value="oran">👤 אורן</option>
+          </select>
+        </div>
+      </div>
+
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:18px">
+        <div>
+          <label style="font-size:11px;color:var(--muted);display:block;margin-bottom:4px">קטגוריה</label>
+          <select id="task-inp-category"
+            style="width:100%;background:rgba(255,255,255,0.06);border:1px solid var(--border);border-radius:8px;
+                   padding:8px 10px;color:var(--text);font-size:12px;font-family:Heebo,sans-serif">
+            <option value="crm">⚙️ CRM</option>
+            <option value="sales">💼 מכירות</option>
+            <option value="tech">🔧 טכני</option>
+            <option value="content">📝 תוכן</option>
+            <option value="other">📌 אחר</option>
+          </select>
+        </div>
+        <div>
+          <label style="font-size:11px;color:var(--muted);display:block;margin-bottom:4px">סטטוס</label>
+          <select id="task-inp-status"
+            style="width:100%;background:rgba(255,255,255,0.06);border:1px solid var(--border);border-radius:8px;
+                   padding:8px 10px;color:var(--text);font-size:12px;font-family:Heebo,sans-serif">
+            <option value="open">🔵 פתוח</option>
+            <option value="inprogress">🟡 בעבודה</option>
+            <option value="done">✅ הושלם</option>
+          </select>
+        </div>
+      </div>
+
+      <div style="display:flex;gap:8px;justify-content:flex-end">
+        <button onclick="document.getElementById('task-modal').style.display='none'"
+          style="background:rgba(255,255,255,0.06);border:1px solid var(--border);border-radius:8px;
+                 padding:8px 18px;font-size:12px;color:var(--muted);cursor:pointer;font-family:Heebo,sans-serif">
+          ביטול
+        </button>
+        <button onclick="window.saveTask()"
+          style="background:var(--accent);border:none;border-radius:8px;padding:8px 22px;
+                 font-size:13px;font-weight:700;color:#fff;cursor:pointer;font-family:Heebo,sans-serif">
+          💾 שמור
+        </button>
+      </div>
+    </div>
+  </div>
+
+<!-- end main-content -->
 </div> <!-- end app-wrapper -->
 
 
@@ -5221,5 +5400,269 @@ addSalesPlaybookPanel();
 })();
 </script>
 
+
+<script>
+// ═══════════════════════════════════════════════════════════
+// TASKS ENGINE — Firebase-backed task manager
+// ═══════════════════════════════════════════════════════════
+(function() {
+
+  var TASKS_COL = 'tasks';
+  var _tasks    = [];
+  var _editId   = null;
+  var _filter   = 'all';
+  var _unsub    = null;
+
+  // ── Firebase realtime sync ──────────────────────────────
+  function initTasksListener() {
+    if (typeof db === 'undefined' || !db) return;
+    if (_unsub) _unsub();
+    _unsub = db.collection(TASKS_COL)
+      .orderBy('created_at', 'desc')
+      .onSnapshot(function(snap) {
+        _tasks = [];
+        snap.forEach(function(doc) {
+          _tasks.push(Object.assign({ _id: doc.id }, doc.data()));
+        });
+        renderTasks();
+        updateTasksBadge();
+      }, function(err) {
+        // collection doesn't exist yet — silent
+      });
+  }
+
+  // ── Render board ────────────────────────────────────────
+  function renderTasks() {
+    var filtered = _tasks.filter(function(t) {
+      if (_filter === 'all')        return t.status !== 'done';
+      if (_filter === 'open')       return t.status === 'open';
+      if (_filter === 'inprogress') return t.status === 'inprogress';
+      if (_filter === 'done')       return t.status === 'done';
+      if (_filter === 'claude')     return t.owner === 'claude' && t.status !== 'done';
+      if (_filter === 'oran')       return t.owner === 'oran'   && t.status !== 'done';
+      if (_filter === 'together')   return t.owner === 'together' && t.status !== 'done';
+      return true;
+    });
+
+    var cols = { urgent: [], important: [], normal: [] };
+    filtered.forEach(function(t) {
+      if (cols[t.priority]) cols[t.priority].push(t);
+      else cols.normal.push(t);
+    });
+
+    ['urgent','important','normal'].forEach(function(p) {
+      var col = document.getElementById('col-' + p);
+      var cnt = document.getElementById('count-' + p);
+      if (!col) return;
+      if (cnt) cnt.textContent = cols[p].length;
+      col.innerHTML = cols[p].map(renderTaskCard).join('');
+    });
+
+    var empty = document.getElementById('tasks-empty');
+    var board = document.getElementById('tasks-board');
+    var total = cols.urgent.length + cols.important.length + cols.normal.length;
+    if (empty) empty.style.display = total === 0 ? 'block' : 'none';
+    if (board) board.style.display = total === 0 ? 'none' : 'grid';
+  }
+
+  var ownerLabel  = { claude:'🤖 Claude', oran:'👤 אורן', together:'🤝 ביחד' };
+  var catLabel    = { crm:'⚙️ CRM', sales:'💼 מכירות', tech:'🔧 טכני', content:'📝 תוכן', other:'📌 אחר' };
+  var statusLabel = { open:'🔵 פתוח', inprogress:'🟡 בעבודה', done:'✅ הושלם' };
+  var statusColor = { open:'rgba(99,102,241,0.12)', inprogress:'rgba(245,158,11,0.1)', done:'rgba(16,185,129,0.1)' };
+  var prioColor   = { urgent:'rgba(239,68,68,0.1)', important:'rgba(245,158,11,0.07)', normal:'rgba(16,185,129,0.06)' };
+  var prioBorder  = { urgent:'rgba(239,68,68,0.25)', important:'rgba(245,158,11,0.2)', normal:'rgba(16,185,129,0.18)' };
+
+  function renderTaskCard(t) {
+    var id  = t._id || '';
+    var bc  = prioColor[t.priority]  || 'rgba(255,255,255,0.04)';
+    var bor = prioBorder[t.priority] || 'rgba(255,255,255,0.1)';
+    var isDone = t.status === 'done';
+    // Use data-id attribute + event delegation to avoid inline quote hell
+    return '<div class="task-card" data-id="' + id + '" style="background:' + bc + ';border:1px solid ' + bor + ';border-radius:10px;padding:12px;margin-bottom:8px;' +
+      (isDone ? 'opacity:0.55;' : '') + '">' +
+      '<div style="display:flex;align-items:flex-start;gap:8px;margin-bottom:6px">' +
+        '<input type="checkbox" class="task-check" data-id="' + id + '" ' + (isDone ? 'checked' : '') +
+          ' style="margin-top:2px;accent-color:var(--accent);cursor:pointer;flex-shrink:0">' +
+        '<div style="flex:1;font-size:12px;font-weight:700;color:var(--text);line-height:1.4;' +
+          (isDone ? 'text-decoration:line-through;color:var(--muted)' : '') + '">' +
+          escHtml(t.title||'') + '</div>' +
+        '<button class="task-edit" data-id="' + id + '" ' +
+          'style="background:none;border:none;color:var(--muted);cursor:pointer;font-size:14px;padding:0;flex-shrink:0" title="ערוך">✏️</button>' +
+        '<button class="task-del" data-id="' + id + '" ' +
+          'style="background:none;border:none;color:var(--muted);cursor:pointer;font-size:14px;padding:0;flex-shrink:0" title="מחק">🗑</button>' +
+      '</div>' +
+      (t.description ? '<div style="font-size:11px;color:var(--muted);margin-bottom:8px;margin-right:22px;line-height:1.5">' +
+        escHtml(t.description) + '</div>' : '') +
+      '<div style="display:flex;gap:5px;flex-wrap:wrap;margin-right:22px">' +
+        (t.owner    ? '<span style="font-size:10px;background:rgba(255,255,255,0.06);border-radius:5px;padding:2px 7px;color:var(--muted)">' + (ownerLabel[t.owner]||t.owner) + '</span>' : '') +
+        (t.category ? '<span style="font-size:10px;background:rgba(255,255,255,0.06);border-radius:5px;padding:2px 7px;color:var(--muted)">' + (catLabel[t.category]||t.category) + '</span>' : '') +
+        (t.status && t.status !== 'open' ? '<span style="font-size:10px;background:' + (statusColor[t.status]||'') + ';border-radius:5px;padding:2px 7px;color:var(--muted)">' + (statusLabel[t.status]||t.status) + '</span>' : '') +
+      '</div>' +
+    '</div>';
+  }
+
+  function escHtml(s) {
+    return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+  }
+
+  // ── Badge ───────────────────────────────────────────────
+  function updateTasksBadge() {
+    var open = _tasks.filter(function(t){ return t.status !== 'done'; }).length;
+    var badge = document.getElementById('tasks-badge');
+    if (!badge) return;
+    badge.style.display = open > 0 ? 'inline' : 'none';
+    badge.textContent   = open;
+  }
+
+  // ── Filter ──────────────────────────────────────────────
+  window.filterTasks = function(f) {
+    _filter = f;
+    document.querySelectorAll('.task-filter-btn').forEach(function(b) {
+      var isActive = b.getAttribute('data-filter') === f;
+      b.style.background = isActive ? 'rgba(108,99,255,0.15)' : 'rgba(255,255,255,0.04)';
+      b.style.borderColor = isActive ? 'rgba(108,99,255,0.35)' : 'var(--border)';
+      b.style.color = isActive ? 'var(--accent)' : 'var(--muted)';
+      b.style.fontWeight = isActive ? '700' : '400';
+    });
+    renderTasks();
+  };
+
+  // ── Open modal ──────────────────────────────────────────
+  window.openAddTask = function() {
+    _editId = null;
+    document.getElementById('task-modal-title').textContent = '+ משימה חדשה';
+    document.getElementById('task-inp-title').value    = '';
+    document.getElementById('task-inp-desc').value     = '';
+    document.getElementById('task-inp-priority').value = 'important';
+    document.getElementById('task-inp-owner').value    = 'together';
+    document.getElementById('task-inp-category').value = 'crm';
+    document.getElementById('task-inp-status').value   = 'open';
+    document.getElementById('task-modal').style.display = 'flex';
+    setTimeout(function(){ document.getElementById('task-inp-title').focus(); }, 100);
+  };
+
+  window.openEditTask = function(id) {
+    var t = _tasks.find(function(x){ return x._id === id; });
+    if (!t) return;
+    _editId = id;
+    document.getElementById('task-modal-title').textContent = '✏️ עריכת משימה';
+    document.getElementById('task-inp-title').value    = t.title    || '';
+    document.getElementById('task-inp-desc').value     = t.description || '';
+    document.getElementById('task-inp-priority').value = t.priority || 'important';
+    document.getElementById('task-inp-owner').value    = t.owner    || 'together';
+    document.getElementById('task-inp-category').value = t.category || 'crm';
+    document.getElementById('task-inp-status').value   = t.status   || 'open';
+    document.getElementById('task-modal').style.display = 'flex';
+    setTimeout(function(){ document.getElementById('task-inp-title').focus(); }, 100);
+  };
+
+  // ── Save ────────────────────────────────────────────────
+  window.saveTask = function() {
+    var title = (document.getElementById('task-inp-title').value || '').trim();
+    if (!title) {
+      document.getElementById('task-inp-title').style.borderColor = '#ef4444';
+      return;
+    }
+    document.getElementById('task-inp-title').style.borderColor = '';
+
+    var data = {
+      title:       title,
+      description: document.getElementById('task-inp-desc').value.trim(),
+      priority:    document.getElementById('task-inp-priority').value,
+      owner:       document.getElementById('task-inp-owner').value,
+      category:    document.getElementById('task-inp-category').value,
+      status:      document.getElementById('task-inp-status').value,
+      updated_at:  new Date().toISOString()
+    };
+
+    document.getElementById('task-modal').style.display = 'none';
+
+    if (typeof db === 'undefined' || !db) {
+      // Offline fallback
+      if (_editId) {
+        var idx = _tasks.findIndex(function(x){ return x._id === _editId; });
+        if (idx >= 0) _tasks[idx] = Object.assign(_tasks[idx], data);
+      } else {
+        data._id = 'local_' + Date.now();
+        data.created_at = data.updated_at;
+        _tasks.unshift(data);
+      }
+      renderTasks(); updateTasksBadge();
+      return;
+    }
+
+    if (_editId) {
+      db.collection(TASKS_COL).doc(_editId).update(data).catch(console.error);
+    } else {
+      data.created_at = new Date().toISOString();
+      db.collection(TASKS_COL).add(data).catch(console.error);
+    }
+  };
+
+  // ── Toggle done ─────────────────────────────────────────
+  window.toggleTaskDone = function(id, done) {
+    var status = done ? 'done' : 'open';
+    if (typeof db !== 'undefined' && db) {
+      db.collection(TASKS_COL).doc(id).update({ status: status, updated_at: new Date().toISOString() }).catch(console.error);
+    } else {
+      var t = _tasks.find(function(x){ return x._id === id; });
+      if (t) { t.status = status; renderTasks(); updateTasksBadge(); }
+    }
+  };
+
+  // ── Delete ──────────────────────────────────────────────
+  window.deleteTask = function(id) {
+    if (!confirm('למחוק משימה זו?')) return;
+    if (typeof db !== 'undefined' && db) {
+      db.collection(TASKS_COL).doc(id).delete().catch(console.error);
+    } else {
+      _tasks = _tasks.filter(function(x){ return x._id !== id; });
+      renderTasks(); updateTasksBadge();
+    }
+  };
+
+  // ── Public: read tasks (for Claude to use in new chats) ─
+  window.getTasksForClaude = function() {
+    var open = _tasks.filter(function(t){ return t.status !== 'done'; });
+    return open.map(function(t) {
+      return '[' + (t.priority||'?').toUpperCase() + '] ' +
+             (t.title||'') +
+             (t.owner ? ' (' + t.owner + ')' : '') +
+             (t.description ? ' — ' + t.description : '');
+    }).join('\n');
+  };
+
+  // ── Event delegation for task cards ─────────────────
+  document.addEventListener('click', function(e) {
+    var check = e.target.closest('.task-check');
+    var edit  = e.target.closest('.task-edit');
+    var del   = e.target.closest('.task-del');
+    if (check) { window.toggleTaskDone(check.getAttribute('data-id'), check.checked); return; }
+    if (edit)  { window.openEditTask(edit.getAttribute('data-id')); return; }
+    if (del)   { window.deleteTask(del.getAttribute('data-id')); return; }
+  });
+
+  // ── Close modal on backdrop click ──────────────────────
+  document.getElementById('task-modal').addEventListener('click', function(e) {
+    if (e.target === this) this.style.display = 'none';
+  });
+
+  // ── Keyboard shortcut: Enter in title → save ───────────
+  document.getElementById('task-inp-title').addEventListener('keydown', function(e) {
+    if (e.key === 'Enter') window.saveTask();
+  });
+
+  // ── Init when Firebase is ready ────────────────────────
+  function tryInit() {
+    if (typeof db !== 'undefined' && db) {
+      initTasksListener();
+    } else {
+      setTimeout(tryInit, 800);
+    }
+  }
+  setTimeout(tryInit, 1200);
+
+})();
+</script>
 </body>
 </html>
