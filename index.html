@@ -3599,11 +3599,43 @@ Blueprint לכל מייל:
     } catch(e) {}
   }
 
-  // Poll on load + every 15s (webhook) / 30s (clay)
-  setTimeout(_pollWebhook,    4000);
-  setTimeout(pollClayPending, 5000);
-  setInterval(_pollWebhook,   15000);
-  setInterval(pollClayPending,30000);
+  // ── Event-driven only — no background polling ──────────────────
+  // Clay/Webhook leads arrive via Firebase onSnapshot (instant, no polling)
+  // Manual check available via window.checkForNewLeads()
+  // One-time check on login only (catches any leads added while offline)
+  // No automatic polling — Clay pushes via Railway → Firebase onSnapshot (below)
+  // Manual: window.checkForNewLeads() available in console or button
+
+  // Firebase onSnapshot — instant notification when Clay pushes a lead
+  if (typeof db !== 'undefined' && db) {
+    try {
+      db.collection('webhook_queue').onSnapshot(function(snap) {
+        if (snap.empty) return;
+        var added = 0;
+        snap.forEach(function(doc) {
+          var raw = doc.data();
+          if (raw._processed) return; // already handled
+          var lead = window.addLeadToCRM(raw, {source: raw.source||'webhook'});
+          if (lead) {
+            added++;
+            // Mark as processed in Firebase so other tabs don't duplicate
+            doc.ref.update({_processed: true, _processed_at: new Date().toISOString()}).catch(function(){});
+          }
+        });
+        if (added > 0) console.log('[WEBHOOK] Firebase snapshot:', added, 'new leads');
+      }, function(err) {
+        // webhook_queue collection might not exist yet — that's fine
+        console.log('[WEBHOOK] onSnapshot not active:', err.code);
+      });
+    } catch(e) {}
+  }
+
+  // Manual check — callable from UI or console
+  window.checkForNewLeads = function() {
+    _pollWebhook();
+    pollClayPending();
+    console.log('[CRM] Manual check for new leads triggered');
+  };
 
 
   window.reEnrichLead = function(leadId) {
