@@ -812,165 +812,359 @@ input::placeholder, textarea::placeholder { color: var(--t3); }
 ═══════════════════════════════════════════════ */
 
 /* stat cards */
-.mkt-stat-card {
-  background: rgba(255,255,255,0.03); border: 1px solid rgba(255,255,255,0.08);
-  border-radius: 12px; padding: 14px 16px; text-align: center;
+
+
+/* ══════════════════════════════════════════════════════════
+   METHODOLOGY v2.0 — Complete CSS
+   ══════════════════════════════════════════════════════════ */
+
+/* NAV */
+.meth-nav {
+  display: flex; gap: 6px; flex-wrap: wrap;
+  padding: 14px 16px 0; border-bottom: 1px solid var(--bord);
+  margin-bottom: 0; background: var(--bg2);
+  position: sticky; top: 0; z-index: 10;
 }
-.mkt-stat-num { font-size: 22px; font-weight: 800; font-family: 'DM Mono',monospace; margin-bottom: 4px; }
-.mkt-stat-label { font-size: 10px; color: var(--t3); line-height: 1.4; }
-
-/* tier section */
-.tier-section { margin-bottom: 24px; }
-.tier-header {
-  display: flex; align-items: center; gap: 10px; padding: 10px 14px;
-  border-radius: 10px 10px 0 0; border: 1px solid; border-bottom: none;
-  font-size: 11px;
+.mn-btn {
+  padding: 8px 14px; font-size: 12px; font-weight: 600;
+  border-radius: 8px 8px 0 0; border: 1px solid transparent;
+  border-bottom: none; cursor: pointer; transition: all 0.2s;
+  background: transparent; color: var(--t3);
+  letter-spacing: 0.2px;
 }
-.tier-1-header { background: rgba(239,68,68,0.06); border-color: rgba(239,68,68,0.2); }
-.tier-2-header { background: rgba(245,158,11,0.06); border-color: rgba(245,158,11,0.2); }
-.tier-3-header { background: rgba(107,114,128,0.06); border-color: rgba(107,114,128,0.15); }
-
-.tier-badge-label {
-  font-size: 10px; font-weight: 800; letter-spacing: 1px;
-  padding: 3px 8px; border-radius: 5px;
+.mn-btn:hover { color: var(--t1); background: rgba(255,255,255,0.04); }
+.mn-btn.active {
+  color: var(--accent); border-color: var(--bord);
+  background: var(--bg); border-bottom: 1px solid var(--bg);
+  margin-bottom: -1px;
 }
-.tier-1-header .tier-badge-label { background: rgba(239,68,68,0.2); color: #ef4444; }
-.tier-2-header .tier-badge-label { background: rgba(245,158,11,0.2); color: #f59e0b; }
-.tier-3-header .tier-badge-label { background: rgba(107,114,128,0.15); color: #9ca3af; }
-.tier-desc { flex: 1; color: var(--t3); }
-.tier-count { font-size: 10px; color: var(--t3); }
 
-/* competitor grid */
-.comp-grid {
-  display: grid; grid-template-columns: repeat(auto-fill,minmax(260px,1fr));
-  gap: 8px; padding: 10px; border: 1px solid; border-top: none; border-radius: 0 0 10px 10px;
+/* SECTIONS */
+.meth-section { display: none; padding: 24px; overflow-y: auto; }
+.meth-section.active { display: block; }
+.meth-page-title {
+  font-size: 20px; font-weight: 800; color: var(--t1);
+  margin-bottom: 6px;
 }
-.tier-1-header + .comp-grid { border-color: rgba(239,68,68,0.15); background: rgba(239,68,68,0.02); }
-.tier-2-header + .comp-grid { border-color: rgba(245,158,11,0.15); background: rgba(245,158,11,0.02); }
-.tier-3-header + .comp-grid { border-color: rgba(107,114,128,0.1); background: rgba(0,0,0,0.1); }
-
-.comp-card {
-  background: rgba(255,255,255,0.03); border: 1px solid rgba(255,255,255,0.08);
-  border-radius: 10px; padding: 12px 14px; transition: border-color 0.15s;
+.meth-page-sub {
+  font-size: 12px; color: var(--t3); line-height: 1.7;
+  margin-bottom: 24px; max-width: 800px;
 }
-.comp-card:hover { border-color: rgba(255,255,255,0.15); }
-.tier-1-card { border-right: 3px solid rgba(239,68,68,0.4); }
-.tier-2-card { border-right: 3px solid rgba(245,158,11,0.4); }
-.tier-3-card { border-right: 3px solid rgba(107,114,128,0.3); }
 
-.comp-card-header { display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 7px; }
-.comp-name { font-size: 13px; font-weight: 700; color: var(--t1); }
-.comp-tags { display: flex; gap: 4px; flex-wrap: wrap; justify-content: flex-end; }
-.comp-fee { font-size: 10px; color: var(--t3); margin-bottom: 6px; font-family: 'DM Mono',monospace; }
-.comp-detail { font-size: 11px; color: var(--t3); line-height: 1.5; margin-bottom: 3px; }
-.comp-detail .lbl { color: var(--t2); font-weight: 600; }
-.comp-weak { font-size: 10.5px; color: rgba(239,68,68,0.8); margin-top: 5px; line-height: 1.4; }
-.comp-opp { font-size: 10.5px; color: #10b981; margin-top: 4px; line-height: 1.4; font-weight: 600; }
+/* HERO */
+.meth-hero {
+  background: linear-gradient(135deg, rgba(59,130,246,0.08) 0%, rgba(167,139,250,0.06) 100%);
+  border: 1px solid rgba(59,130,246,0.2); border-radius: 14px;
+  padding: 24px 28px; margin-bottom: 20px;
+}
+.meth-hero-tag {
+  font-size: 10px; letter-spacing: 2px; color: var(--accent);
+  text-transform: uppercase; margin-bottom: 8px; font-weight: 700;
+}
+.meth-hero-title {
+  font-size: 24px; font-weight: 900; color: var(--t1);
+  margin: 0 0 8px; line-height: 1.2;
+}
+.meth-hero-sub {
+  font-size: 13px; color: var(--t2); line-height: 1.6; margin-bottom: 20px;
+}
+.meth-hero-stats {
+  display: flex; gap: 0; align-items: center;
+  background: rgba(0,0,0,0.2); border-radius: 10px;
+  padding: 12px 20px; flex-wrap: wrap; gap: 8px;
+}
+.mhs-item { text-align: center; padding: 0 16px; }
+.mhs-num { font-size: 22px; font-weight: 900; line-height: 1; }
+.mhs-label { font-size: 11px; color: var(--t3); margin-top: 3px; }
+.mhs-sep { color: var(--bord); font-size: 20px; }
 
-.tag-iframe  { background: rgba(16,185,129,0.15); color: #10b981; border: 1px solid rgba(16,185,129,0.25); border-radius: 4px; padding: 1px 6px; font-size: 9px; font-weight: 700; }
-.tag-no-iframe { background: rgba(239,68,68,0.12); color: #f87171; border: 1px solid rgba(239,68,68,0.2); border-radius: 4px; padding: 1px 6px; font-size: 9px; font-weight: 700; }
-.tag-smb   { background: rgba(245,158,11,0.12); color: #f59e0b; border: 1px solid rgba(245,158,11,0.2); border-radius: 4px; padding: 1px 6px; font-size: 9px; }
-.tag-mkt   { background: rgba(59,130,246,0.12);  color: #60a5fa; border: 1px solid rgba(59,130,246,0.2); border-radius: 4px; padding: 1px 6px; font-size: 9px; }
-.tag-ent   { background: rgba(107,114,128,0.12); color: #9ca3af; border: 1px solid rgba(107,114,128,0.2); border-radius: 4px; padding: 1px 6px; font-size: 9px; }
+/* INSIGHT ROW */
+.meth-insight-row { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-bottom: 20px; }
+.meth-insight {
+  border-radius: 10px; padding: 14px 16px;
+  display: flex; gap: 12px; align-items: flex-start;
+}
+.meth-insight.key { background: rgba(245,158,11,0.08); border: 1px solid rgba(245,158,11,0.2); }
+.meth-insight.opp { background: rgba(16,185,129,0.08); border: 1px solid rgba(16,185,129,0.2); }
+.mi-icon { font-size: 20px; flex-shrink: 0; margin-top: 2px; }
+.mi-text { font-size: 12px; color: var(--t2); line-height: 1.6; }
+.mi-text strong { color: var(--t1); }
 
-/* XTIX advantages */
-.xtix-adv-card {
+/* CARDS */
+.meth-card {
+  background: var(--bg2); border: 1px solid var(--bord);
+  border-radius: 12px; overflow: hidden; margin-bottom: 20px;
+}
+.meth-card-header {
+  padding: 14px 18px; border-bottom: 1px solid var(--bord);
+  display: flex; justify-content: space-between; align-items: center;
+}
+.meth-card-title { font-size: 13px; font-weight: 700; color: var(--t1); }
+.meth-card-sub { font-size: 11px; color: var(--t3); }
+
+/* COMPETITOR TABLE */
+.comp-table-wrap { overflow-x: auto; padding: 0 4px; }
+.comp-table {
+  width: 100%; border-collapse: collapse; font-size: 12px;
+}
+.comp-table th {
+  padding: 10px 12px; text-align: right; font-size: 11px;
+  font-weight: 700; color: var(--t3); border-bottom: 1px solid var(--bord);
+  white-space: nowrap; text-transform: uppercase; letter-spacing: 0.5px;
+}
+.comp-table td {
+  padding: 10px 12px; border-bottom: 1px solid rgba(255,255,255,0.04);
+  font-size: 12px; color: var(--t2); vertical-align: middle;
+}
+.comp-table tr:last-child td { border-bottom: none; }
+.comp-table tr:hover td { background: rgba(255,255,255,0.02); }
+.xtix-row td { background: rgba(16,185,129,0.04); }
+.threat { padding: 3px 8px; border-radius: 4px; font-size: 10px; font-weight: 700; }
+.threat.high { background: rgba(239,68,68,0.15); color: #ef4444; }
+.threat.med  { background: rgba(245,158,11,0.15); color: #f59e0b; }
+.threat.low  { background: rgba(100,116,139,0.15); color: #64748b; }
+.threat.none { background: rgba(16,185,129,0.15); color: #10b981; }
+
+/* ADVANTAGES GRID */
+.adv-grid {
+  display: grid; grid-template-columns: repeat(3, 1fr);
+  gap: 12px; padding: 16px;
+}
+.adv-card {
+  background: rgba(0,0,0,0.2); border: 1px solid var(--bord);
+  border-radius: 10px; padding: 14px;
+}
+.adv-icon {
+  width: 36px; height: 36px; border-radius: 8px;
+  display: flex; align-items: center; justify-content: center;
+  font-size: 18px; margin-bottom: 10px;
+}
+.adv-title { font-size: 13px; font-weight: 700; color: var(--t1); margin-bottom: 6px; }
+.adv-desc { font-size: 11px; color: var(--t2); line-height: 1.6; margin-bottom: 8px; }
+.adv-vs { font-size: 10px; color: var(--accent); font-weight: 600; letter-spacing: 0.3px; }
+
+/* PAIN CARDS */
+.pain-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 14px; }
+.pain-card {
+  border-radius: 12px; padding: 18px; border-left: 3px solid;
+}
+.pain-financial { background: rgba(16,185,129,0.06); border-color: #10b981; }
+.pain-data      { background: rgba(59,130,246,0.06); border-color: #3b82f6; }
+.pain-ops       { background: rgba(245,158,11,0.06); border-color: #f59e0b; }
+.pain-strategic { background: rgba(167,139,250,0.06); border-color: #a78bfa; }
+.pain-header {
+  display: flex; gap: 8px; align-items: center; margin-bottom: 10px;
+}
+.pain-icon { font-size: 20px; }
+.pain-type { font-size: 10px; font-weight: 700; color: var(--t3); text-transform: uppercase; letter-spacing: 1px; }
+.pain-title { font-size: 14px; font-weight: 800; color: var(--t1); margin-bottom: 12px; line-height: 1.3; }
+.pain-calc { background: rgba(0,0,0,0.25); border-radius: 8px; padding: 10px 14px; margin-bottom: 12px; }
+.calc-row {
+  display: flex; justify-content: space-between;
+  font-size: 12px; color: var(--t2); padding: 3px 0;
+}
+.calc-row.bold { border-top: 1px solid var(--bord); margin-top: 4px; padding-top: 7px; font-weight: 700; }
+.calc-val.bad  { color: #ef4444; font-weight: 700; }
+.calc-val.good { color: #10b981; font-weight: 700; }
+.calc-val.gold { color: #f59e0b; font-weight: 800; font-size: 14px; }
+.pain-bullets { margin-bottom: 12px; }
+.pb-item { font-size: 12px; color: var(--t2); padding: 3px 0; line-height: 1.5; }
+.pain-pitch { font-size: 11px; color: var(--t3); line-height: 1.6; border-top: 1px solid rgba(255,255,255,0.06); padding-top: 10px; }
+
+/* FOUR Fs */
+.fourfs-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 12px; padding: 16px; }
+.ff-card { background: rgba(0,0,0,0.2); border-radius: 10px; padding: 14px; border: 1px solid var(--bord); }
+.ff-step { font-size: 22px; font-weight: 900; color: var(--accent); margin-bottom: 6px; }
+.ff-label { font-size: 11px; font-weight: 700; color: var(--t1); margin-bottom: 8px; }
+.ff-q { font-size: 12px; color: var(--t2); line-height: 1.5; margin-bottom: 8px; font-style: italic; }
+.ff-learn { font-size: 11px; color: var(--t3); margin-bottom: 4px; }
+.ff-action { font-size: 11px; color: var(--accent); font-weight: 600; }
+
+/* SCORING */
+.scoring-layout { display: grid; grid-template-columns: 1fr 340px; gap: 16px; }
+.score-params-list { padding: 16px; }
+.sp-row { padding: 12px 0; border-bottom: 1px solid rgba(255,255,255,0.05); }
+.sp-row:last-child { border-bottom: none; }
+.sp-left { margin-bottom: 8px; }
+.sp-name { font-size: 13px; font-weight: 700; color: var(--t1); margin-bottom: 4px; }
+.sp-weight-bar {
+  height: 4px; background: rgba(255,255,255,0.06); border-radius: 2px; margin-bottom: 8px;
+}
+.spb-fill { height: 100%; border-radius: 2px; transition: width 0.5s; }
+.sp-weight { font-size: 18px; font-weight: 900; color: var(--t1); display: none; }
+.sp-tiers { display: flex; gap: 8px; flex-wrap: wrap; }
+.spt { padding: 3px 8px; border-radius: 4px; font-size: 10px; font-weight: 600; }
+.spt.a { background: rgba(16,185,129,0.15); color: #10b981; }
+.spt.b { background: rgba(59,130,246,0.15); color: #3b82f6; }
+.spt.c { background: rgba(100,116,139,0.15); color: #64748b; }
+
+.scoring-tiers { display: flex; flex-direction: column; gap: 12px; }
+.tier-card {
+  border-radius: 12px; padding: 16px; border: 1px solid;
+}
+.tier-card.tier-a { background: rgba(16,185,129,0.06); border-color: rgba(16,185,129,0.25); }
+.tier-card.tier-b { background: rgba(59,130,246,0.06); border-color: rgba(59,130,246,0.25); }
+.tier-card.tier-c { background: rgba(100,116,139,0.06); border-color: rgba(100,116,139,0.2); }
+.tier-card-label { font-size: 10px; font-weight: 800; letter-spacing: 1.5px; text-transform: uppercase; margin-bottom: 2px; }
+.tier-a .tier-card-label { color: #10b981; }
+.tier-b .tier-card-label { color: #3b82f6; }
+.tier-c .tier-card-label { color: #64748b; }
+.tier-card-score { font-size: 26px; font-weight: 900; color: var(--t1); margin-bottom: 6px; }
+.tier-card-action { font-size: 13px; font-weight: 700; color: var(--t1); margin-bottom: 4px; }
+.tier-card-cadence { font-size: 11px; color: var(--t3); margin-bottom: 10px; }
+.tier-card-profile div { font-size: 11px; color: var(--t2); padding: 2px 0; }
+
+/* CALL TIMELINE */
+.call-timeline { padding: 16px 24px; position: relative; }
+.call-timeline::before {
+  content: ''; position: absolute; right: 68px; top: 24px; bottom: 24px;
+  width: 2px; background: var(--bord);
+}
+.ct-step { display: flex; gap: 16px; align-items: flex-start; margin-bottom: 20px; }
+.ct-step:last-child { margin-bottom: 0; }
+.ct-time {
+  width: 56px; text-align: left; font-size: 10px; color: var(--t3);
+  font-weight: 600; padding-top: 3px; flex-shrink: 0;
+}
+.ct-dot {
+  width: 12px; height: 12px; border-radius: 50%; background: var(--accent);
+  flex-shrink: 0; margin-top: 3px; border: 2px solid var(--bg);
+  box-shadow: 0 0 0 2px var(--accent); position: relative; z-index: 1;
+}
+.ct-content { flex: 1; }
+.ct-title { font-size: 13px; font-weight: 700; color: var(--t1); margin-bottom: 4px; }
+.ct-script { font-size: 12px; color: var(--t2); line-height: 1.6; font-style: italic; }
+
+/* QUESTIONS */
+.questions-cols { display: grid; grid-template-columns: 1fr 1fr; gap: 0; padding: 16px; }
+.q-col { padding: 0 12px; }
+.q-col:first-child { border-left: 1px solid var(--bord); }
+.q-col-title { font-size: 11px; font-weight: 800; color: var(--accent); letter-spacing: 1px; text-transform: uppercase; margin-bottom: 12px; }
+.q-item {
   display: flex; gap: 10px; align-items: flex-start;
-  background: rgba(59,130,246,0.04); border: 1px solid rgba(59,130,246,0.12);
-  border-radius: 10px; padding: 12px 14px;
+  font-size: 12px; color: var(--t2); padding: 7px 0;
+  border-bottom: 1px solid rgba(255,255,255,0.04); line-height: 1.4;
 }
-.adv-icon { font-size: 20px; flex-shrink: 0; }
-.adv-title { font-size: 12px; font-weight: 700; color: var(--t1); margin-bottom: 2px; }
-.adv-sub { font-size: 10.5px; color: var(--t3); line-height: 1.4; }
-
-/* Four Fs */
-.four-f-card {
-  background: rgba(255,255,255,0.03); border: 1px solid;
-  border-radius: 10px; padding: 14px; text-align: center;
-}
-.four-f-letter { font-size: 24px; font-weight: 800; font-family: 'DM Mono',monospace; margin-bottom: 2px; }
-.four-f-title { font-size: 11px; font-weight: 700; color: var(--t2); margin-bottom: 8px; }
-.four-f-q { font-size: 11px; color: var(--t1); font-style: italic; margin-bottom: 6px; line-height: 1.4; }
-.four-f-learn { font-size: 10px; color: var(--t3); }
-
-/* Segment cards */
-.seg-card {
-  background: rgba(255,255,255,0.02); border: 1px solid rgba(255,255,255,0.08);
-  border-radius: 12px; overflow: hidden;
-}
-.seg-header {
-  display: flex; align-items: center; gap: 10px;
-  padding: 12px 14px; border-bottom: 1px solid;
-}
-.seg-icon { font-size: 22px; flex-shrink: 0; }
-.seg-title { font-size: 13px; font-weight: 700; color: var(--t1); }
-.seg-vs { font-size: 10px; color: var(--t3); margin-top: 2px; }
-.seg-body { padding: 14px; }
-.seg-pain { display: flex; align-items: flex-start; gap: 8px; font-size: 11.5px; color: var(--t2); margin-bottom: 5px; line-height: 1.4; }
-.seg-pain-dot { width: 6px; height: 6px; border-radius: 50%; margin-top: 4px; flex-shrink: 0; }
-.seg-divider { height: 1px; background: rgba(255,255,255,0.07); margin: 10px 0; }
-.seg-solution { display: flex; gap: 8px; font-size: 11.5px; color: var(--t2); margin-bottom: 6px; }
-.seg-sol-dot { width: 6px; height: 6px; border-radius: 50%; background: #10b981; margin-top: 4px; flex-shrink: 0; }
-.seg-pitch {
-  font-size: 12px; font-style: italic; font-weight: 700; color: var(--t1);
-  background: rgba(255,255,255,0.04); border-radius: 7px; padding: 8px 12px; margin-top: 8px;
+.q-item:last-child { border-bottom: none; }
+.q-num {
+  width: 20px; height: 20px; border-radius: 50%;
+  background: rgba(var(--accent-rgb, 59,130,246), 0.15); color: var(--accent);
+  font-size: 10px; font-weight: 800; display: flex; align-items: center;
+  justify-content: center; flex-shrink: 0;
 }
 
-/* Scoring panel */
-.score-panel-card {
-  background: rgba(255,255,255,0.025); border: 1px solid rgba(255,255,255,0.08);
-  border-radius: 12px; padding: 16px 18px; margin-bottom: 12px;
+/* PRINCIPLES */
+.principles-grid { display: grid; grid-template-columns: repeat(4,1fr); gap: 12px; padding: 16px; }
+.principle-card { background: rgba(0,0,0,0.2); border-radius: 10px; padding: 16px; border: 1px solid var(--bord); }
+.pc-num { font-size: 28px; font-weight: 900; color: var(--accent); opacity: 0.5; margin-bottom: 8px; }
+.pc-title { font-size: 13px; font-weight: 800; color: var(--t1); margin-bottom: 8px; line-height: 1.3; }
+.pc-desc { font-size: 11px; color: var(--t2); line-height: 1.6; }
+
+/* RESEARCH BANNER */
+.research-banner {
+  background: rgba(59,130,246,0.06); border: 1px solid rgba(59,130,246,0.2);
+  border-radius: 12px; padding: 16px 20px; margin-bottom: 20px;
 }
-.score-panel-title {
-  font-size: 12px; font-weight: 700; color: var(--t2); margin-bottom: 14px;
-  padding-bottom: 8px; border-bottom: 1px solid rgba(255,255,255,0.07);
+.rb-title { font-size: 12px; font-weight: 800; color: var(--t1); margin-bottom: 12px; }
+.rb-layers { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; }
+.rb-layer {
+  flex: 1; background: rgba(0,0,0,0.2); border-radius: 8px;
+  padding: 10px 14px; border: 1px solid var(--bord); min-width: 160px;
+}
+.rb-layer-num { font-size: 10px; color: var(--accent); font-weight: 700; letter-spacing: 0.5px; margin-bottom: 3px; }
+.rb-layer-label { font-size: 13px; font-weight: 700; color: var(--t1); margin-bottom: 4px; }
+.rb-layer-desc { font-size: 11px; color: var(--t3); line-height: 1.5; }
+.rb-arrow { font-size: 18px; color: var(--t3); }
+
+/* EMAILS GRID */
+.emails-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
+.email-card {
+  background: var(--bg2); border: 1px solid var(--bord);
+  border-radius: 12px; padding: 18px; display: flex; flex-direction: column; gap: 10px;
+}
+.email-breakup { border-color: rgba(245,158,11,0.3); background: rgba(245,158,11,0.04); }
+.email-num { font-size: 10px; font-weight: 800; color: var(--accent); letter-spacing: 1.5px; text-transform: uppercase; }
+.email-subj { font-size: 13px; font-weight: 700; color: var(--t1); }
+.email-goal { font-size: 11px; color: var(--t3); }
+.email-research {
+  background: rgba(0,0,0,0.2); border-radius: 8px; padding: 10px 12px;
+  border-right: 3px solid var(--accent);
+}
+.er-title { font-size: 11px; font-weight: 700; color: var(--t1); margin-bottom: 6px; }
+.er-item { font-size: 11px; color: var(--t3); padding: 2px 0; line-height: 1.5; }
+.er-item::before { content: '• '; }
+.email-body {
+  font-size: 12px; color: var(--t2); line-height: 1.8;
+  background: rgba(255,255,255,0.02); border-radius: 8px; padding: 12px;
+  border: 1px solid var(--bord);
+}
+.email-cta {
+  font-size: 11px; font-weight: 700; color: var(--accent);
+  background: rgba(var(--accent-rgb,59,130,246),0.08);
+  border-radius: 6px; padding: 7px 10px;
 }
 
-.score-param-row {
-  display: grid; grid-template-columns: 180px 1fr 36px;
-  align-items: center; gap: 8px; margin-bottom: 4px;
+/* OBJECTIONS */
+.obj-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 14px; }
+.obj-card {
+  background: var(--bg2); border: 1px solid var(--bord);
+  border-radius: 12px; padding: 16px; display: flex; flex-direction: column; gap: 8px;
 }
-.score-param-name { font-size: 11px; color: var(--t2); }
-.score-param-bars { height: 20px; }
-.score-bar-seg {
-  height: 100%; border-radius: 4px;
-  display: flex; align-items: center; padding: 0 8px;
-  font-size: 10px; font-weight: 600; white-space: nowrap;
+.obj-what { font-size: 14px; font-weight: 800; color: var(--t1); }
+.obj-hidden { font-size: 11px; color: var(--t3); background: rgba(0,0,0,0.2); padding: 5px 8px; border-radius: 5px; }
+.obj-response {
+  background: rgba(16,185,129,0.06); border: 1px solid rgba(16,185,129,0.2);
+  border-radius: 8px; padding: 10px 12px; font-size: 12px; color: var(--t2); line-height: 1.6;
 }
-.green-seg { background: rgba(16,185,129,0.2); color: #10b981; }
-.yellow-seg { background: rgba(245,158,11,0.2); color: #f59e0b; }
-.score-param-max { font-size: 11px; font-weight: 700; color: var(--t1); text-align: right; font-family: 'DM Mono',monospace; }
+.or-label { font-size: 10px; font-weight: 700; color: #10b981; text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 4px; }
+.obj-principle { font-size: 11px; color: var(--accent); font-weight: 600; }
 
-.tier-interp-card {
-  border: 1px solid; border-radius: 10px; padding: 12px 14px;
+/* PITCHES */
+.pitches-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px; padding: 16px; }
+.pitch-card { background: rgba(0,0,0,0.2); border-radius: 10px; padding: 16px; border: 1px solid var(--bord); }
+.pitch-type { font-size: 12px; font-weight: 800; color: var(--accent); margin-bottom: 10px; }
+.pitch-body { font-size: 12px; color: var(--t2); line-height: 1.7; margin-bottom: 10px; font-style: italic; }
+.pitch-when { font-size: 11px; color: var(--t3); }
+
+/* KPIs */
+.kpi-layout { display: grid; grid-template-columns: 1fr 360px; gap: 16px; }
+.kpi-table { width: 100%; border-collapse: collapse; font-size: 12px; }
+.kpi-table th {
+  padding: 10px 14px; text-align: right; font-size: 11px;
+  font-weight: 700; color: var(--t3); border-bottom: 1px solid var(--bord);
+  text-transform: uppercase; letter-spacing: 0.5px;
 }
-.tier-action-badge {
-  font-size: 10px; font-weight: 700; padding: 3px 9px; border-radius: 5px;
+.kpi-table td { padding: 10px 14px; border-bottom: 1px solid rgba(255,255,255,0.04); color: var(--t2); }
+.kpi-table tr:last-child td { border-bottom: none; }
+.kpi-highlight td { color: var(--t1); }
+.kpi-key td { background: rgba(16,185,129,0.04); font-weight: 700; }
+
+.ai-weeks { padding: 16px; display: flex; flex-direction: column; gap: 16px; }
+.ai-week-title {
+  font-size: 11px; font-weight: 800; color: var(--accent);
+  text-transform: uppercase; letter-spacing: 1px; margin-bottom: 8px;
+  border-bottom: 1px solid var(--bord); padding-bottom: 6px;
+}
+.ai-item {
+  display: flex; gap: 8px; font-size: 12px; color: var(--t2);
+  padding: 4px 0; line-height: 1.4; align-items: flex-start;
+}
+.ai-check { font-size: 14px; flex-shrink: 0; cursor: pointer; }
+
+/* Responsive tweaks */
+@media (max-width: 1100px) {
+  .adv-grid { grid-template-columns: repeat(2,1fr); }
+  .pain-grid { grid-template-columns: 1fr; }
+  .scoring-layout { grid-template-columns: 1fr; }
+  .scoring-tiers { flex-direction: row; }
+  .kpi-layout { grid-template-columns: 1fr; }
+  .emails-grid { grid-template-columns: 1fr; }
+  .obj-grid { grid-template-columns: repeat(2,1fr); }
+  .pitches-grid { grid-template-columns: 1fr; }
+  .fourfs-grid { grid-template-columns: repeat(2,1fr); }
+  .principles-grid { grid-template-columns: repeat(2,1fr); }
 }
 
-/* Validation table */
-.validation-table { width: 100%; border-collapse: collapse; font-size: 11px; }
-.validation-table th {
-  background: rgba(255,255,255,0.04); color: var(--t2); font-weight: 700;
-  padding: 9px 10px; text-align: center; border-bottom: 1px solid rgba(255,255,255,0.1);
-  white-space: nowrap;
-}
-.validation-table td { padding: 9px 10px; border-bottom: 1px solid rgba(255,255,255,0.05); }
-.validation-table tr:last-child td { border-bottom: none; }
-.validation-table tr:hover td { background: rgba(255,255,255,0.02); }
-
-.score-cell { text-align: center; font-family: 'DM Mono',monospace; font-size: 11px; }
-.green-cell { color: #10b981; }
-.yellow-cell { color: #f59e0b; }
-.total-cell { font-weight: 800; font-size: 14px; }
-
-.tier-pill { font-size: 10px; font-weight: 700; padding: 3px 8px; border-radius: 5px; }
-.hot-pill  { background: rgba(16,185,129,0.15); color: #10b981; }
-.warm-pill { background: rgba(245,158,11,0.15); color: #f59e0b; }
-.cool-pill { background: rgba(59,130,246,0.15); color: #3b82f6; }
-
-/* Remove sub-tabs from top (they're in sidebar only) */
-.methodology-selector { display: none !important; }
 </style>
 
   <!-- Firebase CDN (compat mode — works without type=module) -->
@@ -1103,732 +1297,805 @@ document.addEventListener("DOMContentLoaded",function(){
   <!-- =================== MARKET =================== -->
   <div class="panel" id="tab-market">
 
-    <!-- ======= TAB 1: COMPETITOR MAP ======= -->
-    <div class="meth-panel active" id="market-competitors">
+  <!-- ══════════════ METHODOLOGY NAV ══════════════ -->
+  <div class="meth-nav" id="meth-nav">
+    <button class="mn-btn active" onclick="methTab('overview')"    data-tab="overview">🧭 מפת השוק</button>
+    <button class="mn-btn"        onclick="methTab('pains')"       data-tab="pains">💥 Pain Points</button>
+    <button class="mn-btn"        onclick="methTab('scoring')"     data-tab="scoring">🎯 Scoring Matrix</button>
+    <button class="mn-btn"        onclick="methTab('methodology')" data-tab="methodology">⚡ מתודולוגיה</button>
+    <button class="mn-btn"        onclick="methTab('emails')"      data-tab="emails">📧 Email Cadence</button>
+    <button class="mn-btn"        onclick="methTab('objections')"  data-tab="objections">🛡 התנגדויות</button>
+    <button class="mn-btn"        onclick="methTab('kpis')"        data-tab="kpis">📊 KPIs</button>
+  </div>
 
-      <!-- Header -->
-      <div style="margin-bottom:22px">
-        <div style="font-size:11px;color:var(--t3);letter-spacing:1.2px;text-transform:uppercase;margin-bottom:6px">SF BP #2 — Buyer Persona · BP #6 — Priority</div>
-        <h2 style="font-size:18px;font-weight:800;color:var(--t1);margin:0 0 6px">🗺 מפת השוק — 18 מתחרים</h2>
-        <p style="font-size:12px;color:var(--t3);line-height:1.7;max-width:700px">שוק מכירת כרטיסים ישראלי: ~₪800M שנתי. 85% מהאירועים משתמשים בפלטפורמות ביניים — המפיק מפסיד data וכסף. ככל שמתחרה מציע פחות iFrame/Widget, כך הוא <strong style="color:var(--t1)">מכין את הליד עבורנו.</strong></p>
+  <!-- ══════════════ TAB: OVERVIEW — מפת השוק ══════════════ -->
+  <div class="meth-section active" id="meth-overview">
+
+    <div class="meth-hero">
+      <div class="meth-hero-inner">
+        <div class="meth-hero-tag">XTIX SALES INTELLIGENCE v2.0</div>
+        <h1 class="meth-hero-title">שוק מכירת הכרטיסים הישראלי</h1>
+        <p class="meth-hero-sub">~₪800M שנתי · 85% מהאירועים על פלטפורמות חיצוניות · כל מתחרה שלא נותן Widget — מכין לנו את הליד</p>
       </div>
-
-      <!-- Market size visual -->
-      <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:10px;margin-bottom:24px">
-        <div class="mkt-stat-card" style="border-color:rgba(59,130,246,0.3)">
-          <div class="mkt-stat-num" style="color:#3b82f6">₪800M</div>
-          <div class="mkt-stat-label">שוק שנתי</div>
+      <div class="meth-hero-stats">
+        <div class="mhs-item">
+          <div class="mhs-num" style="color:#3b82f6">₪800M</div>
+          <div class="mhs-label">שוק שנתי</div>
         </div>
-        <div class="mkt-stat-card" style="border-color:rgba(16,185,129,0.3)">
-          <div class="mkt-stat-num" style="color:#10b981">85%</div>
-          <div class="mkt-stat-label">משתמשים בפלטפורמה חיצונית</div>
+        <div class="mhs-sep">|</div>
+        <div class="mhs-item">
+          <div class="mhs-num" style="color:#10b981">85%</div>
+          <div class="mhs-label">עם פלטפורמה חיצונית</div>
         </div>
-        <div class="mkt-stat-card" style="border-color:rgba(139,92,246,0.3)">
-          <div class="mkt-stat-num" style="color:#a78bfa">2.5%</div>
-          <div class="mkt-stat-label">עמלת XTIX (הכי נמוכה)</div>
+        <div class="mhs-sep">|</div>
+        <div class="mhs-item">
+          <div class="mhs-num" style="color:#a78bfa">2.5%</div>
+          <div class="mhs-label">עמלת XTIX</div>
         </div>
-        <div class="mkt-stat-card" style="border-color:rgba(245,158,11,0.3)">
-          <div class="mkt-stat-num" style="color:#f59e0b">₪52.5K</div>
-          <div class="mkt-stat-label">חיסכון שנתי ל-10K כרטיסים</div>
-        </div>
-      </div>
-
-      <!-- TIER 1 -->
-      <div class="tier-section">
-        <div class="tier-header tier-1-header">
-          <span class="tier-badge-label">TIER 1</span>
-          <span class="tier-desc">מתחרים ישירים — אותו סגמנט SMB | הלקוחות שלהם = הלידים שלנו</span>
-          <span class="tier-count">5 מתחרים</span>
-        </div>
-        <div class="comp-grid">
-
-          <div class="comp-card tier-1-card">
-            <div class="comp-card-header">
-              <span class="comp-name">Tickchak</span>
-              <div class="comp-tags"><span class="tag-iframe">iFrame ✓</span><span class="tag-smb">SMB</span></div>
-            </div>
-            <div class="comp-fee">עמלה: 3–5%</div>
-            <div class="comp-detail"><span class="lbl">סגמנט:</span> מפיקים קטנים, אירועים חד-פעמיים</div>
-            <div class="comp-detail"><span class="lbl">מודל:</span> Widget מוגבל | UI ישן | אין AI</div>
-            <div class="comp-weak">חולשה: אין dynamic pricing, אין data ownership</div>
-            <div class="comp-opp">✦ הזדמנות: לקוחות מחפשים שדרוג — Widget + AI + נתונים</div>
-          </div>
-
-          <div class="comp-card tier-1-card">
-            <div class="comp-card-header">
-              <span class="comp-name">Eventer</span>
-              <div class="comp-tags"><span class="tag-iframe">iFrame ✓</span><span class="tag-smb">SMB/MID</span></div>
-            </div>
-            <div class="comp-fee">עמלה: שולה + Pro SaaS</div>
-            <div class="comp-detail"><span class="lbl">סגמנט:</span> אירועים, נסיעות, פנאי</div>
-            <div class="comp-detail"><span class="lbl">מודל:</span> Saas Pro | מוכר ניהול — לא Widget</div>
-            <div class="comp-weak">חולשה: לא מוסד תרבות, לא lens. אין AI analytics</div>
-            <div class="comp-opp">✦ הזדמנות: גק brand — מפיקי תרבות רוצים פלטפורמה</div>
-          </div>
-
-          <div class="comp-card tier-1-card">
-            <div class="comp-card-header">
-              <span class="comp-name">Easytix</span>
-              <div class="comp-tags"><span class="tag-no-iframe">X iFrame</span><span class="tag-smb">SMB/MID</span></div>
-            </div>
-            <div class="comp-fee">עמלה: 3% + ₪5</div>
-            <div class="comp-detail"><span class="lbl">סגמנט:</span> אירועים קטנים, עיריות, ספורט</div>
-            <div class="comp-detail"><span class="lbl">מודל:</span> אין branding, אין widget</div>
-            <div class="comp-weak">חולשה: אין branding, לא מותאם לאמנות/תרבות</div>
-            <div class="comp-opp">✦ הזדמנות: לידים עם branding חזק ירצו XTIX</div>
-          </div>
-
-          <div class="comp-card tier-1-card">
-            <div class="comp-card-header">
-              <span class="comp-name">Eventbuzz</span>
-              <div class="comp-tags"><span class="tag-no-iframe">X iFrame</span><span class="tag-smb">SMB/MID</span></div>
-            </div>
-            <div class="comp-fee">Per-event pricing</div>
-            <div class="comp-detail"><span class="lbl">סגמנט:</span> אירועים עסקיים, פרטיים</div>
-            <div class="comp-detail"><span class="lbl">מודל:</span> Per-event | אין מסגרת תרבות/בידור</div>
-            <div class="comp-weak">חולשה: לא ממוקד מוזיקה/תרבות, לא מקבלים אוהדים</div>
-            <div class="comp-opp">✦ הזדמנות: מפיקי תרבות לא מוצאים fit</div>
-          </div>
-
-          <div class="comp-card tier-1-card">
-            <div class="comp-card-header">
-              <span class="comp-name">Eventobot</span>
-              <div class="comp-tags"><span class="tag-no-iframe">X iFrame</span><span class="tag-smb">SMB</span></div>
-            </div>
-            <div class="comp-fee">Bot-based, WhatsApp</div>
-            <div class="comp-detail"><span class="lbl">סגמנט:</span> אוטומציה קטנה, מפיקים טכניים</div>
-            <div class="comp-detail"><span class="lbl">מודל:</span> WhatsApp bots | לא מרכז כרטיסים</div>
-            <div class="comp-weak">חולשה: לא פלטפורמה, bot — מוגבל מאוד</div>
-            <div class="comp-opp">✦ הזדמנות: קסטומרים שרוצים סקייל ירצו XTIX</div>
-          </div>
-
+        <div class="mhs-sep">|</div>
+        <div class="mhs-item">
+          <div class="mhs-num" style="color:#f59e0b">₪52.5K</div>
+          <div class="mhs-label">חיסכון/שנה ל-10K כרטיסים</div>
         </div>
       </div>
+    </div>
 
-      <!-- TIER 2 -->
-      <div class="tier-section">
-        <div class="tier-header tier-2-header">
-          <span class="tier-badge-label">TIER 2</span>
-          <span class="tier-desc">מרקטפלייסים / מפיצים — הם "מחריקים" את הלידים שלנו | לא ישירים</span>
-          <span class="tier-count">6 מתחרים</span>
+    <!-- INSIGHT ROW -->
+    <div class="meth-insight-row">
+      <div class="meth-insight key">
+        <div class="mi-icon">🔑</div>
+        <div class="mi-text"><strong>הפרדוקס המרכזי:</strong> המפיק בונה קהל אך הנתונים שייכים לפלטפורמה. כל אירוע — ₪90K עמלות על 10K כרטיסים. ב-XTIX: ₪37,500. חיסכון ₪52,500 שנתי <em>לפני</em> ערך ה-data.</div>
+      </div>
+      <div class="meth-insight opp">
+        <div class="mi-icon">⚡</div>
+        <div class="mi-text"><strong>ההזדמנות שלנו:</strong> Smarticket + Leaan גובים 5–7%. הם מפיצים, לא שותפים. לקוחותיהם מוכנים לשמוע — צריך רק לדעת למי לפנות, מתי ואיך.</div>
+      </div>
+    </div>
+
+    <!-- COMPETITOR TABLE -->
+    <div class="meth-card">
+      <div class="meth-card-header">
+        <span class="meth-card-title">🗺 מפת מתחרים — 18 שחקנים</span>
+        <span class="meth-card-sub">ממוין לפי רמת איום על XTIX</span>
+      </div>
+      <div class="comp-table-wrap">
+        <table class="comp-table">
+          <thead>
+            <tr>
+              <th>פלטפורמה</th>
+              <th>עמלה</th>
+              <th>Widget</th>
+              <th>Database למפיק</th>
+              <th>AI</th>
+              <th>רמת איום</th>
+              <th>הזדמנות XTIX</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr class="xtix-row">
+              <td><strong style="color:#10b981">✅ XTIX.AI</strong></td>
+              <td><strong style="color:#10b981">2.5%</strong></td>
+              <td>✅ מלא</td>
+              <td>✅ 100%</td>
+              <td>✅ מלא</td>
+              <td><span class="threat none">—</span></td>
+              <td>—</td>
+            </tr>
+            <tr>
+              <td><strong>Smarticket</strong></td>
+              <td style="color:#ef4444">5–7% + ₪12</td>
+              <td>❌</td>
+              <td>❌</td>
+              <td>❌</td>
+              <td><span class="threat high">גבוה 🔥</span></td>
+              <td>TOP PRIORITY — הכי נפוץ בשוק</td>
+            </tr>
+            <tr>
+              <td><strong>Leaan / Mevalam</strong></td>
+              <td style="color:#ef4444">4–6%</td>
+              <td>❌</td>
+              <td>❌</td>
+              <td>❌</td>
+              <td><span class="threat high">בינוני-גבוה</span></td>
+              <td>הפצה בלבד — לקוחות ירצו widget</td>
+            </tr>
+            <tr>
+              <td><strong>Tickchak</strong></td>
+              <td>3–5%</td>
+              <td>⚠️ בסיסי</td>
+              <td>⚠️ חלקי</td>
+              <td>❌</td>
+              <td><span class="threat med">בינוני</span></td>
+              <td>Widget קיים — אך ישן, אין AI</td>
+            </tr>
+            <tr>
+              <td><strong>Eventbrite</strong></td>
+              <td>3.7% + $1.79</td>
+              <td>⚠️</td>
+              <td>⚠️</td>
+              <td>❌</td>
+              <td><span class="threat low">נמוך</span></td>
+              <td>לא ישראלי — Hebrew AI שבר אותם</td>
+            </tr>
+            <tr>
+              <td><strong>Selector</strong></td>
+              <td>יקר</td>
+              <td>✅</td>
+              <td>⚠️</td>
+              <td>❌</td>
+              <td><span class="threat low">נמוך</span></td>
+              <td>Enterprise בלבד — SMB לא מגיע אליהם</td>
+            </tr>
+            <tr>
+              <td><strong>Ticket Master</strong></td>
+              <td style="color:#ef4444">10–15%</td>
+              <td>❌</td>
+              <td>❌</td>
+              <td>❌</td>
+              <td><span class="threat low">נמוך</span></td>
+              <td>Enterprise — אך עמלה שלהם = כאב שלנו</td>
+            </tr>
+            <tr>
+              <td><strong>Bravo</strong></td>
+              <td>גבוה</td>
+              <td>❌</td>
+              <td>❌</td>
+              <td>❌</td>
+              <td><span class="threat low">נמוך</span></td>
+              <td>מוסדות גדולים — SMB לא fit</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+    <!-- XTIX ADVANTAGES -->
+    <div class="meth-card">
+      <div class="meth-card-header">
+        <span class="meth-card-title">💎 יתרונות XTIX — הנשק שלנו</span>
+        <span class="meth-card-sub">מה אנחנו מוכרים לעומת מה שהשוק מציע</span>
+      </div>
+      <div class="adv-grid">
+        <div class="adv-card">
+          <div class="adv-icon" style="background:rgba(59,130,246,0.15);color:#3b82f6">🔗</div>
+          <div class="adv-title">Widget מוטמע באתר</div>
+          <div class="adv-desc">הקהל לא עוזב — חוויה רציפה. רק Tickchak + Selector מציעים — ישנים ויקרים.</div>
+          <div class="adv-vs">vs. 0 מתחרים SMB</div>
         </div>
-        <div class="comp-grid">
+        <div class="adv-card">
+          <div class="adv-icon" style="background:rgba(16,185,129,0.15);color:#10b981">💰</div>
+          <div class="adv-title">2.5% עמלה flat</div>
+          <div class="adv-desc">חיסכון ₪52,500/שנה על 10K כרטיסים. הזול ביותר בשוק הישראלי בהפרש משמעותי.</div>
+          <div class="adv-vs">vs. 4–15% בשוק</div>
+        </div>
+        <div class="adv-card">
+          <div class="adv-icon" style="background:rgba(167,139,250,0.15);color:#a78bfa">📊</div>
+          <div class="adv-title">100% Data למפיק</div>
+          <div class="adv-desc">Database אמיתי, retargeting, קהל נאמן. אין מתחרה ישראלי שנותן זאת.</div>
+          <div class="adv-vs">vs. 0 מתחרים ישראלים</div>
+        </div>
+        <div class="adv-card">
+          <div class="adv-icon" style="background:rgba(245,158,11,0.15);color:#f59e0b">🤖</div>
+          <div class="adv-title">AI Analytics</div>
+          <div class="adv-desc">ניתוח קהל, תחזיות מכירה, Scoring. ייחודי לחלוטין בשוק הישראלי.</div>
+          <div class="adv-vs">ייחודי לשוק</div>
+        </div>
+        <div class="adv-card">
+          <div class="adv-icon" style="background:rgba(239,68,68,0.15);color:#ef4444">⚡</div>
+          <div class="adv-title">Early Bird אוטומטי</div>
+          <div class="adv-desc">40% מהכרטיסים נמכרים ב-72 שעות. אין ב-Smarticket/Leaan — בכלל.</div>
+          <div class="adv-vs">vs. ידני בכל המתחרים</div>
+        </div>
+        <div class="adv-card">
+          <div class="adv-icon" style="background:rgba(34,197,94,0.15);color:#22c55e">🔄</div>
+          <div class="adv-title">HubSpot/CRM Integration</div>
+          <div class="adv-desc">מעקב לידים + אוטומציה מלאה. אין במתחרים ישראלים — בכלל.</div>
+          <div class="adv-vs">vs. 0 מתחרים ישראלים</div>
+        </div>
+      </div>
+    </div>
 
-          <div class="comp-card tier-2-card">
-            <div class="comp-card-header">
-              <span class="comp-name">Smarticket</span>
-              <div class="comp-tags"><span class="tag-no-iframe">X Widget</span><span class="tag-smb">SMB</span></div>
+  </div><!-- /meth-overview -->
+
+  <!-- ══════════════ TAB: PAIN POINTS ══════════════ -->
+  <div class="meth-section" id="meth-pains">
+    <div class="meth-page-title">💥 Pain Points — מה הכואב למפיק</div>
+    <div class="meth-page-sub">ארבעה כאבים עיקריים. כל כאב = זווית פנייה שונה. דבר על הכסף שהוא מפסיד — לא על XTIX.</div>
+
+    <div class="pain-grid">
+      <div class="pain-card pain-financial">
+        <div class="pain-header">
+          <span class="pain-icon">💰</span>
+          <span class="pain-type">כלכלי — #1 הנפוץ ביותר</span>
+        </div>
+        <div class="pain-title">עמלות 5–8% × אלפי כרטיסים</div>
+        <div class="pain-calc">
+          <div class="calc-row"><span>10K כרטיסים × ₪150 × 6%</span><span class="calc-val bad">= ₪90,000/שנה</span></div>
+          <div class="calc-row"><span>ב-XTIX 2.5%</span><span class="calc-val good">= ₪37,500/שנה</span></div>
+          <div class="calc-row bold"><span>חיסכון נטו</span><span class="calc-val gold">₪52,500 ישר לרווח</span></div>
+        </div>
+        <div class="pain-pitch">💬 <em>"חישבתי בערך: לפי X אירועים ומחיר כרטיס ₪Y — אתם מוציאים ~₪Z בשנה לפלטפורמה. ב-XTIX זה יורד ל-₪W."</em></div>
+      </div>
+
+      <div class="pain-card pain-data">
+        <div class="pain-header">
+          <span class="pain-icon">📊</span>
+          <span class="pain-type">נתונים — #2 כאב עמוק</span>
+        </div>
+        <div class="pain-title">הנתונים שייכים לפלטפורמה — לא למפיק</div>
+        <div class="pain-bullets">
+          <div class="pb-item">❌ אין retargeting לקהל שקנה</div>
+          <div class="pb-item">❌ אין ידע מי קנה ומדוע</div>
+          <div class="pb-item">❌ אין אפשרות לבנות קהילה נאמנה</div>
+          <div class="pb-item">❌ כל אירוע מתחיל מאפס</div>
+        </div>
+        <div class="pain-pitch">💬 <em>"מי מחזיק את הנתונים על מי שקנה כרטיסים — אתם, או הפלטפורמה?"</em></div>
+      </div>
+
+      <div class="pain-card pain-ops">
+        <div class="pain-header">
+          <span class="pain-icon">⚡</span>
+          <span class="pain-type">תפעולי — #3 אובדן חוויה</span>
+        </div>
+        <div class="pain-title">הקהל עוזב האתר לפלטפורמה חיצונית</div>
+        <div class="pain-bullets">
+          <div class="pb-item">❌ נתק בחוויה — branding נשבר</div>
+          <div class="pb-item">❌ ירידה ב-SEO — עזיבת האתר</div>
+          <div class="pb-item">❌ אין Early Bird אוטומטי</div>
+          <div class="pb-item">❌ אין upsell/cross-sell</div>
+        </div>
+        <div class="pain-pitch">💬 <em>"שמתי לב שהכרטיסים עוברים ל-[פלטפורמה]. הקהל שלכם עוזב האתר — האם זו בחירה אקטיבית?"</em></div>
+      </div>
+
+      <div class="pain-card pain-strategic">
+        <div class="pain-header">
+          <span class="pain-icon">🚀</span>
+          <span class="pain-type">אסטרטגי — #4 עצירת גדילה</span>
+        </div>
+        <div class="pain-title">מוכרים כרטיסים — לא בונים קהילה</div>
+        <div class="pain-bullets">
+          <div class="pb-item">❌ אין dynamic pricing</div>
+          <div class="pb-item">❌ אין רשימת המתנה</div>
+          <div class="pb-item">❌ 38% קהל לא חוזר (vs. 38% חוזר עם XTIX)</div>
+          <div class="pb-item">❌ אין ניתוח ביצועים אמיתי</div>
+        </div>
+        <div class="pain-pitch">💬 <em>"איך נראה האירוע הבא עם 40% יותר קהל חוזר — שכבר מכיר אתכם?"</em></div>
+      </div>
+    </div>
+
+    <!-- Four Fs Framework -->
+    <div class="meth-card" style="margin-top:24px">
+      <div class="meth-card-header">
+        <span class="meth-card-title">🎭 מודל Four Fs — Pain Discovery מותאם</span>
+        <span class="meth-card-sub">שאל לפני שמוכר — יחס דיבור 30/70</span>
+      </div>
+      <div class="fourfs-grid">
+        <div class="ff-card">
+          <div class="ff-step">F1</div>
+          <div class="ff-label">First — מה קורה עכשיו</div>
+          <div class="ff-q">"איך אתם מוכרים כרטיסים היום?"</div>
+          <div class="ff-learn">מבין: פלטפורמה, תהליך, עמלות</div>
+          <div class="ff-action">→ לא מוכר עדיין — רק מקשיב</div>
+        </div>
+        <div class="ff-card">
+          <div class="ff-step">F2</div>
+          <div class="ff-label">Finest — מה עובד</div>
+          <div class="ff-q">"מה הכי נוח בפלטפורמה הנוכחית?"</div>
+          <div class="ff-learn">מבין: מה חשוב → מה לא לשבור</div>
+          <div class="ff-action">→ מציע המשכיות + שיפור</div>
+        </div>
+        <div class="ff-card">
+          <div class="ff-step">F3</div>
+          <div class="ff-label">Failure — מה כואב</div>
+          <div class="ff-q">"מי מחזיק את הנתונים על הקהל שלכם?"</div>
+          <div class="ff-learn">מבין: כאב הנתונים — pain מרכזי</div>
+          <div class="ff-action">→ מדגיש data ownership</div>
+        </div>
+        <div class="ff-card">
+          <div class="ff-step">F4</div>
+          <div class="ff-label">Future — לאן הולכים</div>
+          <div class="ff-q">"איך נראה ההופע הבא עם 40% יותר קהל חוזר?"</div>
+          <div class="ff-learn">מבין: חזון + מוטיבציה</div>
+          <div class="ff-action">→ מחבר XTIX לחזון שלהם</div>
+        </div>
+      </div>
+    </div>
+  </div><!-- /meth-pains -->
+
+  <!-- ══════════════ TAB: SCORING MATRIX ══════════════ -->
+  <div class="meth-section" id="meth-scoring">
+    <div class="meth-page-title">🎯 Scoring Matrix — 0–100</div>
+    <div class="meth-page-sub">5 פרמטרים עם משקל. מעל 80 = Tier A — מיידי. 60–79 = Tier B — sequence. מתחת ל-60 = Tier C — לא להשקיע זמן.</div>
+
+    <div class="scoring-layout">
+      <div class="scoring-params">
+        <div class="meth-card">
+          <div class="meth-card-header"><span class="meth-card-title">פרמטרי הניקוד</span></div>
+          <div class="score-params-list">
+
+            <div class="sp-row">
+              <div class="sp-left">
+                <div class="sp-name">פלטפורמה נוכחית</div>
+                <div class="sp-weight-bar"><div class="spb-fill" style="width:30%;background:#3b82f6"></div></div>
+              </div>
+              <div class="sp-weight">30%</div>
+              <div class="sp-tiers">
+                <span class="spt a">A: Smarticket/Leaan/Myticket</span>
+                <span class="spt b">B: WhatsApp/Eventbrite</span>
+                <span class="spt c">C: ידני/לא ברור</span>
+              </div>
             </div>
-            <div class="comp-fee">עמלה: 5–7% + ₪12</div>
-            <div class="comp-detail"><span class="lbl">מודל:</span> Freemium → Pro | הכי נפוץ בשוק</div>
-            <div class="comp-weak">חולשה: הכי יקר, ללא widget, נתונים לא למפיק</div>
-            <div class="comp-opp">✦ TOP PRIORITY: כל ליד ב-Smarticket = פוטנציאל XTIX</div>
-          </div>
 
-          <div class="comp-card tier-2-card">
-            <div class="comp-card-header">
-              <span class="comp-name">Bravo</span>
-              <div class="comp-tags"><span class="tag-no-iframe">X Widget</span><span class="tag-mkt">MKT</span></div>
+            <div class="sp-row">
+              <div class="sp-left">
+                <div class="sp-name">גודל קהל / אירועים</div>
+                <div class="sp-weight-bar"><div class="spb-fill" style="width:25%;background:#10b981"></div></div>
+              </div>
+              <div class="sp-weight">25%</div>
+              <div class="sp-tiers">
+                <span class="spt a">A: >5,000 קהל שנתי</span>
+                <span class="spt b">B: >1,000 קהל שנתי</span>
+                <span class="spt c">C: <500</span>
+              </div>
             </div>
-            <div class="comp-fee">עמלה: גבוהה</div>
-            <div class="comp-detail"><span class="lbl">מודל:</span> Marketplace ישראלי תרבות</div>
-            <div class="comp-weak">חולשה: מוסדות גדולים בלבד, לא מחזירים נתונים</div>
-            <div class="comp-opp">✦ הזדמנות: SMB שמחפש ״פחות מ-Bravo״</div>
-          </div>
 
-          <div class="comp-card tier-2-card">
-            <div class="comp-card-header">
-              <span class="comp-name">KupatTLV (קופת ת״א)</span>
-              <div class="comp-tags"><span class="tag-no-iframe">X Widget</span><span class="tag-mkt">MKT</span></div>
+            <div class="sp-row">
+              <div class="sp-left">
+                <div class="sp-name">נוכחות דיגיטלית</div>
+                <div class="sp-weight-bar"><div class="spb-fill" style="width:20%;background:#a78bfa"></div></div>
+              </div>
+              <div class="sp-weight">20%</div>
+              <div class="sp-tiers">
+                <span class="spt a">A: אתר עצמאי + 10K+ followers</span>
+                <span class="spt b">B: אתר + 2K followers</span>
+                <span class="spt c">C: אין אתר עצמאי</span>
+              </div>
             </div>
-            <div class="comp-fee">עמלה: גבוהה + מינויים</div>
-            <div class="comp-detail"><span class="lbl">מודל:</span> מרכז כרטיסייה עירוני</div>
-            <div class="comp-weak">חולשה: לאורגניזציות, לא fit לאמנות עצמאית</div>
-            <div class="comp-opp">✦ הזדמנות: להקות ומפיקים עצמאיים לא מקבלים fit</div>
-          </div>
 
-          <div class="comp-card tier-2-card">
-            <div class="comp-card-header">
-              <span class="comp-name">Leaan (לאן)</span>
-              <div class="comp-tags"><span class="tag-no-iframe">X Widget</span><span class="tag-mkt">MKT</span></div>
+            <div class="sp-row">
+              <div class="sp-left">
+                <div class="sp-name">כאב כלכלי ברור</div>
+                <div class="sp-weight-bar"><div class="spb-fill" style="width:15%;background:#f59e0b"></div></div>
+              </div>
+              <div class="sp-weight">15%</div>
+              <div class="sp-tiers">
+                <span class="spt a">A: מוציא >₪50K/שנה בעמלות</span>
+                <span class="spt b">B: ₪20K–₪50K</span>
+                <span class="spt c">C: <₪20K</span>
+              </div>
             </div>
-            <div class="comp-fee">עמלה: 4–6%</div>
-            <div class="comp-detail"><span class="lbl">מודל:</span> Marketplace ישראלי תרבות + בידור</div>
-            <div class="comp-weak">חולשה: גלגול + לא ניתן לאינטגרציה עצמית</div>
-            <div class="comp-opp">✦ הזדמנות: ״XTIX + Leaan: שניהם״ — שיתוף</div>
-          </div>
 
-          <div class="comp-card tier-2-card">
-            <div class="comp-card-header">
-              <span class="comp-name">SmarTicket (Smarticket)</span>
-              <div class="comp-tags"><span class="tag-no-iframe">X Widget</span><span class="tag-mkt">MKT</span></div>
+            <div class="sp-row">
+              <div class="sp-left">
+                <div class="sp-name">נגישות לקשר</div>
+                <div class="sp-weight-bar"><div class="spb-fill" style="width:10%;background:#ef4444"></div></div>
+              </div>
+              <div class="sp-weight">10%</div>
+              <div class="sp-tiers">
+                <span class="spt a">A: מייל ישיר + טלפון</span>
+                <span class="spt b">B: מייל בלבד</span>
+                <span class="spt c">C: טופס בלבד</span>
+              </div>
             </div>
-            <div class="comp-fee">5–7%</div>
-            <div class="comp-detail"><span class="lbl">מודל:</span> Marketplace ישראלי תרבות ובידור</div>
-            <div class="comp-weak">חולשה: אין כלי הפצה חכם. לא ניתן לאינטגרציה</div>
-            <div class="comp-opp">✦ TOP TIER 2: הפצה + XTIX Widget = combo</div>
-          </div>
 
-          <div class="comp-card tier-2-card">
-            <div class="comp-card-header">
-              <span class="comp-name">GO-OUT / GET IN</span>
-              <div class="comp-tags"><span class="tag-no-iframe">X Widget</span><span class="tag-mkt">MKT</span></div>
-            </div>
-            <div class="comp-fee">עמלה: בילוי</div>
-            <div class="comp-detail"><span class="lbl">מודל:</span> מדריך בילוי + הפצה</div>
-            <div class="comp-weak">חולשה: לא מרכז כרטיסים. לא ניתן לשליטה</div>
-            <div class="comp-opp">✦ הזדמנות: ניוזלטר + XTIX Embed = פוטנציאל</div>
           </div>
-
         </div>
       </div>
 
-      <!-- TIER 3 -->
-      <div class="tier-section">
-        <div class="tier-header tier-3-header">
-          <span class="tier-badge-label">TIER 3</span>
-          <span class="tier-desc">Enterprise / גלובלי — לא מתחרים ישירים | לידים שלנו לא שם</span>
-          <span class="tier-count">4 מתחרים</span>
+      <div class="scoring-tiers">
+        <div class="tier-card tier-a">
+          <div class="tier-card-label">TIER A</div>
+          <div class="tier-card-score">80–100</div>
+          <div class="tier-card-action">פנייה מיידית</div>
+          <div class="tier-card-cadence">Cadence: 4 מיילים + שיחה</div>
+          <div class="tier-card-profile">
+            <div>✓ Smarticket/Leaan</div>
+            <div>✓ >5K קהל שנתי</div>
+            <div>✓ אתר + 10K followers</div>
+            <div>✓ מוציא >₪50K עמלות</div>
+          </div>
         </div>
-        <div class="comp-grid">
-          <div class="comp-card tier-3-card">
-            <div class="comp-card-header"><span class="comp-name">Ticketmaster</span><div class="comp-tags"><span class="tag-ent">ENTERPRISE</span></div></div>
-            <div class="comp-fee">עמלה: 10–15%</div>
-            <div class="comp-weak">לא מתחרה SMB. לידים שלנו לא שם. אל תשקיע זמן.</div>
+        <div class="tier-card tier-b">
+          <div class="tier-card-label">TIER B</div>
+          <div class="tier-card-score">60–79</div>
+          <div class="tier-card-action">Sequence אוטומטי</div>
+          <div class="tier-card-cadence">Cadence: 3 מיילים</div>
+          <div class="tier-card-profile">
+            <div>~ WhatsApp/Eventbrite</div>
+            <div>~ >1K קהל שנתי</div>
+            <div>~ אתר + 2K followers</div>
+            <div>~ ₪20K–₪50K עמלות</div>
           </div>
-          <div class="comp-card tier-3-card">
-            <div class="comp-card-header"><span class="comp-name">Eventim</span><div class="comp-tags"><span class="tag-ent">ENTERPRISE</span></div></div>
-            <div class="comp-fee">עמלה: Enterprise</div>
-            <div class="comp-weak">גלובלי, לא ישראלי. Enterprise only. לא fit.</div>
-          </div>
-          <div class="comp-card tier-3-card">
-            <div class="comp-card-header"><span class="comp-name">Selector</span><div class="comp-tags"><span class="tag-ent">ENTERPRISE</span><span class="tag-iframe">Widget ✓</span></div></div>
-            <div class="comp-fee">עמלה: יקר מאוד</div>
-            <div class="comp-weak">Enterprise בלבד. AI + Widget — אבל ₪₪₪. SMB לא יכול.</div>
-            <div class="comp-opp">✦ הזדמנות: SMB שנדחה מ-Selector → XTIX</div>
-          </div>
-          <div class="comp-card tier-3-card">
-            <div class="comp-card-header"><span class="comp-name">LiveTickets</span><div class="comp-tags"><span class="tag-ent">MID/ENT</span><span class="tag-iframe">Widget ✓</span></div></div>
-            <div class="comp-fee">עמלה: mid-market</div>
-            <div class="comp-weak">Mid-market. Widget קיים. שירות לא אגיל. AI ≈ XTIX.</div>
-            <div class="comp-opp">✦ הזדמנות: XTIX = Selector בתמחור SMB</div>
+        </div>
+        <div class="tier-card tier-c">
+          <div class="tier-card-label">TIER C</div>
+          <div class="tier-card-score"><60</div>
+          <div class="tier-card-action">לא להשקיע זמן</div>
+          <div class="tier-card-cadence">Cadence: ללא / newsletter</div>
+          <div class="tier-card-profile">
+            <div>✗ ידני/לא ברור</div>
+            <div>✗ <500 קהל שנתי</div>
+            <div>✗ אין אתר עצמאי</div>
+            <div>✗ <₪20K עמלות</div>
           </div>
         </div>
       </div>
+    </div>
 
-      <!-- XTIX advantages vs competition -->
-      <div style="margin-top:24px">
-        <div style="font-size:11px;color:var(--t3);letter-spacing:1px;text-transform:uppercase;margin-bottom:12px">יתרון XTIX vs. כל המתחרים</div>
-        <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(220px,1fr));gap:8px">
-          <div class="xtix-adv-card"><div class="adv-icon">🔌</div><div><div class="adv-title">Widget מוטמע</div><div class="adv-sub">הקהל לא עוזב האתר — רק Tickchak + Selector מציעים, וישנים</div></div></div>
-          <div class="xtix-adv-card"><div class="adv-icon">💰</div><div><div class="adv-title">2.5% עמלה flat</div><div class="adv-sub">הכי זול בשוק — חיסכון ₪52,500/שנה על 10K כרטיסים</div></div></div>
-          <div class="xtix-adv-card"><div class="adv-icon">📊</div><div><div class="adv-title">100% Data למפיק</div><div class="adv-sub">Database אמיתי, retargeting, קהל נאמן — אין מתחרה שנותן זאת</div></div></div>
-          <div class="xtix-adv-card"><div class="adv-icon">🤖</div><div><div class="adv-title">AI Analytics</div><div class="adv-sub">ניתוח קהל, תחזיות מכירה, Scoring — ייחודי לחלוטין</div></div></div>
-          <div class="xtix-adv-card"><div class="adv-icon">⚡</div><div><div class="adv-title">Early Bird אוטומטי</div><div class="adv-sub">40% מהכרטיסים נמכרים ב-72 שעות — אין ב-Smarticket/Leaan</div></div></div>
-          <div class="xtix-adv-card"><div class="adv-icon">🔗</div><div><div class="adv-title">HubSpot/CRM</div><div class="adv-sub">מעקב לידים + אוטומציה מלאה — אין במתחרים ישראלים</div></div></div>
+  </div><!-- /meth-scoring -->
+
+  <!-- ══════════════ TAB: METHODOLOGY ══════════════ -->
+  <div class="meth-section" id="meth-methodology">
+    <div class="meth-page-title">⚡ מתודולוגיית המכירה — XTIX v2.0</div>
+    <div class="meth-page-sub">SPIN + Sandler + Value Selling + Salesforce 18 BPs — מותאם לשוק הישראלי</div>
+
+    <!-- 4 Core Principles -->
+    <div class="meth-card">
+      <div class="meth-card-header"><span class="meth-card-title">4 עקרונות הבסיס</span></div>
+      <div class="principles-grid">
+        <div class="principle-card">
+          <div class="pc-num">01</div>
+          <div class="pc-title">"אל תדבר על XTIX"</div>
+          <div class="pc-desc">דבר על הכסף שהוא מפסיד היום. כל שיחה מתחילה עם נתון ספציפי על הליד — לא על המוצר.</div>
         </div>
+        <div class="principle-card">
+          <div class="pc-num">02</div>
+          <div class="pc-title">"מגיעים עם נתונים"</div>
+          <div class="pc-desc">כל ליד מקבל ניתוח AI לפני פנייה. אוסף: פלטפורמה, הכנסה שנתית, עמלה משוערת, followers.</div>
+        </div>
+        <div class="principle-card">
+          <div class="pc-num">03</div>
+          <div class="pc-title">"יחס דיבור 30/70"</div>
+          <div class="pc-desc">שאלה חכמה שווה יותר מ-10 משפטי מכירה. האזן עד שהבנת את הכאב — אחר כך מציג פתרון.</div>
+        </div>
+        <div class="principle-card">
+          <div class="pc-num">04</div>
+          <div class="pc-title">"ספציפי, לא template"</div>
+          <div class="pc-desc">כל מייל מראה שעשינו שיעורי בית. שם האירוע, הדומיין, הפלטפורמה, ההערכה — ספציפי לליד.</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Discovery Call Structure -->
+    <div class="meth-card">
+      <div class="meth-card-header"><span class="meth-card-title">📞 Discovery Call — מבנה 30 דקות</span><span class="meth-card-sub">יחס 30/70 · Action Item לכל שלב</span></div>
+      <div class="call-timeline">
+        <div class="ct-step">
+          <div class="ct-time">0–3 דק׳</div>
+          <div class="ct-dot"></div>
+          <div class="ct-content">
+            <div class="ct-title">פתיחה — הקשר</div>
+            <div class="ct-script">"ראיתי שאתם עובדים עם [פלטפורמה] — לפני שמדבר על XTIX, אשמח להבין קצת יותר."</div>
+          </div>
+        </div>
+        <div class="ct-step">
+          <div class="ct-time">3–18 דק׳</div>
+          <div class="ct-dot"></div>
+          <div class="ct-content">
+            <div class="ct-title">גילוי — Four Fs</div>
+            <div class="ct-script">F1 מה קורה → F2 מה עובד → F3 מה כואב → F4 לאן הולכים. לא להציג פתרון עד שהבנת כל הכאב.</div>
+          </div>
+        </div>
+        <div class="ct-step">
+          <div class="ct-time">18–25 דק׳</div>
+          <div class="ct-dot"></div>
+          <div class="ct-content">
+            <div class="ct-title">ערך — Demo חי</div>
+            <div class="ct-script">"מה שתיארת — זה בדיוק מה ש-XTIX פותרת. הנה איך זה נראה באתר [domain] שלכם ספציפית..."</div>
+          </div>
+        </div>
+        <div class="ct-step">
+          <div class="ct-time">25–30 דק׳</div>
+          <div class="ct-dot"></div>
+          <div class="ct-content">
+            <div class="ct-title">סגירה — Next Step</div>
+            <div class="ct-script">"מה ה-next step? יכול לשלוח הצעה בהתאמה אישית." → לסיים תמיד עם תאריך ביומן.</div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- 15 Discovery Questions -->
+    <div class="meth-card">
+      <div class="meth-card-header"><span class="meth-card-title">15 שאלות Discovery</span></div>
+      <div class="questions-cols">
+        <div class="q-col">
+          <div class="q-col-title">מצב נוכחי</div>
+          <div class="q-item"><span class="q-num">1</span>איך אתם מוכרים כרטיסים — מה התהליך המלא?</div>
+          <div class="q-item"><span class="q-num">2</span>מה עלות העמלה לפלטפורמה?</div>
+          <div class="q-item"><span class="q-num">3</span>מי מחזיק את ה-database של הקהל?</div>
+          <div class="q-item"><span class="q-num">4</span>כמה כרטיסים מכרתם בשנה האחרונה?</div>
+          <div class="q-item"><span class="q-num">5</span>מה אחוז הקהל שחוזר מאירוע לאירוע?</div>
+          <div class="q-item"><span class="q-num">6</span>איך מגיעים לקהל חדש?</div>
+          <div class="q-item"><span class="q-num">7</span>מה קורה לנתוני הקונים אחרי הרכישה?</div>
+        </div>
+        <div class="q-col">
+          <div class="q-col-title">כאב וחזון</div>
+          <div class="q-item"><span class="q-num">8</span>מה הכי מתסכל בתהליך הנוכחי?</div>
+          <div class="q-item"><span class="q-num">9</span>אם יכולתם לשנות דבר אחד — מה היה?</div>
+          <div class="q-item"><span class="q-num">10</span>מה קרה כשאירוע לא מכר כמצופה?</div>
+          <div class="q-item"><span class="q-num">11</span>אם ידעתם בדיוק מי קנה — הייתם עושים שונה?</div>
+          <div class="q-item"><span class="q-num">12</span>מה ה-goal לשנה הבאה מבחינת מכירות?</div>
+          <div class="q-item"><span class="q-num">13</span>מה מונע מכם להגיע ליעד?</div>
+          <div class="q-item"><span class="q-num">14</span>אם כרטיסים נמכרו ישירות מהאתר — מה משתנה?</div>
+          <div class="q-item q-item-last"><span class="q-num">15</span>מה גורם לשקול מעבר לפלטפורמה חדשה?</div>
+        </div>
+      </div>
+    </div>
+
+  </div><!-- /meth-methodology -->
+
+  <!-- ══════════════ TAB: EMAIL CADENCE ══════════════ -->
+  <div class="meth-section" id="meth-emails">
+    <div class="meth-page-title">📧 Email Cadence — 4 מיילים + מחקר</div>
+    <div class="meth-page-sub">כל מייל בנוי על מחקר אמיתי שנעשה לפני השליחה. הדגמת הידע היא שמבדילה פנייה שמקבלת תשובה מפנייה שנמחקת.</div>
+
+    <!-- Research layers -->
+    <div class="research-banner">
+      <div class="rb-title">3 שכבות מחקר לפני כל פנייה</div>
+      <div class="rb-layers">
+        <div class="rb-layer">
+          <div class="rb-layer-num">רמה 1</div>
+          <div class="rb-layer-label">ציבורי</div>
+          <div class="rb-layer-desc">אתר, מחירי כרטיסים, פלטפורמה, Instagram, Facebook</div>
+        </div>
+        <div class="rb-arrow">→</div>
+        <div class="rb-layer">
+          <div class="rb-layer-num">רמה 2</div>
+          <div class="rb-layer-label">AI Analysis</div>
+          <div class="rb-layer-desc">ניתוח תוכן, הערכת קהל, זיהוי platform_weakness, pain points</div>
+        </div>
+        <div class="rb-arrow">→</div>
+        <div class="rb-layer">
+          <div class="rb-layer-num">רמה 3</div>
+          <div class="rb-layer-label">Contextual</div>
+          <div class="rb-layer-desc">מתי מוכרים? דינמיקת שוק? מי מתחרה בהם?</div>
+        </div>
+      </div>
+    </div>
+
+    <div class="emails-grid">
+
+      <div class="email-card">
+        <div class="email-num">מייל #1</div>
+        <div class="email-subj">נושא: "[שם חברה] — שאלה אחת על [domain]"</div>
+        <div class="email-goal">מטרה: לפתוח שיחה סביב data ownership</div>
+        <div class="email-research">
+          <div class="er-title">🔍 מחקר לפני שליחה:</div>
+          <div class="er-item">בדקתי [domain] — הכרטיסים מובילים ל-[פלטפורמה] חיצונית</div>
+          <div class="er-item">זיהיתי עבודה עם [Smarticket/Leaan] — עמלה ~X%</div>
+          <div class="er-item">ראיתי X אירועים פעילים / הבא ב-[תאריך]</div>
+          <div class="er-item">הסקתי: הקהל עוזב האתר + נתונים לא למפיק</div>
+        </div>
+        <div class="email-body">
+          שלום [שם],<br><br>
+          נכנסתי לאתר [domain] ואהבתי את הפרודקשן של [אירוע]. שמתי לב שהכרטיסים עוברים ל-[פלטפורמה].<br><br>
+          שאלה אחת, מסקרנת אותי: האם הנתונים על מי שקנה — מי מחזיק אותם?<br><br>
+          לא ביקורת — פשוט שואל כי הרבה מפיקים לא יודעים שהם שייכים לפלטפורמה ולא להם.<br><br>
+          <em>אורן | XTIX.AI</em>
+        </div>
+        <div class="email-cta">📌 CTA: תשובה לשאלה אחת — 30 שניות</div>
+      </div>
+
+      <div class="email-card">
+        <div class="email-num">מייל #2</div>
+        <div class="email-subj">נושא: "נתון אחד על [שם חברה] שחישבתי"</div>
+        <div class="email-goal">מטרה: להראות ROI ספציפי — לא כללי</div>
+        <div class="email-research">
+          <div class="er-title">🔍 מחקר לפני שליחה:</div>
+          <div class="er-item">חישבתי: X אירועים × ~Y כרטיסים × ₪מחיר = ~₪הכנסה שנתי</div>
+          <div class="er-item">עמלה [פלטפורמה] = ~Z% → ~₪סכום בעמלות בשנה</div>
+          <div class="er-item">בדקתי Instagram: X עוקבים — retargeting פוטנציאלי</div>
+          <div class="er-item">שני אובדנות: כסף בעמלות + הזדמנות retargeting</div>
+        </div>
+        <div class="email-body">
+          שלום [שם],<br><br>
+          חישבתי בערך: לפי X אירועים ומחיר כרטיס ~₪Y, מוכרים ~₪הכנסה בשנה.<br><br>
+          ב-[פלטפורמה] זה ~Z% → בערך ₪סכום בעמלות. ב-XTIX 2.5% — ההפרש: ₪חיסכון שנתי, ישר לרווח.<br><br>
+          זה לפני שדיברנו על ה-X אנשים שעקבו אחריכם ב-Instagram — שאפשר לפנות אליהם ישירות.<br><br>
+          <em>15 דקות שיחה? אשמח להראות איך זה נראה על האתר שלכם.</em>
+        </div>
+        <div class="email-cta">📌 CTA: 15 דקות + demo חי על הדומיין שלהם</div>
+      </div>
+
+      <div class="email-card">
+        <div class="email-num">מייל #3</div>
+        <div class="email-subj">נושא: "תוצאה של מפיק עם מצב דומה ל-[שם]"</div>
+        <div class="email-goal">מטרה: Social proof עם מספרים ספציפיים</div>
+        <div class="email-research">
+          <div class="er-title">🔍 מחקר לפני שליחה:</div>
+          <div class="er-item">חיפשתי לקוח XTIX: אותו סגמנט, אותה פלטפורמה לשעבר</div>
+          <div class="er-item">מצאתי: [לקוח] — עברו מ-[פלטפורמה] לפני X חודשים</div>
+          <div class="er-item">תוצאות: עמלות ירדו + קהל חוזר עלה + Early Bird 40%</div>
+        </div>
+        <div class="email-body">
+          שלום [שם],<br><br>
+          לפני שבוע דיברתי עם מפיק [סגמנט] שעבד עם [פלטפורמה] — מצב דומה מאוד לשלכם.<br><br>
+          3 חודשים עם XTIX: עמלות ירדו מ-6% ל-2.5% · 38% מהקהל חזר לאירוע הבא · 40% מהכרטיסים נמכרו ב-72 שעות ראשונות.<br><br>
+          <em>אפשר להראות לכם demo ספציפי על [domain]?</em>
+        </div>
+        <div class="email-cta">📌 CTA: Demo חי על [domain] — 15 דקות ביומן</div>
+      </div>
+
+      <div class="email-card email-breakup">
+        <div class="email-num">מייל #4 — Break-up</div>
+        <div class="email-subj">נושא: "מייל אחרון — [שם], ישיר"</div>
+        <div class="email-goal">מטרה: לסגור לולאה — כן או לא. שניהם תקפים.</div>
+        <div class="email-research">
+          <div class="er-title">🔍 לוגיקה:</div>
+          <div class="er-item">Break-up email מקבל reply גבוה — כי ישיר ואנושי</div>
+          <div class="er-item">מטרה: לסגור לולאה בכבוד לזמן שלהם</div>
+        </div>
+        <div class="email-body">
+          שלום [שם],<br><br>
+          שלחתי כמה הודעות — לא שמעתי בחזרה. לא אטריח יותר אחרי זה.<br><br>
+          שאלה אחת ישירה: <strong>מכירת הכרטיסים היום מספקת אתכם?</strong><br><br>
+          אם כן — הכל טוב, לא אכתוב שוב.<br>
+          אם לא — 15 דקות ו-XTIX יכולה לענות על זה.<br><br>
+          <em>אורן | XTIX.AI</em>
+        </div>
+        <div class="email-cta">📌 CTA: כן / לא — לסגור לולאה. שניהם תשובה תקפה.</div>
+      </div>
+
+    </div>
+  </div><!-- /meth-emails -->
+
+  <!-- ══════════════ TAB: OBJECTIONS ══════════════ -->
+  <div class="meth-section" id="meth-objections">
+    <div class="meth-page-title">🛡 טיפול בהתנגדויות</div>
+    <div class="meth-page-sub">כל התנגדות = שאלה בתחפושת (Salesforce BP #16). לא להתווכח — לחשוף את ה-pain האמיתי שמאחוריה.</div>
+
+    <div class="obj-grid">
+
+      <div class="obj-card">
+        <div class="obj-what">"מרוצים מהפלטפורמה"</div>
+        <div class="obj-hidden">מה מסתתר: לא ראה ערך לשנות</div>
+        <div class="obj-response">
+          <div class="or-label">תגובה אופטימלית:</div>
+          "מה הכי אהבתם בה? אם XTIX שומר על זה + מוסיף data ownership — שווה 15 דקות?"
+        </div>
+        <div class="obj-principle">עיקרון: הסכם תחילה, הוסף ערך</div>
+      </div>
+
+      <div class="obj-card">
+        <div class="obj-what">"אין זמן עכשיו"</div>
+        <div class="obj-hidden">מה מסתתר: לא רואה ROI</div>
+        <div class="obj-response">
+          <div class="or-label">תגובה אופטימלית:</div>
+          "אם מראה כמה אתם משלמים מיותר — שווה 15 דקות?"
+        </div>
+        <div class="obj-principle">עיקרון: הוכח ROI מהיר, לא תכונות</div>
+      </div>
+
+      <div class="obj-card">
+        <div class="obj-what">"יקר / לא בתקציב"</div>
+        <div class="obj-hidden">מה מסתתר: לא חיבר לחיסכון</div>
+        <div class="obj-response">
+          <div class="or-label">תגובה אופטימלית:</div>
+          "ב-XTIX 2.5% — מה עכשיו? ההפרש מממן את עצמו. נחשב ביחד?"
+        </div>
+        <div class="obj-principle">עיקרון: הפוך את ה-ROI לחישוב פשוט</div>
+      </div>
+
+      <div class="obj-card">
+        <div class="obj-what">"לא מכיר XTIX"</div>
+        <div class="obj-hidden">מה מסתתר: חסר social proof</div>
+        <div class="obj-response">
+          <div class="or-label">תגובה אופטימלית:</div>
+          "האם [לקוח ידוע] מספיק? הם עברו אלינו לפני 6 חודשים."
+        </div>
+        <div class="obj-principle">עיקרון: Social proof עם שם ספציפי</div>
+      </div>
+
+      <div class="obj-card">
+        <div class="obj-what">"צריך לשאול שותף"</div>
+        <div class="obj-hidden">מה מסתתר: לא decision maker</div>
+        <div class="obj-response">
+          <div class="or-label">תגובה אופטימלית:</div>
+          "מה דרוש לו/ה לדעת? אני מכין תמצית ספציפית."
+        </div>
+        <div class="obj-principle">עיקרון: עזור לו למכור פנימית</div>
+      </div>
+
+      <div class="obj-card">
+        <div class="obj-what">"נחשוב על זה"</div>
+        <div class="obj-hidden">מה מסתתר: לא מספיק urgency</div>
+        <div class="obj-response">
+          <div class="or-label">תגובה אופטימלית:</div>
+          "מה הדבר שגורם להתלבט? בואו נפתור אותו עכשיו."
+        </div>
+        <div class="obj-principle">עיקרון: חשוף את ה-blocker האמיתי</div>
       </div>
 
     </div>
 
-    <!-- ======= TAB 2: POSITIONING ======= -->
-    <div class="meth-panel" id="market-positioning">
-
-      <div style="margin-bottom:22px">
-        <div style="font-size:11px;color:var(--t3);letter-spacing:1.2px;text-transform:uppercase;margin-bottom:6px">SF BP #12 — Tailor the Pitch · BP #2 — Buyer Persona</div>
-        <h2 style="font-size:18px;font-weight:800;color:var(--t1);margin:0 0 6px">🎯 פוזיציונינג XTIX לפי סגמנט</h2>
-        <p style="font-size:12px;color:var(--t3);line-height:1.7;max-width:700px">כל סגמנט שוק שונה. הכאב של תיאטרון ≠ כאב של להקת טריביוט ≠ כאב של פסטיבל. ה-pitch חייב להיות ספציפי לסגמנט.</p>
-      </div>
-
-      <!-- Core pitch formula -->
-      <div style="background:linear-gradient(135deg,rgba(59,130,246,0.08),rgba(139,92,246,0.08));border:1px solid rgba(139,92,246,0.2);border-radius:12px;padding:16px 20px;margin-bottom:24px;display:flex;align-items:center;gap:16px">
-        <div style="font-size:28px">⚡</div>
-        <div>
-          <div style="font-size:11px;color:var(--t3);letter-spacing:1px;text-transform:uppercase;margin-bottom:4px">עיקרון #1 — מתודולוגיה v2.0</div>
-          <div style="font-size:14px;font-weight:700;color:var(--t1)">"אל תדבר על XTIX — דבר על הכסף שהוא מפסיד היום"</div>
-          <div style="font-size:11px;color:var(--t3);margin-top:3px">יחס דיבור 30/70 | כל ליד מקבל ניתוח AI לפני פנייה | מגיעים עם נתונים ספציפיים</div>
+    <!-- Pitches section -->
+    <div class="meth-card" style="margin-top:24px">
+      <div class="meth-card-header"><span class="meth-card-title">💬 3 גרסאות Pitch לפי הקשר</span></div>
+      <div class="pitches-grid">
+        <div class="pitch-card">
+          <div class="pitch-type">⚡ Elevator — 30 שניות</div>
+          <div class="pitch-body">"XTIX מאפשרת למפיקים למכור כרטיסים ישירות מהאתר שלהם — 2.5% במקום 6-8% — עם 100% הנתונים שייכים להם. הקהל לא עוזב האתר, המפיק בונה database, ו-AI מנתח ומייעל כל מכירה."</div>
+          <div class="pitch-when">מתי: היכרות ראשונה, networking</div>
+        </div>
+        <div class="pitch-card">
+          <div class="pitch-type">💰 ROI Pitch — למי שמדבר במספרים</div>
+          <div class="pitch-body">"נחשב ביחד: 10K כרטיסים × ₪150 = ₪1.5M מכירות. ב-6% עמלה: ₪90,000. ב-XTIX 2.5%: ₪37,500. חיסכון: ₪52,500 שנתי — לפני שחישבנו את ערך ה-database. מה עושים עם ₪52,500 נוספים?"</div>
+          <div class="pitch-when">מתי: שיחת discovery, אחרי שהבנת את הנפח</div>
+        </div>
+        <div class="pitch-card">
+          <div class="pitch-type">🏆 Value Pitch — למי שמדבר בחזון</div>
+          <div class="pitch-body">"תארו את האירוע הבא כשאתם יודעים בדיוק מי קנה, יכולים לפנות אליהם מחדש, ו-40% מהכרטיסים נמכרים ב-72 שעות הראשונות. זה מה ש-XTIX בונה — ליד אחרי ליד."</div>
+          <div class="pitch-when">מתי: F4 בשיחה — אחרי שהבנת את החזון</div>
         </div>
       </div>
-
-      <!-- Four Fs model -->
-      <div style="margin-bottom:24px">
-        <div style="font-size:12px;font-weight:700;color:var(--t2);margin-bottom:12px;display:flex;align-items:center;gap:8px">
-          <div style="width:3px;height:16px;background:#f59e0b;border-radius:2px"></div>
-          מודל Four Fs — Pain Discovery
-        </div>
-        <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:8px">
-          <div class="four-f-card" style="border-color:rgba(59,130,246,0.3)">
-            <div class="four-f-letter" style="color:#3b82f6">F1</div>
-            <div class="four-f-title">First</div>
-            <div class="four-f-q">"איך אתם מוכרים כרטיסים היום?"</div>
-            <div class="four-f-learn">פלטפורמה, תהליך, עמלות</div>
-          </div>
-          <div class="four-f-card" style="border-color:rgba(16,185,129,0.3)">
-            <div class="four-f-letter" style="color:#10b981">F2</div>
-            <div class="four-f-title">Finest</div>
-            <div class="four-f-q">"מה הכי נוח בפלטפורמה הנוכחית?"</div>
-            <div class="four-f-learn">מה חשוב → מה לא לשבור</div>
-          </div>
-          <div class="four-f-card" style="border-color:rgba(239,68,68,0.3)">
-            <div class="four-f-letter" style="color:#ef4444">F3</div>
-            <div class="four-f-title">Failure</div>
-            <div class="four-f-q">"מי מחזיק את הנתונים על הקהל שלכם?"</div>
-            <div class="four-f-learn">כאב הנתונים — pain מרכזי</div>
-          </div>
-          <div class="four-f-card" style="border-color:rgba(139,92,246,0.3)">
-            <div class="four-f-letter" style="color:#a78bfa">F4</div>
-            <div class="four-f-title">Future</div>
-            <div class="four-f-q">"איך נראה ההופעה הבאה עם 40% יותר קהל חוזר?"</div>
-            <div class="four-f-learn">חזון + מוטיבציה</div>
-          </div>
-        </div>
-      </div>
-
-      <!-- Segment positioning cards -->
-      <div style="font-size:12px;font-weight:700;color:var(--t2);margin-bottom:12px;display:flex;align-items:center;gap:8px">
-        <div style="width:3px;height:16px;background:#a78bfa;border-radius:2px"></div>
-        פוזיציונינג לפי סגמנט
-      </div>
-      <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px">
-
-        <div class="seg-card">
-          <div class="seg-header" style="background:rgba(139,92,246,0.1);border-color:rgba(139,92,246,0.2)">
-            <span class="seg-icon">🎸</span>
-            <div><div class="seg-title">A — מפיקי טריביוט / להקות עצמאיות</div><div class="seg-vs">vs. Tickchak · Easytix · Smarticket · Mevalim</div></div>
-          </div>
-          <div class="seg-body">
-            <div class="seg-pain"><span class="seg-pain-dot" style="background:#ef4444"></span><strong>כאב #1:</strong> מוכרים דרך Smarticket — הקהל לא שלהם</div>
-            <div class="seg-pain"><span class="seg-pain-dot" style="background:#ef4444"></span><strong>כאב #2:</strong> כפל פלטפורמות = כפל עמלות + ניהול</div>
-            <div class="seg-pain"><span class="seg-pain-dot" style="background:#ef4444"></span><strong>כאב #3:</strong> אין Early Bird / Last Minute אוטומטי</div>
-            <div class="seg-divider"></div>
-            <div class="seg-solution"><span class="seg-sol-dot"></span><strong>XTIX:</strong> iFrame בדומיין + DB קהל פרטי + עמלה נמוכה</div>
-            <div class="seg-pitch">"הקהל שלך, הנתונים שלך, הברנד שלך"</div>
-          </div>
-        </div>
-
-        <div class="seg-card">
-          <div class="seg-header" style="background:rgba(244,114,182,0.1);border-color:rgba(244,114,182,0.2)">
-            <span class="seg-icon">🎭</span>
-            <div><div class="seg-title">B — תיאטראות ומרכזי תרבות</div><div class="seg-vs">vs. Bravo · KupatTLV · Leaan · Eventim</div></div>
-          </div>
-          <div class="seg-body">
-            <div class="seg-pain"><span class="seg-pain-dot" style="background:#ef4444"></span><strong>כאב #1:</strong> מושבים ריקים = הכנסה אבודה</div>
-            <div class="seg-pain"><span class="seg-pain-dot" style="background:#ef4444"></span><strong>כאב #2:</strong> קהל מנויים רווי — אין ערוץ לקהל חדש</div>
-            <div class="seg-pain"><span class="seg-pain-dot" style="background:#ef4444"></span><strong>כאב #3:</strong> אין API למפיצים / Marketplace</div>
-            <div class="seg-divider"></div>
-            <div class="seg-solution"><span class="seg-sol-dot"></span><strong>XTIX:</strong> Dynamic pricing + retargeting + קהל חדש</div>
-            <div class="seg-pitch">"מלא את האולם — בלי להוזיל את הברנד"</div>
-          </div>
-        </div>
-
-        <div class="seg-card">
-          <div class="seg-header" style="background:rgba(245,158,11,0.1);border-color:rgba(245,158,11,0.2)">
-            <span class="seg-icon">🎪</span>
-            <div><div class="seg-title">C — פסטיבלים ואירועי חוץ</div><div class="seg-vs">vs. Ticketmaster · LiveTickets · Selector</div></div>
-          </div>
-          <div class="seg-body">
-            <div class="seg-pain"><span class="seg-pain-dot" style="background:#ef4444"></span><strong>כאב #1:</strong> עמלות ענק = ₪100K+ לפסטיבל גדול</div>
-            <div class="seg-pain"><span class="seg-pain-dot" style="background:#ef4444"></span><strong>כאב #2:</strong> אין ניהול מלוא הפסטיבל מפלטפורמה אחת</div>
-            <div class="seg-pain"><span class="seg-pain-dot" style="background:#ef4444"></span><strong>כאב #3:</strong> אין white-label, הברנד אבוד</div>
-            <div class="seg-divider"></div>
-            <div class="seg-solution"><span class="seg-sol-dot"></span><strong>XTIX:</strong> פלטפורמה מלאה + white-label + עמלה 2.5%</div>
-            <div class="seg-pitch">"Ticketmaster בתמחור SMB — עם AI ועם הנתונים שלך"</div>
-          </div>
-        </div>
-
-        <div class="seg-card">
-          <div class="seg-header" style="background:rgba(16,185,129,0.1);border-color:rgba(16,185,129,0.2)">
-            <span class="seg-icon">🎤</span>
-            <div><div class="seg-title">D — מוזיקה, קונצרטים, סטנד-אפ</div><div class="seg-vs">vs. Eventer · Eventbuzz · GO-OUT</div></div>
-          </div>
-          <div class="seg-body">
-            <div class="seg-pain"><span class="seg-pain-dot" style="background:#ef4444"></span><strong>כאב #1:</strong> מוכרים דרך מרקטפלייס — חוזרים לפלטפורמה</div>
-            <div class="seg-pain"><span class="seg-pain-dot" style="background:#ef4444"></span><strong>כאב #2:</strong> אין follow-up אוטומטי לקהל</div>
-            <div class="seg-pain"><span class="seg-pain-dot" style="background:#ef4444"></span><strong>כאב #3:</strong> Social ≠ מכירות — חסר bridge</div>
-            <div class="seg-divider"></div>
-            <div class="seg-solution"><span class="seg-sol-dot"></span><strong>XTIX:</strong> Social → Widget → Database → Early Bird</div>
-            <div class="seg-pitch">"הופך את ה-Instagram followers שלך ללקוחות"</div>
-          </div>
-        </div>
-
-      </div>
-
     </div>
 
-    <!-- ======= TAB 3: SCORING MATRIX ======= -->
-    <div class="meth-panel" id="market-scoring">
+  </div><!-- /meth-objections -->
 
-      <div style="margin-bottom:22px">
-        <div style="font-size:11px;color:var(--t3);letter-spacing:1.2px;text-transform:uppercase;margin-bottom:6px">SF BP #5 Pipeline Stages · BP #15 Sales Data</div>
-        <h2 style="font-size:18px;font-weight:800;color:var(--t1);margin:0 0 6px">📊 Scoring Matrix — Lead Score 0–100</h2>
-        <p style="font-size:12px;color:var(--t3);line-height:1.7;max-width:700px">8 פרמטרים עם משקלים לפי המתודולוגיה v2.0. ציון קובע את ה-Tier ואת אסטרטגיית הפנייה.</p>
-      </div>
+  <!-- ══════════════ TAB: KPIs ══════════════ -->
+  <div class="meth-section" id="meth-kpis">
+    <div class="meth-page-title">📊 KPIs ו-Action Items</div>
+    <div class="meth-page-sub">30 ימים · מדדים שבועיים/חודשיים · מה לעשות ומתי</div>
 
-      <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-bottom:20px">
+    <div class="kpi-layout">
 
-        <!-- Scoring params table -->
-        <div class="score-panel-card">
-          <div class="score-panel-title">פרמטרי ניקוד</div>
-          <div style="display:flex;flex-direction:column;gap:6px">
-
-            <div class="score-param-row">
-              <div class="score-param-name">🌐 דומיין פרטי פעיל</div>
-              <div class="score-param-bars">
-                <div class="score-bar-seg green-seg" style="width:100%">אתר מלא — 20</div>
-              </div>
-              <div class="score-param-max">20</div>
-            </div>
-
-            <div class="score-param-row">
-              <div class="score-param-name">🎟 מוכר דרך צד ג'</div>
-              <div class="score-param-bars">
-                <div class="score-bar-seg green-seg" style="width:100%">Smarticket/Bravo — 15</div>
-              </div>
-              <div class="score-param-max">15</div>
-            </div>
-
-            <div class="score-param-row">
-              <div class="score-param-name">📅 תדירות אירועים</div>
-              <div class="score-param-bars">
-                <div class="score-bar-seg green-seg" style="width:100%">6+ אירועים — 15</div>
-              </div>
-              <div class="score-param-max">15</div>
-            </div>
-
-            <div class="score-param-row">
-              <div class="score-param-name">💰 גודל קהל/אירוע</div>
-              <div class="score-param-bars">
-                <div class="score-bar-seg yellow-seg" style="width:100%">500+ — 10</div>
-              </div>
-              <div class="score-param-max">10</div>
-            </div>
-
-            <div class="score-param-row">
-              <div class="score-param-name">📱 Social Presence</div>
-              <div class="score-param-bars">
-                <div class="score-bar-seg yellow-seg" style="width:100%">פעיל 10K+ — 10</div>
-              </div>
-              <div class="score-param-max">10</div>
-            </div>
-
-            <div class="score-param-row">
-              <div class="score-param-name">📧 מייל ישיר</div>
-              <div class="score-param-bars">
-                <div class="score-bar-seg yellow-seg" style="width:100%">שם + מייל — 10</div>
-              </div>
-              <div class="score-param-max">10</div>
-            </div>
-
-            <div class="score-param-row">
-              <div class="score-param-name">⏱ Urgency</div>
-              <div class="score-param-bars">
-                <div class="score-bar-seg yellow-seg" style="width:100%">תוך חודש — 10</div>
-              </div>
-              <div class="score-param-max">10</div>
-            </div>
-
-            <div class="score-param-row">
-              <div class="score-param-name">🏷 סגמנט תרבות</div>
-              <div class="score-param-bars">
-                <div class="score-bar-seg yellow-seg" style="width:100%">תרבות/מוזיקה — 10</div>
-              </div>
-              <div class="score-param-max">10</div>
-            </div>
-
-            <div style="border-top:1px solid var(--b1);padding-top:8px;display:flex;justify-content:space-between;font-size:12px;font-weight:700;color:var(--t1)">
-              <span>סה"כ מקסימום</span><span style="color:#10b981">100 נקודות</span>
-            </div>
-          </div>
-        </div>
-
-        <!-- Tier interpretation -->
-        <div style="display:flex;flex-direction:column;gap:10px">
-          <div class="tier-interp-card" style="border-color:rgba(16,185,129,0.3);background:rgba(16,185,129,0.06)">
-            <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px">
-              <div style="display:flex;align-items:center;gap:8px">
-                <div style="width:10px;height:10px;border-radius:50%;background:#10b981"></div>
-                <strong style="color:#10b981;font-size:13px">80–100 🔥 Hot Lead</strong>
-              </div>
-              <span class="tier-action-badge" style="background:rgba(16,185,129,0.15);color:#10b981">Email #1 היום</span>
-            </div>
-            <div style="font-size:11px;color:var(--t3);line-height:1.6">SF BP #6: עדיפות ראשונה. דומיין + מוכר דרך צד ג' + אירוע קרוב. לא לחכות.</div>
-            <div style="font-size:11px;color:var(--t3);margin-top:4px">Cadence: <strong style="color:#10b981">Hot — 4 מיילים ב-10 ימים</strong></div>
-          </div>
-
-          <div class="tier-interp-card" style="border-color:rgba(245,158,11,0.3);background:rgba(245,158,11,0.06)">
-            <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px">
-              <div style="display:flex;align-items:center;gap:8px">
-                <div style="width:10px;height:10px;border-radius:50%;background:#f59e0b"></div>
-                <strong style="color:#f59e0b;font-size:13px">60–79 ⚡ Warm Lead</strong>
-              </div>
-              <span class="tier-action-badge" style="background:rgba(245,158,11,0.15);color:#f59e0b">Follow + פנה</span>
-            </div>
-            <div style="font-size:11px;color:var(--t3);line-height:1.6">SF BP #9 Trust: Follow ברשתות, הגב לפוסטים — אחר כך פנה עם insight ספציפי.</div>
-            <div style="font-size:11px;color:var(--t3);margin-top:4px">Cadence: <strong style="color:#f59e0b">Warm — 4 מיילים ב-21 ימים</strong></div>
-          </div>
-
-          <div class="tier-interp-card" style="border-color:rgba(59,130,246,0.3);background:rgba(59,130,246,0.06)">
-            <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px">
-              <div style="display:flex;align-items:center;gap:8px">
-                <div style="width:10px;height:10px;border-radius:50%;background:#3b82f6"></div>
-                <strong style="color:#3b82f6;font-size:13px">40–59 🧊 Cool Lead</strong>
-              </div>
-              <span class="tier-action-badge" style="background:rgba(59,130,246,0.15);color:#3b82f6">Watchlist</span>
-            </div>
-            <div style="font-size:11px;color:var(--t3);line-height:1.6">SF BP #17 Nurture: שמור ברשימה. פנה כשיש אירוע חדש — Urgency קופץ.</div>
-            <div style="font-size:11px;color:var(--t3);margin-top:4px">Cadence: <strong style="color:#3b82f6">Cool — 4 מיילים ב-45 ימים</strong></div>
-          </div>
-
-          <div class="tier-interp-card" style="border-color:var(--b1);background:rgba(255,255,255,0.02)">
-            <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px">
-              <div style="display:flex;align-items:center;gap:8px">
-                <div style="width:10px;height:10px;border-radius:50%;background:var(--t3)"></div>
-                <strong style="color:var(--t3);font-size:13px">0–39 ❌ Not Now</strong>
-              </div>
-              <span class="tier-action-badge" style="background:var(--s2);color:var(--t3)">Pass</span>
-            </div>
-            <div style="font-size:11px;color:var(--t3);line-height:1.6">SF BP #6: לא מתאים ל-ICP. אין דומיין / Enterprise / אירוע חד-פעמי. לא להשקיע זמן.</div>
-          </div>
-        </div>
-      </div>
-
-      <!-- Validation table -->
-      <div class="score-panel-card">
-        <div class="score-panel-title">✅ ולידציה — הלידים הנוכחיים לפי ה-Matrix</div>
-        <div style="overflow-x:auto">
-          <table class="validation-table">
+      <div class="kpi-table-wrap">
+        <div class="meth-card">
+          <div class="meth-card-header"><span class="meth-card-title">מדדים שבועיים/חודשיים</span></div>
+          <table class="kpi-table">
             <thead>
-              <tr>
-                <th>ליד</th>
-                <th>🌐 דומיין<br><span style="font-weight:400;color:var(--t3)">/20</span></th>
-                <th>🎟 צד ג'<br><span style="font-weight:400;color:var(--t3)">/15</span></th>
-                <th>📅 תדירות<br><span style="font-weight:400;color:var(--t3)">/15</span></th>
-                <th>💰 גודל<br><span style="font-weight:400;color:var(--t3)">/10</span></th>
-                <th>📱 Social<br><span style="font-weight:400;color:var(--t3)">/10</span></th>
-                <th>📧 מייל<br><span style="font-weight:400;color:var(--t3)">/10</span></th>
-                <th>⏱ Urgency<br><span style="font-weight:400;color:var(--t3)">/10</span></th>
-                <th>🏷 סגמנט<br><span style="font-weight:400;color:var(--t3)">/10</span></th>
-                <th>סה"כ</th>
-                <th>Tier</th>
-              </tr>
+              <tr><th>מדד</th><th>יעד שבועי</th><th>יעד חודשי</th><th>תדירות מדידה</th></tr>
             </thead>
             <tbody>
-              <tr>
-                <td><strong>שומרי המלכה</strong></td>
-                <td class="score-cell green-cell">20 ✓</td>
-                <td class="score-cell green-cell">15 ✓</td>
-                <td class="score-cell green-cell">10 ✓</td>
-                <td class="score-cell yellow-cell">7 ~</td>
-                <td class="score-cell green-cell">10 ✓</td>
-                <td class="score-cell green-cell">10 ✓</td>
-                <td class="score-cell green-cell">10 ✓</td>
-                <td class="score-cell green-cell">10 ✓</td>
-                <td class="score-cell total-cell" style="color:#10b981">92 🔥</td>
-                <td><span class="tier-pill hot-pill">Hot</span></td>
-              </tr>
-              <tr>
-                <td><strong>בית ליסין</strong></td>
-                <td class="score-cell green-cell">20 ✓</td>
-                <td class="score-cell yellow-cell">8 ~</td>
-                <td class="score-cell green-cell">15 ✓</td>
-                <td class="score-cell green-cell">10 ✓</td>
-                <td class="score-cell yellow-cell">8 ~</td>
-                <td class="score-cell yellow-cell">5 ~</td>
-                <td class="score-cell yellow-cell">5 ~</td>
-                <td class="score-cell green-cell">10 ✓</td>
-                <td class="score-cell total-cell" style="color:#10b981">81 🔥</td>
-                <td><span class="tier-pill hot-pill">Hot</span></td>
-              </tr>
+              <tr><td>לידים נוצרו</td><td>20–30</td><td>80–100</td><td>יומי</td></tr>
+              <tr><td>מיילים נשלחו</td><td>40–60</td><td>150–200</td><td>יומי</td></tr>
+              <tr class="kpi-highlight"><td>Open Rate</td><td>>40%</td><td>>40%</td><td>שבועי</td></tr>
+              <tr class="kpi-highlight"><td>Reply Rate</td><td>>8%</td><td>>10%</td><td>שבועי</td></tr>
+              <tr><td>Discovery Calls</td><td>3–5</td><td>12–20</td><td>שבועי</td></tr>
+              <tr><td>Demos מלאים</td><td>1–2</td><td>5–8</td><td>שבועי</td></tr>
+              <tr class="kpi-key"><td><strong>עסקאות נסגרו</strong></td><td>0–1</td><td><strong>2–3</strong></td><td>חודשי</td></tr>
+              <tr class="kpi-key"><td><strong>Conversion Rate</strong></td><td>—</td><td><strong>>3%</strong></td><td>חודשי</td></tr>
             </tbody>
           </table>
         </div>
       </div>
 
-    </div>
-
-  </div>
-
-
-    <!-- =================== LEADS =================== -->
-  <div class="panel active" id="tab-leads">
-    <div class="leads-toolbar">
-      <p class="section-title" style="margin:0">👤 לידים פעילים</p>
-      <button class="btn" onclick="document.getElementById('addLeadModal').classList.add('open')">+ הוסף ליד</button>
-    </div>
-    <div id="leads-list">
-</div><!-- /leads-list -->
-  </div>
-
-  <!-- =================== SALESFORCE BEST PRACTICES =================== -->
-  <div class="panel" id="tab-methodology">
-    <div class="sf-header">
-      <span class="sf-logo">⚡ Salesforce</span>
-      <p class="section-title" style="margin:0">18 Sales Best Practices — salesforce.com/blog/sales-best-practices</p>
-    </div>
-    <p class="sf-intro">המאמר המקורי של Salesforce מציג 18 שיטות עבודה מומלצות שנאספו מאנשי המכירות המנוסים ביותר שהם מכירים. להלן כל 18 הנקודות — עם יישום ישיר לסיטואציה של XTIX ולשני הלידים הפעילים.</p>
-
-    <div class="methodology-selector">
-      <button class="meth-btn active" onclick="switchMeth('pipeline',this)">🏗 הכנה (1–5)</button>
-      <button class="meth-btn" onclick="switchMeth('execution',this)">⚡ ביצוע עסקה (6–12)</button>
-      <button class="meth-btn" onclick="switchMeth('advanced',this)">🚀 סגירה וצמיחה (13–18)</button>
-    </div>
-
-    <!-- GROUP 1: PIPELINE SETUP (1-5) -->
-    <div class="meth-panel active" id="meth-pipeline">
-      <div class="stage-grid" style="grid-template-columns:repeat(auto-fill,minmax(260px,1fr))">
-
-        <div class="stage-card">
-          <div class="stage-num">1</div>
-          <div class="stage-title">🌐 הצטרף לקהילת מכירות</div>
-          <div class="stage-desc">Salesforce: "Sales can feel like a lonely place." חברות בקהילה מאפשרת ללמוד מניצחונות וכישלונות של אחרים.</div>
-          <div class="stage-question">XTIX: LinkedIn Sales Navigator, קבוצות פייסבוק של מפיקים ישראלים, פורומים של אנשי תיאטרון.</div>
+      <div class="action-items-wrap">
+        <div class="meth-card">
+          <div class="meth-card-header"><span class="meth-card-title">Action Items — 30 יום</span></div>
+          <div class="ai-weeks">
+            <div class="ai-week">
+              <div class="ai-week-title">שבוע 1 — תשתית</div>
+              <div class="ai-item"><span class="ai-check">□</span>הגדר פרסונה ליד אידיאלי — 3 סוגים (תיאטרון, מוזיקה, פסטיבל)</div>
+              <div class="ai-item"><span class="ai-check">□</span>עדכן Scoring Matrix ב-CRM</div>
+              <div class="ai-item"><span class="ai-check">□</span>הכן 4 תבניות מייל לפי Blueprint — Tier A + B</div>
+              <div class="ai-item"><span class="ai-check">□</span>הגדר pipeline stages: Lead→Contacted→Replied→Demo→Proposal→Closed</div>
+              <div class="ai-item"><span class="ai-check">□</span>צור מסמך "XTIX vs. מתחרים" לשימוש בשיחות</div>
+            </div>
+            <div class="ai-week">
+              <div class="ai-week-title">שבוע 2–3 — Prospecting</div>
+              <div class="ai-item"><span class="ai-check">□</span>30 לידים Tier A — ניתוח AI + Cadence</div>
+              <div class="ai-item"><span class="ai-check">□</span>50 לידים Tier B — sequence 3 מיילים</div>
+              <div class="ai-item"><span class="ai-check">□</span>AI enrichment על כל ליד: פלטפורמה + עמלה + גודל + כאב</div>
+              <div class="ai-item"><span class="ai-check">□</span>5 Discovery Calls לפחות — תיעוד תוצאות</div>
+            </div>
+            <div class="ai-week">
+              <div class="ai-week-title">שבוע 4 — Optimize</div>
+              <div class="ai-item"><span class="ai-check">□</span>מדוד Open Rate, Reply Rate, Meeting Rate לכל תבנית</div>
+              <div class="ai-item"><span class="ai-check">□</span>A/B test subject lines — מה עובד</div>
+              <div class="ai-item"><span class="ai-check">□</span>תיעד: ההתנגדות הנפוצה ביותר</div>
+              <div class="ai-item"><span class="ai-check">□</span>עדכן Scoring Matrix לפי תוצאות אמיתיות</div>
+            </div>
+          </div>
         </div>
-
-        <div class="stage-card">
-          <div class="stage-num">2</div>
-          <div class="stage-title">👤 בנה Buyer Persona לפני שמוכרים</div>
-          <div class="stage-desc">לפי Salesforce — זהה traits דמוגרפיים (תפקיד, חברה) ופסיכוגרפיים (מוטיבציות, אתגרים) לפני כל פנייה.</div>
-          <div class="stage-question">✅ כבר עשינו: שומרי המלכה = מפיק SMB עם כאב פלטפורמה-מפוצלת. בית ליסין = Enterprise עם כאב מושבים ריקים.</div>
-        </div>
-
-        <div class="stage-card">
-          <div class="stage-num">3</div>
-          <div class="stage-title">🔌 נסה את המוצר כמשתמש קצה</div>
-          <div class="stage-desc">Salesforce: "You can't sell what you don't know." — כדי לדעת גם חוזקות וגם חולשות.</div>
-          <div class="stage-question">XTIX: לפני פגישה — הפעל את ה-iFrame ב-demo domain. תחוש את חווית ה-widget מצד הקונה.</div>
-        </div>
-
-        <div class="stage-card">
-          <div class="stage-num">4</div>
-          <div class="stage-title">🗄 השתמש ב-CRM לריכוז נתוני לקוח</div>
-          <div class="stage-desc">Salesforce: "A CRM is actually about sales strategy — it provides rich data insights that help you anticipate buyer needs."</div>
-          <div class="stage-question">✅ ה-CRM הזה. שמור כל תאריך, כל מייל שנשלח, שינוי סטטוס — כדי לא להתחיל שיחה מאפס.</div>
-        </div>
-
-        <div class="stage-card">
-          <div class="stage-num">5</div>
-          <div class="stage-title">🏗 הגדר שלבי Pipeline ברורים</div>
-          <div class="stage-desc">Salesforce: "Deals will stall if you don't have clearly defined stages." שלבים קלאסיים: Qualify → Discover → Select → Negotiate → Close.</div>
-          <div class="stage-question">XTIX Pipeline: ליד חדש ← נשלח מייל ← Follow-up ← פגישת דמו ← הצעת מחיר ← נסגר. ✅ כבר ממופה ב-CRM.</div>
-        </div>
-
-      </div>
-    </div>
-
-    <!-- GROUP 2: DEAL EXECUTION (6-12) -->
-    <div class="meth-panel" id="meth-execution">
-      <div class="stage-grid" style="grid-template-columns:repeat(auto-fill,minmax(260px,1fr))">
-
-        <div class="stage-card">
-          <div class="stage-num">6</div>
-          <div class="stage-title">🎯 תעדף לידים עם סיכוי המרה גבוה</div>
-          <div class="stage-desc">Salesforce: עבוד חכם — קדם קודם לידים שהראו עניין ומתאימים ל-Buyer Persona. זה מקצר את ה-Sales Cycle.</div>
-          <div class="stage-question">שומרי המלכה Score 82 > בית ליסין Score 71. שומרי המלכה = פנייה ראשונה. אבל גודל העסקה הפוך — תאזן.</div>
-        </div>
-
-        <div class="stage-card">
-          <div class="stage-num">7</div>
-          <div class="stage-title">📞 הובל Discovery Call מצוין</div>
-          <div class="stage-desc">Salesforce: "Come to the table with insights about their industry. Ask about problems and aspirations." — לסיים עם Next Step ברור.</div>
-          <div class="stage-question">שומרי המלכה: "כמה כרטיסים מוכרים בממוצע? מה % נמכר לפני ההופעה?" ← גלה Data Gap שנוכל לפתור.</div>
-        </div>
-
-        <div class="stage-card">
-          <div class="stage-num">8</div>
-          <div class="stage-title">🏛 זהה את כל מקבלי ההחלטה</div>
-          <div class="stage-desc">Salesforce מגדיר 4 דמויות: Primary Contact | Economic Buyer | Champion | Skeptic — "Get to work on winning over the skeptic."</div>
-          <div class="stage-question">בית ליסין: Primary=מנהל שיווק | Economic Buyer=ציפי פינס (מנ"כ) | Skeptic=מנהל ה-IT (Pres Global). תמצא Champion פנימי.</div>
-        </div>
-
-        <div class="stage-card">
-          <div class="stage-num">9</div>
-          <div class="stage-title">🤝 בנה קשר מבוסס אמון</div>
-          <div class="stage-desc">Salesforce: 87% מקוני B2B מצפים מנציג המכירות להתנהג כ"יועץ מהימן" — לא כמוכר. להקשיב, לעזור ללא תמורה.</div>
-          <div class="stage-question">XTIX: שלח insight שימושי לפני הפגישה — לדוג׳ "ראיתי שהמופע ב-19 במרץ עדיין לא נמכר out — הנה מה שעובד."</div>
-        </div>
-
-        <div class="stage-card">
-          <div class="stage-num">10</div>
-          <div class="stage-title">🤖 השתמש ב-AI לפרודוקטיביות</div>
-          <div class="stage-desc">Salesforce: "High-performing sales teams are nearly twice as likely to use AI." — לכתיבת מיילים, ניקוד לידים, עדכון CRM.</div>
-          <div class="stage-question">XTIX פנימי: AI Copilot של XTIX עצמו = כלי מכירה. "אנחנו מוכרים AI — נשתמש בו גם לנהל את תהליך המכירה שלנו."</div>
-        </div>
-
-        <div class="stage-card">
-          <div class="stage-num">11</div>
-          <div class="stage-title">📖 שתף סיפורי לקוח כהוכחה</div>
-          <div class="stage-desc">Salesforce: לקוחות רוצים לדעת שעשית את זה בעבר. Before & After + מספרים שמוכיחים תוצאות.</div>
-          <div class="stage-question">XTIX: אסוף Case Study מ-2 לקוחות קיימים — "X אחוז עלייה בהמרה, Y שקל נחסך בעמלות." → שלח לפני הדמו.</div>
-        </div>
-
-        <div class="stage-card">
-          <div class="stage-num">12</div>
-          <div class="stage-title">🎨 התאם את הפרזנטציה לתעשייה</div>
-          <div class="stage-desc">Salesforce: "Don't just swap logos on a template. Show you've listened. Bring fresh ideas." — Solution Selling, לא Product Selling.</div>
-          <div class="stage-question">שומרי המלכה: Deck עם Screenshot של queen-guards.com + ויג'ט XTIX מוטמע שם. "זה נראה ככה אצלכם."</div>
-        </div>
-
-      </div>
-    </div>
-
-    <!-- GROUP 3: ADVANCED CLOSE + GROWTH (13-18) -->
-    <div class="meth-panel" id="meth-advanced">
-      <div class="stage-grid" style="grid-template-columns:repeat(auto-fill,minmax(260px,1fr))">
-
-        <div class="stage-card">
-          <div class="stage-num">13</div>
-          <div class="stage-title">🔍 נתח שיחות מכירה קודמות</div>
-          <div class="stage-desc">Salesforce: "Sales calls are a treasure trove." — זהה התנגדויות חוזרות, שאלות נפוצות, מחויבויות שניתנו ולא מולאו.</div>
-          <div class="stage-question">XTIX: אחרי כל שיחה — רשום ב-CRM: "הגיב לנקודת X, התנגד לנקודת Y, ביקש Z." ← ה-Follow-up מתחיל משם.</div>
-        </div>
-
-        <div class="stage-card">
-          <div class="stage-num">14</div>
-          <div class="stage-title">🎬 הרץ Demo מוצר אפקטיבי</div>
-          <div class="stage-desc">Salesforce: "Focus first on outcomes, then on features." — לא להראות features אלא לספר סיפור: Challenge → Solution → Result.</div>
-          <div class="stage-question">XTIX Demo Flow: "היום אתם מוכרים כך ← הלקוח יוצא מהאתר שלכם ← הנה מה ש-XTIX עושה ← ככה זה נראה אצלכם בפועל."</div>
-        </div>
-
-        <div class="stage-card">
-          <div class="stage-num">15</div>
-          <div class="stage-title">📊 קבל החלטות מבוססות Data</div>
-          <div class="stage-desc">Salesforce: "Learn how to pull in the right sales data and analyze it effectively." — 9 KPIs חשובים לעקוב אחריהם.</div>
-          <div class="stage-question">XTIX KPIs: Open Rate מיילים | Response Rate | Meetings/Lead | Demos/Meeting | Conversion Rate | Avg Deal Size | Time to Close.</div>
-        </div>
-
-        <div class="stage-card">
-          <div class="stage-num">16</div>
-          <div class="stage-title">🛡 התגבר על התנגדויות</div>
-          <div class="stage-desc">Salesforce: "Empathize, ask open-ended questions, then pivot to value." — התנגדויות שכיחות: מחיר, ערך, סמכות החלטה, דחיפות.</div>
-          <div class="stage-question">"אנחנו כבר עם Smarticket" ← "מעולה — כמה עמלה אתם משלמים? בואו נחשב יחד כמה XTIX חוסך לכם בשנה."</div>
-        </div>
-
-        <div class="stage-card">
-          <div class="stage-num">17</div>
-          <div class="stage-title">🌱 טפח קשרים אחרי הסגירה</div>
-          <div class="stage-desc">Salesforce: "Repeat customers spend 67% more than new customers." — Upsell זורם טבעי כשמספקים ערך מתמשך.</div>
-          <div class="stage-question">XTIX Post-Sale: Check-in חודשי → "כמה כרטיסים נמכרו? כמה מ-Social?" → "רוצה לנסות Dynamic Pricing למופע הבא?"</div>
-        </div>
-
-        <div class="stage-card">
-          <div class="stage-num">18</div>
-          <div class="stage-title">📚 שדרג את עצמך בהכשרת מכירות</div>
-          <div class="stage-desc">Salesforce: "There are training programs for everything from authentic connection to closing effectively." — "Set clear goals, not fads."</div>
-          <div class="stage-question">XTIX: Salesforce Trailhead (חינמי), LinkedIn Sales Navigator Certification, ועדת מכירות שבועית פנימית לסקירת לידים.</div>
-        </div>
-
       </div>
 
-      <!-- Summary apply box -->
-      <div class="apply-box" style="margin-top:20px">
-        <h4>⚡ הנקודות הכי קריטיות ל-XTIX עכשיו (לפי Salesforce)</h4>
-        <div class="apply-row"><span class="apply-icon">2️⃣</span><span><strong>Buyer Persona (BP #2):</strong> שני לידים = שני Personas שונים לחלוטין. מייל אחד לא מתאים לשניהם — ✅ כבר עשינו.</span></div>
-        <div class="apply-row"><span class="apply-icon">7️⃣</span><span><strong>Discovery Call (BP #7):</strong> לפני שמציגים פתרון — לשאול. "כמה כרטיסים נמכרים בממוצע? מה כואב הכי בניהול הנוכחי?"</span></div>
-        <div class="apply-row"><span class="apply-icon">1️⃣4️⃣</span><span><strong>Demo (BP #14):</strong> להראות את ה-iFrame על הדומיין שלהם בפועל — לא Slide Deck. "זה נראה ככה אצלכם היום."</span></div>
-        <div class="apply-row"><span class="apply-icon">1️⃣6️⃣</span><span><strong>Objections (BP #16):</strong> להכין תגובה מוכנה ל-"כבר יש לנו מערכת" — Pivot לחישוב ROI, לא ויכוח.</span></div>
-      </div>
     </div>
-  </div>
+  </div><!-- /meth-kpis -->
+
+</div><!-- /tab-market -->
+
 
   <!-- =================== HUBSPOT =================== -->
   <div class="panel" id="tab-hubspot">
@@ -8043,6 +8310,28 @@ addSalesPlaybookPanel();
   setTimeout(tryInit, 1200);
 
 })();
+
+
+// ══════════ METHODOLOGY NAV ══════════
+// ══════════════ METHODOLOGY TAB SWITCHER ══════════════
+window.methTab = function(tabName) {
+  // Hide all sections
+  document.querySelectorAll('.meth-section').forEach(function(s) {
+    s.classList.remove('active');
+  });
+  // Remove active from all nav buttons
+  document.querySelectorAll('.mn-btn').forEach(function(b) {
+    b.classList.remove('active');
+  });
+  // Show target
+  var section = document.getElementById('meth-' + tabName);
+  if (section) section.classList.add('active');
+  // Activate button
+  var btn = document.querySelector('.mn-btn[data-tab="' + tabName + '"]');
+  if (btn) btn.classList.add('active');
+};
+
+
 </script>
 </body>
 </html>
