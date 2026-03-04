@@ -653,25 +653,159 @@ input::placeholder, textarea::placeholder { color: var(--t3); }
 .score-table tr:last-child td, .scoring-table tr:last-child td { border-bottom: none; }
 .score-table tr:hover td, .scoring-table tr:hover td { background: var(--s2); }
 
-/* ═══ AI HUNT PANEL ═══ */
+
+/* ═══════════════════════════════════════════
+   HUNT ENGINE v2 — MULTI-STEP
+═══════════════════════════════════════════ */
+
+/* Step dots */
+.h-step-dot {
+  width: 28px; height: 28px; border-radius: 50%;
+  background: rgba(255,255,255,0.06); border: 1.5px solid rgba(255,255,255,0.1);
+  display: flex; align-items: center; justify-content: center;
+  font-size: 11px; font-weight: 700; color: var(--t3);
+  cursor: pointer; transition: all 0.2s; position: relative; z-index: 1;
+  font-family: 'DM Mono', monospace;
+}
+.h-step-dot.active {
+  background: rgba(59,130,246,0.2); border-color: #3b82f6;
+  color: #60a5fa; box-shadow: 0 0 10px rgba(59,130,246,0.25);
+}
+.h-step-dot.done {
+  background: rgba(16,185,129,0.15); border-color: #10b981;
+  color: #10b981;
+}
+.h-step-dot.done::after {
+  content: '✓'; font-size: 12px;
+}
+.h-step-dot.done { font-size: 0; }
+
+/* Section title */
+.hunt-section-title {
+  font-size: 14px; font-weight: 800; color: var(--t1);
+  margin-bottom: 4px; letter-spacing: -0.2px;
+}
+
+/* Field groups */
+.hunt-field-group { margin-bottom: 16px; }
 .hunt-label {
-  font-size: 10px; font-weight: 700; letter-spacing: 0.8px; text-transform: uppercase;
-  color: rgba(255,255,255,0.4); display: block;
+  font-size: 10px; font-weight: 700; letter-spacing: 0.8px;
+  text-transform: uppercase; color: rgba(255,255,255,0.35);
+  display: block; margin-bottom: 7px;
+}
+
+/* Chips */
+.hunt-chips-row {
+  display: flex; flex-wrap: wrap; gap: 6px;
+}
+.hunt-chips-col {
+  display: flex; flex-direction: column; gap: 5px;
 }
 .hunt-chip {
   display: inline-flex; align-items: center; gap: 5px;
-  background: rgba(255,255,255,0.04); border: 1px solid rgba(255,255,255,0.1);
-  border-radius: 7px; padding: 5px 10px; font-size: 11.5px; color: var(--t2);
+  background: rgba(255,255,255,0.04); border: 1px solid rgba(255,255,255,0.09);
+  border-radius: 8px; padding: 6px 11px; font-size: 11.5px; color: rgba(255,255,255,0.55);
   cursor: pointer; transition: all 0.12s; user-select: none;
-  font-family: 'DM Sans','Heebo',sans-serif;
+  font-family: 'DM Sans','Heebo',sans-serif; white-space: nowrap;
 }
-.hunt-chip:hover { border-color: rgba(59,130,246,0.4); color: var(--t1); }
+.hunt-chip:hover { border-color: rgba(59,130,246,0.35); color: var(--t1); }
 .hunt-chip input { display: none; }
 .hunt-chip:has(input:checked) {
-  background: rgba(59,130,246,0.15); border-color: rgba(59,130,246,0.5);
-  color: #60a5fa; font-weight: 600;
+  background: rgba(59,130,246,0.14); border-color: rgba(59,130,246,0.5);
+  color: #93c5fd; font-weight: 600;
 }
-#hunt-run-btn:hover { opacity: 0.88; }
+.hunt-chip.hot { border-color: rgba(239,68,68,0.2); }
+.hunt-chip.hot:has(input:checked) {
+  background: rgba(239,68,68,0.12); border-color: rgba(239,68,68,0.5); color: #fca5a5;
+}
+.hunt-chip.danger { border-color: rgba(239,68,68,0.2); color: #fca5a5; }
+.hunt-chip.danger:has(input:checked) {
+  background: rgba(239,68,68,0.14); border-color: rgba(239,68,68,0.5);
+}
+.hunt-chip.danger-inv:has(input:checked) {
+  background: rgba(239,68,68,0.08); border-color: rgba(239,68,68,0.3); color: #f87171;
+}
+.hunt-chip.full-width { width: 100%; justify-content: center; }
+.chip-badge { font-size: 10px; margin-right: -2px; }
+
+/* Step nav buttons */
+.hunt-step-nav {
+  display: flex; align-items: center; justify-content: space-between;
+  margin-top: 20px; padding-top: 14px; border-top: 1px solid rgba(255,255,255,0.06);
+}
+.hunt-btn-next {
+  background: linear-gradient(135deg, rgba(59,130,246,0.8), rgba(139,92,246,0.8));
+  border: none; border-radius: 9px; padding: 9px 20px;
+  color: #fff; font-size: 12px; font-weight: 700; cursor: pointer;
+  font-family: 'DM Sans','Heebo',sans-serif; transition: opacity 0.15s;
+}
+.hunt-btn-next:hover { opacity: 0.85; }
+.hunt-btn-back {
+  background: transparent; border: 1px solid rgba(255,255,255,0.1);
+  border-radius: 9px; padding: 9px 16px; color: var(--t3);
+  font-size: 12px; cursor: pointer; font-family: 'DM Sans','Heebo',sans-serif;
+  transition: all 0.12s;
+}
+.hunt-btn-back:hover { border-color: rgba(255,255,255,0.2); color: var(--t2); }
+
+/* Depth options */
+.hunt-depth-option {
+  display: flex; align-items: center; gap: 10px;
+  background: rgba(255,255,255,0.03); border: 1px solid rgba(255,255,255,0.08);
+  border-radius: 9px; padding: 8px 12px; cursor: pointer; transition: all 0.12s;
+}
+.hunt-depth-option input { display: none; }
+.hunt-depth-option:has(input:checked) {
+  background: rgba(139,92,246,0.12); border-color: rgba(139,92,246,0.35);
+}
+.hdo-icon { font-size: 18px; width: 28px; text-align: center; }
+.hdo-title { font-size: 12px; font-weight: 700; color: var(--t1); }
+.hdo-sub { font-size: 10px; color: var(--t3); }
+
+/* Loading panel */
+.hunt-loading-panel {
+  background: rgba(255,255,255,0.02); border: 1px solid rgba(255,255,255,0.07);
+  border-radius: 12px; padding: 20px 24px;
+}
+.hunt-loading-steps { display: flex; flex-direction: column; gap: 10px; }
+.hls-item {
+  display: flex; align-items: center; gap: 10px;
+  font-size: 12px; color: rgba(255,255,255,0.25); transition: color 0.3s;
+}
+.hls-item.active { color: var(--t1); }
+.hls-item.done { color: #10b981; }
+.hls-dot {
+  width: 8px; height: 8px; border-radius: 50%;
+  background: rgba(255,255,255,0.1); flex-shrink: 0; transition: all 0.3s;
+}
+.hls-item.active .hls-dot {
+  background: #3b82f6; box-shadow: 0 0 8px #3b82f688;
+  animation: pulse-dot 1s ease-in-out infinite;
+}
+.hls-item.done .hls-dot { background: #10b981; }
+@keyframes pulse-dot {
+  0%, 100% { transform: scale(1); opacity: 1; }
+  50% { transform: scale(1.4); opacity: 0.7; }
+}
+
+/* Result cards */
+.hunt-result-card {
+  background: rgba(255,255,255,0.025);
+  border: 1px solid rgba(255,255,255,0.08);
+  border-radius: 12px; padding: 14px 16px;
+  transition: border-color 0.15s;
+  animation: fadeSlideUp 0.4s ease both;
+  animation-delay: var(--delay, 0s);
+}
+.hunt-result-card:hover { border-color: rgba(59,130,246,0.3); }
+@keyframes fadeSlideUp {
+  from { opacity: 0; transform: translateY(10px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+
+/* old hunt CSS override */
+.hunt-chip:has(input:checked) { background: rgba(59,130,246,0.14) !important; }
+
 
 /* ═══════════════════════════════════════════════
    MARKET PANEL — full redesign
@@ -1931,167 +2065,244 @@ document.addEventListener("DOMContentLoaded",function(){
 
           <!-- AI HUNT MODE -->
           <div id="mode-hunt" style="display:none">
-            <div style="display:flex;align-items:center;gap:10px;margin-bottom:18px">
-              <div style="width:8px;height:8px;border-radius:50%;background:#a78bfa"></div>
-              <span style="font-size:14px;font-weight:700;color:var(--t1)">🤖 AI Lead Hunter</span>
-              <span style="font-size:11px;color:var(--t3);margin-right:auto">הגדר פרמטרים → AI מחפש לידים ומדרג אוטומטית</span>
+
+          <!-- ══ HUNT ENGINE HEADER ══ -->
+          <div id="hunt-header" style="margin-bottom:20px">
+            <div style="display:flex;align-items:center;gap:12px;margin-bottom:6px">
+              <div style="width:10px;height:10px;border-radius:50%;background:#a78bfa;box-shadow:0 0 8px #a78bfa88"></div>
+              <span style="font-size:15px;font-weight:800;color:var(--t1);letter-spacing:-0.3px">XTIX AI Lead Hunter</span>
+              <span id="hunt-step-badge" style="background:rgba(139,92,246,0.15);border:1px solid rgba(139,92,246,0.3);border-radius:20px;padding:2px 10px;font-size:10px;color:#a78bfa;font-weight:700;letter-spacing:1px">STEP 1 / 4</span>
+            </div>
+            <!-- Progress bar -->
+            <div style="height:3px;background:rgba(255,255,255,0.06);border-radius:2px;overflow:hidden">
+              <div id="hunt-progress-bar" style="height:100%;width:25%;background:linear-gradient(90deg,#3b82f6,#8b5cf6);border-radius:2px;transition:width 0.5s cubic-bezier(.4,0,.2,1)"></div>
+            </div>
+            <!-- Step indicators -->
+            <div style="display:flex;gap:0;margin-top:10px;position:relative">
+              <div id="hstep-line" style="position:absolute;top:14px;left:14px;right:14px;height:1px;background:rgba(255,255,255,0.08);z-index:0"></div>
+              <div class="h-step-dot active" id="hsd-1" onclick="huntGoStep(1)">1</div>
+              <div style="flex:1"></div>
+              <div class="h-step-dot" id="hsd-2" onclick="huntGoStep(2)">2</div>
+              <div style="flex:1"></div>
+              <div class="h-step-dot" id="hsd-3" onclick="huntGoStep(3)">3</div>
+              <div style="flex:1"></div>
+              <div class="h-step-dot" id="hsd-4" onclick="huntGoStep(4)">4</div>
+            </div>
+            <div style="display:flex;margin-top:6px">
+              <span style="font-size:9px;color:var(--t3);width:28px;text-align:center">טרגט</span>
+              <div style="flex:1"></div>
+              <span style="font-size:9px;color:var(--t3);width:28px;text-align:center">שוק</span>
+              <div style="flex:1"></div>
+              <span style="font-size:9px;color:var(--t3);width:28px;text-align:center">פילטרים</span>
+              <div style="flex:1"></div>
+              <span style="font-size:9px;color:var(--t3);width:28px;text-align:center">הגדרות</span>
+            </div>
+          </div>
+
+          <!-- ══ STEP PANELS ══ -->
+
+          <!-- STEP 1: TARGET — Who are we hunting? -->
+          <div class="hunt-step-panel" id="hpanel-1">
+            <div class="hunt-section-title">🎯 מי אנחנו ציידים?</div>
+            <p style="font-size:11.5px;color:var(--t3);margin:0 0 16px;line-height:1.6">בחר את סוג הארגונים שאתה רוצה לטרגט — מה הפלטפורמה שלהם היום וסוג האירועים שהם מפיקים</p>
+
+            <div class="hunt-field-group">
+              <label class="hunt-label">⚔️ פלטפורמת מתחרה (מי אנחנו גונבים מהם?)</label>
+              <div class="hunt-chips-row" id="hunt-competitors">
+                <label class="hunt-chip hot"><input type="checkbox" value="SmarTicket">SmarTicket<span class="chip-badge hot">🔥</span></label>
+                <label class="hunt-chip hot"><input type="checkbox" value="Leaan">Leaan<span class="chip-badge hot">🔥</span></label>
+                <label class="hunt-chip"><input type="checkbox" value="Bravo">Bravo</label>
+                <label class="hunt-chip"><input type="checkbox" value="Tickchak">Tickchak</label>
+                <label class="hunt-chip"><input type="checkbox" value="COMY">COMY</label>
+                <label class="hunt-chip"><input type="checkbox" value="Eventbuzz">Eventbuzz</label>
+                <label class="hunt-chip"><input type="checkbox" value="Glatticket">Glatticket</label>
+                <label class="hunt-chip"><input type="checkbox" value="Eventobot">Eventobot</label>
+                <label class="hunt-chip"><input type="checkbox" value="Eventer">Eventer</label>
+                <label class="hunt-chip"><input type="checkbox" value="Mevalim">Mevalim</label>
+                <label class="hunt-chip"><input type="checkbox" value="Easytix">Easytix</label>
+                <label class="hunt-chip danger"><input type="checkbox" value="ניהול ידני">✦ ניהול ידני</label>
+              </div>
             </div>
 
-            <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:12px">
+            <div class="hunt-field-group">
+              <label class="hunt-label">🎭 סוג האירועים</label>
+              <div class="hunt-chips-row" id="hunt-segments">
+                <label class="hunt-chip"><input type="checkbox" value="תיאטרון">🎭 תיאטרון</label>
+                <label class="hunt-chip"><input type="checkbox" value="מוזיקה">🎵 מוזיקה</label>
+                <label class="hunt-chip"><input type="checkbox" value="סטנד-אפ">🎤 סטנד-אפ</label>
+                <label class="hunt-chip"><input type="checkbox" value="ספורט">⚽ ספורט</label>
+                <label class="hunt-chip"><input type="checkbox" value="פסטיבל">🎪 פסטיבל</label>
+                <label class="hunt-chip"><input type="checkbox" value="ילדים">🧒 ילדים</label>
+                <label class="hunt-chip"><input type="checkbox" value="אמנות">🎨 אמנות</label>
+                <label class="hunt-chip"><input type="checkbox" value="כנסים">💼 כנסים</label>
+              </div>
+            </div>
 
-              <!-- ── 1. COMPETITORS ── -->
-              <div style="grid-column:1/-1">
-                <label class="hunt-label">⚔️ מתחרים — סמן את כל הפלטפורמות הנוכחיות של הלידים</label>
-                <div style="display:flex;flex-wrap:wrap;gap:6px;margin-top:6px" id="hunt-competitors">
-                  <label class="hunt-chip"><input type="checkbox" value="SmarTicket"> SmarTicket</label>
-                  <label class="hunt-chip"><input type="checkbox" value="Bravo"> Bravo</label>
-                  <label class="hunt-chip"><input type="checkbox" value="Leaan"> Leaan</label>
-                  <label class="hunt-chip"><input type="checkbox" value="Eventbuzz"> Eventbuzz</label>
-                  <label class="hunt-chip"><input type="checkbox" value="Glatticket"> Glatticket</label>
-                  <label class="hunt-chip"><input type="checkbox" value="COMY"> COMY</label>
-                  <label class="hunt-chip"><input type="checkbox" value="Eventobot"> Eventobot</label>
-                  <label class="hunt-chip"><input type="checkbox" value="Eventer"> Eventer</label>
-                  <label class="hunt-chip"><input type="checkbox" value="Mevalim"> Mevalim</label>
-                  <label class="hunt-chip"><input type="checkbox" value="Tickchak"> Tickchak</label>
-                  <label class="hunt-chip"><input type="checkbox" value="Easytix"> Easytix</label>
-                  <label class="hunt-chip"><input type="checkbox" value="ניהול ידני / ללא פלטפורמה" style="border-color:rgba(239,68,68,0.4);color:#ef4444"><input type="checkbox" value="ניהול ידני"> ✦ ניהול ידני</label>
+            <div class="hunt-step-nav">
+              <div></div>
+              <button class="hunt-btn-next" onclick="huntGoStep(2)">המשך → שוק &amp; אזור</button>
+            </div>
+          </div>
+
+          <!-- STEP 2: MARKET — Where and who? -->
+          <div class="hunt-step-panel" id="hpanel-2" style="display:none">
+            <div class="hunt-section-title">🗺️ איפה ומה גודל השוק?</div>
+            <p style="font-size:11.5px;color:var(--t3);margin:0 0 16px;line-height:1.6">הגדר אזור גיאוגרפי, סגמנט שוק וגודל האירועים</p>
+
+            <div class="hunt-field-group">
+              <label class="hunt-label">📍 אזור גיאוגרפי</label>
+              <div class="hunt-chips-row" id="hunt-geo">
+                <label class="hunt-chip"><input type="checkbox" value="תל אביב והמרכז">🏙️ ת״א והמרכז</label>
+                <label class="hunt-chip"><input type="checkbox" value="ירושלים">🕍 ירושלים</label>
+                <label class="hunt-chip"><input type="checkbox" value="חיפה והצפון">⛰️ חיפה והצפון</label>
+                <label class="hunt-chip"><input type="checkbox" value="באר שבע והדרום">🏜️ הדרום</label>
+                <label class="hunt-chip"><input type="checkbox" value="השרון">🌿 השרון</label>
+                <label class="hunt-chip"><input type="checkbox" value="גוש דן">🌆 גוש דן</label>
+                <label class="hunt-chip full-width"><input type="checkbox" value="ארצי">🇮🇱 ארצי — כל הארץ</label>
+              </div>
+            </div>
+
+            <div style="display:grid;grid-template-columns:1fr 1fr;gap:14px">
+              <div class="hunt-field-group">
+                <label class="hunt-label">🏷️ מגזר / שוק</label>
+                <div class="hunt-chips-col" id="hunt-market">
+                  <label class="hunt-chip"><input type="checkbox" value="SMB עצמאי">SMB עצמאי</label>
+                  <label class="hunt-chip"><input type="checkbox" value="רשתות בינוניות">רשתות בינוניות</label>
+                  <label class="hunt-chip"><input type="checkbox" value="מוסדות תרבות">מוסדות תרבות</label>
+                  <label class="hunt-chip"><input type="checkbox" value="ארגונים ציבוריים">ציבורי / עירייה</label>
+                  <label class="hunt-chip"><input type="checkbox" value="פרנצ׳ייז / רשת">פרנצ׳ייז</label>
                 </div>
               </div>
-
-              <!-- ── 2. SEGMENT / EVENT TYPE ── -->
-              <div>
-                <label class="hunt-label">🎭 סוגי אירועים</label>
-                <div style="display:flex;flex-wrap:wrap;gap:5px;margin-top:6px" id="hunt-segments">
-                  <label class="hunt-chip"><input type="checkbox" value="תיאטרון"> תיאטרון</label>
-                  <label class="hunt-chip"><input type="checkbox" value="מוזיקה"> מוזיקה / קונצרטים</label>
-                  <label class="hunt-chip"><input type="checkbox" value="סטנד-אפ"> סטנד-אפ</label>
-                  <label class="hunt-chip"><input type="checkbox" value="ספורט"> ספורט</label>
-                  <label class="hunt-chip"><input type="checkbox" value="פסטיבל"> פסטיבל</label>
-                  <label class="hunt-chip"><input type="checkbox" value="ילדים"> הופעות ילדים</label>
-                  <label class="hunt-chip"><input type="checkbox" value="אמנות"> גלריה / אמנות</label>
-                  <label class="hunt-chip"><input type="checkbox" value="כנסים"> כנסים / אירועי עסקים</label>
-                </div>
-              </div>
-
-              <!-- ── 3. GEOGRAPHY ── -->
-              <div>
-                <label class="hunt-label">📍 אזור גיאוגרפי</label>
-                <div style="display:flex;flex-wrap:wrap;gap:5px;margin-top:6px" id="hunt-geo">
-                  <label class="hunt-chip"><input type="checkbox" value="תל אביב והמרכז"> ת״א והמרכז</label>
-                  <label class="hunt-chip"><input type="checkbox" value="ירושלים"> ירושלים</label>
-                  <label class="hunt-chip"><input type="checkbox" value="חיפה והצפון"> חיפה והצפון</label>
-                  <label class="hunt-chip"><input type="checkbox" value="באר שבע והדרום"> ב״ש והדרום</label>
-                  <label class="hunt-chip"><input type="checkbox" value="השרון"> השרון</label>
-                  <label class="hunt-chip"><input type="checkbox" value="גוש דן"> גוש דן</label>
-                  <label class="hunt-chip"><input type="checkbox" value="ארצי"> 🇮🇱 ארצי</label>
-                </div>
-              </div>
-
-              <!-- ── 4. MARKET ── -->
-              <div>
-                <label class="hunt-label">🏷️ שוק / מגזר</label>
-                <div style="display:flex;flex-wrap:wrap;gap:5px;margin-top:6px" id="hunt-market">
-                  <label class="hunt-chip"><input type="checkbox" value="SMB עצמאי"> SMB עצמאי</label>
-                  <label class="hunt-chip"><input type="checkbox" value="רשתות בינוניות"> רשתות בינוניות</label>
-                  <label class="hunt-chip"><input type="checkbox" value="מוסדות תרבות"> מוסדות תרבות</label>
-                  <label class="hunt-chip"><input type="checkbox" value="ארגונים ציבוריים"> ציבורי / עירייה</label>
-                  <label class="hunt-chip"><input type="checkbox" value="פרנצ׳ייז / רשת"> פרנצ׳ייז / רשת</label>
-                </div>
-              </div>
-
-              <!-- ── 5. EVENT SIZE (5 sizes) ── -->
-              <div>
+              <div class="hunt-field-group">
                 <label class="hunt-label">👥 גודל אירוע</label>
-                <div style="display:flex;flex-wrap:wrap;gap:5px;margin-top:6px" id="hunt-size">
-                  <label class="hunt-chip"><input type="checkbox" value="מיקרו (<100 משתתפים)"> מיקרו &lt;100</label>
-                  <label class="hunt-chip"><input type="checkbox" value="קטן (100-500)"> קטן 100-500</label>
-                  <label class="hunt-chip"><input type="checkbox" value="בינוני (500-2000)"> בינוני 500-2K</label>
-                  <label class="hunt-chip"><input type="checkbox" value="גדול (2000-10000)"> גדול 2K-10K</label>
-                  <label class="hunt-chip"><input type="checkbox" value="מאסיבי (10000+)"> מאסיבי 10K+</label>
+                <div class="hunt-chips-col" id="hunt-size">
+                  <label class="hunt-chip"><input type="checkbox" value="מיקרו (<100)">מיקרו &lt;100</label>
+                  <label class="hunt-chip"><input type="checkbox" value="קטן (100-500)">קטן 100-500</label>
+                  <label class="hunt-chip"><input type="checkbox" value="בינוני (500-2000)">בינוני 500-2K</label>
+                  <label class="hunt-chip"><input type="checkbox" value="גדול (2000-10000)">גדול 2K-10K</label>
+                  <label class="hunt-chip"><input type="checkbox" value="מאסיבי (10000+)">מאסיבי 10K+</label>
                 </div>
               </div>
-
-              <!-- ── 6. EVENTS PER YEAR ── -->
-              <div>
-                <label class="hunt-label">📅 כמות אירועים בשנה</label>
-                <div style="display:flex;flex-wrap:wrap;gap:5px;margin-top:6px" id="hunt-freq">
-                  <label class="hunt-chip"><input type="radio" name="hunt_freq" value="1-3 אירועים"> 1-3</label>
-                  <label class="hunt-chip"><input type="radio" name="hunt_freq" value="4-10 אירועים"> 4-10</label>
-                  <label class="hunt-chip"><input type="radio" name="hunt_freq" value="10-30 אירועים"> 10-30</label>
-                  <label class="hunt-chip"><input type="radio" name="hunt_freq" value="30+ אירועים"> 30+</label>
-                  <label class="hunt-chip"><input type="radio" name="hunt_freq" value="ללא מגבלה" checked> הכל</label>
-                </div>
-              </div>
-
-              <!-- ── 7. LEAD COUNT ── -->
-              <div>
-                <label class="hunt-label">🎯 כמות לידים לחזור</label>
-                <div style="display:flex;gap:6px;margin-top:6px" id="hunt-count">
-                  <label class="hunt-chip"><input type="radio" name="hunt_count" value="3"> 3</label>
-                  <label class="hunt-chip"><input type="radio" name="hunt_count" value="5" checked> 5</label>
-                  <label class="hunt-chip"><input type="radio" name="hunt_count" value="8"> 8</label>
-                  <label class="hunt-chip"><input type="radio" name="hunt_count" value="10"> 10</label>
-                </div>
-              </div>
-
-              <!-- ── 8. SEARCH DEPTH ── -->
-              <div>
-                <label class="hunt-label">🔍 עומק חיפוש</label>
-                <div style="display:flex;gap:6px;margin-top:6px" id="hunt-depth">
-                  <label class="hunt-chip"><input type="radio" name="hunt_depth" value="מהיר (Surface)"> ⚡ מהיר</label>
-                  <label class="hunt-chip"><input type="radio" name="hunt_depth" value="עמוק (Deep Research)" checked> 🔬 עמוק</label>
-                  <label class="hunt-chip"><input type="radio" name="hunt_depth" value="מקיף (Full Intel)"> 🧠 מקיף</label>
-                </div>
-              </div>
-
-              <!-- ── 9. PRIORITY SIGNAL ── -->
-              <div>
-                <label class="hunt-label">🌡️ סיגנל עדיפות</label>
-                <div style="display:flex;flex-wrap:wrap;gap:5px;margin-top:6px">
-                  <label class="hunt-chip"><input type="checkbox" value="הודעות רכישה/מכירה"> פעילות רכישה</label>
-                  <label class="hunt-chip"><input type="checkbox" value="ניסיון כישלון עם מתחרה"> כישלון מתחרה</label>
-                  <label class="hunt-chip"><input type="checkbox" value="אירוע קרוב בחודשיים"> אירוע קרוב</label>
-                  <label class="hunt-chip"><input type="checkbox" value="נוכחות חלשה ברשת"> נוכחות חלשה</label>
-                  <label class="hunt-chip"><input type="checkbox" value="מנהל ישיר זמין"> מנהל ישיר</label>
-                </div>
-              </div>
-
-              <!-- ── 10. EXCLUDE ── -->
-              <div>
-                <label class="hunt-label">🚫 לא לכלול</label>
-                <div style="display:flex;flex-wrap:wrap;gap:5px;margin-top:6px">
-                  <label class="hunt-chip"><input type="checkbox" value="Ticketmaster"> Ticketmaster</label>
-                  <label class="hunt-chip"><input type="checkbox" value="Eventim"> Eventim</label>
-                  <label class="hunt-chip"><input type="checkbox" value="לידים שכבר ב-CRM"> כבר ב-CRM</label>
-                  <label class="hunt-chip"><input type="checkbox" value="Enterprise גדולים"> Enterprise גדולים</label>
-                </div>
-              </div>
-
             </div>
 
-            <!-- ── HUNT BUTTON ── -->
+            <div class="hunt-step-nav">
+              <button class="hunt-btn-back" onclick="huntGoStep(1)">← חזרה</button>
+              <button class="hunt-btn-next" onclick="huntGoStep(3)">המשך → פילטרים</button>
+            </div>
+          </div>
+
+          <!-- STEP 3: FILTERS — Refine -->
+          <div class="hunt-step-panel" id="hpanel-3" style="display:none">
+            <div class="hunt-section-title">⚗️ מסננים מתקדמים</div>
+            <p style="font-size:11.5px;color:var(--t3);margin:0 0 16px;line-height:1.6">סגנל עדיפות, תדירות אירועים ומה לא לכלול</p>
+
+            <div class="hunt-field-group">
+              <label class="hunt-label">📅 כמות אירועים בשנה</label>
+              <div class="hunt-chips-row" id="hunt-freq">
+                <label class="hunt-chip"><input type="radio" name="hunt_freq" value="1-3 אירועים">1-3</label>
+                <label class="hunt-chip"><input type="radio" name="hunt_freq" value="4-10 אירועים">4-10</label>
+                <label class="hunt-chip"><input type="radio" name="hunt_freq" value="10-30 אירועים">10-30</label>
+                <label class="hunt-chip"><input type="radio" name="hunt_freq" value="30+ אירועים">30+</label>
+                <label class="hunt-chip"><input type="radio" name="hunt_freq" value="ללא מגבלה" checked>הכל</label>
+              </div>
+            </div>
+
+            <div class="hunt-field-group">
+              <label class="hunt-label">🌡️ סיגנל עדיפות — מה מעיד על כוונת קנייה?</label>
+              <div class="hunt-chips-row" id="hunt-priority">
+                <label class="hunt-chip"><input type="checkbox" value="אירוע קרוב בחודשיים">⏰ אירוע קרוב</label>
+                <label class="hunt-chip"><input type="checkbox" value="כישלון עם מתחרה">💥 כישלון מתחרה</label>
+                <label class="hunt-chip"><input type="checkbox" value="נוכחות חלשה ברשת">📉 נוכחות חלשה</label>
+                <label class="hunt-chip"><input type="checkbox" value="מנהל ישיר זמין">👤 מנהל ישיר</label>
+                <label class="hunt-chip"><input type="checkbox" value="פעילות רכישה/שינוי">🔄 שינוי פלטפורמה</label>
+              </div>
+            </div>
+
+            <div class="hunt-field-group">
+              <label class="hunt-label">🚫 אל תכלול</label>
+              <div class="hunt-chips-row" id="hunt-exclude">
+                <label class="hunt-chip danger-inv"><input type="checkbox" value="Ticketmaster">Ticketmaster</label>
+                <label class="hunt-chip danger-inv"><input type="checkbox" value="Eventim">Eventim</label>
+                <label class="hunt-chip danger-inv"><input type="checkbox" value="כבר ב-CRM">כבר ב-CRM</label>
+                <label class="hunt-chip danger-inv"><input type="checkbox" value="Enterprise גדולים">Enterprise גדולים</label>
+              </div>
+            </div>
+
+            <div class="hunt-step-nav">
+              <button class="hunt-btn-back" onclick="huntGoStep(2)">← חזרה</button>
+              <button class="hunt-btn-next" onclick="huntGoStep(4)">המשך → הגדרות חיפוש</button>
+            </div>
+          </div>
+
+          <!-- STEP 4: SETTINGS — Depth & Count + LAUNCH -->
+          <div class="hunt-step-panel" id="hpanel-4" style="display:none">
+            <div class="hunt-section-title">🚀 הגדרות חיפוש — מוכן להשיק</div>
+
+            <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-bottom:20px">
+              <div class="hunt-field-group">
+                <label class="hunt-label">🎯 כמות לידים</label>
+                <div class="hunt-chips-row">
+                  <label class="hunt-chip"><input type="radio" name="hunt_count" value="3">3</label>
+                  <label class="hunt-chip"><input type="radio" name="hunt_count" value="5" checked>5</label>
+                  <label class="hunt-chip"><input type="radio" name="hunt_count" value="8">8</label>
+                  <label class="hunt-chip"><input type="radio" name="hunt_count" value="10">10</label>
+                </div>
+              </div>
+              <div class="hunt-field-group">
+                <label class="hunt-label">🔬 עומק חיפוש</label>
+                <div style="display:flex;flex-direction:column;gap:6px">
+                  <label class="hunt-depth-option" id="hd-fast">
+                    <input type="radio" name="hunt_depth" value="מהיר">
+                    <div class="hdo-icon">⚡</div>
+                    <div><div class="hdo-title">מהיר</div><div class="hdo-sub">~5 שניות</div></div>
+                  </label>
+                  <label class="hunt-depth-option" id="hd-deep">
+                    <input type="radio" name="hunt_depth" value="עמוק" checked>
+                    <div class="hdo-icon">🔬</div>
+                    <div><div class="hdo-title">עמוק — מומלץ</div><div class="hdo-sub">~15 שניות</div></div>
+                  </label>
+                  <label class="hunt-depth-option" id="hd-full">
+                    <input type="radio" name="hunt_depth" value="מקיף">
+                    <div class="hdo-icon">🧠</div>
+                    <div><div class="hdo-title">מקיף Full Intel</div><div class="hdo-sub">~30 שניות</div></div>
+                  </label>
+                </div>
+              </div>
+            </div>
+
+            <!-- Summary of selections -->
+            <div id="hunt-summary-box" style="background:rgba(255,255,255,0.03);border:1px solid rgba(255,255,255,0.08);border-radius:10px;padding:12px 14px;margin-bottom:16px;font-size:11px;color:var(--t3);line-height:1.8">
+              <div style="font-size:10px;font-weight:700;color:var(--t3);letter-spacing:1px;text-transform:uppercase;margin-bottom:6px">סיכום הגדרות</div>
+              <div id="hunt-summary-text">לחץ על "הצג סיכום" לאחר מילוי שלבים 1-3</div>
+            </div>
+
             <button onclick="window.runHuntSearch()" id="hunt-run-btn"
-              style="width:100%;background:linear-gradient(135deg,#3b82f6,#8b5cf6);border:none;border-radius:11px;padding:14px;color:#fff;font-size:14px;font-weight:800;cursor:pointer;font-family:'DM Sans','Heebo',sans-serif;letter-spacing:0.3px;margin-bottom:12px;transition:opacity 0.15s">
-              🚀 AI Hunt — חפש לידים
+              style="width:100%;background:linear-gradient(135deg,#1d4ed8,#7c3aed);border:none;border-radius:12px;padding:16px;color:#fff;font-size:14px;font-weight:800;cursor:pointer;font-family:'DM Sans','Heebo',sans-serif;letter-spacing:0.3px;transition:all 0.2s;position:relative;overflow:hidden">
+              <span id="hunt-btn-text">🚀 הפעל AI Hunt</span>
             </button>
 
-            <!-- ── RESULTS ── -->
-            <div id="hunt-results" style="display:none;margin-top:4px"></div>
-
-            <!-- ── SAVED SEARCHES ── -->
-            <div id="saved-searches-panel" style="margin-top:16px">
-              <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px">
-                <span style="font-size:11px;font-weight:700;color:var(--t3);letter-spacing:1px;text-transform:uppercase">חיפושים שמורים</span>
-                <span id="saved-count" style="font-size:10px;color:var(--t3)"></span>
-              </div>
-              <div id="saved-searches-list" style="display:flex;flex-direction:column;gap:6px"></div>
-              <div id="saved-searches-empty" style="font-size:11px;color:var(--t3);text-align:center;padding:10px 0;display:none">אין חיפושים שמורים עדיין</div>
+            <div class="hunt-step-nav" style="margin-top:10px">
+              <button class="hunt-btn-back" onclick="huntGoStep(3)">← חזרה</button>
+              <div></div>
             </div>
-          </div>          </div>
+          </div>
+
+          <!-- ══ HUNT RESULTS ══ -->
+          <div id="hunt-results" style="display:none;margin-top:20px"></div>
+
+          <!-- ══ SAVED SEARCHES ══ -->
+          <div id="saved-searches-panel" style="margin-top:20px;border-top:1px solid rgba(255,255,255,0.06);padding-top:16px">
+            <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px">
+              <span style="font-size:10px;font-weight:700;color:var(--t3);letter-spacing:1.5px;text-transform:uppercase">חיפושים שמורים</span>
+              <span id="saved-count" style="font-size:10px;color:var(--t3)"></span>
+            </div>
+            <div id="saved-searches-list" style="display:flex;flex-direction:column;gap:6px"></div>
+            <div id="saved-searches-empty" style="font-size:11px;color:var(--t3);text-align:center;padding:12px 0;display:none">אין חיפושים שמורים עדיין</div>
+          </div>
 
         </div>
 
-        <!-- RIGHT: Score Panel -->
+        <!-- RIGHT: Score Panel --><!-- RIGHT: Score Panel -->
         <div style="position:sticky;top:90px;display:flex;flex-direction:column;gap:10px">
 
           <!-- Score Display -->
@@ -6584,13 +6795,91 @@ addSalesPlaybookPanel();
     }
   }
   setTimeout(tryInit, 1200);
+  window.huntAddLeadFromSaved = function(searchIdx, leadIdx) {
+    var searches = loadSavedSearches();
+    if (!searches[searchIdx] || !searches[searchIdx].leads[leadIdx]) return;
+    var lead = searches[searchIdx].leads[leadIdx];
+    window.huntAddLead(lead);
+    // Mark as added
+    window.renderSavedSearches();
+  };
 
+  // Add all leads from saved search to CRM
+  window.addAllFromSaved = function(searchIdx) {
+    var searches = loadSavedSearches();
+    if (!searches[searchIdx]) return;
+    var count = 0;
+    searches[searchIdx].leads.forEach(function(lead) {
+      window.huntAddLead(lead);
+      count++;
+    });
+    alert('✅ ' + count + ' לידים נוספו ל-CRM');
+  };
+
+  // New search — reset chat
+  window.newHuntSearch = function() {
+    huntState.step = 0;
+    huntState.answers = {};
+    _lastFoundLeads = [];
+    var chat = document.getElementById('hunt-chat');
+    if (chat) chat.innerHTML = '';
+    huntAskNext();
+  };
+
+})();
+
+// ══ HUNT ENGINE v2 — Multi-step ══
+
+  var huntCurrentStep = 1;
+
+
+  window.closeHuntResults = function() {
+    var el = document.getElementById('hunt-results');
+    if (el) el.style.display = 'none';
+  };
+  window.huntGoStep = function(step) {
+    // Validate step 1 has at least one competitor or segment
+    if (step > huntCurrentStep + 1) return; // no skipping
+    for (var i=1; i<=4; i++) {
+      var p = document.getElementById('hpanel-'+i);
+      if (p) p.style.display = i===step ? 'block' : 'none';
+      var d = document.getElementById('hsd-'+i);
+      if (d) {
+        d.classList.remove('active','done');
+        if (i < step) d.classList.add('done');
+        if (i === step) d.classList.add('active');
+      }
+    }
+    huntCurrentStep = step;
+    var bar = document.getElementById('hunt-progress-bar');
+    if (bar) bar.style.width = (step/4*100) + '%';
+    var badge = document.getElementById('hunt-step-badge');
+    var labels = ['','STEP 1 / 4 · טרגט','STEP 2 / 4 · שוק','STEP 3 / 4 · פילטרים','STEP 4 / 4 · הגדרות'];
+    if (badge) badge.textContent = labels[step];
+    if (step === 4) huntBuildSummary();
+  };
+
+  function huntBuildSummary() {
+    var comp = Array.from(document.querySelectorAll('#hunt-competitors input:checked')).map(function(i){return i.value;});
+    var segs = Array.from(document.querySelectorAll('#hunt-segments input:checked')).map(function(i){return i.value;});
+    var geo  = Array.from(document.querySelectorAll('#hunt-geo input:checked')).map(function(i){return i.value;});
+    var mkt  = Array.from(document.querySelectorAll('#hunt-market input:checked')).map(function(i){return i.value;});
+    var size = Array.from(document.querySelectorAll('#hunt-size input:checked')).map(function(i){return i.value;});
+    var box = document.getElementById('hunt-summary-text');
+    if (!box) return;
+    var lines = [];
+    if (comp.length) lines.push('<span style="color:var(--t2)">⚔️ מתחרים:</span> ' + comp.join(', '));
+    if (segs.length) lines.push('<span style="color:var(--t2)">🎭 אירועים:</span> ' + segs.join(', '));
+    if (geo.length)  lines.push('<span style="color:var(--t2)">📍 אזור:</span> '    + geo.join(', '));
+    if (mkt.length)  lines.push('<span style="color:var(--t2)">🏷️ שוק:</span> '     + mkt.join(', '));
+    if (size.length) lines.push('<span style="color:var(--t2)">👥 גודל:</span> '    + size.join(', '));
+    box.innerHTML = lines.length ? lines.join('<br>') : '<span style="color:rgba(255,255,255,0.25)">לא נבחרו פרמטרים — החיפוש יכלול הכל</span>';
+  }
 
   function getHuntParams() {
-    function checked(containerId) {
-      var el = document.getElementById(containerId);
-      if (!el) return [];
-      return Array.from(el.querySelectorAll('input:checked')).map(function(i){ return i.value; });
+    function checked(id) {
+      var el = document.getElementById(id);
+      return el ? Array.from(el.querySelectorAll('input:checked')).map(function(i){return i.value;}) : [];
     }
     function radio(name) {
       var el = document.querySelector('input[name="'+name+'"]:checked');
@@ -6602,39 +6891,73 @@ addSalesPlaybookPanel();
       geo:         checked('hunt-geo'),
       market:      checked('hunt-market'),
       size:        checked('hunt-size'),
+      priority:    checked('hunt-priority'),
+      exclude:     checked('hunt-exclude'),
       freq:        radio('hunt_freq') || 'ללא מגבלה',
       count:       parseInt(radio('hunt_count') || '5'),
-      depth:       radio('hunt_depth') || 'עמוק (Deep Research)',
-      priority:    Array.from(document.querySelectorAll('#tab-leadfinder input[type=checkbox]:checked'))
-                     .filter(function(i){ return !['hunt-competitors','hunt-segments','hunt-geo','hunt-market','hunt-size'].includes(i.closest('[id]') && i.closest('[id]').id); })
-                     .map(function(i){ return i.value; }),
-      exclude:     Array.from(document.querySelectorAll('#tab-leadfinder .hunt-chip:last-child input:checked')).map(function(i){ return i.value; })
+      depth:       radio('hunt_depth') || 'עמוק'
     };
   }
 
-
   window.runHuntSearch = async function runHuntSearch() {
-    var chat = document.getElementById('hunt-chat');
     var resultsEl = document.getElementById('hunt-results');
-    var ans = huntState.answers;
-    if (!chat) return;
+    var runBtn    = document.getElementById('hunt-run-btn');
+    var btnText   = document.getElementById('hunt-btn-text');
+    var p = getHuntParams();
+    var count = p.count || 5;
 
-    // Show loading
-    var loadDiv = document.createElement('div');
-    loadDiv.id = 'hunt-loading';
-    loadDiv.style.cssText = 'background:rgba(108,99,255,0.1);border-radius:8px;padding:12px 14px;font-size:12px;color:var(--accent);text-align:center';
-    loadDiv.innerHTML = '🤖 AI מחפש לידים מתאימים...<br><span style="font-size:10px;color:var(--muted)">עשוי לקחת 15-20 שניות</span>';
-    chat.appendChild(loadDiv);
-    if(typeof chat!=='undefined'&&chat&&chat.scrollTop!==undefined)chat.scrollTop=chat.scrollHeight;
+    // Animate button
+    if (runBtn) { runBtn.disabled = true; runBtn.style.opacity = '0.7'; }
+    if (btnText) btnText.innerHTML = '<span style="animation:_aip 1s infinite">⏳</span> AI Hunt פועל — מחפש לידים...';
+
+    // Show loading state
+    if (resultsEl) {
+      resultsEl.style.display = 'block';
+      resultsEl.innerHTML = '<div class="hunt-loading-panel">'+
+        '<div class="hunt-loading-steps" id="hunt-loading-steps">'+
+        '<div class="hls-item active" id="hls-1"><div class="hls-dot"></div><span>🔍 בונה שאילתת חיפוש...</span></div>'+
+        '<div class="hls-item" id="hls-2"><div class="hls-dot"></div><span>🌐 סורק מסד נתונים של ארגונים ישראלים</span></div>'+
+        '<div class="hls-item" id="hls-3"><div class="hls-dot"></div><span>🧠 AI מנתח כל מועמד</span></div>'+
+        '<div class="hls-item" id="hls-4"><div class="hls-dot"></div><span>📊 מדרג לפי Scoring Matrix</span></div>'+
+        '<div class="hls-item" id="hls-5"><div class="hls-dot"></div><span>✅ מכין תוצאות</span></div>'+
+        '</div></div>';
+    }
+
+    // Animate loading steps
+    var steps = [1,2,3,4,5];
+    var stepTimes = [0, 2000, 6000, 11000, 16000];
+    steps.forEach(function(s, i) {
+      setTimeout(function(){
+        var prev = document.getElementById('hls-'+(s-1));
+        if (prev) { prev.classList.remove('active'); prev.classList.add('done'); }
+        var curr = document.getElementById('hls-'+s);
+        if (curr) curr.classList.add('active');
+      }, stepTimes[i]);
+    });
+
+    var depthInstructions = {
+      'מהיר': 'החזר שם, domain, טלפון, segment, platform, score, reason קצר בלבד.',
+      'עמוק': 'החזר שם, domain, טלפון, segment, platform_current, score (0-100), reason (2-3 משפטים בעברית), size_estimate, events_per_year, estimated_annual_fees, data_ownership_pain.',
+      'מקיף': 'החזר פרטים מלאים: שם, domain, טלפון, email אם ידוע, segment, platform_current, score (0-100), reason (3-4 משפטים בעברית), size_estimate, events_per_year, estimated_annual_fees, data_ownership_pain, social_presence, next_action מוצעת, tier (A/B/C).'
+    };
 
     var prompt = [
-      'אתה מנהל מכירות ב-XTIX.AI. חפש 5 לידים ישראלים אמיתיים.',
-      'סגמנט: ' + (ans.segment||'הכל') + ' | אזור: ' + (ans.location||'ארצי'),
-      'גודל: ' + (ans.size||'כל') + ' | פלטפורמה: ' + (ans.platform||'כל'),
-      'תדירות: ' + (ans.freq||'כל') + ' | עדיפות: ' + (ans.priority||'הכל'),
-      'החזר JSON: {"leads":[{"name":"שם","domain":"example.co.il","phone":"03-XXX","segment":"סגמנט","platform":"פלטפורמה","score":75,"reason":"סיבה"}]}',
-      '5 ארגונים ישראלים אמיתיים בלבד.'
-    ].join(' ');
+      'אתה מומחה מכירות B2B ב-XTIX.AI — מערכת מכירת כרטיסים ישראלית שגובה 2.5% בלבד (vs 5-8% בשוק).',
+      'מצא '+count+' ארגונים ישראלים אמיתיים ופעילים שמתאימים לפרופיל הבא:',
+      p.segments.length  ? '• סוג אירועים: '+p.segments.join(', ') : '',
+      p.geo.length       ? '• אזורים: '+p.geo.join(', ') : '• אזור: ארצי',
+      p.competitors.length ? '• משתמשים כיום ב: '+p.competitors.join(' או ') : '',
+      p.market.length    ? '• מגזר: '+p.market.join(', ') : '',
+      p.size.length      ? '• גודל אירוע: '+p.size.join(', ') : '',
+      p.freq !== 'ללא מגבלה' ? '• תדירות: '+p.freq : '',
+      p.priority.length  ? '• סיגנלי עדיפות: '+p.priority.join(', ') : '',
+      p.exclude.length   ? '• אל תכלול: '+p.exclude.join(', ') : '',
+      '',
+      depthInstructions[p.depth] || depthInstructions['עמוק'],
+      '',
+      'החזר JSON בלבד, ללא markdown: {"leads":[{"name":"","domain":"","phone":"","segment":"","platform_current":"","score":80,"reason":"","size_estimate":"","events_per_year":"","estimated_annual_fees":"","tier":"A"}]}',
+      'חשוב: רק ארגונים ישראלים אמיתיים שאתה מכיר. '+count+' לידים בלבד, ממוינים לפי score מהגבוה לנמוך.'
+    ].filter(Boolean).join('\n');
 
     try {
       var res = await fetch('https://xtix-crm-production.up.railway.app/ai', {
@@ -6642,11 +6965,11 @@ addSalesPlaybookPanel();
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           model: 'claude-haiku-4-5-20251001',
-          max_tokens: 1000,
-          system: 'Return ONLY valid JSON. No markdown.',
+          max_tokens: 2000,
+          system: 'Return ONLY valid JSON array. No markdown, no explanation. Respond in Hebrew where text is required.',
           messages: [{ role: 'user', content: prompt }]
         }),
-        signal: AbortSignal.timeout(25000)
+        signal: AbortSignal.timeout(35000)
       });
       var data = await res.json();
       var raw = (data.content||[]).map(function(b){return b.text||'';}).join('');
@@ -6654,46 +6977,75 @@ addSalesPlaybookPanel();
       var parsed = JSON.parse(raw.substring(s, e+1));
       var foundLeads = parsed.leads || [];
 
-      loadDiv.remove();
+      if (runBtn) { runBtn.disabled = false; runBtn.style.opacity = '1'; }
+      if (btnText) btnText.innerHTML = '🚀 הפעל AI Hunt';
 
       if (!foundLeads.length) {
-        var noRes = document.createElement('div');
-        noRes.style.cssText = 'color:var(--muted);font-size:12px;padding:8px';
-        noRes.textContent = 'לא נמצאו לידים — נסה פרמטרים שונים.';
-        chat.appendChild(noRes);
+        resultsEl.innerHTML = '<div style="text-align:center;padding:24px;color:var(--t3)">לא נמצאו לידים — נסה פרמטרים שונים</div>';
         return;
       }
 
-      var resDiv = document.createElement('div');
-      resDiv.style.cssText = 'display:flex;flex-direction:column;gap:8px';
-      foundLeads.forEach(function(lead) {
-        var card = document.createElement('div');
-        card.style.cssText = 'background:var(--surface2);border:1px solid var(--border);border-radius:9px;padding:12px 14px';
-        card.innerHTML = '<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px">'
-          + '<strong style="color:var(--text);font-size:13px">' + (lead.name||'') + '</strong>'
-          + '<span style="background:rgba(108,99,255,0.15);color:var(--accent);border-radius:20px;padding:2px 8px;font-size:11px;font-weight:700">' + (lead.score||'?') + '</span>'
-          + '</div>'
-          + (lead.domain ? '<div style="font-size:11px;color:var(--muted);margin-bottom:4px">🌐 ' + lead.domain + '</div>' : '')
-          + (lead.phone  ? '<div style="font-size:11px;color:var(--muted);margin-bottom:4px">📞 ' + lead.phone + '</div>' : '')
-          + (lead.platform ? '<div style="font-size:11px;color:var(--muted);margin-bottom:6px">🎫 ' + lead.platform + '</div>' : '')
-          + (lead.reason ? '<div style="font-size:11px;color:var(--green);margin-bottom:8px">' + lead.reason + '</div>' : '')
-          + '<button onclick="huntAddLead(' + JSON.stringify(lead).replace(/"/g, '&quot;') + ')" '
-          + 'style="width:100%;background:rgba(0,230,118,0.1);border:1px solid rgba(0,230,118,0.3);border-radius:7px;padding:7px;color:var(--green);font-size:12px;font-weight:700;cursor:pointer;font-family:Heebo,sans-serif">➕ הוסף ל-CRM</button>';
-        resDiv.appendChild(card);
-      });
-            // Store for saving
-      setLastFoundLeads(foundLeads, huntState.answers);
+      function scoreColor(s){ return s>=80?'#10b981':s>=60?'#3b82f6':'#f59e0b'; }
+      function tierColor(t){ return t==='A'?'#10b981':t==='B'?'#3b82f6':'#f59e0b'; }
 
-    } catch(e) {
-      loadDiv.remove();
-      var errDiv = document.createElement('div');
-      errDiv.style.cssText = 'color:#EF4444;font-size:12px;padding:8px;background:rgba(239,68,68,0.08);border-radius:8px';
-      errDiv.textContent = '⚠️ שגיאה בחיפוש: ' + e.message;
-      chat.appendChild(errDiv);
+      var html = '<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:14px">';
+      html += '<div style="font-size:12px;color:var(--t3)">✅ נמצאו <strong style="color:var(--t1)">'+foundLeads.length+' לידים</strong> — ממוינים לפי Lead Score</div>';
+      html += '<div style="display:flex;gap:6px">';
+      html += '<button onclick="window.saveCurrentSearch()" style="background:rgba(16,185,129,0.1);border:1px solid rgba(16,185,129,0.25);border-radius:7px;padding:5px 12px;color:#10b981;font-size:10px;font-weight:700;cursor:pointer;font-family:DM Sans,Heebo,sans-serif">💾 שמור</button>';
+      html += '<button onclick="closeHuntResults()" style="background:transparent;border:1px solid rgba(255,255,255,0.1);border-radius:7px;padding:5px 10px;color:var(--t3);font-size:10px;cursor:pointer">✕</button>';
+      html += '</div></div>';
+
+      html += '<div style="display:flex;flex-direction:column;gap:10px">';
+      foundLeads.sort(function(a,b){return (b.score||0)-(a.score||0);}).forEach(function(lead, idx) {
+        var sc = lead.score||0;
+        var sc_c = scoreColor(sc);
+        var circ = 100.5;
+        var dash = Math.round((sc/100)*circ);
+        var tier = lead.tier || (sc>=80?'A':sc>=60?'B':'C');
+        var tc = tierColor(tier);
+
+        html += '<div class="hunt-result-card" style="--delay:'+( idx * 0.06)+'s">';
+        html += '<div style="display:grid;grid-template-columns:50px 1fr auto;gap:12px;align-items:start">';
+        // Score circle
+        html += '<div style="display:flex;flex-direction:column;align-items:center;gap:3px">';
+        html += '<svg width="50" height="50" viewBox="0 0 50 50">';
+        html += '<circle cx="25" cy="25" r="20" fill="none" stroke="rgba(255,255,255,0.05)" stroke-width="4"/>';
+        html += '<circle cx="25" cy="25" r="20" fill="none" stroke="'+sc_c+'" stroke-width="4" stroke-dasharray="'+dash+' '+circ+'" stroke-dashoffset="'+Math.round(circ/4)+'" stroke-linecap="round" transform="rotate(-90 25 25)"/>';
+        html += '<text x="25" y="30" text-anchor="middle" fill="'+sc_c+'" font-size="12" font-weight="800" font-family="DM Mono,monospace">'+sc+'</text>';
+        html += '</svg>';
+        html += '<span style="font-size="9px;font-weight:700;color:'+tc+';background:'+tc+'22;border-radius:4px;padding:1px 5px;font-size:9px">Tier '+tier+'</span>';
+        html += '</div>';
+        // Info
+        html += '<div>';
+        html += '<div style="font-size:13.5px;font-weight:700;color:var(--t1);margin-bottom:4px">'+(lead.name||'')+'</div>';
+        html += '<div style="display:flex;flex-wrap:wrap;gap:8px;margin-bottom:5px">';
+        if (lead.domain)          html += '<span style="font-size:11px;color:var(--t3)">🌐 '+lead.domain+'</span>';
+        if (lead.phone)           html += '<span style="font-size:11px;color:var(--t3)">📞 '+lead.phone+'</span>';
+        if (lead.platform_current) html += '<span style="font-size:10px;background:rgba(139,92,246,0.15);border:1px solid rgba(139,92,246,0.3);border-radius:4px;padding:1px 7px;color:#a78bfa">'+lead.platform_current+'</span>';
+        if (lead.size_estimate)   html += '<span style="font-size:10px;color:var(--t3)">👥 '+lead.size_estimate+'</span>';
+        if (lead.events_per_year) html += '<span style="font-size:10px;color:var(--t3)">📅 '+lead.events_per_year+'/שנה</span>';
+        if (lead.estimated_annual_fees) html += '<span style="font-size:10px;color:#f59e0b">💰 עמלות: '+lead.estimated_annual_fees+'</span>';
+        html += '</div>';
+        if (lead.reason) html += '<div style="font-size:11px;color:#10b981;line-height:1.5;border-right:2px solid rgba(16,185,129,0.4);padding-right:8px">'+lead.reason+'</div>';
+        if (lead.next_action) html += '<div style="font-size:10px;color:#3b82f6;margin-top:4px">→ '+lead.next_action+'</div>';
+        html += '</div>';
+        // CRM button
+        html += '<button onclick="huntAddLead('+JSON.stringify(lead).replace(/"/g,'&quot;')+')" ';
+        html += 'style="background:rgba(16,185,129,0.1);border:1px solid rgba(16,185,129,0.3);border-radius:8px;padding:8px 14px;color:#10b981;font-size:11px;font-weight:700;cursor:pointer;font-family:DM Sans,Heebo,sans-serif;white-space:nowrap;align-self:start">➕ CRM</button>';
+        html += '</div></div>';
+      });
+      html += '</div>';
+      resultsEl.innerHTML = html;
+      setLastFoundLeads(foundLeads, getHuntParams());
+
+    } catch(err) {
+      if (runBtn) { runBtn.disabled = false; runBtn.style.opacity = '1'; }
+      if (btnText) btnText.innerHTML = '🚀 הפעל AI Hunt';
+      resultsEl.innerHTML = '<div style="background:rgba(239,68,68,0.08);border:1px solid rgba(239,68,68,0.2);border-radius:10px;padding:14px;color:#ef4444;font-size:12px">⚠️ שגיאה: '+err.message+'</div>';
     }
   };
 
-  window.huntAddLead = function huntAddLead(lead) {
+    window.huntAddLead = function huntAddLead(lead) {
     var now = new Date().toISOString();
     var newLead = {
       id: Date.now(),
@@ -6868,38 +7220,7 @@ addSalesPlaybookPanel();
   };
 
   // Add single saved lead to CRM
-  window.huntAddLeadFromSaved = function(searchIdx, leadIdx) {
-    var searches = loadSavedSearches();
-    if (!searches[searchIdx] || !searches[searchIdx].leads[leadIdx]) return;
-    var lead = searches[searchIdx].leads[leadIdx];
-    window.huntAddLead(lead);
-    // Mark as added
-    window.renderSavedSearches();
-  };
 
-  // Add all leads from saved search to CRM
-  window.addAllFromSaved = function(searchIdx) {
-    var searches = loadSavedSearches();
-    if (!searches[searchIdx]) return;
-    var count = 0;
-    searches[searchIdx].leads.forEach(function(lead) {
-      window.huntAddLead(lead);
-      count++;
-    });
-    alert('✅ ' + count + ' לידים נוספו ל-CRM');
-  };
-
-  // New search — reset chat
-  window.newHuntSearch = function() {
-    huntState.step = 0;
-    huntState.answers = {};
-    _lastFoundLeads = [];
-    var chat = document.getElementById('hunt-chat');
-    if (chat) chat.innerHTML = '';
-    huntAskNext();
-  };
-
-})();
 </script>
 </body>
 </html>
