@@ -361,8 +361,8 @@ html, body {
 }
 .lead-tab:hover { color: var(--t2); }
 .lead-tab.active { color: var(--t1); border-bottom-color: var(--blue); font-weight: 600; }
-.lead-tab-pane { display: none; padding: 14px; }
-.lead-tab-pane.active { display: block; }
+.lead-tab-panel { display: none; padding: 14px; }
+.lead-tab-panel.active { display: block; }
 
 /* Analysis blocks */
 .analysis-block {
@@ -516,12 +516,12 @@ input::placeholder, textarea::placeholder { color: var(--t3); }
 }
 
 /* ─── Lead card content ─── */
-.lead-tab-pane {
+.lead-tab-panel {
   overflow-x: hidden; overflow-y: auto;
   box-sizing: border-box; max-width: 100%;
   word-break: break-word; word-wrap: break-word;
 }
-.lead-tab-pane.active { display: block; }
+.lead-tab-panel.active { display: block; }
 .lead-body.open       { display: block; overflow: hidden; }
 
 /* ─── AI Chat: fill height, input at bottom ─── */
@@ -547,6 +547,111 @@ input::placeholder, textarea::placeholder { color: var(--t3); }
   min-height: 0 !important;
   overflow-y: auto !important;
 }
+
+/* ─── Market panel ─── */
+.methodology-selector button, #market-sub-tabs button {
+  padding: 7px 14px; border-radius: 7px; font-size: 12px; font-weight: 500;
+  background: var(--s2); border: 1px solid var(--b1); color: var(--t2);
+  cursor: pointer; transition: all 0.15s;
+}
+.methodology-selector button.active, #market-sub-tabs button.active,
+.methodology-selector button:has(+ .active), button.market-tab-active {
+  background: var(--blue); color: white; border-color: var(--blue);
+}
+/* Competitor cards */
+.competitor-card, .comp-card {
+  background: var(--s2) !important; border: 1px solid var(--b1) !important;
+  border-radius: 10px !important; padding: 14px 16px !important;
+  transition: border-color 0.15s !important;
+}
+.competitor-card:hover, .comp-card:hover { border-color: var(--b2) !important; }
+/* Scoring matrix */
+.scoring-matrix table, .score-table {
+  border-collapse: collapse; width: 100%;
+}
+.scoring-matrix td, .scoring-matrix th, .score-table td, .score-table th {
+  border: 1px solid var(--b1); padding: 8px 12px; font-size: 12px;
+}
+.scoring-matrix th, .score-table th {
+  background: var(--s2); color: var(--t2); font-weight: 600;
+}
+/* Market sub-tabs (Scoring Matrix / Positioning / מפת מתחרים) */
+#tab-market .methodology-selector {
+  display: flex; gap: 8px; margin-bottom: 20px; flex-wrap: wrap;
+}
+
+/* ═══ METH-PANEL (market sub-panels) ═══ */
+.meth-panel          { display: none; }
+.meth-panel.active   { display: block; }
+
+/* ═══ MARKET SUB-TAB BUTTONS ═══ */
+.meth-btn {
+  padding: 7px 16px; border-radius: 8px; font-size: 12px; font-weight: 500;
+  background: var(--s2); border: 1px solid var(--b1); color: var(--t2);
+  cursor: pointer; transition: all 0.15s; font-family: 'DM Sans','Heebo',sans-serif;
+}
+.meth-btn:hover  { border-color: var(--b2); color: var(--t1); }
+.meth-btn.active { background: var(--blue); color: #fff; border-color: var(--blue); }
+
+/* ═══ NAV-SUB (sidebar sub-menu) ═══ */
+.nav-sub       { padding-right: 26px; display: none; flex-direction: column; gap: 2px; margin-top: 2px; }
+.nav-sub.open  { display: flex; }
+.nav-sub-btn {
+  padding: 5px 10px; border-radius: 6px; background: none; border: none;
+  color: var(--t3); font-size: 11.5px; cursor: pointer; text-align: right;
+  font-family: 'DM Sans','Heebo',sans-serif; transition: all 0.12s;
+}
+.nav-sub-btn:hover  { color: var(--t1); background: var(--s3); }
+.nav-sub-btn.active { color: var(--blue); background: rgba(59,130,246,0.08); }
+
+/* ═══ LEAD TABS — definitive fix ═══ */
+.lead-tab-panel          { display: none; padding: 16px; }
+.lead-tab-panel.active   { display: block; }
+.lead-tabs {
+  display: flex; gap: 0; border-bottom: 1px solid var(--b1);
+  padding: 0 12px; overflow-x: auto;
+}
+.lead-tab {
+  padding: 8px 13px; font-size: 11.5px; font-weight: 500;
+  border: none; border-bottom: 2px solid transparent;
+  background: none; color: var(--t3); cursor: pointer;
+  border-radius: 0; white-space: nowrap; transition: all 0.12s;
+  font-family: 'DM Sans','Heebo',sans-serif;
+}
+.lead-tab:hover  { color: var(--t1); }
+.lead-tab.active { color: var(--blue); border-bottom-color: var(--blue); font-weight: 600; }
+
+/* ═══ COMPETITOR CARDS in market panel ═══ */
+#market-competitors .card,
+#market-competitors > div > div {
+  background: var(--s1); border: 1px solid var(--b1);
+  border-radius: 10px; padding: 14px 16px;
+  transition: border-color 0.15s;
+}
+#market-competitors .card:hover { border-color: var(--b2); }
+
+/* ═══ HubSpot button ═══ */
+.btn-hs {
+  width: 100%; padding: 14px; border-radius: 10px; border: none;
+  background: linear-gradient(135deg, #ff7a00, #ff4500);
+  color: white; font-size: 14px; font-weight: 700; cursor: pointer;
+  font-family: 'DM Sans','Heebo',sans-serif; transition: opacity 0.15s;
+}
+.btn-hs:hover { opacity: 0.9; }
+
+/* ═══ SCORING TABLE ═══ */
+.score-table, .scoring-table {
+  width: 100%; border-collapse: collapse; font-size: 12px;
+}
+.score-table th, .scoring-table th {
+  background: var(--s2); color: var(--t2); font-weight: 600;
+  padding: 10px 12px; text-align: right; border-bottom: 1px solid var(--b1);
+}
+.score-table td, .scoring-table td {
+  padding: 9px 12px; border-bottom: 1px solid var(--b1); color: var(--t2);
+}
+.score-table tr:last-child td, .scoring-table tr:last-child td { border-bottom: none; }
+.score-table tr:hover td, .scoring-table tr:hover td { background: var(--s2); }
 </style>
 
   <!-- Firebase CDN (compat mode — works without type=module) -->
@@ -2554,8 +2659,11 @@ BP18: Nurture existing customers — repeat customers spend 67% more
     var target = document.getElementById('tab-' + name);
     if (target) target.classList.add('active');
 
-    // Update sidebar nav buttons
+    // Update sidebar nav buttons + open relevant nav-sub
     document.querySelectorAll('.nav-btn').forEach(function(b){ b.classList.remove('active'); });
+    document.querySelectorAll('.nav-sub').forEach(function(s){ s.classList.remove('open'); });
+    var subEl = document.getElementById('sub-' + name);
+    if (subEl) subEl.classList.add('open');
     if (btn) btn.classList.add('active');
 
     // Show/hide sub-menus
@@ -2602,6 +2710,8 @@ BP18: Nurture existing customers — repeat customers spend 67% more
   }
 
   window.switchMarket = function switchMarket(name, btn) {
+    // Ensure market panel is visible
+    window.switchMainTab('market');
     document.querySelectorAll('#tab-market .meth-btn').forEach(b => b.classList.remove('active'));
     document.querySelectorAll('#tab-market .meth-panel').forEach(p => p.classList.remove('active'));
     document.getElementById('market-' + name).classList.add('active');
@@ -4735,6 +4845,50 @@ Blueprint לכל מייל:
   margin: 0 4px 0 0 !important;
   flex-shrink: 0 !important;
 }
+
+/* ─── Lead card row improvements ─── */
+.lead-card {
+  border-radius: 10px !important;
+  margin-bottom: 6px !important;
+  transition: border-color 0.15s !important;
+}
+.lead-card:hover { border-color: var(--b2) !important; }
+.lead-card-header { border-radius: 10px 10px 0 0 !important; }
+.lead-card.expanded .lead-card-header { border-radius: 10px 10px 0 0 !important; }
+.lead-name { font-size: 14px !important; font-weight: 600 !important; color: var(--t1) !important; }
+.lead-meta { font-size: 11px !important; color: var(--t3) !important; margin-top: 2px !important; }
+.lead-meta span { margin-left: 8px !important; }
+.xtix-id-badge {
+  font-size: 10px !important; font-family: 'DM Mono', monospace !important;
+  background: rgba(59,130,246,0.12) !important; color: var(--blue) !important;
+  border: 1px solid rgba(59,130,246,0.25) !important;
+  border-radius: 5px !important; padding: 1px 6px !important;
+}
+.score-ring {
+  width: 36px !important; height: 36px !important;
+  font-size: 11px !important; font-weight: 700 !important;
+  font-family: 'DM Mono', monospace !important;
+}
+/* ─── Lead tabs ─── */
+.lead-tabs {
+  border-bottom: 1px solid var(--b1) !important;
+  padding: 0 14px !important; gap: 0 !important;
+}
+.lead-tab {
+  padding: 8px 12px !important;
+  border-bottom: 2px solid transparent !important;
+  border-radius: 0 !important;
+  font-size: 11.5px !important;
+  color: var(--t3) !important;
+}
+.lead-tab.active {
+  color: var(--blue) !important;
+  border-bottom-color: var(--blue) !important;
+  background: none !important;
+}
+.lead-tab:hover { color: var(--t1) !important; background: rgba(255,255,255,0.03) !important; }
+.lead-tab-panel { display: none !important; padding: 16px !important; }
+.lead-tab-panel.active { display: block !important; }
 </style>
 
 <script>
