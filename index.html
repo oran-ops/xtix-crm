@@ -672,6 +672,171 @@ input::placeholder, textarea::placeholder { color: var(--t3); }
   color: #60a5fa; font-weight: 600;
 }
 #hunt-run-btn:hover { opacity: 0.88; }
+
+/* ═══════════════════════════════════════════════
+   MARKET PANEL — full redesign
+═══════════════════════════════════════════════ */
+
+/* stat cards */
+.mkt-stat-card {
+  background: rgba(255,255,255,0.03); border: 1px solid rgba(255,255,255,0.08);
+  border-radius: 12px; padding: 14px 16px; text-align: center;
+}
+.mkt-stat-num { font-size: 22px; font-weight: 800; font-family: 'DM Mono',monospace; margin-bottom: 4px; }
+.mkt-stat-label { font-size: 10px; color: var(--t3); line-height: 1.4; }
+
+/* tier section */
+.tier-section { margin-bottom: 24px; }
+.tier-header {
+  display: flex; align-items: center; gap: 10px; padding: 10px 14px;
+  border-radius: 10px 10px 0 0; border: 1px solid; border-bottom: none;
+  font-size: 11px;
+}
+.tier-1-header { background: rgba(239,68,68,0.06); border-color: rgba(239,68,68,0.2); }
+.tier-2-header { background: rgba(245,158,11,0.06); border-color: rgba(245,158,11,0.2); }
+.tier-3-header { background: rgba(107,114,128,0.06); border-color: rgba(107,114,128,0.15); }
+
+.tier-badge-label {
+  font-size: 10px; font-weight: 800; letter-spacing: 1px;
+  padding: 3px 8px; border-radius: 5px;
+}
+.tier-1-header .tier-badge-label { background: rgba(239,68,68,0.2); color: #ef4444; }
+.tier-2-header .tier-badge-label { background: rgba(245,158,11,0.2); color: #f59e0b; }
+.tier-3-header .tier-badge-label { background: rgba(107,114,128,0.15); color: #9ca3af; }
+.tier-desc { flex: 1; color: var(--t3); }
+.tier-count { font-size: 10px; color: var(--t3); }
+
+/* competitor grid */
+.comp-grid {
+  display: grid; grid-template-columns: repeat(auto-fill,minmax(260px,1fr));
+  gap: 8px; padding: 10px; border: 1px solid; border-top: none; border-radius: 0 0 10px 10px;
+}
+.tier-1-header + .comp-grid { border-color: rgba(239,68,68,0.15); background: rgba(239,68,68,0.02); }
+.tier-2-header + .comp-grid { border-color: rgba(245,158,11,0.15); background: rgba(245,158,11,0.02); }
+.tier-3-header + .comp-grid { border-color: rgba(107,114,128,0.1); background: rgba(0,0,0,0.1); }
+
+.comp-card {
+  background: rgba(255,255,255,0.03); border: 1px solid rgba(255,255,255,0.08);
+  border-radius: 10px; padding: 12px 14px; transition: border-color 0.15s;
+}
+.comp-card:hover { border-color: rgba(255,255,255,0.15); }
+.tier-1-card { border-right: 3px solid rgba(239,68,68,0.4); }
+.tier-2-card { border-right: 3px solid rgba(245,158,11,0.4); }
+.tier-3-card { border-right: 3px solid rgba(107,114,128,0.3); }
+
+.comp-card-header { display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 7px; }
+.comp-name { font-size: 13px; font-weight: 700; color: var(--t1); }
+.comp-tags { display: flex; gap: 4px; flex-wrap: wrap; justify-content: flex-end; }
+.comp-fee { font-size: 10px; color: var(--t3); margin-bottom: 6px; font-family: 'DM Mono',monospace; }
+.comp-detail { font-size: 11px; color: var(--t3); line-height: 1.5; margin-bottom: 3px; }
+.comp-detail .lbl { color: var(--t2); font-weight: 600; }
+.comp-weak { font-size: 10.5px; color: rgba(239,68,68,0.8); margin-top: 5px; line-height: 1.4; }
+.comp-opp { font-size: 10.5px; color: #10b981; margin-top: 4px; line-height: 1.4; font-weight: 600; }
+
+.tag-iframe  { background: rgba(16,185,129,0.15); color: #10b981; border: 1px solid rgba(16,185,129,0.25); border-radius: 4px; padding: 1px 6px; font-size: 9px; font-weight: 700; }
+.tag-no-iframe { background: rgba(239,68,68,0.12); color: #f87171; border: 1px solid rgba(239,68,68,0.2); border-radius: 4px; padding: 1px 6px; font-size: 9px; font-weight: 700; }
+.tag-smb   { background: rgba(245,158,11,0.12); color: #f59e0b; border: 1px solid rgba(245,158,11,0.2); border-radius: 4px; padding: 1px 6px; font-size: 9px; }
+.tag-mkt   { background: rgba(59,130,246,0.12);  color: #60a5fa; border: 1px solid rgba(59,130,246,0.2); border-radius: 4px; padding: 1px 6px; font-size: 9px; }
+.tag-ent   { background: rgba(107,114,128,0.12); color: #9ca3af; border: 1px solid rgba(107,114,128,0.2); border-radius: 4px; padding: 1px 6px; font-size: 9px; }
+
+/* XTIX advantages */
+.xtix-adv-card {
+  display: flex; gap: 10px; align-items: flex-start;
+  background: rgba(59,130,246,0.04); border: 1px solid rgba(59,130,246,0.12);
+  border-radius: 10px; padding: 12px 14px;
+}
+.adv-icon { font-size: 20px; flex-shrink: 0; }
+.adv-title { font-size: 12px; font-weight: 700; color: var(--t1); margin-bottom: 2px; }
+.adv-sub { font-size: 10.5px; color: var(--t3); line-height: 1.4; }
+
+/* Four Fs */
+.four-f-card {
+  background: rgba(255,255,255,0.03); border: 1px solid;
+  border-radius: 10px; padding: 14px; text-align: center;
+}
+.four-f-letter { font-size: 24px; font-weight: 800; font-family: 'DM Mono',monospace; margin-bottom: 2px; }
+.four-f-title { font-size: 11px; font-weight: 700; color: var(--t2); margin-bottom: 8px; }
+.four-f-q { font-size: 11px; color: var(--t1); font-style: italic; margin-bottom: 6px; line-height: 1.4; }
+.four-f-learn { font-size: 10px; color: var(--t3); }
+
+/* Segment cards */
+.seg-card {
+  background: rgba(255,255,255,0.02); border: 1px solid rgba(255,255,255,0.08);
+  border-radius: 12px; overflow: hidden;
+}
+.seg-header {
+  display: flex; align-items: center; gap: 10px;
+  padding: 12px 14px; border-bottom: 1px solid;
+}
+.seg-icon { font-size: 22px; flex-shrink: 0; }
+.seg-title { font-size: 13px; font-weight: 700; color: var(--t1); }
+.seg-vs { font-size: 10px; color: var(--t3); margin-top: 2px; }
+.seg-body { padding: 14px; }
+.seg-pain { display: flex; align-items: flex-start; gap: 8px; font-size: 11.5px; color: var(--t2); margin-bottom: 5px; line-height: 1.4; }
+.seg-pain-dot { width: 6px; height: 6px; border-radius: 50%; margin-top: 4px; flex-shrink: 0; }
+.seg-divider { height: 1px; background: rgba(255,255,255,0.07); margin: 10px 0; }
+.seg-solution { display: flex; gap: 8px; font-size: 11.5px; color: var(--t2); margin-bottom: 6px; }
+.seg-sol-dot { width: 6px; height: 6px; border-radius: 50%; background: #10b981; margin-top: 4px; flex-shrink: 0; }
+.seg-pitch {
+  font-size: 12px; font-style: italic; font-weight: 700; color: var(--t1);
+  background: rgba(255,255,255,0.04); border-radius: 7px; padding: 8px 12px; margin-top: 8px;
+}
+
+/* Scoring panel */
+.score-panel-card {
+  background: rgba(255,255,255,0.025); border: 1px solid rgba(255,255,255,0.08);
+  border-radius: 12px; padding: 16px 18px; margin-bottom: 12px;
+}
+.score-panel-title {
+  font-size: 12px; font-weight: 700; color: var(--t2); margin-bottom: 14px;
+  padding-bottom: 8px; border-bottom: 1px solid rgba(255,255,255,0.07);
+}
+
+.score-param-row {
+  display: grid; grid-template-columns: 180px 1fr 36px;
+  align-items: center; gap: 8px; margin-bottom: 4px;
+}
+.score-param-name { font-size: 11px; color: var(--t2); }
+.score-param-bars { height: 20px; }
+.score-bar-seg {
+  height: 100%; border-radius: 4px;
+  display: flex; align-items: center; padding: 0 8px;
+  font-size: 10px; font-weight: 600; white-space: nowrap;
+}
+.green-seg { background: rgba(16,185,129,0.2); color: #10b981; }
+.yellow-seg { background: rgba(245,158,11,0.2); color: #f59e0b; }
+.score-param-max { font-size: 11px; font-weight: 700; color: var(--t1); text-align: right; font-family: 'DM Mono',monospace; }
+
+.tier-interp-card {
+  border: 1px solid; border-radius: 10px; padding: 12px 14px;
+}
+.tier-action-badge {
+  font-size: 10px; font-weight: 700; padding: 3px 9px; border-radius: 5px;
+}
+
+/* Validation table */
+.validation-table { width: 100%; border-collapse: collapse; font-size: 11px; }
+.validation-table th {
+  background: rgba(255,255,255,0.04); color: var(--t2); font-weight: 700;
+  padding: 9px 10px; text-align: center; border-bottom: 1px solid rgba(255,255,255,0.1);
+  white-space: nowrap;
+}
+.validation-table td { padding: 9px 10px; border-bottom: 1px solid rgba(255,255,255,0.05); }
+.validation-table tr:last-child td { border-bottom: none; }
+.validation-table tr:hover td { background: rgba(255,255,255,0.02); }
+
+.score-cell { text-align: center; font-family: 'DM Mono',monospace; font-size: 11px; }
+.green-cell { color: #10b981; }
+.yellow-cell { color: #f59e0b; }
+.total-cell { font-weight: 800; font-size: 14px; }
+
+.tier-pill { font-size: 10px; font-weight: 700; padding: 3px 8px; border-radius: 5px; }
+.hot-pill  { background: rgba(16,185,129,0.15); color: #10b981; }
+.warm-pill { background: rgba(245,158,11,0.15); color: #f59e0b; }
+.cool-pill { background: rgba(59,130,246,0.15); color: #3b82f6; }
+
+/* Remove sub-tabs from top (they're in sidebar only) */
+.methodology-selector { display: none !important; }
 </style>
 
   <!-- Firebase CDN (compat mode — works without type=module) -->
@@ -803,485 +968,554 @@ document.addEventListener("DOMContentLoaded",function(){
 
   <!-- =================== MARKET =================== -->
   <div class="panel" id="tab-market">
-    <p class="section-title">🌍 ניתוח שוק — XTIX 2026 | Salesforce Best Practices Framework</p>
-
-    <!-- SUB-TABS -->
-    <div class="methodology-selector" style="margin-bottom:20px">
-      <button class="meth-btn active" onclick="switchMarket('competitors',this)">🗺 מפת מתחרים</button>
-      <button class="meth-btn" onclick="switchMarket('positioning',this)">🎯 פוזיציונינג XTIX</button>
-      <button class="meth-btn" onclick="switchMarket('scoring',this)">📊 Scoring Matrix</button>
-    </div>
 
     <!-- ======= TAB 1: COMPETITOR MAP ======= -->
     <div class="meth-panel active" id="market-competitors">
-      <p style="font-size:12px;color:var(--muted);margin-bottom:16px;line-height:1.6">
-        18 מתחרים מסווגים ל-4 קבוצות לפי <strong>מידת האיום</strong> על XTIX ו<strong>הרלוונטיות לסגמנט</strong> של מפיקים קטנים/בינוניים עם דומיין פרטי. <em>SF BP #2 — Buyer Persona:</em> ככל שמתחרה מגיש פחות iFrame/Widget — כך הוא "מכין" את הליד עבורנו.
-      </p>
 
-      <!-- TIER 1: Direct Competitors — Same segment -->
-      <div style="margin-bottom:20px">
-        <div style="display:flex;align-items:center;gap:10px;margin-bottom:10px">
-          <div style="background:rgba(255,101,132,0.15);border:1px solid rgba(255,101,132,0.4);border-radius:6px;padding:4px 12px;font-size:10px;font-weight:700;color:#ff6584;letter-spacing:1px">TIER 1 — מתחרה ישיר</div>
-          <span style="font-size:11px;color:var(--muted)">אותו סגמנט, מוצר דומה — הלקוחות שלהם הם הלידים שלנו</span>
+      <!-- Header -->
+      <div style="margin-bottom:22px">
+        <div style="font-size:11px;color:var(--t3);letter-spacing:1.2px;text-transform:uppercase;margin-bottom:6px">SF BP #2 — Buyer Persona · BP #6 — Priority</div>
+        <h2 style="font-size:18px;font-weight:800;color:var(--t1);margin:0 0 6px">🗺 מפת השוק — 18 מתחרים</h2>
+        <p style="font-size:12px;color:var(--t3);line-height:1.7;max-width:700px">שוק מכירת כרטיסים ישראלי: ~₪800M שנתי. 85% מהאירועים משתמשים בפלטפורמות ביניים — המפיק מפסיד data וכסף. ככל שמתחרה מציע פחות iFrame/Widget, כך הוא <strong style="color:var(--t1)">מכין את הליד עבורנו.</strong></p>
+      </div>
+
+      <!-- Market size visual -->
+      <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:10px;margin-bottom:24px">
+        <div class="mkt-stat-card" style="border-color:rgba(59,130,246,0.3)">
+          <div class="mkt-stat-num" style="color:#3b82f6">₪800M</div>
+          <div class="mkt-stat-label">שוק שנתי</div>
         </div>
-        <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(280px,1fr));gap:10px">
+        <div class="mkt-stat-card" style="border-color:rgba(16,185,129,0.3)">
+          <div class="mkt-stat-num" style="color:#10b981">85%</div>
+          <div class="mkt-stat-label">משתמשים בפלטפורמה חיצונית</div>
+        </div>
+        <div class="mkt-stat-card" style="border-color:rgba(139,92,246,0.3)">
+          <div class="mkt-stat-num" style="color:#a78bfa">2.5%</div>
+          <div class="mkt-stat-label">עמלת XTIX (הכי נמוכה)</div>
+        </div>
+        <div class="mkt-stat-card" style="border-color:rgba(245,158,11,0.3)">
+          <div class="mkt-stat-num" style="color:#f59e0b">₪52.5K</div>
+          <div class="mkt-stat-label">חיסכון שנתי ל-10K כרטיסים</div>
+        </div>
+      </div>
 
-          <div class="card" style="background:var(--surface2);border-color:rgba(255,101,132,0.2)">
-            <div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:8px">
-              <div style="font-weight:700;font-size:13px">Tickchak</div>
-              <div style="display:flex;gap:5px;flex-wrap:wrap;justify-content:flex-end">
-                <span style="background:rgba(255,101,132,0.15);color:#ff6584;border-radius:4px;padding:2px 7px;font-size:9px;font-weight:700">iFrame ✓</span>
-                <span style="background:rgba(255,215,64,0.1);color:var(--yellow);border-radius:4px;padding:2px 7px;font-size:9px;font-weight:700">SMB</span>
-              </div>
+      <!-- TIER 1 -->
+      <div class="tier-section">
+        <div class="tier-header tier-1-header">
+          <span class="tier-badge-label">TIER 1</span>
+          <span class="tier-desc">מתחרים ישירים — אותו סגמנט SMB | הלקוחות שלהם = הלידים שלנו</span>
+          <span class="tier-count">5 מתחרים</span>
+        </div>
+        <div class="comp-grid">
+
+          <div class="comp-card tier-1-card">
+            <div class="comp-card-header">
+              <span class="comp-name">Tickchak</span>
+              <div class="comp-tags"><span class="tag-iframe">iFrame ✓</span><span class="tag-smb">SMB</span></div>
             </div>
-            <div style="font-size:11px;color:var(--muted);line-height:1.6">
-              <strong style="color:var(--text)">סגמנט:</strong> מפיקים קטנים, אירועים חד-פעמיים<br>
-              <strong style="color:var(--text)">מודל:</strong> עמלה ~4–5% | Widget מוגבל<br>
-              <strong style="color:var(--text)">חולשה:</strong> אין AI, אין dynamic pricing, UI ישן<br>
-              <strong style="color:var(--green)">הזדמנות XTIX:</strong> לקוחות מחפשים שדרוג
-            </div>
+            <div class="comp-fee">עמלה: 3–5%</div>
+            <div class="comp-detail"><span class="lbl">סגמנט:</span> מפיקים קטנים, אירועים חד-פעמיים</div>
+            <div class="comp-detail"><span class="lbl">מודל:</span> Widget מוגבל | UI ישן | אין AI</div>
+            <div class="comp-weak">חולשה: אין dynamic pricing, אין data ownership</div>
+            <div class="comp-opp">✦ הזדמנות: לקוחות מחפשים שדרוג — Widget + AI + נתונים</div>
           </div>
 
-          <div class="card" style="background:var(--surface2);border-color:rgba(255,101,132,0.2)">
-            <div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:8px">
-              <div style="font-weight:700;font-size:13px">Eventer</div>
-              <div style="display:flex;gap:5px;flex-wrap:wrap;justify-content:flex-end">
-                <span style="background:rgba(255,101,132,0.15);color:#ff6584;border-radius:4px;padding:2px 7px;font-size:9px;font-weight:700">iFrame ✓</span>
-                <span style="background:rgba(255,215,64,0.1);color:var(--yellow);border-radius:4px;padding:2px 7px;font-size:9px;font-weight:700">SMB/MID</span>
-              </div>
+          <div class="comp-card tier-1-card">
+            <div class="comp-card-header">
+              <span class="comp-name">Eventer</span>
+              <div class="comp-tags"><span class="tag-iframe">iFrame ✓</span><span class="tag-smb">SMB/MID</span></div>
             </div>
-            <div style="font-size:11px;color:var(--muted);line-height:1.6">
-              <strong style="color:var(--text)">סגמנט:</strong> מפיקים בינוניים, כנסים, אירועים<br>
-              <strong style="color:var(--text)">מודל:</strong> עמלה + Saas תוכנית Pro<br>
-              <strong style="color:var(--text)">חולשה:</strong> מוכר בעיקר לכנסים, לא לאמנות/תרבות<br>
-              <strong style="color:var(--green)">הזדמנות XTIX:</strong> מפיקי תרבות חסרים fit
-            </div>
+            <div class="comp-fee">עמלה: שולה + Pro SaaS</div>
+            <div class="comp-detail"><span class="lbl">סגמנט:</span> אירועים, נסיעות, פנאי</div>
+            <div class="comp-detail"><span class="lbl">מודל:</span> Saas Pro | מוכר ניהול — לא Widget</div>
+            <div class="comp-weak">חולשה: לא מוסד תרבות, לא lens. אין AI analytics</div>
+            <div class="comp-opp">✦ הזדמנות: גק brand — מפיקי תרבות רוצים פלטפורמה</div>
           </div>
 
-          <div class="card" style="background:var(--surface2);border-color:rgba(255,101,132,0.2)">
-            <div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:8px">
-              <div style="font-weight:700;font-size:13px">Easytix</div>
-              <div style="display:flex;gap:5px;flex-wrap:wrap;justify-content:flex-end">
-                <span style="background:rgba(42,42,61,0.8);color:var(--muted);border-radius:4px;padding:2px 7px;font-size:9px;font-weight:700">iFrame ✗</span>
-                <span style="background:rgba(255,215,64,0.1);color:var(--yellow);border-radius:4px;padding:2px 7px;font-size:9px;font-weight:700">SMB</span>
-              </div>
+          <div class="comp-card tier-1-card">
+            <div class="comp-card-header">
+              <span class="comp-name">Easytix</span>
+              <div class="comp-tags"><span class="tag-no-iframe">X iFrame</span><span class="tag-smb">SMB/MID</span></div>
             </div>
-            <div style="font-size:11px;color:var(--muted);line-height:1.6">
-              <strong style="color:var(--text)">סגמנט:</strong> מפיקים קטנים, עיריות, ספורט<br>
-              <strong style="color:var(--text)">מודל:</strong> עמלה % בלבד<br>
-              <strong style="color:var(--text)">חולשה:</strong> אין widget לאתרים, אין branding<br>
-              <strong style="color:var(--green)">הזדמנות XTIX:</strong> לקוחות רוצים דומיין משלהם
-            </div>
+            <div class="comp-fee">עמלה: 3% + ₪5</div>
+            <div class="comp-detail"><span class="lbl">סגמנט:</span> אירועים קטנים, עיריות, ספורט</div>
+            <div class="comp-detail"><span class="lbl">מודל:</span> אין branding, אין widget</div>
+            <div class="comp-weak">חולשה: אין branding, לא מותאם לאמנות/תרבות</div>
+            <div class="comp-opp">✦ הזדמנות: לידים עם branding חזק ירצו XTIX</div>
           </div>
 
-          <div class="card" style="background:var(--surface2);border-color:rgba(255,101,132,0.2)">
-            <div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:8px">
-              <div style="font-weight:700;font-size:13px">Lineapp</div>
-              <div style="display:flex;gap:5px;flex-wrap:wrap;justify-content:flex-end">
-                <span style="background:rgba(42,42,61,0.8);color:var(--muted);border-radius:4px;padding:2px 7px;font-size:9px;font-weight:700">iFrame ✗</span>
-                <span style="background:rgba(255,215,64,0.1);color:var(--yellow);border-radius:4px;padding:2px 7px;font-size:9px;font-weight:700">SMB</span>
-              </div>
+          <div class="comp-card tier-1-card">
+            <div class="comp-card-header">
+              <span class="comp-name">Eventbuzz</span>
+              <div class="comp-tags"><span class="tag-no-iframe">X iFrame</span><span class="tag-smb">SMB/MID</span></div>
             </div>
-            <div style="font-size:11px;color:var(--muted);line-height:1.6">
-              <strong style="color:var(--text)">סגמנט:</strong> עסקים קטנים, מיני-אירועים<br>
-              <strong style="color:var(--text)">מודל:</strong> Freemium → Pro<br>
-              <strong style="color:var(--text)">חולשה:</strong> לא מתאים לאירועים גדולים, פשטני<br>
-              <strong style="color:var(--green)">הזדמנות XTIX:</strong> כשגדלים — זקוקים למשהו רציני
-            </div>
+            <div class="comp-fee">Per-event pricing</div>
+            <div class="comp-detail"><span class="lbl">סגמנט:</span> אירועים עסקיים, פרטיים</div>
+            <div class="comp-detail"><span class="lbl">מודל:</span> Per-event | אין מסגרת תרבות/בידור</div>
+            <div class="comp-weak">חולשה: לא ממוקד מוזיקה/תרבות, לא מקבלים אוהדים</div>
+            <div class="comp-opp">✦ הזדמנות: מפיקי תרבות לא מוצאים fit</div>
           </div>
 
-          <div class="card" style="background:var(--surface2);border-color:rgba(255,101,132,0.2)">
-            <div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:8px">
-              <div style="font-weight:700;font-size:13px">Eventobot</div>
-              <div style="display:flex;gap:5px;flex-wrap:wrap;justify-content:flex-end">
-                <span style="background:rgba(42,42,61,0.8);color:var(--muted);border-radius:4px;padding:2px 7px;font-size:9px;font-weight:700">iFrame ✗</span>
-                <span style="background:rgba(255,215,64,0.1);color:var(--yellow);border-radius:4px;padding:2px 7px;font-size:9px;font-weight:700">SMB</span>
-              </div>
+          <div class="comp-card tier-1-card">
+            <div class="comp-card-header">
+              <span class="comp-name">Eventobot</span>
+              <div class="comp-tags"><span class="tag-no-iframe">X iFrame</span><span class="tag-smb">SMB</span></div>
             </div>
-            <div style="font-size:11px;color:var(--muted);line-height:1.6">
-              <strong style="color:var(--text)">סגמנט:</strong> אוטומציה לאירועים קטנים<br>
-              <strong style="color:var(--text)">מודל:</strong> Bot-based, WhatsApp flows<br>
-              <strong style="color:var(--text)">חולשה:</strong> לא מוצר כרטיסים רציני<br>
-              <strong style="color:var(--green)">הזדמנות XTIX:</strong> לקוחות שגדלו מעבר ל-bot
-            </div>
-          </div>
-
-          <div class="card" style="background:var(--surface2);border-color:rgba(255,101,132,0.2)">
-            <div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:8px">
-              <div style="font-weight:700;font-size:13px">Glatticket</div>
-              <div style="display:flex;gap:5px;flex-wrap:wrap;justify-content:flex-end">
-                <span style="background:rgba(42,42,61,0.8);color:var(--muted);border-radius:4px;padding:2px 7px;font-size:9px;font-weight:700">iFrame ✗</span>
-                <span style="background:rgba(255,215,64,0.1);color:var(--yellow);border-radius:4px;padding:2px 7px;font-size:9px;font-weight:700">SMB</span>
-              </div>
-            </div>
-            <div style="font-size:11px;color:var(--muted);line-height:1.6">
-              <strong style="color:var(--text)">סגמנט:</strong> אירועים קטנים, קהילות<br>
-              <strong style="color:var(--text)">מודל:</strong> עמלה נמוכה, self-service<br>
-              <strong style="color:var(--text)">חולשה:</strong> ממשק בסיסי, אין אנליטיקה<br>
-              <strong style="color:var(--green)">הזדמנות XTIX:</strong> מפיקים שרוצים לצמוח
-            </div>
-          </div>
-
-          <div class="card" style="background:var(--surface2);border-color:rgba(255,101,132,0.2)">
-            <div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:8px">
-              <div style="font-weight:700;font-size:13px">Eventbuzz</div>
-              <div style="display:flex;gap:5px;flex-wrap:wrap;justify-content:flex-end">
-                <span style="background:rgba(42,42,61,0.8);color:var(--muted);border-radius:4px;padding:2px 7px;font-size:9px;font-weight:700">iFrame ✗</span>
-                <span style="background:rgba(255,215,64,0.1);color:var(--yellow);border-radius:4px;padding:2px 7px;font-size:9px;font-weight:700">SMB/MID</span>
-              </div>
-            </div>
-            <div style="font-size:11px;color:var(--muted);line-height:1.6">
-              <strong style="color:var(--text)">סגמנט:</strong> אירועים עסקיים, השקות<br>
-              <strong style="color:var(--text)">מודל:</strong> Per-event pricing<br>
-              <strong style="color:var(--text)">חולשה:</strong> לא ממוקד תרבות/בידור<br>
-              <strong style="color:var(--green)">הזדמנות XTIX:</strong> מפיקי תרבות לא מקבלים מענה
-            </div>
+            <div class="comp-fee">Bot-based, WhatsApp</div>
+            <div class="comp-detail"><span class="lbl">סגמנט:</span> אוטומציה קטנה, מפיקים טכניים</div>
+            <div class="comp-detail"><span class="lbl">מודל:</span> WhatsApp bots | לא מרכז כרטיסים</div>
+            <div class="comp-weak">חולשה: לא פלטפורמה, bot — מוגבל מאוד</div>
+            <div class="comp-opp">✦ הזדמנות: קסטומרים שרוצים סקייל ירצו XTIX</div>
           </div>
 
         </div>
       </div>
 
-      <!-- TIER 2: Marketplaces — Indirect, but own our leads' tickets -->
-      <div style="margin-bottom:20px">
-        <div style="display:flex;align-items:center;gap:10px;margin-bottom:10px">
-          <div style="background:rgba(255,215,64,0.12);border:1px solid rgba(255,215,64,0.35);border-radius:6px;padding:4px 12px;font-size:10px;font-weight:700;color:var(--yellow);letter-spacing:1px">TIER 2 — מרקטפלייס / מפיצים</div>
-          <span style="font-size:11px;color:var(--muted)">הם "מחזיקים" את הלידים שלנו — הטיעון: "הקהל שלכם לא שלכם"</span>
+      <!-- TIER 2 -->
+      <div class="tier-section">
+        <div class="tier-header tier-2-header">
+          <span class="tier-badge-label">TIER 2</span>
+          <span class="tier-desc">מרקטפלייסים / מפיצים — הם "מחריקים" את הלידים שלנו | לא ישירים</span>
+          <span class="tier-count">6 מתחרים</span>
         </div>
-        <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(280px,1fr));gap:10px">
+        <div class="comp-grid">
 
-          <div class="card" style="background:var(--surface2);border-color:rgba(255,215,64,0.15)">
-            <div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:8px">
-              <div style="font-weight:700;font-size:13px">SmarTicket (Smarticket)</div>
-              <div style="display:flex;gap:5px;flex-wrap:wrap;justify-content:flex-end">
-                <span style="background:rgba(42,42,61,0.8);color:var(--muted);border-radius:4px;padding:2px 7px;font-size:9px;font-weight:700">Widget ✗</span>
-                <span style="background:rgba(255,215,64,0.1);color:var(--yellow);border-radius:4px;padding:2px 7px;font-size:9px;font-weight:700">MKT</span>
-              </div>
+          <div class="comp-card tier-2-card">
+            <div class="comp-card-header">
+              <span class="comp-name">Smarticket</span>
+              <div class="comp-tags"><span class="tag-no-iframe">X Widget</span><span class="tag-smb">SMB</span></div>
             </div>
-            <div style="font-size:11px;color:var(--muted);line-height:1.6">
-              <strong style="color:var(--text)">מודל:</strong> Marketplace ישראלי | עמלה 5–7%<br>
-              <strong style="color:var(--text)">חולשה:</strong> הקהל שייך לסמארטיקט, לא למפיק<br>
-              <strong style="color:var(--green)">הטיעון שלנו:</strong> "אתה שולח קהל לאתר שלהם, לא שלך"
-            </div>
+            <div class="comp-fee">עמלה: 5–7% + ₪12</div>
+            <div class="comp-detail"><span class="lbl">מודל:</span> Freemium → Pro | הכי נפוץ בשוק</div>
+            <div class="comp-weak">חולשה: הכי יקר, ללא widget, נתונים לא למפיק</div>
+            <div class="comp-opp">✦ TOP PRIORITY: כל ליד ב-Smarticket = פוטנציאל XTIX</div>
           </div>
 
-          <div class="card" style="background:var(--surface2);border-color:rgba(255,215,64,0.15)">
-            <div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:8px">
-              <div style="font-weight:700;font-size:13px">Leaan (לאן)</div>
-              <div style="display:flex;gap:5px;flex-wrap:wrap;justify-content:flex-end">
-                <span style="background:rgba(42,42,61,0.8);color:var(--muted);border-radius:4px;padding:2px 7px;font-size:9px;font-weight:700">Widget ✗</span>
-                <span style="background:rgba(255,215,64,0.1);color:var(--yellow);border-radius:4px;padding:2px 7px;font-size:9px;font-weight:700">MKT</span>
-              </div>
+          <div class="comp-card tier-2-card">
+            <div class="comp-card-header">
+              <span class="comp-name">Bravo</span>
+              <div class="comp-tags"><span class="tag-no-iframe">X Widget</span><span class="tag-mkt">MKT</span></div>
             </div>
-            <div style="font-size:11px;color:var(--muted);line-height:1.6">
-              <strong style="color:var(--text)">מודל:</strong> Marketplace תרבות ובידור ישראלי<br>
-              <strong style="color:var(--text)">חולשה:</strong> אין כלים למפיק, רק הפצה<br>
-              <strong style="color:var(--green)">הטיעון שלנו:</strong> "XTIX = לאן + שליטה + דומיין"
-            </div>
+            <div class="comp-fee">עמלה: גבוהה</div>
+            <div class="comp-detail"><span class="lbl">מודל:</span> Marketplace ישראלי תרבות</div>
+            <div class="comp-weak">חולשה: מוסדות גדולים בלבד, לא מחזירים נתונים</div>
+            <div class="comp-opp">✦ הזדמנות: SMB שמחפש ״פחות מ-Bravo״</div>
           </div>
 
-          <div class="card" style="background:var(--surface2);border-color:rgba(255,215,64,0.15)">
-            <div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:8px">
-              <div style="font-weight:700;font-size:13px">KupatTLV (קופת ת"א)</div>
-              <div style="display:flex;gap:5px;flex-wrap:wrap;justify-content:flex-end">
-                <span style="background:rgba(42,42,61,0.8);color:var(--muted);border-radius:4px;padding:2px 7px;font-size:9px;font-weight:700">Widget ✗</span>
-                <span style="background:rgba(255,215,64,0.1);color:var(--yellow);border-radius:4px;padding:2px 7px;font-size:9px;font-weight:700">MKT</span>
-              </div>
+          <div class="comp-card tier-2-card">
+            <div class="comp-card-header">
+              <span class="comp-name">KupatTLV (קופת ת״א)</span>
+              <div class="comp-tags"><span class="tag-no-iframe">X Widget</span><span class="tag-mkt">MKT</span></div>
             </div>
-            <div style="font-size:11px;color:var(--muted);line-height:1.6">
-              <strong style="color:var(--text)">מודל:</strong> מרכז רכישה ת"א-יפו + מנויים<br>
-              <strong style="color:var(--text)">חולשה:</strong> גאוגרפי, לא מרכזי, ממשק ישן<br>
-              <strong style="color:var(--green)">הטיעון שלנו:</strong> "קהל מחוץ לת"א? צריך XTIX"
-            </div>
+            <div class="comp-fee">עמלה: גבוהה + מינויים</div>
+            <div class="comp-detail"><span class="lbl">מודל:</span> מרכז כרטיסייה עירוני</div>
+            <div class="comp-weak">חולשה: לאורגניזציות, לא fit לאמנות עצמאית</div>
+            <div class="comp-opp">✦ הזדמנות: להקות ומפיקים עצמאיים לא מקבלים fit</div>
           </div>
 
-          <div class="card" style="background:var(--surface2);border-color:rgba(255,215,64,0.15)">
-            <div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:8px">
-              <div style="font-weight:700;font-size:13px">Bravo</div>
-              <div style="display:flex;gap:5px;flex-wrap:wrap;justify-content:flex-end">
-                <span style="background:rgba(42,42,61,0.8);color:var(--muted);border-radius:4px;padding:2px 7px;font-size:9px;font-weight:700">Widget ✗</span>
-                <span style="background:rgba(255,215,64,0.1);color:var(--yellow);border-radius:4px;padding:2px 7px;font-size:9px;font-weight:700">MKT</span>
-              </div>
+          <div class="comp-card tier-2-card">
+            <div class="comp-card-header">
+              <span class="comp-name">Leaan (לאן)</span>
+              <div class="comp-tags"><span class="tag-no-iframe">X Widget</span><span class="tag-mkt">MKT</span></div>
             </div>
-            <div style="font-size:11px;color:var(--muted);line-height:1.6">
-              <strong style="color:var(--text)">מודל:</strong> Marketplace תרבות ישראלי<br>
-              <strong style="color:var(--text)">חולשה:</strong> ממוקד מוסדות גדולים, לא SMB<br>
-              <strong style="color:var(--green)">הטיעון שלנו:</strong> "מפיק קטן — Bravo לא מתייחס אליך"
-            </div>
+            <div class="comp-fee">עמלה: 4–6%</div>
+            <div class="comp-detail"><span class="lbl">מודל:</span> Marketplace ישראלי תרבות + בידור</div>
+            <div class="comp-weak">חולשה: גלגול + לא ניתן לאינטגרציה עצמית</div>
+            <div class="comp-opp">✦ הזדמנות: ״XTIX + Leaan: שניהם״ — שיתוף</div>
           </div>
 
-          <div class="card" style="background:var(--surface2);border-color:rgba(255,215,64,0.15)">
-            <div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:8px">
-              <div style="font-weight:700;font-size:13px">GO-OUT / GET IN</div>
-              <div style="display:flex;gap:5px;flex-wrap:wrap;justify-content:flex-end">
-                <span style="background:rgba(42,42,61,0.8);color:var(--muted);border-radius:4px;padding:2px 7px;font-size:9px;font-weight:700">Widget ✗</span>
-                <span style="background:rgba(255,215,64,0.1);color:var(--yellow);border-radius:4px;padding:2px 7px;font-size:9px;font-weight:700">MKT</span>
-              </div>
+          <div class="comp-card tier-2-card">
+            <div class="comp-card-header">
+              <span class="comp-name">SmarTicket (Smarticket)</span>
+              <div class="comp-tags"><span class="tag-no-iframe">X Widget</span><span class="tag-mkt">MKT</span></div>
             </div>
-            <div style="font-size:11px;color:var(--muted);line-height:1.6">
-              <strong style="color:var(--text)">מודל:</strong> אגרגטורי אירועים / מדריך בילוי<br>
-              <strong style="color:var(--text)">חולשה:</strong> לא מכירת כרטיסים בפועל<br>
-              <strong style="color:var(--green)">הטיעון שלנו:</strong> "גילוי ≠ מכירה — XTIX סוגר את הפער"
-            </div>
+            <div class="comp-fee">5–7%</div>
+            <div class="comp-detail"><span class="lbl">מודל:</span> Marketplace ישראלי תרבות ובידור</div>
+            <div class="comp-weak">חולשה: אין כלי הפצה חכם. לא ניתן לאינטגרציה</div>
+            <div class="comp-opp">✦ TOP TIER 2: הפצה + XTIX Widget = combo</div>
           </div>
 
-          <div class="card" style="background:var(--surface2);border-color:rgba(255,215,64,0.15)">
-            <div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:8px">
-              <div style="font-weight:700;font-size:13px">Zygo</div>
-              <div style="display:flex;gap:5px;flex-wrap:wrap;justify-content:flex-end">
-                <span style="background:rgba(42,42,61,0.8);color:var(--muted);border-radius:4px;padding:2px 7px;font-size:9px;font-weight:700">Widget ✗</span>
-                <span style="background:rgba(255,215,64,0.1);color:var(--yellow);border-radius:4px;padding:2px 7px;font-size:9px;font-weight:700">SOCIAL</span>
-              </div>
+          <div class="comp-card tier-2-card">
+            <div class="comp-card-header">
+              <span class="comp-name">GO-OUT / GET IN</span>
+              <div class="comp-tags"><span class="tag-no-iframe">X Widget</span><span class="tag-mkt">MKT</span></div>
             </div>
-            <div style="font-size:11px;color:var(--muted);line-height:1.6">
-              <strong style="color:var(--text)">מודל:</strong> Social-first, אירועים ברשתות<br>
-              <strong style="color:var(--text)">חולשה:</strong> ממוקד גיוס — לא מנהל אירוע<br>
-              <strong style="color:var(--green)">הטיעון שלנו:</strong> "XTIX = Zygo + מכירה + data"
-            </div>
+            <div class="comp-fee">עמלה: בילוי</div>
+            <div class="comp-detail"><span class="lbl">מודל:</span> מדריך בילוי + הפצה</div>
+            <div class="comp-weak">חולשה: לא מרכז כרטיסים. לא ניתן לשליטה</div>
+            <div class="comp-opp">✦ הזדמנות: ניוזלטר + XTIX Embed = פוטנציאל</div>
           </div>
 
         </div>
       </div>
 
-      <!-- TIER 3: Global / Enterprise -->
-      <div style="margin-bottom:20px">
-        <div style="display:flex;align-items:center;gap:10px;margin-bottom:10px">
-          <div style="background:rgba(108,99,255,0.12);border:1px solid rgba(108,99,255,0.3);border-radius:6px;padding:4px 12px;font-size:10px;font-weight:700;color:var(--accent);letter-spacing:1px">TIER 3 — גלובלי / Enterprise</div>
-          <span style="font-size:11px;color:var(--muted)">לא מתחרים ישירים בסגמנט SMB — אבל משפיעים על ציפיות</span>
+      <!-- TIER 3 -->
+      <div class="tier-section">
+        <div class="tier-header tier-3-header">
+          <span class="tier-badge-label">TIER 3</span>
+          <span class="tier-desc">Enterprise / גלובלי — לא מתחרים ישירים | לידים שלנו לא שם</span>
+          <span class="tier-count">4 מתחרים</span>
         </div>
-        <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(280px,1fr));gap:10px">
-
-          <div class="card" style="background:var(--surface2);border-color:rgba(108,99,255,0.15)">
-            <div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:8px">
-              <div style="font-weight:700;font-size:13px">Ticketmaster</div>
-              <div style="display:flex;gap:5px;flex-wrap:wrap;justify-content:flex-end">
-                <span style="background:rgba(108,99,255,0.15);color:var(--accent);border-radius:4px;padding:2px 7px;font-size:9px;font-weight:700">Widget ✓</span>
-                <span style="background:rgba(108,99,255,0.1);color:var(--accent);border-radius:4px;padding:2px 7px;font-size:9px;font-weight:700">ENTERPRISE</span>
-              </div>
-            </div>
-            <div style="font-size:11px;color:var(--muted);line-height:1.6">
-              <strong style="color:var(--text)">מודל:</strong> Enterprise גלובלי | עמלות גבוהות מאוד<br>
-              <strong style="color:var(--text)">חולשה:</strong> לא רלוונטי לSMB ישראלי — יקר מדי<br>
-              <strong style="color:var(--green)">הטיעון שלנו:</strong> "כוח Ticketmaster, מחיר SMB"
-            </div>
+        <div class="comp-grid">
+          <div class="comp-card tier-3-card">
+            <div class="comp-card-header"><span class="comp-name">Ticketmaster</span><div class="comp-tags"><span class="tag-ent">ENTERPRISE</span></div></div>
+            <div class="comp-fee">עמלה: 10–15%</div>
+            <div class="comp-weak">לא מתחרה SMB. לידים שלנו לא שם. אל תשקיע זמן.</div>
           </div>
-
-          <div class="card" style="background:var(--surface2);border-color:rgba(108,99,255,0.15)">
-            <div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:8px">
-              <div style="font-weight:700;font-size:13px">Eventim</div>
-              <div style="display:flex;gap:5px;flex-wrap:wrap;justify-content:flex-end">
-                <span style="background:rgba(108,99,255,0.15);color:var(--accent);border-radius:4px;padding:2px 7px;font-size:9px;font-weight:700">Widget ✓</span>
-                <span style="background:rgba(108,99,255,0.1);color:var(--accent);border-radius:4px;padding:2px 7px;font-size:9px;font-weight:700">ENTERPRISE</span>
-              </div>
-            </div>
-            <div style="font-size:11px;color:var(--muted);line-height:1.6">
-              <strong style="color:var(--text)">מודל:</strong> אירופי/גלובלי | חזק בישראל דרך שותפים<br>
-              <strong style="color:var(--text)">חולשה:</strong> מינימום transaction גבוה, בירוקרטי<br>
-              <strong style="color:var(--green)">הטיעון שלנו:</strong> "Eventim ישראלי — בלי הניירת"
-            </div>
+          <div class="comp-card tier-3-card">
+            <div class="comp-card-header"><span class="comp-name">Eventim</span><div class="comp-tags"><span class="tag-ent">ENTERPRISE</span></div></div>
+            <div class="comp-fee">עמלה: Enterprise</div>
+            <div class="comp-weak">גלובלי, לא ישראלי. Enterprise only. לא fit.</div>
           </div>
-
-          <div class="card" style="background:var(--surface2);border-color:rgba(108,99,255,0.15)">
-            <div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:8px">
-              <div style="font-weight:700;font-size:13px">Selector</div>
-              <div style="display:flex;gap:5px;flex-wrap:wrap;justify-content:flex-end">
-                <span style="background:rgba(108,99,255,0.15);color:var(--accent);border-radius:4px;padding:2px 7px;font-size:9px;font-weight:700">Widget ✓</span>
-                <span style="background:rgba(108,99,255,0.1);color:var(--accent);border-radius:4px;padding:2px 7px;font-size:9px;font-weight:700">MID/ENT</span>
-              </div>
-            </div>
-            <div style="font-size:11px;color:var(--muted);line-height:1.6">
-              <strong style="color:var(--text)">מודל:</strong> פלטפורמה לתיאטראות/מוזיאונים<br>
-              <strong style="color:var(--text)">חולשה:</strong> יקר, מורכב לאינטגרציה, לא agile<br>
-              <strong style="color:var(--green)">הטיעון שלנו:</strong> "XTIX = Selector במחיר נגיש + AI"
-            </div>
+          <div class="comp-card tier-3-card">
+            <div class="comp-card-header"><span class="comp-name">Selector</span><div class="comp-tags"><span class="tag-ent">ENTERPRISE</span><span class="tag-iframe">Widget ✓</span></div></div>
+            <div class="comp-fee">עמלה: יקר מאוד</div>
+            <div class="comp-weak">Enterprise בלבד. AI + Widget — אבל ₪₪₪. SMB לא יכול.</div>
+            <div class="comp-opp">✦ הזדמנות: SMB שנדחה מ-Selector → XTIX</div>
           </div>
-
-          <div class="card" style="background:var(--surface2);border-color:rgba(108,99,255,0.15)">
-            <div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:8px">
-              <div style="font-weight:700;font-size:13px">LiveTickets</div>
-              <div style="display:flex;gap:5px;flex-wrap:wrap;justify-content:flex-end">
-                <span style="background:rgba(42,42,61,0.8);color:var(--muted);border-radius:4px;padding:2px 7px;font-size:9px;font-weight:700">Widget ~</span>
-                <span style="background:rgba(108,99,255,0.1);color:var(--accent);border-radius:4px;padding:2px 7px;font-size:9px;font-weight:700">MID</span>
-              </div>
-            </div>
-            <div style="font-size:11px;color:var(--muted);line-height:1.6">
-              <strong style="color:var(--text)">מודל:</strong> פלטפורמה ישראלית mid-market<br>
-              <strong style="color:var(--text)">חולשה:</strong> שירות לא עקבי, ממשק מיושן<br>
-              <strong style="color:var(--green)">הטיעון שלנו:</strong> "AI + UX מודרני + שירות"
-            </div>
+          <div class="comp-card tier-3-card">
+            <div class="comp-card-header"><span class="comp-name">LiveTickets</span><div class="comp-tags"><span class="tag-ent">MID/ENT</span><span class="tag-iframe">Widget ✓</span></div></div>
+            <div class="comp-fee">עמלה: mid-market</div>
+            <div class="comp-weak">Mid-market. Widget קיים. שירות לא אגיל. AI ≈ XTIX.</div>
+            <div class="comp-opp">✦ הזדמנות: XTIX = Selector בתמחור SMB</div>
           </div>
-
         </div>
       </div>
 
-      <!-- Summary bar -->
-      <div style="background:var(--surface2);border:1px solid var(--border);border-radius:12px;padding:16px;display:grid;grid-template-columns:repeat(4,1fr);gap:12px;text-align:center">
-        <div><div style="font-size:22px;font-weight:800;color:var(--accent2)">7</div><div style="font-size:10px;color:var(--muted);margin-top:2px">מתחרים ישירים<br>Tier 1</div></div>
-        <div><div style="font-size:22px;font-weight:800;color:var(--yellow)">6</div><div style="font-size:10px;color:var(--muted);margin-top:2px">Marketplaces<br>Tier 2 — לידים ישנם</div></div>
-        <div><div style="font-size:22px;font-weight:800;color:var(--accent)">5</div><div style="font-size:10px;color:var(--muted);margin-top:2px">גלובלי/Enterprise<br>Tier 3</div></div>
-        <div><div style="font-size:22px;font-weight:800;color:var(--green)">11</div><div style="font-size:10px;color:var(--muted);margin-top:2px">מתחרים ללא iFrame<br>→ לידים פוטנציאלים</div></div>
+      <!-- XTIX advantages vs competition -->
+      <div style="margin-top:24px">
+        <div style="font-size:11px;color:var(--t3);letter-spacing:1px;text-transform:uppercase;margin-bottom:12px">יתרון XTIX vs. כל המתחרים</div>
+        <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(220px,1fr));gap:8px">
+          <div class="xtix-adv-card"><div class="adv-icon">🔌</div><div><div class="adv-title">Widget מוטמע</div><div class="adv-sub">הקהל לא עוזב האתר — רק Tickchak + Selector מציעים, וישנים</div></div></div>
+          <div class="xtix-adv-card"><div class="adv-icon">💰</div><div><div class="adv-title">2.5% עמלה flat</div><div class="adv-sub">הכי זול בשוק — חיסכון ₪52,500/שנה על 10K כרטיסים</div></div></div>
+          <div class="xtix-adv-card"><div class="adv-icon">📊</div><div><div class="adv-title">100% Data למפיק</div><div class="adv-sub">Database אמיתי, retargeting, קהל נאמן — אין מתחרה שנותן זאת</div></div></div>
+          <div class="xtix-adv-card"><div class="adv-icon">🤖</div><div><div class="adv-title">AI Analytics</div><div class="adv-sub">ניתוח קהל, תחזיות מכירה, Scoring — ייחודי לחלוטין</div></div></div>
+          <div class="xtix-adv-card"><div class="adv-icon">⚡</div><div><div class="adv-title">Early Bird אוטומטי</div><div class="adv-sub">40% מהכרטיסים נמכרים ב-72 שעות — אין ב-Smarticket/Leaan</div></div></div>
+          <div class="xtix-adv-card"><div class="adv-icon">🔗</div><div><div class="adv-title">HubSpot/CRM</div><div class="adv-sub">מעקב לידים + אוטומציה מלאה — אין במתחרים ישראלים</div></div></div>
+        </div>
       </div>
+
     </div>
 
-    <!-- ======= TAB 2: XTIX POSITIONING ======= -->
+    <!-- ======= TAB 2: POSITIONING ======= -->
     <div class="meth-panel" id="market-positioning">
-      <p style="font-size:12px;color:var(--muted);margin-bottom:16px;line-height:1.7">
-        <em>SF BP #12 — Tailor the pitch to the prospect's industry:</em> כל סגמנט שוק שונה. ההצעה לסגמנט Tribute Band שונה מהצעה לתיאטרון שונה מהצעה לפסטיבל. כאן — הפוזיציונינג של XTIX לכל אחד.
-      </p>
 
-      <div style="display:grid;grid-template-columns:1fr 1fr;gap:14px;margin-bottom:16px">
+      <div style="margin-bottom:22px">
+        <div style="font-size:11px;color:var(--t3);letter-spacing:1.2px;text-transform:uppercase;margin-bottom:6px">SF BP #12 — Tailor the Pitch · BP #2 — Buyer Persona</div>
+        <h2 style="font-size:18px;font-weight:800;color:var(--t1);margin:0 0 6px">🎯 פוזיציונינג XTIX לפי סגמנט</h2>
+        <p style="font-size:12px;color:var(--t3);line-height:1.7;max-width:700px">כל סגמנט שוק שונה. הכאב של תיאטרון ≠ כאב של להקת טריביוט ≠ כאב של פסטיבל. ה-pitch חייב להיות ספציפי לסגמנט.</p>
+      </div>
 
-        <div class="card">
-          <div class="card-title"><div class="dot" style="background:#a78bfa"></div>סגמנט A — מפיקי טריביוט / להקות עצמאיות</div>
-          <div style="font-size:12px;line-height:1.8">
-            <div style="display:flex;gap:8px;margin-bottom:6px"><span style="color:var(--accent2);font-weight:700;min-width:60px">כאב #1:</span><span style="color:var(--muted)">מוכרים דרך Smarticket — הקהל לא שלהם</span></div>
-            <div style="display:flex;gap:8px;margin-bottom:6px"><span style="color:var(--accent2);font-weight:700;min-width:60px">כאב #2:</span><span style="color:var(--muted)">כפל פלטפורמות = כפל עמלות + כפל ניהול</span></div>
-            <div style="display:flex;gap:8px;margin-bottom:6px"><span style="color:var(--accent2);font-weight:700;min-width:60px">כאב #3:</span><span style="color:var(--muted)">אין Early Bird / Last Minute אוטומטי</span></div>
-            <div style="height:1px;background:var(--border);margin:10px 0"></div>
-            <div style="display:flex;gap:8px;margin-bottom:6px"><span style="color:var(--green);font-weight:700;min-width:60px">XTIX:</span><span style="color:var(--muted)">iFrame בדומיין + DB קהל פרטי + עמלה נמוכה</span></div>
-            <div style="display:flex;gap:8px;margin-bottom:6px"><span style="color:var(--green);font-weight:700;min-width:60px">Pitch:</span><span style="color:var(--muted)">"הקהל שלך, הנתונים שלך, הברנד שלך"</span></div>
-            <div style="display:flex;gap:8px"><span style="color:var(--yellow);font-weight:700;min-width:60px">vs:</span><span style="color:var(--muted)">Tickchak, Easytix, Smarticket, Mevalim</span></div>
+      <!-- Core pitch formula -->
+      <div style="background:linear-gradient(135deg,rgba(59,130,246,0.08),rgba(139,92,246,0.08));border:1px solid rgba(139,92,246,0.2);border-radius:12px;padding:16px 20px;margin-bottom:24px;display:flex;align-items:center;gap:16px">
+        <div style="font-size:28px">⚡</div>
+        <div>
+          <div style="font-size:11px;color:var(--t3);letter-spacing:1px;text-transform:uppercase;margin-bottom:4px">עיקרון #1 — מתודולוגיה v2.0</div>
+          <div style="font-size:14px;font-weight:700;color:var(--t1)">"אל תדבר על XTIX — דבר על הכסף שהוא מפסיד היום"</div>
+          <div style="font-size:11px;color:var(--t3);margin-top:3px">יחס דיבור 30/70 | כל ליד מקבל ניתוח AI לפני פנייה | מגיעים עם נתונים ספציפיים</div>
+        </div>
+      </div>
+
+      <!-- Four Fs model -->
+      <div style="margin-bottom:24px">
+        <div style="font-size:12px;font-weight:700;color:var(--t2);margin-bottom:12px;display:flex;align-items:center;gap:8px">
+          <div style="width:3px;height:16px;background:#f59e0b;border-radius:2px"></div>
+          מודל Four Fs — Pain Discovery
+        </div>
+        <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:8px">
+          <div class="four-f-card" style="border-color:rgba(59,130,246,0.3)">
+            <div class="four-f-letter" style="color:#3b82f6">F1</div>
+            <div class="four-f-title">First</div>
+            <div class="four-f-q">"איך אתם מוכרים כרטיסים היום?"</div>
+            <div class="four-f-learn">פלטפורמה, תהליך, עמלות</div>
+          </div>
+          <div class="four-f-card" style="border-color:rgba(16,185,129,0.3)">
+            <div class="four-f-letter" style="color:#10b981">F2</div>
+            <div class="four-f-title">Finest</div>
+            <div class="four-f-q">"מה הכי נוח בפלטפורמה הנוכחית?"</div>
+            <div class="four-f-learn">מה חשוב → מה לא לשבור</div>
+          </div>
+          <div class="four-f-card" style="border-color:rgba(239,68,68,0.3)">
+            <div class="four-f-letter" style="color:#ef4444">F3</div>
+            <div class="four-f-title">Failure</div>
+            <div class="four-f-q">"מי מחזיק את הנתונים על הקהל שלכם?"</div>
+            <div class="four-f-learn">כאב הנתונים — pain מרכזי</div>
+          </div>
+          <div class="four-f-card" style="border-color:rgba(139,92,246,0.3)">
+            <div class="four-f-letter" style="color:#a78bfa">F4</div>
+            <div class="four-f-title">Future</div>
+            <div class="four-f-q">"איך נראה ההופעה הבאה עם 40% יותר קהל חוזר?"</div>
+            <div class="four-f-learn">חזון + מוטיבציה</div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Segment positioning cards -->
+      <div style="font-size:12px;font-weight:700;color:var(--t2);margin-bottom:12px;display:flex;align-items:center;gap:8px">
+        <div style="width:3px;height:16px;background:#a78bfa;border-radius:2px"></div>
+        פוזיציונינג לפי סגמנט
+      </div>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px">
+
+        <div class="seg-card">
+          <div class="seg-header" style="background:rgba(139,92,246,0.1);border-color:rgba(139,92,246,0.2)">
+            <span class="seg-icon">🎸</span>
+            <div><div class="seg-title">A — מפיקי טריביוט / להקות עצמאיות</div><div class="seg-vs">vs. Tickchak · Easytix · Smarticket · Mevalim</div></div>
+          </div>
+          <div class="seg-body">
+            <div class="seg-pain"><span class="seg-pain-dot" style="background:#ef4444"></span><strong>כאב #1:</strong> מוכרים דרך Smarticket — הקהל לא שלהם</div>
+            <div class="seg-pain"><span class="seg-pain-dot" style="background:#ef4444"></span><strong>כאב #2:</strong> כפל פלטפורמות = כפל עמלות + ניהול</div>
+            <div class="seg-pain"><span class="seg-pain-dot" style="background:#ef4444"></span><strong>כאב #3:</strong> אין Early Bird / Last Minute אוטומטי</div>
+            <div class="seg-divider"></div>
+            <div class="seg-solution"><span class="seg-sol-dot"></span><strong>XTIX:</strong> iFrame בדומיין + DB קהל פרטי + עמלה נמוכה</div>
+            <div class="seg-pitch">"הקהל שלך, הנתונים שלך, הברנד שלך"</div>
           </div>
         </div>
 
-        <div class="card">
-          <div class="card-title"><div class="dot" style="background:#f472b6"></div>סגמנט B — תיאטראות ומרכזי תרבות</div>
-          <div style="font-size:12px;line-height:1.8">
-            <div style="display:flex;gap:8px;margin-bottom:6px"><span style="color:var(--accent2);font-weight:700;min-width:60px">כאב #1:</span><span style="color:var(--muted)">מושבים ריקים = הכנסה אבודה</span></div>
-            <div style="display:flex;gap:8px;margin-bottom:6px"><span style="color:var(--accent2);font-weight:700;min-width:60px">כאב #2:</span><span style="color:var(--muted)">קהל מנויים רווי — אין ערוץ לקהל חדש</span></div>
-            <div style="display:flex;gap:8px;margin-bottom:6px"><span style="color:var(--accent2);font-weight:700;min-width:60px">כאב #3:</span><span style="color:var(--muted)">אין API למפיצים / Marketplace</span></div>
-            <div style="height:1px;background:var(--border);margin:10px 0"></div>
-            <div style="display:flex;gap:8px;margin-bottom:6px"><span style="color:var(--green);font-weight:700;min-width:60px">XTIX:</span><span style="color:var(--muted)">API על מערכת קיימת + Marketplace + Last Minute</span></div>
-            <div style="display:flex;gap:8px;margin-bottom:6px"><span style="color:var(--green);font-weight:700;min-width:60px">Pitch:</span><span style="color:var(--muted)">"הכנסה ממושבים שהיו ריקים — אפס שינוי"</span></div>
-            <div style="display:flex;gap:8px"><span style="color:var(--yellow);font-weight:700;min-width:60px">vs:</span><span style="color:var(--muted)">Bravo, Selector, KupatTLV, Eventim</span></div>
+        <div class="seg-card">
+          <div class="seg-header" style="background:rgba(244,114,182,0.1);border-color:rgba(244,114,182,0.2)">
+            <span class="seg-icon">🎭</span>
+            <div><div class="seg-title">B — תיאטראות ומרכזי תרבות</div><div class="seg-vs">vs. Bravo · KupatTLV · Leaan · Eventim</div></div>
+          </div>
+          <div class="seg-body">
+            <div class="seg-pain"><span class="seg-pain-dot" style="background:#ef4444"></span><strong>כאב #1:</strong> מושבים ריקים = הכנסה אבודה</div>
+            <div class="seg-pain"><span class="seg-pain-dot" style="background:#ef4444"></span><strong>כאב #2:</strong> קהל מנויים רווי — אין ערוץ לקהל חדש</div>
+            <div class="seg-pain"><span class="seg-pain-dot" style="background:#ef4444"></span><strong>כאב #3:</strong> אין API למפיצים / Marketplace</div>
+            <div class="seg-divider"></div>
+            <div class="seg-solution"><span class="seg-sol-dot"></span><strong>XTIX:</strong> Dynamic pricing + retargeting + קהל חדש</div>
+            <div class="seg-pitch">"מלא את האולם — בלי להוזיל את הברנד"</div>
           </div>
         </div>
 
-        <div class="card">
-          <div class="card-title"><div class="dot" style="background:#34d399"></div>סגמנט C — מפיקי סטנדאפ / Comedy</div>
-          <div style="font-size:12px;line-height:1.8">
-            <div style="display:flex;gap:8px;margin-bottom:6px"><span style="color:var(--accent2);font-weight:700;min-width:60px">כאב #1:</span><span style="color:var(--muted)">מכירה רק דרך FB/WhatsApp — אין מערכת</span></div>
-            <div style="display:flex;gap:8px;margin-bottom:6px"><span style="color:var(--accent2);font-weight:700;min-width:60px">כאב #2:</span><span style="color:var(--muted)">אין tracking — לא יודעים מי בא</span></div>
-            <div style="display:flex;gap:8px;margin-bottom:6px"><span style="color:var(--accent2);font-weight:700;min-width:60px">כאב #3:</span><span style="color:var(--muted)">ביטולים ידניים, כאב ראש תפעולי</span></div>
-            <div style="height:1px;background:var(--border);margin:10px 0"></div>
-            <div style="display:flex;gap:8px;margin-bottom:6px"><span style="color:var(--green);font-weight:700;min-width:60px">XTIX:</span><span style="color:var(--muted)">Sell from Social + Linktree integration + Auto-refund</span></div>
-            <div style="display:flex;gap:8px;margin-bottom:6px"><span style="color:var(--green);font-weight:700;min-width:60px">Pitch:</span><span style="color:var(--muted)">"מוכרים מה-Bio תוך 3 דקות"</span></div>
-            <div style="display:flex;gap:8px"><span style="color:var(--yellow);font-weight:700;min-width:60px">vs:</span><span style="color:var(--muted)">Eventobot, Lineapp, Zygo, Glatticket</span></div>
+        <div class="seg-card">
+          <div class="seg-header" style="background:rgba(245,158,11,0.1);border-color:rgba(245,158,11,0.2)">
+            <span class="seg-icon">🎪</span>
+            <div><div class="seg-title">C — פסטיבלים ואירועי חוץ</div><div class="seg-vs">vs. Ticketmaster · LiveTickets · Selector</div></div>
+          </div>
+          <div class="seg-body">
+            <div class="seg-pain"><span class="seg-pain-dot" style="background:#ef4444"></span><strong>כאב #1:</strong> עמלות ענק = ₪100K+ לפסטיבל גדול</div>
+            <div class="seg-pain"><span class="seg-pain-dot" style="background:#ef4444"></span><strong>כאב #2:</strong> אין ניהול מלוא הפסטיבל מפלטפורמה אחת</div>
+            <div class="seg-pain"><span class="seg-pain-dot" style="background:#ef4444"></span><strong>כאב #3:</strong> אין white-label, הברנד אבוד</div>
+            <div class="seg-divider"></div>
+            <div class="seg-solution"><span class="seg-sol-dot"></span><strong>XTIX:</strong> פלטפורמה מלאה + white-label + עמלה 2.5%</div>
+            <div class="seg-pitch">"Ticketmaster בתמחור SMB — עם AI ועם הנתונים שלך"</div>
           </div>
         </div>
 
-        <div class="card">
-          <div class="card-title"><div class="dot" style="background:#fb923c"></div>סגמנט D — פסטיבלים / אירועי ספורט</div>
-          <div style="font-size:12px;line-height:1.8">
-            <div style="display:flex;gap:8px;margin-bottom:6px"><span style="color:var(--accent2);font-weight:700;min-width:60px">כאב #1:</span><span style="color:var(--muted)">כרטיסים נמכרים על 3–4 ערוצים — בלאגן</span></div>
-            <div style="display:flex;gap:8px;margin-bottom:6px"><span style="color:var(--accent2);font-weight:700;min-width:60px">כאב #2:</span><span style="color:var(--muted)">אין scan QR בשטח + אין access control</span></div>
-            <div style="display:flex;gap:8px;margin-bottom:6px"><span style="color:var(--accent2);font-weight:700;min-width:60px">כאב #3:</span><span style="color:var(--muted)">אין תמחור דינמי לעומסים / ימים</span></div>
-            <div style="height:1px;background:var(--border);margin:10px 0"></div>
-            <div style="display:flex;gap:8px;margin-bottom:6px"><span style="color:var(--green);font-weight:700;min-width:60px">XTIX:</span><span style="color:var(--muted)">Unified dashboard + QR Scan + Dynamic Pricing</span></div>
-            <div style="display:flex;gap:8px;margin-bottom:6px"><span style="color:var(--green);font-weight:700;min-width:60px">Pitch:</span><span style="color:var(--muted)">"כרטיס אחד, דשבורד אחד, פחות כאב ראש"</span></div>
-            <div style="display:flex;gap:8px"><span style="color:var(--yellow);font-weight:700;min-width:60px">vs:</span><span style="color:var(--muted)">Eventim, Ticketmaster, Eventer, Easytix</span></div>
+        <div class="seg-card">
+          <div class="seg-header" style="background:rgba(16,185,129,0.1);border-color:rgba(16,185,129,0.2)">
+            <span class="seg-icon">🎤</span>
+            <div><div class="seg-title">D — מוזיקה, קונצרטים, סטנד-אפ</div><div class="seg-vs">vs. Eventer · Eventbuzz · GO-OUT</div></div>
+          </div>
+          <div class="seg-body">
+            <div class="seg-pain"><span class="seg-pain-dot" style="background:#ef4444"></span><strong>כאב #1:</strong> מוכרים דרך מרקטפלייס — חוזרים לפלטפורמה</div>
+            <div class="seg-pain"><span class="seg-pain-dot" style="background:#ef4444"></span><strong>כאב #2:</strong> אין follow-up אוטומטי לקהל</div>
+            <div class="seg-pain"><span class="seg-pain-dot" style="background:#ef4444"></span><strong>כאב #3:</strong> Social ≠ מכירות — חסר bridge</div>
+            <div class="seg-divider"></div>
+            <div class="seg-solution"><span class="seg-sol-dot"></span><strong>XTIX:</strong> Social → Widget → Database → Early Bird</div>
+            <div class="seg-pitch">"הופך את ה-Instagram followers שלך ללקוחות"</div>
           </div>
         </div>
 
       </div>
 
-      <!-- SF BP #9 Trust box -->
-      <div class="apply-box">
-        <h4>🏆 יתרון XTIX על כולם — SF BP #9 Trust + BP #10 AI</h4>
-        <div class="apply-row"><span class="apply-icon">🤖</span><span><strong>AI Copilot:</strong> אף מתחרה ישראלי לא מציע תמחור דינמי מבוסס AI. זה Unique Differentiator בשוק.</span></div>
-        <div class="apply-row"><span class="apply-icon">🔌</span><span><strong>iFrame בדומיין פרטי:</strong> רק Tickchak ו-Eventer מציעים זאת — ובאיכות נמוכה יותר.</span></div>
-        <div class="apply-row"><span class="apply-icon">🌐</span><span><strong>Marketplace בינלאומי:</strong> אין שום מתחרה ישראלי שמציע גישה לתיירים בינלאומיים.</span></div>
-        <div class="apply-row"><span class="apply-icon">📊</span><span><strong>First-party data:</strong> כל מתחרי ה-Marketplace שומרים את נתוני הקהל לעצמם. XTIX מחזיר אותם למפיק.</span></div>
-      </div>
     </div>
 
-    <!-- ======= TAB 4: SCORING MATRIX ======= -->
+    <!-- ======= TAB 3: SCORING MATRIX ======= -->
     <div class="meth-panel" id="market-scoring">
-      <p style="font-size:12px;color:var(--muted);margin-bottom:16px;line-height:1.7">
-        <em>SF BP #5 Pipeline Stages + BP #15 Sales Data:</em> טבלת הניקוד המלאה — 8 פרמטרים עם משקלים. משמשת את ה-Lead Finder ואת ניקוד הלידים הנוכחיים.
-      </p>
 
-      <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-bottom:16px">
-        <div class="card">
-          <div class="card-title"><div class="dot"></div>📊 פרמטרי ניקוד — Lead Score (מתוך 100)</div>
-          <table class="meth-table">
-            <thead><tr><th>פרמטר</th><th>ערך גבוה</th><th>ערך בינוני</th><th>מקסימום</th></tr></thead>
+      <div style="margin-bottom:22px">
+        <div style="font-size:11px;color:var(--t3);letter-spacing:1.2px;text-transform:uppercase;margin-bottom:6px">SF BP #5 Pipeline Stages · BP #15 Sales Data</div>
+        <h2 style="font-size:18px;font-weight:800;color:var(--t1);margin:0 0 6px">📊 Scoring Matrix — Lead Score 0–100</h2>
+        <p style="font-size:12px;color:var(--t3);line-height:1.7;max-width:700px">8 פרמטרים עם משקלים לפי המתודולוגיה v2.0. ציון קובע את ה-Tier ואת אסטרטגיית הפנייה.</p>
+      </div>
+
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-bottom:20px">
+
+        <!-- Scoring params table -->
+        <div class="score-panel-card">
+          <div class="score-panel-title">פרמטרי ניקוד</div>
+          <div style="display:flex;flex-direction:column;gap:6px">
+
+            <div class="score-param-row">
+              <div class="score-param-name">🌐 דומיין פרטי פעיל</div>
+              <div class="score-param-bars">
+                <div class="score-bar-seg green-seg" style="width:100%">אתר מלא — 20</div>
+              </div>
+              <div class="score-param-max">20</div>
+            </div>
+
+            <div class="score-param-row">
+              <div class="score-param-name">🎟 מוכר דרך צד ג'</div>
+              <div class="score-param-bars">
+                <div class="score-bar-seg green-seg" style="width:100%">Smarticket/Bravo — 15</div>
+              </div>
+              <div class="score-param-max">15</div>
+            </div>
+
+            <div class="score-param-row">
+              <div class="score-param-name">📅 תדירות אירועים</div>
+              <div class="score-param-bars">
+                <div class="score-bar-seg green-seg" style="width:100%">6+ אירועים — 15</div>
+              </div>
+              <div class="score-param-max">15</div>
+            </div>
+
+            <div class="score-param-row">
+              <div class="score-param-name">💰 גודל קהל/אירוע</div>
+              <div class="score-param-bars">
+                <div class="score-bar-seg yellow-seg" style="width:100%">500+ — 10</div>
+              </div>
+              <div class="score-param-max">10</div>
+            </div>
+
+            <div class="score-param-row">
+              <div class="score-param-name">📱 Social Presence</div>
+              <div class="score-param-bars">
+                <div class="score-bar-seg yellow-seg" style="width:100%">פעיל 10K+ — 10</div>
+              </div>
+              <div class="score-param-max">10</div>
+            </div>
+
+            <div class="score-param-row">
+              <div class="score-param-name">📧 מייל ישיר</div>
+              <div class="score-param-bars">
+                <div class="score-bar-seg yellow-seg" style="width:100%">שם + מייל — 10</div>
+              </div>
+              <div class="score-param-max">10</div>
+            </div>
+
+            <div class="score-param-row">
+              <div class="score-param-name">⏱ Urgency</div>
+              <div class="score-param-bars">
+                <div class="score-bar-seg yellow-seg" style="width:100%">תוך חודש — 10</div>
+              </div>
+              <div class="score-param-max">10</div>
+            </div>
+
+            <div class="score-param-row">
+              <div class="score-param-name">🏷 סגמנט תרבות</div>
+              <div class="score-param-bars">
+                <div class="score-bar-seg yellow-seg" style="width:100%">תרבות/מוזיקה — 10</div>
+              </div>
+              <div class="score-param-max">10</div>
+            </div>
+
+            <div style="border-top:1px solid var(--b1);padding-top:8px;display:flex;justify-content:space-between;font-size:12px;font-weight:700;color:var(--t1)">
+              <span>סה"כ מקסימום</span><span style="color:#10b981">100 נקודות</span>
+            </div>
+          </div>
+        </div>
+
+        <!-- Tier interpretation -->
+        <div style="display:flex;flex-direction:column;gap:10px">
+          <div class="tier-interp-card" style="border-color:rgba(16,185,129,0.3);background:rgba(16,185,129,0.06)">
+            <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px">
+              <div style="display:flex;align-items:center;gap:8px">
+                <div style="width:10px;height:10px;border-radius:50%;background:#10b981"></div>
+                <strong style="color:#10b981;font-size:13px">80–100 🔥 Hot Lead</strong>
+              </div>
+              <span class="tier-action-badge" style="background:rgba(16,185,129,0.15);color:#10b981">Email #1 היום</span>
+            </div>
+            <div style="font-size:11px;color:var(--t3);line-height:1.6">SF BP #6: עדיפות ראשונה. דומיין + מוכר דרך צד ג' + אירוע קרוב. לא לחכות.</div>
+            <div style="font-size:11px;color:var(--t3);margin-top:4px">Cadence: <strong style="color:#10b981">Hot — 4 מיילים ב-10 ימים</strong></div>
+          </div>
+
+          <div class="tier-interp-card" style="border-color:rgba(245,158,11,0.3);background:rgba(245,158,11,0.06)">
+            <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px">
+              <div style="display:flex;align-items:center;gap:8px">
+                <div style="width:10px;height:10px;border-radius:50%;background:#f59e0b"></div>
+                <strong style="color:#f59e0b;font-size:13px">60–79 ⚡ Warm Lead</strong>
+              </div>
+              <span class="tier-action-badge" style="background:rgba(245,158,11,0.15);color:#f59e0b">Follow + פנה</span>
+            </div>
+            <div style="font-size:11px;color:var(--t3);line-height:1.6">SF BP #9 Trust: Follow ברשתות, הגב לפוסטים — אחר כך פנה עם insight ספציפי.</div>
+            <div style="font-size:11px;color:var(--t3);margin-top:4px">Cadence: <strong style="color:#f59e0b">Warm — 4 מיילים ב-21 ימים</strong></div>
+          </div>
+
+          <div class="tier-interp-card" style="border-color:rgba(59,130,246,0.3);background:rgba(59,130,246,0.06)">
+            <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px">
+              <div style="display:flex;align-items:center;gap:8px">
+                <div style="width:10px;height:10px;border-radius:50%;background:#3b82f6"></div>
+                <strong style="color:#3b82f6;font-size:13px">40–59 🧊 Cool Lead</strong>
+              </div>
+              <span class="tier-action-badge" style="background:rgba(59,130,246,0.15);color:#3b82f6">Watchlist</span>
+            </div>
+            <div style="font-size:11px;color:var(--t3);line-height:1.6">SF BP #17 Nurture: שמור ברשימה. פנה כשיש אירוע חדש — Urgency קופץ.</div>
+            <div style="font-size:11px;color:var(--t3);margin-top:4px">Cadence: <strong style="color:#3b82f6">Cool — 4 מיילים ב-45 ימים</strong></div>
+          </div>
+
+          <div class="tier-interp-card" style="border-color:var(--b1);background:rgba(255,255,255,0.02)">
+            <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px">
+              <div style="display:flex;align-items:center;gap:8px">
+                <div style="width:10px;height:10px;border-radius:50%;background:var(--t3)"></div>
+                <strong style="color:var(--t3);font-size:13px">0–39 ❌ Not Now</strong>
+              </div>
+              <span class="tier-action-badge" style="background:var(--s2);color:var(--t3)">Pass</span>
+            </div>
+            <div style="font-size:11px;color:var(--t3);line-height:1.6">SF BP #6: לא מתאים ל-ICP. אין דומיין / Enterprise / אירוע חד-פעמי. לא להשקיע זמן.</div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Validation table -->
+      <div class="score-panel-card">
+        <div class="score-panel-title">✅ ולידציה — הלידים הנוכחיים לפי ה-Matrix</div>
+        <div style="overflow-x:auto">
+          <table class="validation-table">
+            <thead>
+              <tr>
+                <th>ליד</th>
+                <th>🌐 דומיין<br><span style="font-weight:400;color:var(--t3)">/20</span></th>
+                <th>🎟 צד ג'<br><span style="font-weight:400;color:var(--t3)">/15</span></th>
+                <th>📅 תדירות<br><span style="font-weight:400;color:var(--t3)">/15</span></th>
+                <th>💰 גודל<br><span style="font-weight:400;color:var(--t3)">/10</span></th>
+                <th>📱 Social<br><span style="font-weight:400;color:var(--t3)">/10</span></th>
+                <th>📧 מייל<br><span style="font-weight:400;color:var(--t3)">/10</span></th>
+                <th>⏱ Urgency<br><span style="font-weight:400;color:var(--t3)">/10</span></th>
+                <th>🏷 סגמנט<br><span style="font-weight:400;color:var(--t3)">/10</span></th>
+                <th>סה"כ</th>
+                <th>Tier</th>
+              </tr>
+            </thead>
             <tbody>
-              <tr><td>🌐 <strong>דומיין פרטי פעיל</strong></td><td style="color:var(--green)">אתר מלא (20)</td><td style="color:var(--yellow)">Landing (10)</td><td><strong>20</strong></td></tr>
-              <tr><td>🎟 <strong>מוכר דרך צד ג'</strong></td><td style="color:var(--green)">Smarticket/Bravo (15)</td><td style="color:var(--yellow)">מתחרה אחר (8)</td><td><strong>15</strong></td></tr>
-              <tr><td>📅 <strong>תדירות אירועים</strong></td><td style="color:var(--green)">6+ (15)</td><td style="color:var(--yellow)">2–5 (10)</td><td><strong>15</strong></td></tr>
-              <tr><td>💰 <strong>גודל אירוע</strong></td><td style="color:var(--green)">500+ (10)</td><td style="color:var(--yellow)">100–500 (7)</td><td><strong>10</strong></td></tr>
-              <tr><td>📱 <strong>Social Presence</strong></td><td style="color:var(--green)">פעיל (10)</td><td style="color:var(--yellow)">קיים (5)</td><td><strong>10</strong></td></tr>
-              <tr><td>📧 <strong>מייל ישיר</strong></td><td style="color:var(--green)">שם + מייל (10)</td><td style="color:var(--yellow)">טופס/LI (5)</td><td><strong>10</strong></td></tr>
-              <tr><td>⏱ <strong>Urgency</strong></td><td style="color:var(--green)">תוך חודש (10)</td><td style="color:var(--yellow)">1–3 חודש (5)</td><td><strong>10</strong></td></tr>
-              <tr><td>🏷 <strong>סגמנט תרבות</strong></td><td style="color:var(--green)">תרבות/מוזיקה (10)</td><td style="color:var(--yellow)">ספורט/קומדי (7)</td><td><strong>10</strong></td></tr>
+              <tr>
+                <td><strong>שומרי המלכה</strong></td>
+                <td class="score-cell green-cell">20 ✓</td>
+                <td class="score-cell green-cell">15 ✓</td>
+                <td class="score-cell green-cell">10 ✓</td>
+                <td class="score-cell yellow-cell">7 ~</td>
+                <td class="score-cell green-cell">10 ✓</td>
+                <td class="score-cell green-cell">10 ✓</td>
+                <td class="score-cell green-cell">10 ✓</td>
+                <td class="score-cell green-cell">10 ✓</td>
+                <td class="score-cell total-cell" style="color:#10b981">92 🔥</td>
+                <td><span class="tier-pill hot-pill">Hot</span></td>
+              </tr>
+              <tr>
+                <td><strong>בית ליסין</strong></td>
+                <td class="score-cell green-cell">20 ✓</td>
+                <td class="score-cell yellow-cell">8 ~</td>
+                <td class="score-cell green-cell">15 ✓</td>
+                <td class="score-cell green-cell">10 ✓</td>
+                <td class="score-cell yellow-cell">8 ~</td>
+                <td class="score-cell yellow-cell">5 ~</td>
+                <td class="score-cell yellow-cell">5 ~</td>
+                <td class="score-cell green-cell">10 ✓</td>
+                <td class="score-cell total-cell" style="color:#10b981">81 🔥</td>
+                <td><span class="tier-pill hot-pill">Hot</span></td>
+              </tr>
             </tbody>
           </table>
         </div>
-
-        <div class="card">
-          <div class="card-title"><div class="dot" style="background:var(--yellow)"></div>🎯 פרשנות ציון + Action לפי SF</div>
-          <div style="display:flex;flex-direction:column;gap:10px;margin-top:4px">
-            <div style="background:rgba(0,230,118,0.08);border:1px solid rgba(0,230,118,0.25);border-radius:8px;padding:12px 14px">
-              <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:5px">
-                <strong style="color:var(--green)">80–100 🔥 Hot Lead</strong>
-                <span style="font-size:10px;background:rgba(0,230,118,0.15);color:var(--green);padding:2px 8px;border-radius:4px">Email #1 היום</span>
-              </div>
-              <div style="font-size:11px;color:var(--muted)">SF BP #6: עדיפות ראשונה. דומיין + מוכר דרך צד ג' + אירוע קרוב. לא לחכות.</div>
-            </div>
-            <div style="background:rgba(255,215,64,0.07);border:1px solid rgba(255,215,64,0.22);border-radius:8px;padding:12px 14px">
-              <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:5px">
-                <strong style="color:var(--yellow)">60–79 ⚡ Warm Lead</strong>
-                <span style="font-size:10px;background:rgba(255,215,64,0.12);color:var(--yellow);padding:2px 8px;border-radius:4px">Follow + פנה</span>
-              </div>
-              <div style="font-size:11px;color:var(--muted)">SF BP #9 Trust: Follow ברשתות, הגב לפוסטים שלהם — אחר כך פנה עם insight.</div>
-            </div>
-            <div style="background:rgba(108,99,255,0.07);border:1px solid rgba(108,99,255,0.2);border-radius:8px;padding:12px 14px">
-              <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:5px">
-                <strong style="color:var(--accent)">40–59 🧊 Cool Lead</strong>
-                <span style="font-size:10px;background:rgba(108,99,255,0.12);color:var(--accent);padding:2px 8px;border-radius:4px">Watchlist</span>
-              </div>
-              <div style="font-size:11px;color:var(--muted)">SF BP #17 Nurture: שמור ברשימה. פנה כשיש אירוע חדש — אז ה-Urgency קופץ.</div>
-            </div>
-            <div style="background:rgba(42,42,61,0.5);border:1px solid var(--border);border-radius:8px;padding:12px 14px">
-              <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:5px">
-                <strong style="color:var(--muted)">0–39 ❌ Not Now</strong>
-                <span style="font-size:10px;background:var(--surface2);color:var(--muted);padding:2px 8px;border-radius:4px">Pass</span>
-              </div>
-              <div style="font-size:11px;color:var(--muted)">SF BP #6: לא מתאים ל-ICP. אין דומיין / אירוע חד-פעמי / Enterprise. לא להשקיע זמן.</div>
-            </div>
-          </div>
-        </div>
       </div>
 
-      <div class="card">
-        <div class="card-title"><div class="dot" style="background:var(--accent2)"></div>✅ וולידציה — הלידים הנוכחיים לפי ה-Matrix</div>
-        <table class="meth-table">
-          <thead>
-            <tr><th>ליד</th><th>דומיין</th><th>צד ג'</th><th>תדירות</th><th>גודל</th><th>Social</th><th>מייל</th><th>Urgency</th><th>סגמנט</th><th style="color:var(--green)">סה"כ</th></tr>
-          </thead>
-          <tbody>
-            <tr>
-              <td><strong>שומרי המלכה</strong></td>
-              <td style="color:var(--green)">✓ 20</td><td style="color:var(--green)">✓ 15</td><td style="color:var(--green)">✓ 10</td>
-              <td style="color:var(--yellow)">~ 7</td><td style="color:var(--green)">✓ 10</td><td style="color:var(--green)">✓ 10</td>
-              <td style="color:var(--green)">✓ 10</td><td style="color:var(--green)">✓ 10</td>
-              <td style="color:var(--green);font-weight:800;font-size:14px">92 🔥</td>
-            </tr>
-            <tr>
-              <td><strong>בית ליסין</strong></td>
-              <td style="color:var(--green)">✓ 20</td><td style="color:var(--yellow)">~ 8</td><td style="color:var(--green)">✓ 15</td>
-              <td style="color:var(--green)">✓ 10</td><td style="color:var(--green)">✓ 8</td><td style="color:var(--yellow)">~ 5</td>
-              <td style="color:var(--yellow)">~ 5</td><td style="color:var(--green)">✓ 10</td>
-              <td style="color:var(--yellow);font-weight:800;font-size:14px">81 🔥</td>
-            </tr>
-          </tbody>
-        </table>
-      </div>
     </div>
 
   </div>
 
-  <!-- =================== LEADS =================== -->
+
+    <!-- =================== LEADS =================== -->
   <div class="panel active" id="tab-leads">
     <div class="leads-toolbar">
       <p class="section-title" style="margin:0">👤 לידים פעילים</p>
@@ -6351,10 +6585,7 @@ addSalesPlaybookPanel();
   }
   setTimeout(tryInit, 1200);
 
-})();
-</script>
-</body>
-</html
+
   function getHuntParams() {
     function checked(containerId) {
       var el = document.getElementById(containerId);
@@ -6668,6 +6899,10 @@ addSalesPlaybookPanel();
     huntAskNext();
   };
 
+})();
+</script>
+</body>
+</html>
   // Init on load
   setTimeout(window.renderSavedSearches, 800);
 
