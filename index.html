@@ -348,7 +348,8 @@ html, body {
 .xtix-id-badge:hover { color: var(--blue); }
 
 /* ── EXPANDED BODY ── */
-.lead-body { border-top: 1px solid var(--b1); }
+.lead-body { border-top: 1px solid var(--b1); display: none; }
+.lead-body.open { display: block; }
 
 /* Lead tabs */
 .lead-tabs { display: flex; gap: 0; margin: 0; border-bottom: 1px solid var(--b1); padding: 0 14px; }
@@ -435,8 +436,9 @@ input::placeholder, textarea::placeholder { color: var(--t3); }
 /* Modal */
 .modal-overlay {
   position: fixed; inset: 0; background: rgba(0,0,0,0.65); z-index: 9000;
-  display: flex; align-items: center; justify-content: center; backdrop-filter: blur(4px);
+  display: none; align-items: center; justify-content: center; backdrop-filter: blur(4px);
 }
+.modal-overlay.open { display: flex; }
 .modal-box {
   background: var(--s2); border: 1px solid var(--b2); border-radius: 14px;
   padding: 24px; width: 480px; max-width: 95vw; font-family: 'DM Sans','Heebo',sans-serif;
@@ -647,7 +649,7 @@ document.addEventListener("DOMContentLoaded",function(){
       <button class="sb-tool-btn" onclick="if(window.exportToExcel)exportToExcel();else if(window.exportLeads)exportLeads();" title="ייצוא Excel">
         📊 <span>ייצוא Excel</span>
       </button>
-      <button class="sb-tool-btn" onclick="if(window.syncFirebase)syncFirebase();else alert('לחץ פעמיים לסנכרון ידני');" title="סנכרון Firebase">
+      <button class="sb-tool-btn" onclick="if(window.syncFirebase)syncFirebase();else console.log('לחץ פעמיים לסנכרון ידני');" title="סנכרון Firebase">
         🔄 <span>סנכרון DB</span>
       </button>
     </div>
@@ -2041,7 +2043,7 @@ BP18: Nurture existing customers — repeat customers spend 67% more
         ? `✅ גיבוי מלא הושלם!\n\n📊 מתחרים: ${SEED_COMPETITORS.length}\n📧 תבניות מייל: ${SEED_EMAIL_TEMPLATES.length}\n📋 מתודולוגיה: ${SEED_METHODOLOGY.length} BP\n⏱️ Cadences: ${SEED_CADENCES.length}\n⚙️ Config: ✓`
         : `✅ Seed הושלם!\n\nנתונים חדשים שהועלו:\n• מתחרים: ${results.competitors}\n• מיילים: ${results.emails}\n• מתודולוגיה: ${results.methodology}\n• Cadences: ${results.cadences}`;
 
-      alert(msg);
+      console.log(msg);
       if (btn) { btn.textContent = '✅ גובה'; btn.style.color = 'var(--green)'; }
 
     } catch(e) {
