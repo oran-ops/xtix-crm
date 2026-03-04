@@ -8,23 +8,50 @@
 <link href="https://fonts.googleapis.com/css2?family=Heebo:wght@300;400;500;600;700;800&family=Space+Mono:wght@400;700&display=swap" rel="stylesheet">
 <style>
   :root {
-    --bg: #0a0a0f;
-    --surface: #12121a;
-    --surface2: #1a1a26;
-    --border: #2a2a3d;
-    --accent: #6c63ff;
-    --accent2: #ff6584;
-    --green: #00e676;
-    --yellow: #ffd740;
-    --text: #e8e8f0;
-    --muted: #6b6b8a;
+    /* ── Core palette — Linear/Vercel DNA ── */
+    --bg:        #080809;
+    --surface:   #0f0f10;
+    --surface2:  #161618;
+    --surface3:  #1c1c1f;
+    --border:    rgba(255,255,255,0.07);
+    --border2:   rgba(255,255,255,0.12);
+
+    /* ── Accent ── */
+    --accent:    #ffffff;
+    --accent-blue: #3b82f6;
+    --accent-glow: rgba(59,130,246,0.15);
+
+    /* ── Text ── */
+    --text:      #f1f1f3;
+    --text2:     #a1a1aa;
+    --muted:     #52525b;
+
+    /* ── Semantic ── */
+    --green:     #22c55e;
+    --green-bg:  rgba(34,197,94,0.1);
+    --yellow:    #f59e0b;
+    --yellow-bg: rgba(245,158,11,0.1);
+    --red:       #ef4444;
+    --red-bg:    rgba(239,68,68,0.1);
+    --purple:    #a78bfa;
+    --purple-bg: rgba(167,139,250,0.1);
+    --blue:      #3b82f6;
+    --blue-bg:   rgba(59,130,246,0.1);
+
+    /* ── Sidebar ── */
+    --sidebar-w:      220px;
+    --sidebar-w-col:  56px;
   }
   * { box-sizing: border-box; margin: 0; padding: 0; }
   body { font-family: 'Heebo', sans-serif; background: var(--bg); color: var(--text); min-height: 100vh; direction: rtl; }
 
   .header { background: var(--surface); border-bottom: 1px solid var(--border); padding: 14px 28px; display: flex; align-items: center; justify-content: space-between; position: sticky; top: 0; z-index: 100; }
-  .logo { font-family: 'Space Mono', monospace; font-size: 20px; color: var(--accent); letter-spacing: 2px; }
-  .logo span { color: var(--accent2); }
+  .logo {
+    font-family: 'DM Sans', 'Heebo', sans-serif;
+    font-size: 15px; font-weight: 700;
+    color: var(--text); letter-spacing: 0.3px;
+  }
+  .logo span { color: var(--accent-blue); }
   .header-stats { display: flex; gap: 20px; font-size: 12px; color: var(--muted); }
   .header-stats strong { color: var(--text); }
 
@@ -34,15 +61,16 @@
 
   /* ── SIDEBAR LAYOUT ── */
   /* ── APP LAYOUT ── */
-  #app-wrapper { display: flex !important; flex-direction: row; height: 100vh; background: var(--bg); }
+  #app-wrapper { display: flex !important; flex-direction: row; height: 100vh; background: var(--bg); overflow: hidden; }
 
   /* ── SIDEBAR ── */
   #sidebar {
-    width: 210px; min-width: 210px; flex-shrink: 0;
-    background: linear-gradient(180deg, #0e0e18 0%, #0a0a12 100%);
-    border-right: 1px solid rgba(108,99,255,0.12);
+    width: var(--sidebar-w); min-width: var(--sidebar-w); flex-shrink: 0;
+    background: var(--surface);
+    border-left: 1px solid var(--border);
     display: flex; flex-direction: column;
-    height: 100vh; overflow-y: auto; z-index: 100;
+    height: 100vh; transition: width 0.2s ease, min-width 0.2s ease;
+    overflow-y: auto; z-index: 100;
   }
   #sidebar-logo {
     padding: 22px 18px 16px;
@@ -59,10 +87,11 @@
     padding: 10px 10px 4px; text-align: right;
   }
   .nav-btn {
-    width: 100%; padding: 9px 12px; border-radius: 9px; border: 1px solid transparent;
-    background: none; color: var(--muted);
-    font-family: 'Heebo', sans-serif; font-size: 13px; font-weight: 600;
-    cursor: pointer; transition: all 0.15s;
+    width: 100%; padding: 7px 10px; border-radius: 6px; border: none;
+    background: none; color: var(--text2);
+    font-family: 'DM Sans','Heebo', sans-serif; font-size: 13px; font-weight: 500;
+    cursor: pointer; transition: background 0.15s, color 0.15s;
+    display: flex; align-items: center; gap: 9px; text-align: right; 0.15s;
     display: flex; align-items: center; gap: 9px; flex-direction: row-reverse;
     text-align: right;
   }
@@ -225,10 +254,11 @@
   .btn-sm { padding: 6px 12px; font-size: 11px; }
 
   .lead-card {
-    background: linear-gradient(135deg, rgba(18,18,26,1) 0%, rgba(14,14,22,1) 100%);
-    border: 1px solid var(--border); border-radius: 14px;
-    margin-bottom: 10px; overflow: hidden;
-    transition: border-color 0.2s, box-shadow 0.2s;
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    margin-bottom: 6px; overflow: hidden;
+    transition: border-color 0.15s, background 0.15s;
   }
   .lead-card:hover { border-color: rgba(108,99,255,0.35); box-shadow: 0 2px 16px rgba(108,99,255,0.06); }
   .lead-card.expanded { border-color: var(--accent); box-shadow: 0 4px 24px rgba(108,99,255,0.1); }
@@ -248,8 +278,8 @@
   .lead-body { display: none; padding: 0 20px 20px; border-top: 1px solid var(--border); }
   .lead-body.open { display: block; }
 
-  .lead-tabs { display: flex; gap: 3px; margin: 16px 0 14px; flex-wrap: wrap; }
-  .lead-tab { padding: 6px 14px; border-radius: 7px; font-size: 11px; font-weight: 700; cursor: pointer; color: var(--muted); border: 1px solid transparent; background: none; font-family: 'Heebo', sans-serif; transition: all 0.15s; letter-spacing: 0.3px; }
+  .lead-tabs { display: flex; gap: 2px; margin: 14px 0 12px; flex-wrap: wrap; border-bottom: 1px solid var(--border); padding-bottom: 0; }
+  .lead-tab { padding: 6px 14px; border-radius: 0; font-size: 12px; font-weight: 500; cursor: pointer; color: var(--text2); border: none; border-bottom: 2px solid transparent; background: none; font-family: 'Heebo', sans-serif; transition: all 0.15s; letter-spacing: 0.3px; }
   .lead-tab.active { color: var(--accent); border-color: var(--accent); background: rgba(108,99,255,0.08); }
   .lead-tab:hover:not(.active) { color: var(--text); background: var(--surface2); }
 
@@ -415,22 +445,38 @@ document.addEventListener("DOMContentLoaded",function(){
 <!-- ═══ SIDEBAR ═══ -->
 <div id="sidebar">
 
-  <!-- LOGO -->
+  <!-- LOGO + TOGGLE -->
   <div id="sidebar-logo">
-    <div class="logo">XTIX<span>.</span>CRM</div>
-    <div style="font-size:9px;color:var(--muted);letter-spacing:2px;margin-top:3px;text-align:right">SALES PLATFORM</div>
+    <div class="logo-full" style="display:flex;align-items:center;gap:8px">
+      <div style="width:26px;height:26px;background:var(--accent-blue);border-radius:6px;display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:800;color:#fff;flex-shrink:0">X</div>
+      <div>
+        <div class="logo">XTIX<span>.</span>CRM</div>
+        <div class="logo-sub" style="font-size:9px;color:var(--muted);letter-spacing:1.5px;margin-top:1px">SALES PLATFORM</div>
+      </div>
+    </div>
+    <div class="logo-collapsed">
+      <div style="width:26px;height:26px;background:var(--accent-blue);border-radius:6px;display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:800;color:#fff">X</div>
+    </div>
+    <button id="sidebar-toggle" onclick="window.toggleSidebar()" title="הסתר/הצג תפריט"
+      style="background:none;border:none;color:var(--text2);cursor:pointer;padding:4px;border-radius:5px;display:flex;align-items:center;transition:background 0.15s"
+      onmouseover="this.style.background='var(--surface3)'" onmouseout="this.style.background='none'">
+      <svg width="16" height="16" viewBox="0 0 16 16" fill="none" style="transition:transform 0.2s">
+        <path d="M10 3L6 8L10 13" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+      </svg>
+    </button>
   </div>
 
   <!-- NAV -->
   <nav id="sidebar-nav">
     <button class="nav-btn active" data-panel="leads" onclick="switchMainTab('leads',this)">
-      <span class="nav-icon">👤</span><span class="nav-label">לידים</span>
+      <span class="nav-icon">◈</span><span class="nav-label">לידים</span>
+      <span id="leads-nav-count" style="background:var(--surface3);border-radius:10px;padding:1px 7px;font-size:10px;color:var(--text2);font-weight:600;margin-right:auto">0</span>
     </button>
     <button class="nav-btn" data-panel="leadfinder" onclick="switchMainTab('leadfinder',this)">
-      <span class="nav-icon">🔍</span><span class="nav-label">Lead Finder</span>
+      <span class="nav-icon">⊕</span><span class="nav-label">Lead Finder</span>
     </button>
     <button class="nav-btn" data-panel="market" onclick="switchMainTab('market',this)">
-      <span class="nav-icon">🌍</span><span class="nav-label">ניתוח שוק</span>
+      <span class="nav-icon">◉</span><span class="nav-label">ניתוח שוק</span>
     </button>
     <div class="nav-sub" id="sub-market">
       <button class="nav-sub-btn active" onclick="switchMarket('competitors',this)">🗺 מפת מתחרים</button>
@@ -438,17 +484,17 @@ document.addEventListener("DOMContentLoaded",function(){
       <button class="nav-sub-btn" onclick="switchMarket('scoring',this)">📊 Scoring</button>
     </div>
     <button class="nav-btn" data-panel="methodology" onclick="switchMainTab('methodology',this)">
-      <span class="nav-icon">📋</span><span class="nav-label">מתודולוגיה</span>
+      <span class="nav-icon">▤</span><span class="nav-label">מתודולוגיה</span>
     </button>
     <button class="nav-btn" data-panel="hubspot" onclick="switchMainTab('hubspot',this)">
-      <span class="nav-icon">🔗</span><span class="nav-label">HubSpot</span>
+      <span class="nav-icon">⬡</span><span class="nav-label">HubSpot</span>
     </button>
     <button class="nav-btn" data-panel="tasks" onclick="switchMainTab('tasks',this)" id="nav-tasks">
-      <span class="nav-icon">✅</span><span class="nav-label">משימות</span>
-      <span id="tasks-badge" style="display:none;background:#ef4444;color:#fff;border-radius:10px;padding:1px 6px;font-size:9px;font-weight:800;margin-right:4px">0</span>
+      <span class="nav-icon">◻</span><span class="nav-label">משימות</span>
+      <span id="tasks-badge" style="display:none;background:var(--accent-blue);color:#fff;border-radius:10px;padding:1px 7px;font-size:9px;font-weight:700;margin-right:auto">0</span>
     </button>
     <button class="nav-btn" data-panel="aichat" onclick="switchMainTab('aichat',this)">
-      <span class="nav-icon">🤖</span><span class="nav-label">AI Chat</span>
+      <span class="nav-icon">⬟</span><span class="nav-label">AI Chat</span>
     </button>
   </nav>
 
@@ -3602,6 +3648,20 @@ Blueprint לכל מייל:
       }
     } catch(e) {}
   }
+
+
+  // ── Collapsible sidebar ────────────────────────────────────────
+  window.toggleSidebar = function() {
+    var sb = document.getElementById('sidebar');
+    sb.classList.toggle('collapsed');
+    try { localStorage.setItem('sidebar_collapsed', sb.classList.contains('collapsed')); } catch(e){}
+  };
+  // Restore state
+  try {
+    if (localStorage.getItem('sidebar_collapsed') === 'true') {
+      setTimeout(function(){ document.getElementById('sidebar').classList.add('collapsed'); }, 100);
+    }
+  } catch(e){}
 
   // ── Event-driven only — no background polling ──────────────────
   // Clay/Webhook leads arrive via Firebase onSnapshot (instant, no polling)
