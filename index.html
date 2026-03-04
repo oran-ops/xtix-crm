@@ -3989,14 +3989,74 @@ ${proxyCtx}
   // Structure: { id, name, params, leads[], savedAt }
   // ══════════════════════════════════════════════════
   var SAVED_KEY = 'xtix_saved_searches';
-  var _lastFoundLeads = []; // populated after each runHuntSearch
+  var HUNT_COL  = 'hunt_searches';
+  var _lastFoundLeads = [];
+  var _savedSearchesCache = [];
 
-  function loadSavedSearches() {
-    try { return JSON.parse(localStorage.getItem(SAVED_KEY) || '[]'); } catch(e) { return []; }
+  async function loadSavedSearchesFirebase() {
+    try {
+      if (typeof db === 'undefined' || !db) throw new Error('no db');
+      var snap = await db.collection(HUNT_COL).orderBy('savedAt','desc').limit(50).get();
+      return snap.docs.map(function(d){ return Object.assign({ _fbId: d.id }, d.data()); });
+    } catch(e) {
+      try { return JSON.parse(localStorage.getItem(SAVED_KEY) || '[]'); } catch(e2) { return []; }
+    }
   }
+
+  async function persistSavedSearchFirebase(searchObj) {
+    try {
+      if (typeof db !== 'undefined' && db) {
+        var docId = String(searchObj.id || Date.now());
+        await db.collection(HUNT_COL).doc(docId).set(searchObj);
+        searchObj._fbId = docId;
+      }
+    } catch(e) { console.warn('[HUNT] Firebase save failed:', e); }
+    try {
+      var arr = JSON.parse(localStorage.getItem(SAVED_KEY) || '[]');
+      arr = arr.filter(function(s){ return s.id !== searchObj.id; });
+      arr.unshift(searchObj);
+      localStorage.setItem(SAVED_KEY, JSON.stringify(arr.slice(0, 50)));
+    } catch(e) {}
+  }
+
+  async function deleteSavedSearchFirebase(searchId, fbId) {
+    try {
+      if (typeof db !== 'undefined' && db)
+        await db.collection(HUNT_COL).doc(String(fbId || searchId)).delete();
+    } catch(e) {}
+    try {
+      var arr = JSON.parse(localStorage.getItem(SAVED_KEY) || '[]');
+      localStorage.setItem(SAVED_KEY, JSON.stringify(arr.filter(function(s){ return s.id !== searchId; })));
+    } catch(e) {}
+  }
+
+  async function updateSavedSearchFirebase(searchObj) {
+    try {
+      if (typeof db !== 'undefined' && db)
+        await db.collection(HUNT_COL).doc(String(searchObj._fbId || searchObj.id)).set(searchObj);
+    } catch(e) {}
+    try {
+      var arr = JSON.parse(localStorage.getItem(SAVED_KEY) || '[]');
+      var idx = arr.findIndex(function(s){ return s.id === searchObj.id; });
+      if (idx !== -1) arr[idx] = searchObj; else arr.unshift(searchObj);
+      localStorage.setItem(SAVED_KEY, JSON.stringify(arr.slice(0, 50)));
+    } catch(e) {}
+  }
+
+  function loadSavedSearches() { return _savedSearchesCache; }
   function persistSavedSearches(arr) {
+    _savedSearchesCache = arr;
     try { localStorage.setItem(SAVED_KEY, JSON.stringify(arr)); } catch(e) {}
   }
+
+  // Load from Firebase on init
+  setTimeout(function() {
+    loadSavedSearchesFirebase().then(function(arr){
+      _savedSearchesCache = arr;
+      try { localStorage.setItem(SAVED_KEY, JSON.stringify(arr)); } catch(e) {}
+      if (typeof window.renderSavedSearches === 'function') window.renderSavedSearches();
+    });
+  }, 2000);
 
   // Called after successful hunt — saves leads to _lastFoundLeads
   function setLastFoundLeads(leadsArr, params) {
@@ -4094,15 +4154,17 @@ ${proxyCtx}
     var params = [ans.segment, ans.location, ans.size, ans.platform].filter(Boolean).join(' · ');
     var label = prompt('שם לרשימה זו:', params || ('חיפוש ' + new Date().toLocaleDateString('he-IL')));
     if (label === null) return;
-    var searches = loadSavedSearches();
-    searches.unshift({
+    var newSearch = {
       id: Date.now(),
       name: label || params || 'חיפוש',
       params: ans,
       leads: _lastFoundLeads.slice(),
       savedAt: new Date().toISOString()
-    });
+    };
+    var searches = loadSavedSearches();
+    searches.unshift(newSearch);
     persistSavedSearches(searches);
+    persistSavedSearchFirebase(newSearch);
     window.renderSavedSearches();
     var btn = document.getElementById('btn-save-search');
     if (btn) { btn.textContent = '✅ נשמר!'; setTimeout(function(){ btn.textContent = '💾 שמור'; }, 2000); }
@@ -4112,8 +4174,9 @@ ${proxyCtx}
   window.deleteSavedSearch = function(idx) {
     if (!confirm('למחוק רשימה זו?')) return;
     var searches = loadSavedSearches();
-    searches.splice(idx, 1);
+    var removed = searches.splice(idx, 1)[0];
     persistSavedSearches(searches);
+    if (removed) deleteSavedSearchFirebase(removed.id, removed._fbId);
     window.renderSavedSearches();
   };
 
@@ -4127,6 +4190,8 @@ ${proxyCtx}
       searches.splice(searchIdx, 1);
     }
     persistSavedSearches(searches);
+    // sync updated search to Firebase (if still exists)
+    if (searches[searchIdx]) updateSavedSearchFirebase(searches[searchIdx]);
     window.renderSavedSearches();
   };
 
@@ -4962,6 +5027,7 @@ addSalesPlaybookPanel();
           <div id="ai-status-dot" style="width:8px;height:8px;border-radius:50%;background:var(--muted);margin-top:4px"></div>
           <span id="ai-status-txt" style="font-size:11px;color:var(--muted)">לא מחובר</span>
         </div>
+        <button onclick="window.loadChatHistory()" title="שיחות שמורות" style="background:rgba(108,99,255,0.08);border:1px solid rgba(108,99,255,0.25);border-radius:8px;padding:6px 12px;color:var(--accent);font-size:11px;cursor:pointer;font-family:Heebo,sans-serif">📂 היסטוריה</button>
         <button onclick="clearAiChat()" title="נקה שיחה" style="background:rgba(255,255,255,0.04);border:1px solid var(--border);border-radius:8px;padding:6px 12px;color:var(--muted);font-size:11px;cursor:pointer;font-family:Heebo,sans-serif">🗑 נקה שיחה</button>
       </div>
 
@@ -5010,8 +5076,39 @@ addSalesPlaybookPanel();
 // ═══════════════════════════════════════════════════════════
 (function() {
   var AI_SERVER = 'https://xtix-crm-production.up.railway.app/ai';
+  var CHAT_COL  = 'ai_chat_history';
   var aiHistory = [];   // { role, content } — full conversation
   var aiThinking = false;
+  var aiSessionId = 'session_' + Date.now(); // unique per page load
+
+  // ── Save/load chat history to Firebase ────────────────────────
+  async function saveChatToFirebase() {
+    try {
+      if (typeof db === 'undefined' || !db || !aiHistory.length) return;
+      await db.collection(CHAT_COL).doc(aiSessionId).set({
+        sessionId: aiSessionId,
+        messages: aiHistory,
+        updatedAt: new Date().toISOString(),
+        messageCount: aiHistory.length
+      });
+    } catch(e) { /* silent — chat still works without save */ }
+  }
+
+  async function loadRecentChatsFirebase() {
+    try {
+      if (typeof db === 'undefined' || !db) return [];
+      var snap = await db.collection(CHAT_COL)
+        .orderBy('updatedAt', 'desc').limit(10).get();
+      return snap.docs.map(function(d){ return d.data(); });
+    } catch(e) { return []; }
+  }
+
+  // Auto-save after each exchange (debounced)
+  var _chatSaveTimer = null;
+  function scheduleChatSave() {
+    if (_chatSaveTimer) clearTimeout(_chatSaveTimer);
+    _chatSaveTimer = setTimeout(saveChatToFirebase, 1500);
+  }
 
   var SYSTEM_PROMPT = [
     'אתה Claude — עוזר AI חכם ומקצועי שמשולב ב-XTIX.CRM.',
@@ -5139,15 +5236,55 @@ addSalesPlaybookPanel();
     }
   };
 
+  // ── Firebase chat history helpers ─────────────────────────────
+  window.loadChatHistory = async function() {
+    var sessions = await loadRecentChatsFirebase();
+    var list = document.getElementById('ai-messages');
+    if (!list) return;
+    if (!sessions.length) { addMessage('claude', 'אין שיחות שמורות עדיין.'); return; }
+    var picker = document.createElement('div');
+    picker.style.cssText = 'background:var(--surface2);border:1px solid var(--border);border-radius:10px;padding:12px 14px;margin-bottom:8px;font-size:12px';
+    var html = '<div style="font-weight:700;color:var(--accent);margin-bottom:8px">📂 שיחות שמורות בענן:</div>';
+    sessions.forEach(function(s, i) {
+      var d = new Date(s.updatedAt).toLocaleDateString('he-IL');
+      var count = Math.floor((s.messageCount || 0) / 2);
+      html += '<div style="display:flex;align-items:center;justify-content:space-between;padding:6px 0;border-bottom:1px solid var(--border)">'
+        + '<span style="color:var(--text)">' + d + ' — ' + count + ' הודעות</span>'
+        + '<button onclick="window.restoreChatSession(' + i + ')" style="background:rgba(108,99,255,0.15);border:1px solid rgba(108,99,255,0.3);border-radius:6px;padding:3px 10px;font-size:11px;color:var(--accent);cursor:pointer;font-family:Heebo,sans-serif">טען</button>'
+        + '</div>';
+    });
+    picker.innerHTML = html;
+    list.appendChild(picker);
+    list.scrollTop = list.scrollHeight;
+    window._chatSessions = sessions;
+  };
+
+  window.restoreChatSession = function(idx) {
+    var sessions = window._chatSessions || [];
+    var session = sessions[idx];
+    if (!session || !session.messages) return;
+    var list = document.getElementById('ai-messages');
+    if (!list) return;
+    list.innerHTML = '';
+    aiHistory = session.messages.slice();
+    aiHistory.forEach(function(msg) {
+      addMessage(msg.role === 'user' ? 'user' : 'claude', msg.content);
+    });
+    var ti = document.getElementById('ai-token-info');
+    if (ti) ti.textContent = Math.floor(aiHistory.length / 2) + ' הודעות בשיח';
+    list.scrollTop = list.scrollHeight;
+  };
+
   window.clearAiChat = function clearAiChat() {
     if (aiHistory.length && !confirm('למחוק את כל השיחה?')) return;
+    if (aiHistory.length) saveChatToFirebase();
     aiHistory = [];
+    aiSessionId = 'session_' + Date.now();
     var list = document.getElementById('ai-messages');
     if (list) list.innerHTML = '';
     var ti = document.getElementById('ai-token-info');
     if (ti) ti.textContent = '';
     setStatus(false);
-    // Show welcome message
     setTimeout(function() {
       addMessage('claude', [
         'שלום! אני Claude, העוזר AI שלך ב-XTIX.CRM 👋',
@@ -5185,6 +5322,657 @@ addSalesPlaybookPanel();
 
 })();
 </script>
+
+<!-- ══════════ DEEP AI ANALYSIS TAB ══════════ -->
+<script>
+(function() {
+'use strict';
+
+var DEEP_AI_SERVER = 'https://xtix-crm-production.up.railway.app';
+
+/* ── CSS ── */
+var style = document.createElement('style');
+style.textContent = `
+  .deep-analysis-wrap { padding: 4px 0; }
+
+  .da-trigger-btn {
+    display: inline-flex; align-items: center; gap: 8px;
+    background: linear-gradient(135deg, #6c63ff, #a78bfa);
+    border: none; border-radius: 9px; padding: 9px 18px;
+    color: #fff; font-family: 'Heebo', sans-serif; font-size: 13px;
+    font-weight: 700; cursor: pointer; transition: all 0.2s;
+    box-shadow: 0 4px 15px rgba(108,99,255,0.35);
+  }
+  .da-trigger-btn:hover { transform: translateY(-1px); box-shadow: 0 6px 20px rgba(108,99,255,0.45); }
+  .da-trigger-btn:disabled { opacity: 0.55; cursor: not-allowed; transform: none; }
+
+  .da-loading {
+    display: flex; flex-direction: column; align-items: center; justify-content: center;
+    gap: 14px; padding: 40px 20px; text-align: center;
+  }
+  .da-spinner {
+    width: 42px; height: 42px; border-radius: 50%;
+    border: 3px solid rgba(108,99,255,0.2); border-top-color: #6c63ff;
+    animation: daSpin 0.9s linear infinite;
+  }
+  @keyframes daSpin { to { transform: rotate(360deg); } }
+  .da-loading-text { font-size: 13px; color: var(--muted); line-height: 1.7; }
+  .da-loading-step { font-size: 11px; color: #6c63ff; font-weight: 700; font-family: 'Space Mono', monospace; }
+
+  .da-report {
+    display: flex; flex-direction: column; gap: 14px;
+    animation: daFadeIn 0.4s ease;
+  }
+  @keyframes daFadeIn { from { opacity:0; transform:translateY(8px); } to { opacity:1; transform:translateY(0); } }
+
+  /* Header bar */
+  .da-header {
+    background: linear-gradient(135deg, rgba(108,99,255,0.12), rgba(167,139,250,0.08));
+    border: 1px solid rgba(108,99,255,0.25); border-radius: 10px;
+    padding: 14px 18px; display: flex; justify-content: space-between; align-items: center;
+  }
+  .da-header-left { display: flex; flex-direction: column; gap: 3px; }
+  .da-header-title { font-size: 14px; font-weight: 800; color: var(--text); }
+  .da-header-sub { font-size: 10px; color: var(--muted); font-family: 'Space Mono', monospace; }
+  .da-tier-badge {
+    font-size: 22px; font-weight: 900; width: 48px; height: 48px;
+    border-radius: 10px; display: flex; align-items: center; justify-content: center;
+    border: 2px solid;
+  }
+  .da-tier-A { background: rgba(239,68,68,0.12); border-color: rgba(239,68,68,0.4); color: #ef4444; }
+  .da-tier-B { background: rgba(245,158,11,0.12); border-color: rgba(245,158,11,0.4); color: #f59e0b; }
+  .da-tier-C { background: rgba(14,165,233,0.12); border-color: rgba(14,165,233,0.4); color: #0ea5e9; }
+
+  /* Section */
+  .da-section {
+    background: var(--surface); border: 1px solid var(--border);
+    border-radius: 10px; overflow: hidden;
+  }
+  .da-section-head {
+    padding: 10px 16px; background: rgba(255,255,255,0.025);
+    border-bottom: 1px solid var(--border);
+    font-size: 11px; font-weight: 700; color: var(--accent);
+    text-transform: uppercase; letter-spacing: 1px;
+    display: flex; align-items: center; gap: 7px;
+  }
+  .da-section-body { padding: 14px 16px; }
+
+  /* Competitor */
+  .da-comp-row { display: flex; gap: 10px; align-items: flex-start; margin-bottom: 10px; }
+  .da-comp-name { font-size: 13px; font-weight: 700; color: #ef4444; min-width: 90px; }
+  .da-comp-weak { font-size: 12px; color: var(--muted); line-height: 1.6; flex: 1; }
+  .da-comp-xtix { font-size: 12px; color: #10b981; line-height: 1.6; flex: 1; }
+
+  /* SF Value blocks */
+  .da-sf-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+  .da-sf-item {
+    background: rgba(108,99,255,0.06); border: 1px solid rgba(108,99,255,0.18);
+    border-radius: 8px; padding: 10px 12px;
+  }
+  .da-sf-label { font-size: 9px; color: var(--muted); text-transform: uppercase; letter-spacing: 1px; margin-bottom: 4px; }
+  .da-sf-val { font-size: 12px; color: var(--text); line-height: 1.5; font-weight: 600; }
+
+  /* Pitch box */
+  .da-pitch-box {
+    background: linear-gradient(135deg, rgba(16,185,129,0.08), rgba(16,185,129,0.04));
+    border: 1px solid rgba(16,185,129,0.25); border-radius: 9px; padding: 14px 16px;
+    font-size: 13px; color: var(--text); line-height: 1.7; font-style: italic;
+  }
+  .da-pitch-label { font-size: 10px; color: #10b981; font-weight: 700; margin-bottom: 6px; font-style: normal; text-transform: uppercase; letter-spacing: 1px; }
+
+  /* Email cards */
+  .da-email-card {
+    background: rgba(255,255,255,0.025); border: 1px solid var(--border);
+    border-radius: 9px; padding: 12px 14px; margin-bottom: 10px;
+  }
+  .da-email-card:last-child { margin-bottom: 0; }
+  .da-email-header { display: flex; justify-content: space-between; margin-bottom: 8px; }
+  .da-email-num { font-size: 11px; font-weight: 800; color: var(--accent); }
+  .da-email-day { font-size: 10px; color: var(--muted); font-family: 'Space Mono', monospace; }
+  .da-email-subject { font-size: 13px; font-weight: 700; color: var(--text); margin-bottom: 6px; }
+  .da-email-research { font-size: 10px; color: #6c63ff; margin-bottom: 5px; }
+  .da-email-conclusion { font-size: 11px; color: var(--muted); font-style: italic; margin-bottom: 8px; border-right: 2px solid rgba(108,99,255,0.3); padding-right: 8px; }
+  .da-email-body { font-size: 12px; color: var(--text); line-height: 1.7; white-space: pre-wrap; margin-bottom: 8px; }
+  .da-email-cta { font-size: 11px; color: #10b981; font-weight: 700; }
+  .da-email-copy-btn {
+    background: rgba(108,99,255,0.1); border: 1px solid rgba(108,99,255,0.25);
+    border-radius: 5px; padding: 3px 10px; font-size: 10px; color: var(--accent);
+    cursor: pointer; font-family: 'Heebo', sans-serif; margin-top: 6px;
+    float: left;
+  }
+  .da-email-copy-btn:hover { background: rgba(108,99,255,0.2); }
+
+  /* Discovery questions */
+  .da-q-list { list-style: none; }
+  .da-q-item {
+    padding: 8px 0; border-bottom: 1px solid var(--border);
+    font-size: 12px; color: var(--text); line-height: 1.6;
+    display: flex; gap: 8px; align-items: flex-start;
+  }
+  .da-q-item:last-child { border-bottom: none; }
+  .da-q-arrow { color: var(--accent); flex-shrink: 0; font-weight: 700; }
+
+  /* Pain points */
+  .da-pain-tag {
+    display: inline-block; background: rgba(239,68,68,0.1);
+    border: 1px solid rgba(239,68,68,0.25); border-radius: 5px;
+    padding: 3px 10px; font-size: 11px; color: #ef4444;
+    margin: 2px;
+  }
+  .da-advantage-tag {
+    display: inline-block; background: rgba(16,185,129,0.1);
+    border: 1px solid rgba(16,185,129,0.25); border-radius: 5px;
+    padding: 3px 10px; font-size: 11px; color: #10b981;
+    margin: 2px;
+  }
+
+  /* Red flags */
+  .da-flag { display: flex; align-items: flex-start; gap: 8px; padding: 7px 0; border-bottom: 1px solid var(--border); font-size: 12px; color: var(--muted); }
+  .da-flag:last-child { border-bottom: none; }
+  .da-flag-icon { color: #ef4444; flex-shrink: 0; }
+
+  /* Refresh btn */
+  .da-refresh-row { display: flex; justify-content: flex-end; gap: 8px; margin-top: 4px; }
+  .da-refresh-btn {
+    background: rgba(255,255,255,0.04); border: 1px solid var(--border);
+    border-radius: 7px; padding: 6px 14px; font-size: 11px; color: var(--muted);
+    cursor: pointer; font-family: 'Heebo', sans-serif; transition: all 0.15s;
+  }
+  .da-refresh-btn:hover { background: rgba(108,99,255,0.08); color: var(--accent); border-color: rgba(108,99,255,0.3); }
+
+  /* Scores row */
+  .da-scores-row { display: flex; gap: 8px; flex-wrap: wrap; }
+  .da-score-chip {
+    background: var(--surface2); border: 1px solid var(--border);
+    border-radius: 7px; padding: 8px 12px; text-align: center; min-width: 80px;
+  }
+  .da-score-chip-val { font-size: 16px; font-weight: 800; color: var(--text); display: block; }
+  .da-score-chip-lbl { font-size: 9px; color: var(--muted); display: block; margin-top: 1px; }
+`;
+document.head.appendChild(style);
+
+/* ── Salesforce BP context ── */
+var SF_CONTEXT = `
+אתה יועץ מכירות בכיר של XTIX.AI — פלטפורמת כרטיסים ישראלית בעמלה 2.5% בלבד.
+מתודולוגיה: Salesforce 18 Best Practices + SPIN + Sandler + HubSpot Pain Discovery.
+
+עקרונות מכירה מרכזיים:
+1. אל תמכור מוצר — מכור תוצאה עסקית (כסף שחוזר, נתונים שנשמרים)
+2. כל פנייה חייבת להראות שיעורי בית ספציפיים — לא template
+3. שיחת Discovery: יחס 30% דיבור / 70% האזנה (SF BP #3)
+4. Four Fs: First (מצב נוכחי) → Finest (מה עובד) → Failure (כאב) → Future (חזון)
+5. ROI תמיד: הצג ₪ שמפסיד, לא features שמציעה
+6. כל התנגדות = הזדמנות לשאלה נוספת, לא הסבר
+`;
+
+/* ── Deep AI call ── */
+async function deepCallAI(prompt, maxTokens, stepCallback) {
+  if (stepCallback) stepCallback();
+  var res = await fetch(DEEP_AI_SERVER + '/ai', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({
+      model: 'claude-sonnet-4-5',
+      max_tokens: maxTokens || 1500,
+      system: SF_CONTEXT + '\nהחזר ONLY valid JSON. אסור markdown, backticks, או טקסט נוסף.',
+      messages: [{ role: 'user', content: prompt }]
+    }),
+    signal: AbortSignal.timeout(45000)
+  });
+  if (!res.ok) throw new Error('HTTP ' + res.status);
+  var data = await res.json();
+  var block = Array.isArray(data.content) ? data.content.find(function(b){ return b.type === 'text'; }) : null;
+  var raw = (block ? block.text : (data.result || data.text || '')).trim();
+  raw = raw.replace(/^```json\s*/,'').replace(/^```\s*/,'').replace(/\s*```$/,'');
+  var s = raw.indexOf('{'), e = raw.lastIndexOf('}');
+  if (s !== -1 && e !== -1) raw = raw.substring(s, e+1);
+  return JSON.parse(raw);
+}
+
+/* ── Build prompts ── */
+function buildDeepAnalysisPrompt(lead, enr, urlData) {
+  var comp = (window.competitorData || {})[((lead.platform||'').toLowerCase().replace(/\s/g,''))] || {};
+  var compName = comp.name || lead.platform || enr.platform_current || 'לא ידוע';
+  var compWeak = comp.weakness || enr.platform_weakness || '';
+  var compPitch = comp.pitch || '';
+  var urlCtx = urlData ? ('מהאתר: פלטפורמה=' + (urlData.ticketPlatform||'?') + ', מייל=' + (urlData.email||'?') + ', סושיאל=' + (urlData.socialLinks||[]).join('/') + ', כותרת=' + (urlData.title||'')) : '';
+  var notes = lead.notes || '';
+  var manualScore = lead.score || enr.score || 50;
+
+  return `נתח לעומק את הליד הבא לפי מתודולוגיית Salesforce BP + SPIN:
+
+ליד:
+- שם: ${lead.name}
+- דומיין: ${lead.domain || lead.url || ''}
+- סגמנט: ${lead.segment || lead.type || ''}
+- ציון נוכחי: ${manualScore}
+- פלטפורמה נוכחית: ${compName}
+- חולשת המתחרה: ${compWeak}
+- Pitch מתחרה: ${compPitch}
+- הערות ידניות: ${notes}
+- ${urlCtx}
+- ניתוח קיים: ${enr.summary || ''}
+
+הצג ניתוח מלא לפי Salesforce Best Practices. החזר JSON בלבד:
+{
+  "sf_analysis": {
+    "bp_situation": "SF BP#1 — מצב נוכחי של הליד ב-2 משפטים",
+    "bp_pain": "SF BP#2 — כאב עיקרי + ₪ שמפסיד",
+    "bp_implication": "SF BP#3 — מה קורה אם לא ישנה עכשיו",
+    "bp_need_payoff": "SF BP#4 — החזון + ROI ספציפי עם XTIX",
+    "bp_urgency": "SF BP#5 — למה עכשיו ולא בעוד 3 חודשים",
+    "bp_social_proof": "SF BP#6 — לקוח דומה שהצליח עם XTIX",
+    "bp_objection_prep": "SF BP#7 — ההתנגדות הצפויה + תגובה"
+  },
+  "competitor_deep": {
+    "name": "${compName}",
+    "tier": "1/2/3",
+    "weaknesses": ["חולשה1","חולשה2","חולשה3"],
+    "switch_trigger": "מה יגרום ללקוח לעזוב אותם",
+    "xtix_vs_them": "השוואה ישירה — מה XTIX נותן שהם לא"
+  },
+  "value_propositions": [
+    {"title":"ערך 1","desc":"הסבר ₪","icon":"💰"},
+    {"title":"ערך 2","desc":"הסבר","icon":"📊"},
+    {"title":"ערך 3","desc":"הסבר","icon":"🎯"},
+    {"title":"ערך 4","desc":"הסבר","icon":"🔗"}
+  ],
+  "pain_points": ["כאב1","כאב2","כאב3"],
+  "red_flags": ["דגל1 — הסבר","דגל2 — הסבר"],
+  "personalized_pitch": "פתיחת מייל/שיחה מותאמת אישית — ספציפי לליד הזה, מראה שיעורי בית",
+  "estimated_annual_revenue": "₪X",
+  "estimated_current_fees": "₪X",
+  "estimated_xtix_savings": "₪X",
+  "priority_score": 85,
+  "priority_tier": "A",
+  "recommended_cadence": "hot/warm/cool/enterprise",
+  "next_action": "הפעולה הבאה המומלצת — ספציפית"
+}`;
+}
+
+function buildDeepEmailsPrompt(lead, analysis, urlData) {
+  var urlCtx = urlData ? ('אתר: ' + (urlData.title||'') + ' | פלטפורמה: ' + (urlData.ticketPlatform||'?')) : '';
+  return `כתוב רצף 4 מיילים מכירה מקצועי עבור XTIX.AI ללקוח:
+שם: ${lead.name} | דומיין: ${lead.domain||''} | ${urlCtx}
+כאב ראשי: ${(analysis.sf_analysis||{}).bp_pain||''}
+Pitch: ${analysis.personalized_pitch||''}
+חיסכון משוער: ${analysis.estimated_xtix_savings||''}
+המתחרה: ${(analysis.competitor_deep||{}).name||''} | חולשתם: ${((analysis.competitor_deep||{}).weaknesses||[]).join(', ')}
+
+כללי מכירה:
+- כל מייל מראה מחקר ספציפי על הליד הזה
+- שם הנמען + שם החברה חייבים להופיע
+- גוף קצר (4-6 שורות), ישיר, לא שיווקי
+- CTA ספציפי אחד בלבד
+- מייל 4 = break-up email
+
+החזר JSON בלבד:
+{"email_sequence":[
+  {"email_num":1,"day":0,"type":"Discovery Opener","subject":"נושא ספציפי","research_done":["פריט1 שחקרתי","פריט2 ספציפי"],"what_i_concluded":"מסקנה אישית","body":"גוף המייל","cta":"CTA אחד"},
+  {"email_num":2,"day":5,"type":"Pain + Data","subject":"","research_done":[],"what_i_concluded":"","body":"","cta":""},
+  {"email_num":3,"day":9,"type":"Social Proof","subject":"","research_done":[],"what_i_concluded":"","body":"","cta":""},
+  {"email_num":4,"day":14,"type":"Break-up","subject":"","research_done":[],"what_i_concluded":"","body":"","cta":""}
+]}`;
+}
+
+function buildDeepDiscoveryPrompt(lead, analysis) {
+  return `צור 6 שאלות Discovery מותאמות אישית לליד ${lead.name} לפי Four Fs + SPIN.
+מצב: ${(analysis.sf_analysis||{}).bp_situation||''}
+כאב: ${(analysis.sf_analysis||{}).bp_pain||''}
+מתחרה: ${(analysis.competitor_deep||{}).name||''}
+
+החזר JSON בלבד:
+{"discovery_questions":[
+  {"f":"F1 — First","q":"שאלה על מצב נוכחי","goal":"מה לומדים"},
+  {"f":"F1 — First","q":"שאלה נוספת","goal":""},
+  {"f":"F2 — Finest","q":"שאלה על מה עובד","goal":""},
+  {"f":"F3 — Failure","q":"שאלה על כאב","goal":""},
+  {"f":"F3 — Failure","q":"SPIN Implication","goal":""},
+  {"f":"F4 — Future","q":"שאלה על חזון","goal":""}
+]}`;
+}
+
+/* ── Render report HTML ── */
+function renderReport(lead, analysis, emails, discovery) {
+  var enr = lead.enrichment || {};
+  var tier = analysis.priority_tier || 'B';
+  var tierClass = 'da-tier-' + tier;
+  var scoreColor = tier === 'A' ? '#ef4444' : tier === 'B' ? '#f59e0b' : '#0ea5e9';
+
+  var html = '<div class="da-report">';
+
+  /* Header */
+  html += '<div class="da-header">';
+  html += '<div class="da-header-left">';
+  html += '<div class="da-header-title">🧠 ניתוח AI מעמיק — ' + (lead.name||'') + '</div>';
+  html += '<div class="da-header-sub">מבוסס Salesforce BP · SPIN · Four Fs · ' + new Date().toLocaleDateString('he-IL') + '</div>';
+  html += '</div>';
+  html += '<div class="da-tier-badge ' + tierClass + '">T' + tier + '</div>';
+  html += '</div>';
+
+  /* Scores */
+  var scores = [
+    { val: analysis.priority_score || enr.score || '?', lbl: 'ציון', color: scoreColor },
+    { val: analysis.estimated_xtix_savings || enr.estimated_savings || '?', lbl: 'חיסכון', color: '#10b981' },
+    { val: analysis.estimated_current_fees || enr.estimated_fees || '?', lbl: 'עמלות כיום', color: '#ef4444' },
+    { val: analysis.recommended_cadence || enr.recommended_cadence || '?', lbl: 'Cadence', color: '#6c63ff' }
+  ];
+  html += '<div class="da-scores-row">';
+  scores.forEach(function(s) {
+    html += '<div class="da-score-chip"><span class="da-score-chip-val" style="color:' + s.color + '">' + s.val + '</span><span class="da-score-chip-lbl">' + s.lbl + '</span></div>';
+  });
+  html += '</div>';
+
+  /* SF Analysis */
+  var sf = analysis.sf_analysis || {};
+  var sfItems = [
+    { label: 'BP1 — Situation', val: sf.bp_situation },
+    { label: 'BP2 — Pain (₪)', val: sf.bp_pain },
+    { label: 'BP3 — Implication', val: sf.bp_implication },
+    { label: 'BP4 — Need Payoff', val: sf.bp_need_payoff },
+    { label: 'BP5 — Urgency', val: sf.bp_urgency },
+    { label: 'BP6 — Social Proof', val: sf.bp_social_proof },
+    { label: 'BP7 — Objection Prep', val: sf.bp_objection_prep }
+  ].filter(function(x){ return x.val; });
+
+  if (sfItems.length) {
+    html += '<div class="da-section">';
+    html += '<div class="da-section-head">📐 Salesforce Best Practices</div>';
+    html += '<div class="da-section-body"><div class="da-sf-grid">';
+    sfItems.forEach(function(item) {
+      html += '<div class="da-sf-item"><div class="da-sf-label">' + item.label + '</div><div class="da-sf-val">' + item.val + '</div></div>';
+    });
+    html += '</div></div></div>';
+  }
+
+  /* Competitor deep */
+  var comp = analysis.competitor_deep || {};
+  if (comp.name) {
+    html += '<div class="da-section">';
+    html += '<div class="da-section-head">⚔️ ניתוח מתחרה — ' + comp.name + '</div>';
+    html += '<div class="da-section-body">';
+    if (comp.weaknesses && comp.weaknesses.length) {
+      html += '<div style="margin-bottom:10px">';
+      comp.weaknesses.forEach(function(w) {
+        html += '<div class="da-comp-row"><span style="color:#ef4444;margin-left:6px">▸</span><span class="da-comp-weak">' + w + '</span></div>';
+      });
+      html += '</div>';
+    }
+    if (comp.switch_trigger) html += '<div style="margin-bottom:6px;font-size:12px"><span style="color:var(--muted)">טריגר למעבר: </span><span style="color:#f59e0b;font-weight:600">' + comp.switch_trigger + '</span></div>';
+    if (comp.xtix_vs_them) html += '<div style="background:rgba(16,185,129,0.07);border:1px solid rgba(16,185,129,0.2);border-radius:7px;padding:9px 12px;font-size:12px;color:#10b981;line-height:1.6">' + comp.xtix_vs_them + '</div>';
+    html += '</div></div>';
+  }
+
+  /* Value Propositions */
+  if (analysis.value_propositions && analysis.value_propositions.length) {
+    html += '<div class="da-section">';
+    html += '<div class="da-section-head">💎 ערך מוסף ל-' + (lead.name||'') + '</div>';
+    html += '<div class="da-section-body"><div class="da-sf-grid">';
+    analysis.value_propositions.forEach(function(vp) {
+      html += '<div class="da-sf-item"><div class="da-sf-label">' + (vp.icon||'') + ' ' + (vp.title||'') + '</div><div class="da-sf-val">' + (vp.desc||'') + '</div></div>';
+    });
+    html += '</div></div></div>';
+  }
+
+  /* Pain points + advantages */
+  if ((analysis.pain_points||[]).length || ((lead.enrichment||{}).xtix_advantages||[]).length) {
+    html += '<div class="da-section">';
+    html += '<div class="da-section-head">🎯 כאבים ויתרונות</div>';
+    html += '<div class="da-section-body">';
+    if (analysis.pain_points && analysis.pain_points.length) {
+      html += '<div style="margin-bottom:8px">';
+      analysis.pain_points.forEach(function(p){ html += '<span class="da-pain-tag">' + p + '</span>'; });
+      html += '</div>';
+    }
+    var advs = (lead.enrichment||{}).xtix_advantages || [];
+    if (advs.length) {
+      advs.forEach(function(a){ html += '<span class="da-advantage-tag">✓ ' + a + '</span>'; });
+    }
+    html += '</div></div>';
+  }
+
+  /* Personalized Pitch */
+  if (analysis.personalized_pitch) {
+    html += '<div class="da-pitch-box">';
+    html += '<div class="da-pitch-label">🎤 פתיחה מותאמת אישית</div>';
+    html += analysis.personalized_pitch;
+    html += '</div>';
+  }
+
+  /* Next action */
+  if (analysis.next_action) {
+    html += '<div style="background:rgba(108,99,255,0.08);border:1px solid rgba(108,99,255,0.25);border-radius:9px;padding:12px 16px;font-size:13px;color:var(--accent);font-weight:700">▶ הפעולה הבאה: <span style="color:var(--text);font-weight:400">' + analysis.next_action + '</span></div>';
+  }
+
+  /* Red flags */
+  if (analysis.red_flags && analysis.red_flags.length) {
+    html += '<div class="da-section">';
+    html += '<div class="da-section-head">🚩 Red Flags</div>';
+    html += '<div class="da-section-body">';
+    analysis.red_flags.forEach(function(f) {
+      html += '<div class="da-flag"><span class="da-flag-icon">⚠️</span><span>' + f + '</span></div>';
+    });
+    html += '</div></div>';
+  }
+
+  /* Email sequence */
+  if (emails && emails.email_sequence && emails.email_sequence.length) {
+    html += '<div class="da-section">';
+    html += '<div class="da-section-head">✉️ רצף 4 מיילים ספציפי</div>';
+    html += '<div class="da-section-body">';
+    emails.email_sequence.forEach(function(em) {
+      var emailId = 'da-email-' + lead.id + '-' + em.email_num;
+      html += '<div class="da-email-card">';
+      html += '<div class="da-email-header"><span class="da-email-num">מייל ' + em.email_num + ' — ' + (em.type||'') + '</span><span class="da-email-day">יום ' + (em.day||0) + '</span></div>';
+      if (em.subject) html += '<div class="da-email-subject">📧 ' + em.subject + '</div>';
+      if (em.research_done && em.research_done.length) html += '<div class="da-email-research">🔍 חקרתי: ' + em.research_done.join(' · ') + '</div>';
+      if (em.what_i_concluded) html += '<div class="da-email-conclusion">' + em.what_i_concluded + '</div>';
+      if (em.body) {
+        html += '<div class="da-email-body" id="' + emailId + '">' + em.body + '</div>';
+        html += '<button class="da-email-copy-btn" onclick="window.daCopyEmail(\'' + emailId + '\',this)">📋 העתק</button>';
+      }
+      if (em.cta) html += '<div class="da-email-cta" style="clear:both;padding-top:8px">→ ' + em.cta + '</div>';
+      html += '</div>';
+    });
+    html += '</div></div>';
+  }
+
+  /* Discovery questions */
+  if (discovery && discovery.discovery_questions && discovery.discovery_questions.length) {
+    html += '<div class="da-section">';
+    html += '<div class="da-section-head">🔍 שאלות Discovery — Four Fs + SPIN</div>';
+    html += '<div class="da-section-body"><ul class="da-q-list">';
+    discovery.discovery_questions.forEach(function(q) {
+      html += '<li class="da-q-item">';
+      html += '<span class="da-q-arrow">' + (q.f||'').split(' ')[0] + '</span>';
+      html += '<div><div style="font-weight:600;color:var(--text)">' + (q.q||q) + '</div>';
+      if (q.goal) html += '<div style="font-size:11px;color:var(--muted);margin-top:2px">מטרה: ' + q.goal + '</div>';
+      html += '</div></li>';
+    });
+    html += '</ul></div></div>';
+  }
+
+  /* Refresh */
+  html += '<div class="da-refresh-row"><button class="da-refresh-btn" onclick="window.runDeepAnalysis(' + lead.id + ')">🔄 עדכן ניתוח</button></div>';
+
+  html += '</div>'; // da-report
+  return html;
+}
+
+/* ── Copy email helper ── */
+window.daCopyEmail = function(emailId, btn) {
+  var el = document.getElementById(emailId);
+  if (!el) return;
+  var text = el.innerText || el.textContent;
+  navigator.clipboard.writeText(text).then(function() {
+    btn.textContent = '✅ הועתק!';
+    setTimeout(function(){ btn.textContent = '📋 העתק'; }, 2000);
+  }).catch(function() {
+    btn.textContent = '⚠️ לא הצליח';
+    setTimeout(function(){ btn.textContent = '📋 העתק'; }, 2000);
+  });
+};
+
+/* ── Loading steps ── */
+var STEPS = [
+  'מנתח נתוני הליד...',
+  'בודק פלטפורמה ומתחרים...',
+  'מחיל Salesforce Best Practices...',
+  'מחשב ROI וחיסכון...',
+  'כותב 4 מיילים מותאמים...',
+  'יוצר שאלות Discovery...',
+  'מסיים ניתוח...'
+];
+
+function showLoading(container, stepIdx) {
+  container.innerHTML = '<div class="da-loading">'
+    + '<div class="da-spinner"></div>'
+    + '<div class="da-loading-step">' + (STEPS[stepIdx % STEPS.length]) + '</div>'
+    + '<div class="da-loading-text">ניתוח מעמיק עם Claude Sonnet...<br>לוקח כ-30–45 שניות</div>'
+    + '</div>';
+}
+
+/* ── Main runner ── */
+window.runDeepAnalysis = async function(leadId) {
+  var lead = (typeof leads !== 'undefined') ? leads.find(function(l){ return l.id === leadId; }) : null;
+  if (!lead) { alert('ליד לא נמצא'); return; }
+
+  var container = document.getElementById('da-container-' + leadId);
+  if (!container) return;
+
+  var stepIdx = 0;
+  var stepTimer = setInterval(function() { stepIdx++; showLoading(container, stepIdx); }, 5000);
+  showLoading(container, 0);
+
+  try {
+    var enr = lead.enrichment || {};
+
+    /* Step 1: get URL data */
+    var urlData = null;
+    var domain = lead.domain || lead.url || '';
+    if (domain) {
+      try {
+        var urlRes = await fetch(DEEP_AI_SERVER + '/analyze?url=' + encodeURIComponent('https://' + domain), { signal: AbortSignal.timeout(5000) });
+        if (urlRes.ok) urlData = await urlRes.json();
+      } catch(e) {}
+    }
+
+    /* Step 2: Deep analysis */
+    var analysis = await deepCallAI(buildDeepAnalysisPrompt(lead, enr, urlData), 1800, function(){ stepIdx = 2; showLoading(container, stepIdx); });
+
+    /* Step 3: Emails */
+    var emails = await deepCallAI(buildDeepEmailsPrompt(lead, analysis, urlData), 1600, function(){ stepIdx = 4; showLoading(container, stepIdx); });
+
+    /* Step 4: Discovery questions */
+    var discovery = await deepCallAI(buildDeepDiscoveryPrompt(lead, analysis), 800, function(){ stepIdx = 5; showLoading(container, stepIdx); });
+
+    clearInterval(stepTimer);
+
+    /* Save to lead enrichment */
+    lead.enrichment = Object.assign(lead.enrichment || {}, {
+      deep_analysis: analysis,
+      deep_emails: emails.email_sequence,
+      deep_discovery: discovery.discovery_questions,
+      deep_analyzed_at: new Date().toISOString()
+    });
+    if (typeof db !== 'undefined' && db) {
+      db.collection('leads').doc(String(lead.id)).update({ enrichment: lead.enrichment }).catch(function(){});
+    }
+
+    container.innerHTML = renderReport(lead, analysis, emails, discovery);
+
+  } catch(err) {
+    clearInterval(stepTimer);
+    container.innerHTML = '<div style="padding:20px;color:#ef4444;font-size:13px;text-align:center">'
+      + '⚠️ שגיאה בניתוח: ' + err.message + '<br><br>'
+      + '<button onclick="window.runDeepAnalysis(' + leadId + ')" style="background:rgba(108,99,255,0.15);border:1px solid rgba(108,99,255,0.3);border-radius:7px;padding:7px 16px;font-size:12px;color:var(--accent);cursor:pointer;font-family:Heebo,sans-serif">נסה שוב</button>'
+      + '</div>';
+  }
+};
+
+/* ── Inject tab into every lead card ── */
+function injectDeepTab(lead) {
+  var leadId = lead.id;
+  var body = document.getElementById('body-' + leadId);
+  if (!body) return;
+  if (body.querySelector('[data-deep-tab]')) return; // already injected
+
+  /* Add tab button */
+  var tabs = body.querySelector('.lead-tabs');
+  if (tabs) {
+    var btn = document.createElement('button');
+    btn.className = 'lead-tab';
+    btn.setAttribute('data-deep-tab', '1');
+    btn.textContent = '🧠 AI Analysis';
+    btn.onclick = function() {
+      if (window.switchLeadTab) switchLeadTab(leadId, 'deep-analysis', btn);
+      var container = document.getElementById('da-container-' + leadId);
+      /* Auto-run on first open if not yet run */
+      if (container && !container.querySelector('.da-report') && !container.querySelector('.da-loading')) {
+        window.runDeepAnalysis(leadId);
+      }
+    };
+    tabs.appendChild(btn);
+  }
+
+  /* Add tab panel */
+  var panel = document.createElement('div');
+  panel.className = 'lead-tab-panel';
+  panel.id = 'l' + leadId + '-deep-analysis';
+  panel.innerHTML = '<div class="deep-analysis-wrap">'
+    + '<div style="padding:16px 0 10px;display:flex;align-items:center;justify-content:space-between">'
+    + '<div style="font-size:12px;color:var(--muted);line-height:1.6">ניתוח AI מעמיק מבוסס Salesforce BP + SPIN + Four Fs.<br>3 קריאות AI — לוקח כ-45 שניות.</div>'
+    + '<button class="da-trigger-btn" onclick="window.runDeepAnalysis(' + leadId + ')">🧠 הפעל ניתוח מעמיק</button>'
+    + '</div>'
+    + '<div id="da-container-' + leadId + '"></div>'
+    + '</div>';
+
+  /* Insert panel after the last existing panel */
+  var panels = body.querySelectorAll('.lead-tab-panel');
+  var lastPanel = panels[panels.length - 1];
+  if (lastPanel) lastPanel.parentNode.insertBefore(panel, lastPanel.nextSibling);
+  else body.appendChild(panel);
+}
+
+/* ── Restore saved analysis on load ── */
+function restoreSavedAnalysis(lead) {
+  var enr = lead.enrichment || {};
+  if (!enr.deep_analysis) return;
+  var container = document.getElementById('da-container-' + lead.id);
+  if (!container) return;
+  var fakeEmails = { email_sequence: enr.deep_emails || [] };
+  var fakeDiscovery = { discovery_questions: enr.deep_discovery || [] };
+  container.innerHTML = renderReport(lead, enr.deep_analysis, fakeEmails, fakeDiscovery);
+}
+
+/* ── Observer: watch for new lead cards ── */
+function tryInjectAll() {
+  if (typeof leads === 'undefined') return;
+  leads.forEach(function(lead) {
+    injectDeepTab(lead);
+    restoreSavedAnalysis(lead);
+  });
+}
+
+/* Run after leads are rendered */
+setTimeout(tryInjectAll, 2000);
+setInterval(tryInjectAll, 4000);
+
+/* Hook into renderSimpleLead */
+var _origRender = window.renderSimpleLead;
+if (_origRender) {
+  window.renderSimpleLead = function(lead) {
+    _origRender.apply(this, arguments);
+    setTimeout(function() {
+      injectDeepTab(lead);
+      restoreSavedAnalysis(lead);
+    }, 150);
+  };
+}
+
+})();
+</script>
+
 
 </body>
 </html>
