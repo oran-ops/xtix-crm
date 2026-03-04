@@ -1165,6 +1165,62 @@ input::placeholder, textarea::placeholder { color: var(--t3); }
   .principles-grid { grid-template-columns: repeat(2,1fr); }
 }
 
+
+/* ══ HUBSPOT v2.0 ══ */
+.hs-wrap { padding: 24px; max-width: 1100px; margin: 0 auto; }
+.hs-page-header { margin-bottom: 24px; }
+.hs-page-tag { font-size: 10px; letter-spacing: 2px; color: #f97316; text-transform: uppercase; font-weight: 700; margin-bottom: 6px; }
+.hs-page-title { font-size: 22px; font-weight: 900; color: var(--t1); margin: 0 0 6px; }
+.hs-page-sub { font-size: 12px; color: var(--t3); line-height: 1.6; max-width: 640px; }
+.hs-layout { display: grid; grid-template-columns: 1fr 320px; gap: 20px; align-items: start; }
+.hs-col-main { display: flex; flex-direction: column; gap: 16px; }
+.hs-col-side  { display: flex; flex-direction: column; gap: 16px; }
+.hs-card { background: var(--bg2); border: 1px solid var(--bord); border-radius: 12px; padding: 20px; }
+.hs-card-header { display: flex; gap: 12px; align-items: flex-start; margin-bottom: 18px; }
+.hs-card-icon { font-size: 22px; flex-shrink: 0; margin-top: 1px; }
+.hs-card-title { font-size: 14px; font-weight: 800; color: var(--t1); margin-bottom: 2px; }
+.hs-card-sub   { font-size: 11px; color: var(--t3); }
+.hs-steps { display: flex; flex-direction: column; gap: 12px; }
+.hs-step  { display: flex; gap: 12px; align-items: flex-start; }
+.hs-step-num { width: 22px; height: 22px; border-radius: 50%; flex-shrink: 0; background: rgba(249,115,22,0.15); color: #f97316; font-size: 11px; font-weight: 800; display: flex; align-items: center; justify-content: center; }
+.hs-step-text { font-size: 12px; color: var(--t2); line-height: 1.6; padding-top: 2px; }
+.hs-step-text strong { color: var(--t1); }
+.hs-scopes { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 8px; }
+.hs-scope { background: rgba(99,102,241,0.12); color: #818cf8; padding: 3px 9px; border-radius: 5px; font-size: 10px; font-family: monospace; border: 1px solid rgba(99,102,241,0.2); }
+.hs-code { background: rgba(255,255,255,0.07); color: var(--t2); padding: 2px 7px; border-radius: 4px; font-size: 11px; font-family: monospace; border: 1px solid var(--bord); }
+.hs-code-yellow { color: #fbbf24 !important; background: rgba(251,191,36,0.1) !important; border-color: rgba(251,191,36,0.2) !important; }
+.hs-field-group { margin-bottom: 16px; }
+.hs-label { font-size: 10px; color: var(--t3); text-transform: uppercase; letter-spacing: 1px; font-weight: 700; display: block; margin-bottom: 8px; }
+.hs-input-row { display: flex; gap: 8px; align-items: center; }
+.hs-input { flex: 1; background: rgba(0,0,0,0.3); border: 1px solid var(--bord); border-radius: 8px; padding: 10px 14px; color: var(--t1); font-size: 12px; font-family: monospace; outline: none; transition: border-color 0.2s; }
+.hs-input:focus { border-color: #f97316; }
+.hs-input::placeholder { color: var(--t3); }
+.hs-toggle-btn { background: rgba(255,255,255,0.06); border: 1px solid var(--bord); color: var(--t2); border-radius: 8px; padding: 10px 14px; font-size: 12px; cursor: pointer; white-space: nowrap; font-family: var(--font); transition: all 0.15s; }
+.hs-toggle-btn:hover { background: rgba(255,255,255,0.1); color: var(--t1); }
+.hs-lead-selector { display: flex; flex-direction: column; gap: 6px; max-height: 180px; overflow-y: auto; background: rgba(0,0,0,0.2); border-radius: 8px; padding: 8px; border: 1px solid var(--bord); }
+.hs-select-all-btn { margin-top: 8px; background: rgba(255,255,255,0.05); border: 1px solid var(--bord); color: var(--t2); border-radius: 7px; padding: 7px 14px; font-size: 11px; cursor: pointer; font-family: var(--font); transition: all 0.15s; }
+.hs-select-all-btn:hover { background: rgba(255,255,255,0.09); color: var(--t1); }
+.hs-push-btn { width: 100%; padding: 13px; border: none; border-radius: 10px; background: linear-gradient(135deg, #f97316, #ef4444); color: #fff; font-size: 13px; font-weight: 800; cursor: pointer; font-family: var(--font); letter-spacing: 0.3px; transition: opacity 0.15s; box-shadow: 0 4px 20px rgba(249,115,22,0.25); }
+.hs-push-btn:hover { opacity: 0.88; }
+.hs-status { margin-top: 10px; font-size: 12px; min-height: 16px; color: var(--t2); }
+.hs-notice { background: rgba(251,191,36,0.06); border: 1px solid rgba(251,191,36,0.18); border-radius: 10px; padding: 14px 16px; }
+.hs-notice-title { font-size: 12px; font-weight: 700; color: #fbbf24; margin-bottom: 6px; }
+.hs-notice-text { font-size: 11px; color: var(--t3); line-height: 1.7; }
+.hs-notice-text strong { color: var(--t2); }
+.hs-map-table { display: flex; flex-direction: column; }
+.hs-map-head { display: grid; grid-template-columns: 1fr 1fr 70px; padding: 6px 10px; border-bottom: 1px solid var(--bord); font-size: 10px; font-weight: 700; color: var(--t3); text-transform: uppercase; letter-spacing: 0.5px; }
+.hs-map-row { display: grid; grid-template-columns: 1fr 1fr 70px; padding: 9px 10px; border-bottom: 1px solid rgba(255,255,255,0.04); align-items: center; font-size: 12px; color: var(--t2); }
+.hs-map-row:last-child { border-bottom: none; }
+.hs-map-row:hover { background: rgba(255,255,255,0.02); }
+.hs-obj { font-size: 10px; font-weight: 700; padding: 2px 7px; border-radius: 4px; display: inline-block; }
+.hs-obj.company { background: rgba(59,130,246,0.15); color: #60a5fa; }
+.hs-obj.contact { background: rgba(16,185,129,0.15); color: #34d399; }
+.hs-status-card { background: var(--bg2); border: 1px solid var(--bord); border-radius: 12px; padding: 16px; }
+.hs-status-row { display: flex; justify-content: space-between; align-items: center; padding: 8px 0; border-bottom: 1px solid rgba(255,255,255,0.04); font-size: 12px; }
+.hs-status-row:last-child { border-bottom: none; }
+.hs-status-label { color: var(--t3); }
+.hs-status-val { color: var(--t1); font-weight: 700; }
+@media (max-width: 900px) { .hs-layout { grid-template-columns: 1fr; } }
 </style>
 
   <!-- Firebase CDN (compat mode — works without type=module) -->
@@ -2104,81 +2160,96 @@ document.addEventListener("DOMContentLoaded",function(){
 
   <!-- =================== HUBSPOT =================== -->
   <div class="panel" id="tab-hubspot">
-    <div class="hs-section" style="max-width:780px">
-      <p class="section-title">🔗 HubSpot API — Push ישיר</p>
-
-      <!-- STEP 1: HOW TO GET TOKEN -->
-      <div class="hs-card">
-        <div class="hs-title">🔑 שלב 1 — צור Private App Token (פעם אחת)</div>
-        <p class="hs-desc">HubSpot דורש Private App Token עם הרשאות CRM. כך יוצרים:</p>
-        <div class="hs-step"><div class="hs-step-num">1</div><span>ב-HubSpot: <strong>Settings (⚙️)</strong> → <strong>Account Setup</strong> → <strong>Integrations</strong> → <strong>Private Apps</strong></span></div>
-        <div class="hs-step"><div class="hs-step-num">2</div><span>לחץ <strong>"Create a private app"</strong> → שם: <code style="background:var(--surface2);padding:1px 6px;border-radius:4px;font-family:monospace;font-size:11px">XTIX CRM Sync</code></span></div>
-        <div class="hs-step"><div class="hs-step-num">3</div>
-          <span>לשונית <strong>Scopes</strong> — הפעל את ארבעת ה-scopes הבאים:
-            <div style="display:flex;flex-wrap:wrap;gap:5px;margin-top:7px">
-              <code style="background:rgba(108,99,255,0.12);color:var(--accent);padding:3px 9px;border-radius:4px;font-size:10px;font-family:monospace">crm.objects.contacts.write</code>
-              <code style="background:rgba(108,99,255,0.12);color:var(--accent);padding:3px 9px;border-radius:4px;font-size:10px;font-family:monospace">crm.objects.contacts.read</code>
-              <code style="background:rgba(108,99,255,0.12);color:var(--accent);padding:3px 9px;border-radius:4px;font-size:10px;font-family:monospace">crm.objects.companies.write</code>
-              <code style="background:rgba(108,99,255,0.12);color:var(--accent);padding:3px 9px;border-radius:4px;font-size:10px;font-family:monospace">crm.objects.deals.write</code>
+  <div class="hs-wrap">
+    <div class="hs-page-header">
+      <div class="hs-page-tag">INTEGRATION</div>
+      <h1 class="hs-page-title">🔗 HubSpot — Push ישיר</h1>
+      <p class="hs-page-sub">שלח לידים מ-XTIX ישירות ל-HubSpot כ-Contact + Company עם Lead Score, סטטוס וניתוח מלא</p>
+    </div>
+    <div class="hs-layout">
+      <div class="hs-col-main">
+        <div class="hs-card">
+          <div class="hs-card-header">
+            <span class="hs-card-icon">🔑</span>
+            <div><div class="hs-card-title">שלב 1 — צור Private App Token</div><div class="hs-card-sub">פעם אחת · 2 דקות · ללא עלות</div></div>
+          </div>
+          <div class="hs-steps">
+            <div class="hs-step"><div class="hs-step-num">1</div><div class="hs-step-text">ב-HubSpot: <strong>Settings ⚙️</strong> → <strong>Account Setup</strong> → <strong>Integrations</strong> → <strong>Private Apps</strong></div></div>
+            <div class="hs-step"><div class="hs-step-num">2</div><div class="hs-step-text">לחץ <strong>"Create a private app"</strong> → שם: <code class="hs-code">XTIX CRM Sync</code></div></div>
+            <div class="hs-step">
+              <div class="hs-step-num">3</div>
+              <div class="hs-step-text">לשונית <strong>Scopes</strong> — הפעל את ארבעת ה-scopes:
+                <div class="hs-scopes">
+                  <code class="hs-scope">crm.objects.contacts.write</code>
+                  <code class="hs-scope">crm.objects.contacts.read</code>
+                  <code class="hs-scope">crm.objects.companies.write</code>
+                  <code class="hs-scope">crm.objects.deals.write</code>
+                </div>
+              </div>
             </div>
-          </span>
-        </div>
-        <div class="hs-step"><div class="hs-step-num">4</div><span>לחץ <strong>"Create app"</strong> → העתק את ה-Token (מתחיל ב-<code style="font-family:monospace;font-size:11px;color:var(--yellow)">pat-</code>)</span></div>
-      </div>
-
-      <!-- STEP 2: CONNECT & PUSH -->
-      <div class="hs-card">
-        <div class="hs-title">⚡ שלב 2 — חבר ושלח לידים</div>
-        <p class="hs-desc">כל ליד נשלח כ-<strong>Contact + Company</strong> ב-HubSpot עם מידע מלא, סטטוס, Lead Score ותיאור.</p>
-
-        <div style="margin-bottom:16px">
-          <label style="font-size:10px;color:var(--muted);text-transform:uppercase;letter-spacing:1px;display:block;margin-bottom:7px">HubSpot Private App Token</label>
-          <div style="display:flex;gap:8px;align-items:center">
-            <input class="hs-input" id="hs-api-key" type="password" placeholder="pat-na1-xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx" style="flex:1;font-family:monospace">
-            <button class="copy-btn" id="toggle-vis-btn" onclick="toggleTokenVisibility()" style="padding:8px 12px;white-space:nowrap">👁 הצג</button>
+            <div class="hs-step"><div class="hs-step-num">4</div><div class="hs-step-text">לחץ <strong>"Create app"</strong> → העתק את ה-Token (מתחיל ב-<code class="hs-code hs-code-yellow">pat-</code>)</div></div>
           </div>
         </div>
 
-        <div style="margin-bottom:16px">
-          <label style="font-size:10px;color:var(--muted);text-transform:uppercase;letter-spacing:1px;display:block;margin-bottom:8px">בחר לידים לשליחה</label>
-          <div id="hs-lead-selector" style="display:flex;flex-direction:column;gap:7px"></div>
-          <button class="copy-btn" onclick="selectAllLeads()" style="margin-top:8px;padding:6px 14px">☑ בחר הכל</button>
+        <div class="hs-card">
+          <div class="hs-card-header">
+            <span class="hs-card-icon">⚡</span>
+            <div><div class="hs-card-title">שלב 2 — חבר ושלח לידים</div><div class="hs-card-sub">כל ליד נשלח כ-Contact + Company עם Lead Score ותיאור</div></div>
+          </div>
+          <div class="hs-field-group">
+            <label class="hs-label">HubSpot Private App Token</label>
+            <div class="hs-input-row">
+              <input class="hs-input" id="hs-api-key" type="password" placeholder="pat-na1-xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx">
+              <button class="hs-toggle-btn" id="toggle-vis-btn" onclick="toggleTokenVisibility()">👁 הצג</button>
+            </div>
+          </div>
+          <div class="hs-field-group">
+            <label class="hs-label">בחר לידים לשליחה</label>
+            <div id="hs-lead-selector" class="hs-lead-selector"></div>
+            <button class="hs-select-all-btn" onclick="selectAllLeads()">☑ בחר הכל</button>
+          </div>
+          <button class="hs-push-btn" onclick="pushToHubspot()">⚡ שלח לידים נבחרים ל-HubSpot</button>
+          <div id="hs-status" class="hs-status"></div>
+          <div id="hs-results"></div>
         </div>
 
-        <button class="btn-hs" onclick="pushToHubspot()" style="width:100%;padding:13px;border-radius:9px;font-size:13px;letter-spacing:0.3px">
-          ⚡ שלח לידים נבחרים ל-HubSpot
-        </button>
-
-        <div id="hs-status" style="margin-top:12px;font-size:12px;min-height:18px"></div>
-        <div id="hs-results" style="margin-top:8px"></div>
+        <div class="hs-notice">
+          <div class="hs-notice-title">⚠️ הערה טכנית — אם מקבל שגיאת CORS</div>
+          <div class="hs-notice-text">דפדפנים מסוימים חוסמים API calls ישירות מ-HTML. אם רואים שגיאת network — פתח מ-<strong>localhost</strong> (VS Code Live Server). HubSpot API תומך ב-CORS עם <code class="hs-code">pat-</code> tokens. ה-Token נשמר בזיכרון הדפדפן בלבד.</div>
+        </div>
       </div>
 
-      <!-- FIELD MAPPING -->
-      <div class="hs-card">
-        <div class="hs-title">🗺 מיפוי שדות — XTIX ↔ HubSpot</div>
-        <table class="meth-table">
-          <thead><tr><th>שדה XTIX</th><th>HubSpot Property</th><th>Object</th><th>הערה</th></tr></thead>
-          <tbody>
-            <tr><td>שם חברה</td><td><code style="font-family:monospace;font-size:11px">name</code></td><td>Company</td><td>Company Name ראשי</td></tr>
-            <tr><td>דומיין</td><td><code style="font-family:monospace;font-size:11px">domain + website</code></td><td>Company</td><td>מחבר Contact לחברה</td></tr>
-            <tr><td>סוג אירועים</td><td><code style="font-family:monospace;font-size:11px">industry</code></td><td>Company</td><td>Entertainment</td></tr>
-            <tr><td>שם ליד</td><td><code style="font-family:monospace;font-size:11px">firstname + lastname</code></td><td>Contact</td><td>Contact ראשי</td></tr>
-            <tr><td>מייל</td><td><code style="font-family:monospace;font-size:11px">email</code></td><td>Contact</td><td>רק אם כתובת מייל תקינה</td></tr>
-            <tr><td>Lead Score</td><td><code style="font-family:monospace;font-size:11px">hs_lead_status</code></td><td>Contact</td><td>NEW / IN_PROGRESS</td></tr>
-            <tr><td>פלטפורמה + ניתוח</td><td><code style="font-family:monospace;font-size:11px">description</code></td><td>Company</td><td>מידע מרוכז</td></tr>
-          </tbody>
-        </table>
-      </div>
-
-      <!-- CORS NOTE -->
-      <div style="background:rgba(255,215,64,0.06);border:1px solid rgba(255,215,64,0.2);border-radius:10px;padding:14px 16px;font-size:12px;line-height:1.7;color:var(--text)">
-        <strong style="color:var(--yellow)">⚠️ הערה טכנית — אם מקבל שגיאה</strong><br>
-        דפדפנים מסוימים חוסמים API calls ישירות מ-HTML (CORS). אם רואים שגיאת network — פתח את הקובץ מ-<strong>localhost</strong> (גרור ל-Chrome, או השתמש ב-VS Code Live Server). HubSpot API תומך ב-CORS עם <code style="font-family:monospace">pat-</code> tokens בדרך כלל. ה-Token נשמר בזיכרון הדפדפן בלבד ולא נשלח לשום שרת חיצוני.
+      <div class="hs-col-side">
+        <div class="hs-card">
+          <div class="hs-card-header">
+            <span class="hs-card-icon">🗺</span>
+            <div><div class="hs-card-title">מיפוי שדות</div><div class="hs-card-sub">XTIX ↔ HubSpot</div></div>
+          </div>
+          <div class="hs-map-table">
+            <div class="hs-map-head"><span>שדה XTIX</span><span>HubSpot Property</span><span>Object</span></div>
+            <div class="hs-map-row"><span>שם חברה</span><code class="hs-code">name</code><span class="hs-obj company">Company</span></div>
+            <div class="hs-map-row"><span>דומיין</span><code class="hs-code">domain</code><span class="hs-obj company">Company</span></div>
+            <div class="hs-map-row"><span>סוג אירועים</span><code class="hs-code">industry</code><span class="hs-obj company">Company</span></div>
+            <div class="hs-map-row"><span>שם ליד</span><code class="hs-code">firstname</code><span class="hs-obj contact">Contact</span></div>
+            <div class="hs-map-row"><span>מייל</span><code class="hs-code">email</code><span class="hs-obj contact">Contact</span></div>
+            <div class="hs-map-row"><span>Lead Score</span><code class="hs-code">hs_lead_status</code><span class="hs-obj contact">Contact</span></div>
+            <div class="hs-map-row"><span>פלטפורמה</span><code class="hs-code">description</code><span class="hs-obj company">Company</span></div>
+            <div class="hs-map-row"><span>טלפון</span><code class="hs-code">phone</code><span class="hs-obj contact">Contact</span></div>
+          </div>
+        </div>
+        <div class="hs-status-card">
+          <div class="hs-status-row"><span class="hs-status-label">סטטוס חיבור</span><span class="hs-status-val" id="hs-conn-status">לא מחובר</span></div>
+          <div class="hs-status-row"><span class="hs-status-label">לידים ב-CRM</span><span class="hs-status-val" id="hs-leads-count">0</span></div>
+          <div class="hs-status-row"><span class="hs-status-label">נשלחו ל-HubSpot</span><span class="hs-status-val" id="hs-pushed-count">0</span></div>
+        </div>
       </div>
     </div>
   </div>
+</div>
 
-<!-- Lead Finder standalone panel -->
+
+
+  <!-- =================== LEAD FINDER =================== -->
   <div class="panel" id="tab-leadfinder">
     <div id="lf-inner" style="max-width:900px">
 
