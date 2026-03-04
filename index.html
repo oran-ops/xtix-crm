@@ -3210,6 +3210,7 @@ BP18: Nurture existing customers — repeat customers spend 67% more
         }
       } catch(e2) {}
       leads = DEFAULT_LEADS.slice(); nextId = 3;
+      renderAllLeads(); updateStats();
       showStorageStatus('default');
     }
   }
@@ -3583,6 +3584,36 @@ BP18: Nurture existing customers — repeat customers spend 67% more
       if (appWrapper)  appWrapper.style.display  = 'none';
     }
   });
+
+  // ── Fallback: if Firebase/Auth not available, load from localStorage or defaults ──
+  if (!auth) {
+    setTimeout(function() {
+      var loginScreen = document.getElementById('login-screen');
+      var appWrapper  = document.getElementById('app-wrapper');
+      if (loginScreen) loginScreen.style.display = 'none';
+      if (appWrapper)  appWrapper.style.display  = 'flex';
+      // Try localStorage first
+      try {
+        var saved = localStorage.getItem('xtix_crm_leads');
+        if (saved) {
+          leads  = JSON.parse(saved);
+          nextId = parseInt(localStorage.getItem('xtix_crm_leads_nextid') || '3');
+          if (typeof renderAllLeads === 'function') renderAllLeads();
+          if (typeof updateStats    === 'function') updateStats();
+          if (typeof showStorageStatus === 'function') showStorageStatus('local');
+          if (typeof initToolbar   === 'function') initToolbar();
+          return;
+        }
+      } catch(e) {}
+      // No saved data — empty state
+      leads  = [];
+      nextId = 1;
+      if (typeof renderAllLeads === 'function') renderAllLeads();
+      if (typeof updateStats    === 'function') updateStats();
+      if (typeof showStorageStatus === 'function') showStorageStatus('default');
+      if (typeof initToolbar    === 'function') initToolbar();
+    }, 200);
+  }
 
 
 
@@ -5457,7 +5488,7 @@ Blueprint לכל מייל:
     if (!lead.created_at) lead.created_at = new Date().toISOString();
     if (!lead.updated_at) lead.updated_at = lead.created_at;
     if (!lead.source) lead.source = 'manual';
-    ensureLeadId(lead);
+    if(typeof ensureLeadId==="function")ensureLeadId(lead);
     if(typeof _orig==='function')_orig(lead);
     setTimeout(function(){ patchCard(lead); updateBadge(); }, 80);
   };
@@ -5747,6 +5778,10 @@ Blueprint לכל מייל:
     filterV3(); updateBadge();
   }, 2500);
   setInterval(updateBadge, 4000);
+
+  // Export helpers needed by renderSimpleLead (defined in script block 1)
+  window.ensureLeadId  = ensureLeadId;
+  window.genXTIXId     = genXTIXId;
 
 })();
 
@@ -7576,7 +7611,7 @@ addSalesPlaybookPanel();
     if (!lead.created_at) lead.created_at = new Date().toISOString();
     if (!lead.updated_at) lead.updated_at = lead.created_at;
     if (!lead.source) lead.source = 'manual';
-    ensureLeadId(lead);
+    if(typeof ensureLeadId==="function")ensureLeadId(lead);
     if(typeof _orig==='function')_orig(lead);
     setTimeout(function(){ patchCard(lead); updateBadge(); }, 80);
   };
