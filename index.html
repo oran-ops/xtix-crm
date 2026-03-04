@@ -20,9 +20,9 @@
     --muted: #6b6b8a;
   }
   * { box-sizing: border-box; margin: 0; padding: 0; }
-  body { font-family: 'Heebo', sans-serif; background: var(--bg); color: var(--text); min-height: 100%; direction: rtl; }
+  body { font-family: 'Heebo', sans-serif; background: var(--bg); color: var(--text); min-height: 100vh; direction: rtl; }
 
-  .header { background: var(--surface); border-bottom: 1px solid var(--border); padding: 14px 28px; display: flex; align-items: center; justify-content: space-between; position: relative; top: 0; z-index: 100; }
+  .header { background: var(--surface); border-bottom: 1px solid var(--border); padding: 14px 28px; display: flex; align-items: center; justify-content: space-between; position: sticky; top: 0; z-index: 100; }
   .logo { font-family: 'Space Mono', monospace; font-size: 20px; color: var(--accent); letter-spacing: 2px; }
   .logo span { color: var(--accent2); }
   .header-stats { display: flex; gap: 20px; font-size: 12px; color: var(--muted); }
@@ -34,7 +34,7 @@
 
   /* ── SIDEBAR LAYOUT ── */
   /* ── APP LAYOUT ── */
-  #app-wrapper { display: flex !important; flex-direction: row; width: 100vw; height: 100vh; overflow: hidden; background: var(--bg); }
+  #app-wrapper { display: flex !important; flex-direction: row; height: 100vh; background: var(--bg); }
 
   /* ── SIDEBAR ── */
   #sidebar {
@@ -116,7 +116,7 @@
   .sb-tool-btn:hover { background: rgba(108,99,255,0.08); color: var(--text); border-color: rgba(108,99,255,0.2); }
 
   /* ── MAIN CONTENT ── */
-  #main-content { flex: 1; min-width: 0; height: 100vh; overflow-y: auto; overflow-x: hidden; }
+  #main-content { flex: 1; min-width: 0; display: flex; flex-direction: column; height: 100vh; overflow-y: auto; overflow-x: hidden; }
   .container { padding: 24px 28px; width: 100%; box-sizing: border-box; overflow-x: hidden; }
   .header { display: none; }
   #leads-list { width: 100% !important; }
@@ -177,9 +177,9 @@
     --muted: #6b6b8a;
   }
   * { box-sizing: border-box; margin: 0; padding: 0; }
-  body { font-family: 'Heebo', sans-serif; background: var(--bg); color: var(--text); min-height: 100%; direction: rtl; }
+  body { font-family: 'Heebo', sans-serif; background: var(--bg); color: var(--text); min-height: 100vh; direction: rtl; }
 
-  .header { background: var(--surface); border-bottom: 1px solid var(--border); padding: 14px 28px; display: flex; align-items: center; justify-content: space-between; position: relative; top: 0; z-index: 100; }
+  .header { background: var(--surface); border-bottom: 1px solid var(--border); padding: 14px 28px; display: flex; align-items: center; justify-content: space-between; position: sticky; top: 0; z-index: 100; }
   .logo { font-family: 'Space Mono', monospace; font-size: 20px; color: var(--accent); letter-spacing: 2px; }
   .logo span { color: var(--accent2); }
   .header-stats { display: flex; gap: 20px; font-size: 12px; color: var(--muted); }
@@ -193,9 +193,7 @@
 
   .panel { display: none !important; }
   .panel.active { display: block !important; }
-  /* AI Chat: the wrap div handles its own height, container just needs no extra constraints */
   #tab-aichat { overflow: hidden; }
-
 
   .section-title { font-size: 11px; font-weight: 700; letter-spacing: 3px; text-transform: uppercase; color: var(--muted); margin-bottom: 14px; }
 
@@ -337,7 +335,7 @@
   .apply-icon { font-size: 14px; flex-shrink: 0; }
 
   /* HUBSPOT */
-  .hs-section { width: 100%; }
+  .hs-section { width: 100%; max-width: 100%; }
   .hs-card { background: var(--surface); border: 1px solid var(--border); border-radius: 14px; padding: 24px; margin-bottom: 16px; }
   .hs-title { font-size: 15px; font-weight: 700; margin-bottom: 6px; display: flex; align-items: center; gap: 10px; }
   .hs-badge { font-size: 10px; background: rgba(255,122,0,0.15); color: #ff7a00; border: 1px solid rgba(255,122,0,0.3); border-radius: 5px; padding: 2px 8px; font-weight: 700; }
@@ -372,7 +370,7 @@
 
   @media (max-width: 768px) {
     .grid-2, .grid-3, .info-grid { grid-template-columns: 1fr; }
-    .container { padding: 12px 14px; }
+    .container { padding: 14px; }
     .stage-grid { grid-template-columns: 1fr 1fr; }
   }
   .hunt-chip { background:rgba(167,139,250,0.1);border:1px solid rgba(167,139,250,0.3);border-radius:20px;padding:4px 12px;font-size:11px;color:#a78bfa;cursor:pointer;font-family:'Heebo',sans-serif;transition:all 0.2s }
@@ -2421,10 +2419,11 @@ IF RESPONSE at any point → Book 30-min MEETING (not call). Prepare ROI deck be
         await batch.commit();
       }
 
+      const msg = force
+        ? `✅ גיבוי מלא הושלם!\n\n📊 מתחרים: ${SEED_COMPETITORS.length}\n📧 תבניות מייל: ${SEED_EMAIL_TEMPLATES.length}\n📋 מתודולוגיה: ${SEED_METHODOLOGY.length} BP\n⏱️ Cadences: ${SEED_CADENCES.length}\n⚙️ Config: ✓`
+        : `✅ Seed הושלם!\n\nנתונים חדשים שהועלו:\n• מתחרים: ${results.competitors}\n• מיילים: ${results.emails}\n• מתודולוגיה: ${results.methodology}\n• Cadences: ${results.cadences}`;
+
       if (btn) {
-        const msg = force
-          ? `✅ גיבוי מלא הושלם!\n\n📊 מתחרים: ${SEED_COMPETITORS.length}\n📧 תבניות מייל: ${SEED_EMAIL_TEMPLATES.length}\n📋 מתודולוגיה: ${SEED_METHODOLOGY.length} BP\n⏱️ Cadences: ${SEED_CADENCES.length}\n⚙️ Config: ✓`
-          : `✅ Seed הושלם!\n\nנתונים חדשים שהועלו:\n• מתחרים: ${results.competitors}\n• מיילים: ${results.emails}\n• מתודולוגיה: ${results.methodology}\n• Cadences: ${results.cadences}`;
         alert(msg);
         btn.textContent = '✅ גובה'; btn.style.color = 'var(--green)';
       } else {
@@ -2817,20 +2816,20 @@ IF RESPONSE at any point → Book 30-min MEETING (not call). Prepare ROI deck be
 
 
   window.switchMainTab = function(name, btn) {
-    // Hide every panel in the entire document
+    // Hide ALL panels in document (not just container children)
     document.querySelectorAll('.panel').forEach(function(el){
       el.classList.remove('active');
     });
-    // Activate only the target
+    // Show target panel
     var target = document.getElementById('tab-' + name);
     if (target) target.classList.add('active');
-    // Scroll to top
+    // Scroll to top on panel change
     var mc = document.getElementById('main-content');
     if (mc) mc.scrollTop = 0;
-    // Nav buttons
+    // Update sidebar nav buttons
     document.querySelectorAll('.nav-btn').forEach(function(b){ b.classList.remove('active'); });
     if (btn) btn.classList.add('active');
-    // Sub-menus
+    // Show/hide sub-menus
     document.querySelectorAll('.nav-sub').forEach(function(s){ s.classList.remove('open'); });
     var sub = document.getElementById('sub-' + name);
     if (sub) sub.classList.add('open');
@@ -4009,10 +4008,6 @@ ${proxyCtx}
     try{if(typeof db!=='undefined'&&db)await db.collection(HUNT_COL).doc(String(fbId||id)).delete();}catch(e){}
     try{var a=JSON.parse(localStorage.getItem(SAVED_KEY)||'[]');localStorage.setItem(SAVED_KEY,JSON.stringify(a.filter(function(x){return x.id!==id;})));}catch(e){}
   }
-  async function updateSavedSearchFirebase(s) {
-    try{if(typeof db!=='undefined'&&db)await db.collection(HUNT_COL).doc(String(s._fbId||s.id)).set(s);}catch(e){}
-    try{var a=JSON.parse(localStorage.getItem(SAVED_KEY)||'[]');var i=a.findIndex(function(x){return x.id===s.id;});if(i!==-1)a[i]=s;else a.unshift(s);localStorage.setItem(SAVED_KEY,JSON.stringify(a.slice(0,50)));}catch(e){}
-  }
   function loadSavedSearches(){return _savedSearchesCache;}
   function persistSavedSearches(arr){_savedSearchesCache=arr;try{localStorage.setItem(SAVED_KEY,JSON.stringify(arr));}catch(e){}}
   setTimeout(function(){
@@ -4962,7 +4957,7 @@ addSalesPlaybookPanel();
 
   <!-- ══════════ AI CHAT PANEL ══════════ -->
   <div class="panel" id="tab-aichat">
-    <div id="aichat-wrap" style="display:flex;flex-direction:column;height:calc(100vh - 52px);max-width:900px;margin:0 auto;overflow:hidden;">
+    <div id="aichat-wrap" style="display:flex;flex-direction:column;height:calc(100vh - 52px);max-width:100%;margin:0 auto">
 
       <!-- Header -->
       <div style="display:flex;align-items:center;gap:12px;padding-bottom:16px;border-bottom:1px solid var(--border);margin-bottom:16px;flex-shrink:0">
@@ -5881,6 +5876,7 @@ if (_origRender) {
 
 })();
 </script>
+
 
 
 
