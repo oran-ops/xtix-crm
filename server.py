@@ -451,7 +451,10 @@ class Handler(BaseHTTPRequestHandler):
         self.send_header('Content-Length',str(len(b))); self.end_headers(); self.wfile.write(b)
 
     def body(self):
-        n=int(self.headers.get('Content-Length',0))
+        n = int(self.headers.get('Content-Length', 0))
+        if n > 512_000:  # 512KB max
+            self.json_out({'error': 'בקשה גדולה מדי (מקסימום 512KB)', 'code': 'payload_too_large'}, 413)
+            return None
         return json.loads(self.rfile.read(n).decode('utf-8')) if n else {}
 
     def do_OPTIONS(self):
@@ -582,6 +585,7 @@ class Handler(BaseHTTPRequestHandler):
 
     def do_POST(self):
         p=urllib.parse.urlparse(self.path); b=self.body(); cfg=load_config()
+        if b is None: return  # payload too large — response already sent
 
         if p.path=='/clay-import':
             # Receive leads from Clay and save to local leads file
