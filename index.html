@@ -6018,819 +6018,7 @@ Blueprint לכל מייל:
   })();
 
 </script>
-</div></div> <!-- end main-content + app-wrapper -->
 
-<!-- =================== CRM IMPROVEMENTS v3 =================== -->
-<script>
-(function() {
-
-  function genXTIXId() {
-    var chars = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
-    var id = 'XT-';
-    for (var i=0; i<8; i++) id += chars[Math.floor(Math.random()*chars.length)];
-    return id;
-  }
-
-  function ensureLeadId(lead) {
-    if (!lead.xtix_id) {
-      lead.xtix_id = genXTIXId();
-      if (typeof db !== 'undefined' && db && lead.id)
-        db.collection('leads').doc(String(lead.id)).update({xtix_id: lead.xtix_id}).catch(function(){});
-    }
-    return lead.xtix_id;
-  }
-
-  // ===== TOOLBAR INJECTION =====
-  function initToolbar() {
-    if (document.getElementById('crm-v3-toolbar')) return;
-    var leadsPanel = document.getElementById('tab-leads');
-    if (!leadsPanel) return;
-
-    var toolbar = document.createElement('div');
-    toolbar.id = 'crm-v3-toolbar';
-    toolbar.style.marginBottom = '14px';
-    toolbar.innerHTML =
-      '<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px">' +
-        '<span id="crm-badge" style="background:rgba(108,99,255,0.15);border:1px solid rgba(108,99,255,0.3);border-radius:20px;padding:2px 10px;font-size:11px;color:var(--accent)">0 לידים</span>' +
-        '<button onclick="toggleSelAll()" id="sel-all-v3" style="background:none;border:1px solid var(--border);border-radius:6px;padding:3px 10px;font-size:11px;color:var(--muted);cursor:pointer;font-family:Heebo,sans-serif">☐ בחר הכל</button>' +
-      '</div>' +
-      '<div style="position:relative;margin-bottom:8px">' +
-        '<span style="position:absolute;right:10px;top:50%;transform:translateY(-50%);color:var(--muted);pointer-events:none;font-size:13px">🔍</span>' +
-        '<input id="v3-search" type="text" placeholder="חפש שם, דומיין, טלפון, מייל, XTIX-ID, פלטפורמה..." ' +
-          'style="width:100%;background:var(--surface2);border:1px solid var(--border);border-radius:8px;padding:8px 36px 8px 12px;color:var(--text);font-size:12px;font-family:Heebo,sans-serif;outline:none" ' +
-          'oninput="filterV3()" onfocus="this.style.borderColor=\'var(--accent)\'" onblur="this.style.borderColor=\'var(--border)\'">' +
-      '</div>' +
-      '<div style="display:flex;gap:6px;flex-wrap:wrap;margin-bottom:6px;align-items:center">' +
-        '<select id="v3-fst" onchange="filterV3()" style="background:var(--surface2);border:1px solid var(--border);border-radius:6px;padding:5px 8px;color:var(--text);font-size:11px;font-family:Heebo,sans-serif;outline:none">' +
-          '<option value="">כל הסטטוסים</option>' +
-          '<option value="new">🟢 חדש</option><option value="contacted">📧 נשלח מייל</option>' +
-          '<option value="followup">🔁 Follow-up</option><option value="meeting">📅 פגישה</option><option value="closed">✅ נסגר</option>' +
-        '</select>' +
-        '<select id="v3-fsrc" onchange="filterV3()" style="background:var(--surface2);border:1px solid var(--border);border-radius:6px;padding:5px 8px;color:var(--text);font-size:11px;font-family:Heebo,sans-serif;outline:none">' +
-          '<option value="">כל המקורות</option>' +
-          '<option value="clay">🤖 Clay</option><option value="manual">✍️ ידני</option>' +
-          '<option value="hunt">🎯 Hunt</option><option value="csv">📥 CSV</option>' +
-        '</select>' +
-        '<select id="v3-fseg" onchange="filterV3()" style="background:var(--surface2);border:1px solid var(--border);border-radius:6px;padding:5px 8px;color:var(--text);font-size:11px;font-family:Heebo,sans-serif;outline:none">' +
-          '<option value="">כל הסגמנטים</option>' +
-          '<option value="תיאטרון">🎭 תיאטרון</option><option value="מוזיקה">🎵 מוזיקה</option>' +
-          '<option value="קולנוע">🎬 קולנוע</option><option value="סטנד-אפ">🎤 סטנד-אפ</option>' +
-          '<option value="פסטיבל">🎪 פסטיבל</option><option value="ספורט">⚽ ספורט</option>' +
-        '</select>' +
-        '<select id="v3-sort" onchange="filterV3()" style="background:var(--surface2);border:1px solid rgba(108,99,255,0.4);border-radius:6px;padding:5px 8px;color:var(--accent);font-size:11px;font-family:Heebo,sans-serif;outline:none;font-weight:700">' +
-          '<option value="updated">🕐 עדכון אחרון</option>' +
-          '<option value="created">📅 תאריך הוספה</option>' +
-          '<option value="score_desc">🔥 ציון גבוה→נמוך</option>' +
-          '<option value="score_asc">🧊 ציון נמוך→גבוה</option>' +
-          '<option value="name">🔤 שם א→ת</option>' +
-          '<option value="source">📌 מקור</option>' +
-          '<option value="status">📊 סטטוס</option>' +
-          '<option value="segment">🎭 סגמנט</option>' +
-          '<option value="platform">⚙️ פלטפורמה</option>' +
-        '</select>' +
-        '<span id="v3-cnt" style="font-size:11px;color:var(--muted)"></span>' +
-      '</div>' +
-      '<div id="v3-bulk" style="display:none;background:rgba(108,99,255,0.1);border:1px solid rgba(108,99,255,0.25);border-radius:8px;padding:8px 12px;align-items:center;gap:6px;flex-wrap:wrap">' +
-        '<span id="v3-bulk-cnt" style="font-size:12px;font-weight:700;color:var(--accent)">0 נבחרו</span>' +
-        '<div style="flex:1"></div>' +
-        '<button onclick="bulkV3(\'contacted\')" style="background:rgba(0,212,255,0.1);border:1px solid rgba(0,212,255,0.3);border-radius:5px;padding:4px 10px;font-size:11px;color:#00d4ff;cursor:pointer;font-family:Heebo,sans-serif">📧 נשלח מייל</button>' +
-        '<button onclick="bulkV3(\'followup\')" style="background:rgba(255,214,0,0.1);border:1px solid rgba(255,214,0,0.3);border-radius:5px;padding:4px 10px;font-size:11px;color:var(--yellow);cursor:pointer;font-family:Heebo,sans-serif">🔁 Follow-up</button>' +
-        '<button onclick="bulkV3(\'meeting\')" style="background:rgba(0,230,118,0.1);border:1px solid rgba(0,230,118,0.3);border-radius:5px;padding:4px 10px;font-size:11px;color:var(--green);cursor:pointer;font-family:Heebo,sans-serif">📅 פגישה</button>' +
-        '<button onclick="bulkV3(\'enrich\')" style="background:rgba(167,139,250,0.1);border:1px solid rgba(167,139,250,0.3);border-radius:5px;padding:4px 10px;font-size:11px;color:#a78bfa;cursor:pointer;font-family:Heebo,sans-serif">🤖 נתח AI</button>' +
-        '<button onclick="bulkV3(\'delete\')" style="background:rgba(255,71,87,0.1);border:1px solid rgba(255,71,87,0.3);border-radius:5px;padding:4px 10px;font-size:11px;color:var(--red);cursor:pointer;font-family:Heebo,sans-serif">🗑 מחק</button>' +
-        '<button onclick="clearSelV3()" style="background:none;border:1px solid var(--border);border-radius:5px;padding:4px 8px;font-size:11px;color:var(--muted);cursor:pointer">✕</button>' +
-      '</div>';
-
-    var existing = leadsPanel.querySelector('.leads-toolbar');
-    if (existing) { leadsPanel.insertBefore(toolbar, existing); existing.style.display='none'; }
-    else { var ll=document.getElementById('leads-list'); if(ll) leadsPanel.insertBefore(toolbar,ll); }
-
-    // 🔍 header button
-    var hs = document.querySelector('.header-stats');
-    if (hs && !document.getElementById('hdr-srch')) {
-      var btn=document.createElement('button');
-      btn.id='hdr-srch'; btn.textContent='🔍'; btn.title='Ctrl+K';
-      btn.style.cssText='background:rgba(108,99,255,0.2);border:1px solid rgba(108,99,255,0.4);border-radius:5px;padding:2px 8px;font-size:13px;color:var(--accent);cursor:pointer';
-      btn.onclick=function(){if(window.switchTab)switchTab('leads',document.querySelector('.tab[onclick*=leads]'));setTimeout(function(){var s=document.getElementById('v3-search');if(s){s.focus();s.select();}},200);};
-      hs.insertBefore(btn, hs.firstChild);
-    }
-
-    document.addEventListener('keydown',function(e){
-      if((e.ctrlKey||e.metaKey)&&e.key==='k'){e.preventDefault();if(window.switchTab)switchTab('leads',document.querySelector('.tab[onclick*=leads]'));setTimeout(function(){var s=document.getElementById('v3-search');if(s){s.focus();s.select();}},200);}
-    });
-    updateBadge();
-  }
-
-
-  // =====================================================
-  // MISSING FUNCTIONS — updateStats, huntState, huntSend
-  // =====================================================
-
-  // updateStats: refreshes header counters
-  function updateStats() {
-    var total = typeof leads !== 'undefined' ? leads.length : 0;
-    var contacted = typeof leads !== 'undefined'
-      ? leads.filter(function(l){ return l.status === 'contacted' || l.status === 'demo' || l.status === 'closed'; }).length
-      : 0;
-    var el1 = document.getElementById('total-leads');
-    var el2 = document.getElementById('contacted-count');
-    if (el1) el1.textContent = total;
-    if (el2) el2.textContent = contacted;
-  }
-  window.updateStats = updateStats;
-
-  // huntState: AI Hunt conversational state
-  var huntState = { step: 0, answers: {}, domain: '', name: '' };
-  window.huntState = huntState;
-
-  // huntAskNext: drive the AI Hunt chat UI
-  window.huntAskNext = function huntAskNext() {
-    var chat = document.getElementById('hunt-chat');
-    if (!chat) return;
-    var questions = [
-      { key: 'segment',   text: 'באיזה סגמנט תרצה לחפש?', opts: ['מוזיקה', 'תיאטרון', 'סטנד-אפ', 'ספורט', 'פסטיבל', 'קולנוע', 'הכל'] },
-      { key: 'location',  text: 'מאיזה אזור?', opts: ['תל אביב', 'ירושלים', 'חיפה', 'באר שבע', 'ארצי'] },
-      { key: 'size',      text: 'גודל קהל ממוצע לאירוע?', opts: ['קטן (<500)', 'בינוני (500-2000)', 'גדול (2000+)'] },
-      { key: 'platform',  text: 'פלטפורמת כרטיסים נוכחית?', opts: ['SmarTicket', 'Bravo', 'Leaan', 'אחרת', 'לא יודע'] },
-      { key: 'freq',      text: 'כמה אירועים בשנה?', opts: ['1-3', '4-10', '10+'] },
-      { key: 'priority',  text: 'עדיפות חיפוש?', opts: ['הכי חמים (Hot)', 'בינוני (Warm)', 'הכל'] }
-    ];
-    var step = huntState.step;
-    if (step >= questions.length) {
-      huntFinish();
-      return;
-    }
-    var q = questions[step];
-    var msgDiv = document.createElement('div');
-    msgDiv.style.cssText = 'background:rgba(108,99,255,0.12);border-radius:8px;padding:10px 14px;font-size:12px;color:var(--text);margin-bottom:4px';
-    msgDiv.innerHTML = '<div style="font-size:10px;color:var(--accent);margin-bottom:4px;font-weight:700">🤖 AI Hunt</div>' + q.text;
-    chat.appendChild(msgDiv);
-    if (q.opts && q.opts.length) {
-      var optDiv = document.createElement('div');
-      optDiv.style.cssText = 'display:flex;flex-wrap:wrap;gap:6px;margin-bottom:4px';
-      q.opts.forEach(function(opt) {
-        var btn = document.createElement('button');
-        btn.style.cssText = 'background:rgba(108,99,255,0.15);border:1px solid rgba(108,99,255,0.3);border-radius:5px;padding:4px 10px;font-size:11px;color:var(--accent);cursor:pointer;font-family:Heebo,sans-serif';
-        btn.textContent = opt;
-        btn.onclick = function() {
-          huntState.answers[q.key] = opt;
-          huntState.step++;
-          var inp = document.getElementById('hunt-input');
-          if (inp) inp.value = '';
-          var replyDiv = document.createElement('div');
-          replyDiv.style.cssText = 'text-align:left;margin-bottom:4px';
-          replyDiv.innerHTML = '<span style="background:rgba(255,255,255,0.08);border-radius:8px;padding:5px 12px;font-size:12px;display:inline-block">' + opt + '</span>';
-          chat.appendChild(replyDiv);
-          optDiv.remove();
-          huntAskNext();
-        };
-        optDiv.appendChild(btn);
-      });
-      chat.appendChild(optDiv);
-    }
-    if(typeof chat!=='undefined'&&chat&&chat.scrollTop!==undefined)chat.scrollTop=chat.scrollHeight;
-  };
-
-  window.huntSend = function huntSend() {
-    var inp = document.getElementById('hunt-input');
-    if (!inp || !inp.value.trim()) return;
-    var val = inp.value.trim();
-    var chat = document.getElementById('hunt-chat');
-    if (chat) {
-      var replyDiv = document.createElement('div');
-      replyDiv.style.cssText = 'text-align:left;margin-bottom:4px';
-      replyDiv.innerHTML = '<span style="background:rgba(255,255,255,0.08);border-radius:8px;padding:5px 12px;font-size:12px;display:inline-block">' + val + '</span>';
-      chat.appendChild(replyDiv);
-    }
-    inp.value = '';
-    var questions = ['segment','location','size'];
-    var q = questions[huntState.step] || 'extra';
-    huntState.answers[q] = val;
-    huntState.step++;
-    huntAskNext();
-  };
-
-  function huntFinish() {
-    var chat = document.getElementById('hunt-chat');
-    if (!chat) return;
-    var ans = huntState.answers;
-
-    // Build summary
-    var summaryDiv = document.createElement('div');
-    summaryDiv.style.cssText = 'background:rgba(16,185,129,0.08);border:1px solid rgba(16,185,129,0.25);border-radius:10px;padding:14px 16px;font-size:12px;margin-bottom:8px';
-    summaryDiv.innerHTML = '<div style="font-weight:800;color:var(--green);margin-bottom:8px;font-size:13px">✅ פרמטרים הוגדרו</div>'
-      + '<div style="display:grid;grid-template-columns:1fr 1fr;gap:6px;margin-bottom:10px">'
-      + '<div><span style="color:var(--muted)">סגמנט:</span> <strong>' + (ans.segment||'הכל') + '</strong></div>'
-      + '<div><span style="color:var(--muted)">אזור:</span> <strong>' + (ans.location||'ארצי') + '</strong></div>'
-      + '<div><span style="color:var(--muted)">גודל קהל:</span> <strong>' + (ans.size||'כל') + '</strong></div>'
-      + '<div><span style="color:var(--muted)">פלטפורמה:</span> <strong>' + (ans.platform||'כל') + '</strong></div>'
-      + '<div><span style="color:var(--muted)">תדירות:</span> <strong>' + (ans.freq||'כל') + '</strong></div>'
-      + '<div><span style="color:var(--muted)">עדיפות:</span> <strong>' + (ans.priority||'הכל') + '</strong></div>'
-      + '</div>'
-      + '<button onclick="window.runHuntSearch()" style="width:100%;background:linear-gradient(135deg,var(--accent),#8b5cf6);border:none;border-radius:8px;padding:11px;color:#fff;font-size:13px;font-weight:800;cursor:pointer;font-family:Heebo,sans-serif;margin-bottom:6px">🚀 חפש לידים עם AI</button>'
-      + '<div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:5px;margin-top:4px">'
-      + '<button id="btn-save-search" onclick="window.saveCurrentSearch()" style="background:rgba(0,230,118,0.1);border:1px solid rgba(0,230,118,0.25);border-radius:7px;padding:7px 4px;color:var(--green);font-size:11px;font-weight:700;cursor:pointer;font-family:Heebo,sans-serif">💾 שמור</button>'
-      + '<button onclick="window.newHuntSearch()" style="background:rgba(108,99,255,0.1);border:1px solid rgba(108,99,255,0.25);border-radius:7px;padding:7px 4px;color:var(--accent);font-size:11px;font-weight:700;cursor:pointer;font-family:Heebo,sans-serif">✨ חיפוש חדש</button>'
-      + '<button onclick="huntState.step=0;huntState.answers={};huntAskNext()" style="background:transparent;border:1px solid var(--border);border-radius:7px;padding:7px 4px;color:var(--muted);font-size:11px;cursor:pointer;font-family:Heebo,sans-serif">↺ ערוך</button>'
-      + '</div>';
-    chat.appendChild(summaryDiv);
-    if(typeof chat!=='undefined'&&chat&&chat.scrollTop!==undefined)chat.scrollTop=chat.scrollHeight;
-    // Keep answers for search, reset step only
-    huntState.step = 0;
-  }
-
-  window.runHuntSearch = async function runHuntSearch() {
-    var resultsEl = document.getElementById('hunt-results');
-    var p = getHuntParams();
-    var count = p.count || 5;
-    if (!chat) return;
-
-    // Show loading
-    if (resultsEl) { resultsEl.style.display='block'; resultsEl.innerHTML='<div style="background:rgba(59,130,246,0.1);border:1px solid rgba(59,130,246,0.2);border-radius:10px;padding:16px;text-align:center"><div style="font-size:24px;margin-bottom:8px">🤖</div><div style="font-size:13px;color:var(--t1);font-weight:600">AI Hunt פועל...</div><div style="font-size:11px;color:var(--t3);margin-top:4px">מחפש '+(count)+' לידים · '+p.depth+'</div></div>'; }
-    var loadDiv = { remove: function(){} }; // dummy
-
-    var prompt = [
-      'אתה מנהל מכירות ב-XTIX — מערכת מכירת כרטיסים B2B ישראלית. חפש '+count+' לידים ישראלים אמיתיים.',
-      p.segments.length  ? 'סוגי אירועים: '+p.segments.join(', ') : '',
-      p.geo.length       ? 'אזורים: '+p.geo.join(', ') : 'ארצי',
-      p.size.length      ? 'גודל אירוע: '+p.size.join(', ') : '',
-      p.competitors.length ? 'פלטפורמות נוכחיות (מתחרים): '+p.competitors.join(', ') : '',
-      p.market.length    ? 'שוק: '+p.market.join(', ') : '',
-      'תדירות: '+p.freq,
-      'עומק: '+p.depth,
-      p.exclude.length   ? 'אל תכלול: '+p.exclude.join(', ') : '',
-      'לכל ליד: שם, domain, טלפון, segment, platform_current, score (0-100), reason (עברית, 1-2 משפטים), size_estimate, events_per_year.',
-      'החזר JSON בלבד: {"leads":[{"name":"","domain":"","phone":"","segment":"","platform_current":"","score":80,"reason":"","size_estimate":"","events_per_year":""}]}',
-      'רק ארגונים ישראלים אמיתיים ופעילים. '+count+' לידים בלבד.'
-    ].filter(Boolean).join(' ');
-
-    try {
-      var res = await fetch('https://xtix-crm-production.up.railway.app/ai', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          model: 'claude-haiku-4-5-20251001',
-          max_tokens: 1000,
-          system: 'Return ONLY valid JSON. No markdown.',
-          messages: [{ role: 'user', content: prompt }]
-        }),
-        signal: AbortSignal.timeout(25000)
-      });
-      var data = await res.json();
-      var raw = (data.content||[]).map(function(b){return b.text||'';}).join('');
-      var s = raw.indexOf('{'), e = raw.lastIndexOf('}');
-      var parsed = JSON.parse(raw.substring(s, e+1));
-      var foundLeads = parsed.leads || [];
-
-      loadDiv.remove();
-
-      if (!foundLeads.length) {
-        var noRes = document.createElement('div');
-        noRes.style.cssText = 'color:var(--muted);font-size:12px;padding:8px';
-        noRes.textContent = 'לא נמצאו לידים — נסה פרמטרים שונים.';
-        chat.appendChild(noRes);
-        return;
-      }
-
-      // Build results
-      function sColor(s){ return s>=80?'#10b981':s>=60?'#3b82f6':'#f59e0b'; }
-      var resHtml = '<div style="margin-bottom:10px;font-size:11px;color:var(--t3)">נמצאו '+foundLeads.length+' לידים · ממוינים לפי ציון</div>';
-      resHtml += '<div style="display:flex;flex-direction:column;gap:8px">';
-      foundLeads.sort(function(a,b){return (b.score||0)-(a.score||0);}).forEach(function(lead){
-        var sc=lead.score||0; var c=sColor(sc);
-        var circ=100.5; var dash=Math.round((sc/100)*circ);
-        resHtml += '<div style="background:rgba(255,255,255,0.03);border:1px solid rgba(255,255,255,0.08);border-radius:11px;padding:14px 16px;display:grid;grid-template-columns:auto 1fr auto;gap:12px;align-items:center">'          +'<svg width="44" height="44" viewBox="0 0 44 44"><circle cx="22" cy="22" r="16" fill="none" stroke="rgba(255,255,255,0.06)" stroke-width="3.5"/><circle cx="22" cy="22" r="16" fill="none" stroke="'+c+'" stroke-width="3.5" stroke-dasharray="'+dash+' '+circ+'" stroke-dashoffset="'+Math.round(circ/4)+'" stroke-linecap="round" transform="rotate(-90 22 22)"/><text x="22" y="27" text-anchor="middle" fill="'+c+'" font-size="11" font-weight="800" font-family="DM Mono,monospace">'+sc+'</text></svg>'          +'<div>'            +'<div style="font-size:13px;font-weight:700;color:var(--t1);margin-bottom:3px">'+(lead.name||'')+'</div>'            +'<div style="display:flex;flex-wrap:wrap;gap:8px">'              +(lead.domain?'<span style="font-size:11px;color:var(--t3)">🌐 '+lead.domain+'</span>':'')              +(lead.phone?'<span style="font-size:11px;color:var(--t3)">📞 '+lead.phone+'</span>':'')              +(lead.platform_current?'<span style="font-size:10px;background:rgba(139,92,246,0.15);border:1px solid rgba(139,92,246,0.25);border-radius:4px;padding:1px 6px;color:#a78bfa">'+lead.platform_current+'</span>':'')              +(lead.size_estimate?'<span style="font-size:10px;color:var(--t3)">👥 '+lead.size_estimate+'</span>':'')              +(lead.events_per_year?'<span style="font-size:10px;color:var(--t3)">📅 '+lead.events_per_year+'/שנה</span>':'')            +'</div>'            +(lead.reason?'<div style="font-size:11px;color:#10b981;margin-top:5px;line-height:1.5">'+lead.reason+'</div>':'')          +'</div>'          +'<button onclick="huntAddLead('+JSON.stringify(lead).replace(/"/g,'&quot;')+')" style="background:rgba(16,185,129,0.12);border:1px solid rgba(16,185,129,0.3);border-radius:8px;padding:8px 12px;color:#10b981;font-size:11px;font-weight:700;cursor:pointer;font-family:DM Sans,Heebo,sans-serif;white-space:nowrap">➕ CRM</button>'        +'</div>';
-      });
-      resHtml += '</div>';
-      resHtml += '<div style="margin-top:10px;display:flex;gap:8px"><button onclick="window.saveCurrentSearch()" style="flex:1;background:rgba(16,185,129,0.1);border:1px solid rgba(16,185,129,0.25);border-radius:8px;padding:8px;color:#10b981;font-size:11px;font-weight:700;cursor:pointer;font-family:DM Sans,Heebo,sans-serif">💾 שמור חיפוש</button></div>';
-      if(resultsEl){ resultsEl.style.display='block'; resultsEl.innerHTML=resHtml; }
-      setLastFoundLeads(foundLeads, getHuntParams());
-
-    } catch(e) {
-      loadDiv.remove();
-      var errDiv = document.createElement('div');
-      errDiv.style.cssText = 'color:#EF4444;font-size:12px;padding:8px;background:rgba(239,68,68,0.08);border-radius:8px';
-      errDiv.textContent = '⚠️ שגיאה בחיפוש: ' + e.message;
-      chat.appendChild(errDiv);
-    }
-  };
-
-  window.huntAddLead = function huntAddLead(lead) {
-    var now = new Date().toISOString();
-    var newLead = {
-      id: Date.now(),
-      name: lead.name || '',
-      domain: lead.domain || '',
-      phone: lead.phone || '',
-      segment: lead.segment || '',
-      platform: lead.platform || '',
-      score: lead.score || 50,
-      status: 'new',
-      source: 'ai-hunt',
-      created_at: now,
-      updated_at: now,
-      notes: 'נמצא ע"י AI Hunt. ' + (lead.reason || '')
-    };
-    // ── Route through central entry point ──
-    window.addLeadToCRM(newLead, {source: 'hunt'});
-    try {
-      var s = JSON.parse(localStorage.getItem('xtix_crm_leads')||'[]');
-      s.push(newLead); localStorage.setItem('xtix_crm_leads', JSON.stringify(s));
-    } catch(e) {}
-    if (typeof updateStats === 'function') updateStats();
-    if (typeof updateBadge === 'function') updateBadge();
-    // Visual feedback on the button
-    event && event.target && (event.target.textContent = '✅ נוסף!') && (event.target.disabled = true);
-  };
-
-  // ══════════════════════════════════════════════════
-  // SAVED LEAD RESULTS — save/delete found leads per search
-  // Structure: { id, name, params, leads[], savedAt }
-  // ══════════════════════════════════════════════════
-  var SAVED_KEY = 'xtix_saved_searches';
-  var _lastFoundLeads = []; // populated after each runHuntSearch
-
-  function loadSavedSearches() {
-    try { return JSON.parse(localStorage.getItem(SAVED_KEY) || '[]'); } catch(e) { return []; }
-  }
-  function persistSavedSearches(arr) {
-    try { localStorage.setItem(SAVED_KEY, JSON.stringify(arr)); } catch(e) {}
-  }
-
-  // Called after successful hunt — saves leads to _lastFoundLeads
-  function setLastFoundLeads(leadsArr, params) {
-    _lastFoundLeads = leadsArr;
-    window._lastHuntParams = params;
-  }
-
-  // Render saved searches panel
-  window.renderSavedSearches = function() {
-    var list  = document.getElementById('saved-searches-list');
-    var empty = document.getElementById('saved-searches-empty');
-    var count = document.getElementById('saved-count');
-    if (!list) return;
-    var searches = loadSavedSearches();
-    list.innerHTML = '';
-    if (count) count.textContent = searches.length ? searches.length + ' שמורים' : '';
-    if (!searches.length) {
-      if (empty) empty.style.display = 'block';
-      return;
-    }
-    if (empty) empty.style.display = 'none';
-
-    searches.forEach(function(s, idx) {
-      var group = document.createElement('div');
-      group.style.cssText = 'background:var(--surface2);border:1px solid var(--border);border-radius:11px;overflow:hidden;margin-bottom:2px';
-
-      // Header row
-      var params = [s.params && s.params.segment, s.params && s.params.location, s.params && s.params.size].filter(Boolean).join(' · ');
-      var hdr = document.createElement('div');
-      hdr.style.cssText = 'display:flex;align-items:center;gap:8px;padding:10px 12px;cursor:pointer';
-      hdr.innerHTML = '<div style="flex:1;min-width:0">'
-        + '<div style="font-size:12px;font-weight:800;color:var(--text)">' + (s.name || 'חיפוש ללא שם') + '</div>'
-        + '<div style="font-size:10px;color:var(--muted);margin-top:2px">' + params + ' &nbsp;·&nbsp; <span style="color:var(--accent)">' + (s.leads ? s.leads.length : 0) + ' לידים</span></div>'
-        + '</div>'
-        + '<span id="ss-arrow-' + idx + '" style="color:var(--muted);font-size:12px;transition:transform 0.2s">▼</span>'
-        + '<button onclick="event.stopPropagation();window.deleteSavedSearch(' + idx + ')" title="מחק חיפוש" '
-        + 'style="background:rgba(239,68,68,0.1);border:1px solid rgba(239,68,68,0.2);border-radius:7px;padding:4px 9px;color:#EF4444;font-size:11px;cursor:pointer;font-family:Heebo,sans-serif">🗑</button>';
-
-      // Leads list (collapsed by default)
-      var leadsContainer = document.createElement('div');
-      leadsContainer.id = 'ss-leads-' + idx;
-      leadsContainer.style.cssText = 'display:none;border-top:1px solid var(--border);padding:8px 10px;display:flex;flex-direction:column;gap:6px';
-      leadsContainer.style.display = 'none';
-
-      (s.leads || []).forEach(function(lead, li) {
-        var lrow = document.createElement('div');
-        lrow.style.cssText = 'background:var(--bg);border:1px solid var(--border);border-radius:8px;padding:9px 12px;display:flex;align-items:center;gap:8px';
-        lrow.innerHTML = '<div style="flex:1;min-width:0">'
-          + '<div style="font-size:12px;font-weight:700;color:var(--text)">' + (lead.name||'') + '</div>'
-          + '<div style="font-size:10px;color:var(--muted);margin-top:2px">'
-          + (lead.domain ? '🌐 ' + lead.domain + ' &nbsp;' : '')
-          + (lead.platform ? '🎫 ' + lead.platform : '')
-          + '</div>'
-          + (lead.reason ? '<div style="font-size:10px;color:var(--green);margin-top:3px">' + lead.reason + '</div>' : '')
-          + '</div>'
-          + '<span style="background:rgba(108,99,255,0.15);color:var(--accent);border-radius:20px;padding:2px 8px;font-size:11px;font-weight:700;flex-shrink:0">' + (lead.score||'?') + '</span>'
-          + '<button onclick="window.huntAddLeadFromSaved(' + idx + ',' + li + ')" title="הוסף ל-CRM" '
-          + 'style="background:rgba(0,230,118,0.1);border:1px solid rgba(0,230,118,0.3);border-radius:7px;padding:5px 10px;color:var(--green);font-size:11px;font-weight:700;cursor:pointer;font-family:Heebo,sans-serif;white-space:nowrap;flex-shrink:0">➕ CRM</button>'
-          + '<button onclick="window.deleteLeadFromSaved(' + idx + ',' + li + ')" title="מחק ליד" '
-          + 'style="background:rgba(239,68,68,0.08);border:1px solid rgba(239,68,68,0.15);border-radius:7px;padding:5px 8px;color:#EF4444;font-size:11px;cursor:pointer;font-family:Heebo,sans-serif;flex-shrink:0">✕</button>';
-        leadsContainer.appendChild(lrow);
-      });
-
-      // Add "הוסף הכל ל-CRM" if has leads
-      if (s.leads && s.leads.length > 0) {
-        var addAllBtn = document.createElement('button');
-        addAllBtn.textContent = '➕ הוסף הכל ל-CRM (' + s.leads.length + ')';
-        addAllBtn.style.cssText = 'width:100%;margin-top:4px;background:rgba(0,230,118,0.08);border:1px solid rgba(0,230,118,0.2);border-radius:8px;padding:8px;color:var(--green);font-size:12px;font-weight:700;cursor:pointer;font-family:Heebo,sans-serif';
-        addAllBtn.onclick = function() { window.addAllFromSaved(idx); };
-        leadsContainer.appendChild(addAllBtn);
-      }
-
-      // Toggle expand
-      var expanded = false;
-      hdr.onclick = function() {
-        expanded = !expanded;
-        leadsContainer.style.display = expanded ? 'flex' : 'none';
-        var arr = document.getElementById('ss-arrow-' + idx);
-        if (arr) arr.style.transform = expanded ? 'rotate(180deg)' : '';
-      };
-
-      group.appendChild(hdr);
-      group.appendChild(leadsContainer);
-      list.appendChild(group);
-    });
-  };
-
-  // Save current hunt results
-  window.saveCurrentSearch = function() {
-    if (!_lastFoundLeads || !_lastFoundLeads.length) {
-      alert('אין לידים לשמירה — הרץ חיפוש קודם');
-      return;
-    }
-    var ans = window._lastHuntParams || huntState.answers || {};
-    var params = [ans.segment, ans.location, ans.size, ans.platform].filter(Boolean).join(' · ');
-    var label = prompt('שם לרשימה זו:', params || ('חיפוש ' + new Date().toLocaleDateString('he-IL')));
-    if (label === null) return;
-    var searches = loadSavedSearches();
-    searches.unshift({
-      id: Date.now(),
-      name: label || params || 'חיפוש',
-      params: ans,
-      leads: _lastFoundLeads.slice(),
-      savedAt: new Date().toISOString()
-    });
-    persistSavedSearches(searches);
-    window.renderSavedSearches();
-    var btn = document.getElementById('btn-save-search');
-    if (btn) { btn.textContent = '✅ נשמר!'; setTimeout(function(){ btn.textContent = '💾 שמור'; }, 2000); }
-  };
-
-  // Delete entire saved search
-  window.deleteSavedSearch = function(idx) {
-    if (!confirm('למחוק רשימה זו?')) return;
-    var searches = loadSavedSearches();
-    searches.splice(idx, 1);
-    persistSavedSearches(searches);
-    window.renderSavedSearches();
-  };
-
-  // Delete single lead from saved search
-  window.deleteLeadFromSaved = function(searchIdx, leadIdx) {
-    var searches = loadSavedSearches();
-    if (!searches[searchIdx]) return;
-    searches[searchIdx].leads.splice(leadIdx, 1);
-    if (!searches[searchIdx].leads.length) {
-      if (!confirm('הרשימה ריקה — למחוק אותה?')) { persistSavedSearches(searches); window.renderSavedSearches(); return; }
-      searches.splice(searchIdx, 1);
-    }
-    persistSavedSearches(searches);
-    window.renderSavedSearches();
-  };
-
-  // Add single saved lead to CRM
-  window.huntAddLeadFromSaved = function(searchIdx, leadIdx) {
-    var searches = loadSavedSearches();
-    if (!searches[searchIdx] || !searches[searchIdx].leads[leadIdx]) return;
-    var lead = searches[searchIdx].leads[leadIdx];
-    window.huntAddLead(lead);
-    // Mark as added
-    window.renderSavedSearches();
-  };
-
-  // Add all leads from saved search to CRM
-  window.addAllFromSaved = function(searchIdx) {
-    var searches = loadSavedSearches();
-    if (!searches[searchIdx]) return;
-    var count = 0;
-    searches[searchIdx].leads.forEach(function(lead) {
-      window.huntAddLead(lead);
-      count++;
-    });
-    alert('✅ ' + count + ' לידים נוספו ל-CRM');
-  };
-
-  // New search — reset chat
-  window.newHuntSearch = function() {
-    huntState.step = 0;
-    huntState.answers = {};
-    _lastFoundLeads = [];
-    var chat = document.getElementById('hunt-chat');
-    if (chat) chat.innerHTML = '';
-    huntAskNext();
-  };
-
-  // Init on load
-  setTimeout(window.renderSavedSearches, 800);
-
-
-  // =====================================================
-
-  // ===== PATCH renderSimpleLead =====
-  var _orig = window.renderSimpleLead;
-  window.renderSimpleLead = function(lead) {
-    if (!lead.created_at) lead.created_at = new Date().toISOString();
-    if (!lead.updated_at) lead.updated_at = lead.created_at;
-    if (!lead.source) lead.source = 'manual';
-    if(typeof ensureLeadId==="function")ensureLeadId(lead);
-    if(typeof _orig==='function')_orig(lead);
-    setTimeout(function(){ patchCard(lead); updateBadge(); }, 80);
-  };
-
-  function patchCard(lead) {
-    var card = document.getElementById('lead-'+lead.id);
-    if (!card) return;
-    card.dataset.name=lead.name||'';
-    card.dataset.domain=lead.domain||'';
-    card.dataset.source=lead.source||'manual';
-    card.dataset.status=lead.status||'new';
-    card.dataset.score=lead.score||0;
-    card.dataset.phone=lead.phone||'';
-    card.dataset.email=lead.email||'';
-    card.dataset.platform=lead.platform||'';
-    card.dataset.updated=lead.updated_at||'';
-    card.dataset.created=lead.created_at||'';
-    card.dataset.segment=lead.segment||lead.type||'';
-    card.dataset.xtixId=lead.xtix_id||'';
-
-    // Styled checkbox — left side of header
-    var header = card.querySelector('.lead-card-header');
-    if (header && !header.querySelector('.chk-wrap')) {
-      var wrap = document.createElement('label');
-      wrap.className = 'chk-wrap';
-      wrap.style.cssText = 'display:flex;align-items:center;justify-content:center;width:22px;height:22px;border-radius:6px;border:1.5px solid rgba(255,255,255,0.15);cursor:pointer;flex-shrink:0;transition:all 0.2s;background:transparent;margin-left:10px;margin-right:2px';
-      wrap.title = 'בחר ליד';
-      wrap.onclick = function(e){ e.stopPropagation(); };
-      var chk = document.createElement('input');
-      chk.type = 'checkbox'; chk.className = 'v3chk'; chk.dataset.id = lead.id;
-      chk.style.cssText = 'width:14px;height:14px;accent-color:var(--accent);cursor:pointer;margin:0';
-      chk.onclick = function(e){ e.stopPropagation(); };
-      chk.onchange = function(){ 
-        chkCh(lead.id, this.checked);
-        wrap.style.background = this.checked ? 'rgba(108,99,255,0.15)' : 'transparent';
-        wrap.style.borderColor = this.checked ? 'var(--accent)' : 'var(--border)';
-      };
-      wrap.appendChild(chk);
-      // Insert at very start of header (right side in RTL layout)
-      header.insertBefore(wrap, header.firstChild);
-    }
-
-    // XTIX ID + source badge in meta row
-    var meta=card.querySelector('.lead-meta');
-    if (meta && !meta.querySelector('.v3meta')) {
-      var icons={clay:'🤖',manual:'✍️',hunt:'🎯',csv:'📥'};
-      var dateStr=new Date(lead.created_at).toLocaleDateString('he-IL');
-
-      // XTIX ID — click to copy
-      var idBadge=document.createElement('span');
-      idBadge.className='v3meta';
-      idBadge.title='XTIX Lead ID — לחץ להעתקה';
-      idBadge.style.cssText='color:var(--accent);font-size:10px;font-family:Space Mono,monospace;background:rgba(108,99,255,0.1);border:1px solid rgba(108,99,255,0.25);border-radius:4px;padding:1px 6px;cursor:pointer;letter-spacing:0.5px;white-space:nowrap';
-      idBadge.textContent=lead.xtix_id||'XT-????????';
-      idBadge.onclick=function(e){e.stopPropagation();navigator.clipboard.writeText(this.textContent).then(function(){idBadge.style.background='rgba(0,230,118,0.2)';setTimeout(function(){idBadge.style.background='rgba(108,99,255,0.1)';},700);});};
-      meta.insertBefore(idBadge, meta.firstChild);
-
-      // Source + date badge
-      var srcBadge=document.createElement('span');
-      srcBadge.style.cssText='color:var(--muted);font-size:10px;border:1px solid var(--border);border-radius:3px;padding:1px 4px;white-space:nowrap';
-      srcBadge.textContent=(icons[lead.source]||'📌')+' '+dateStr;
-      meta.appendChild(srcBadge);
-    }
-  }
-
-  // ===== FILTER + SORT =====
-  window.filterV3 = function() {
-    var q=(document.getElementById('v3-search')&&document.getElementById('v3-search').value||'').toLowerCase().trim();
-    var fst=(document.getElementById('v3-fst')&&document.getElementById('v3-fst').value)||'';
-    var fsrc=(document.getElementById('v3-fsrc')&&document.getElementById('v3-fsrc').value)||'';
-    var fseg=(document.getElementById('v3-fseg')&&document.getElementById('v3-fseg').value)||'';
-    var srt=(document.getElementById('v3-sort')&&document.getElementById('v3-sort').value)||'updated';
-    var list=document.getElementById('leads-list');
-    if(!list) return;
-    var cards=list.querySelectorAll('.lead-card');
-    var visible=0;
-    cards.forEach(function(card){
-      if(!card.dataset.dynamic){card.style.display='none';return;}
-      var mQ=!q||(card.dataset.name||'').toLowerCase().includes(q)||(card.dataset.domain||'').toLowerCase().includes(q)||(card.dataset.phone||'').includes(q)||(card.dataset.email||'').toLowerCase().includes(q)||(card.dataset.platform||'').toLowerCase().includes(q)||(card.dataset.xtixId||'').toLowerCase().includes(q)||card.id.replace('lead-','').includes(q);
-      var mSt=!fst||(card.dataset.status||'')===fst;
-      var mSrc=!fsrc||(card.dataset.source||'')===fsrc;
-      var mSeg=!fseg||(card.dataset.segment||'').includes(fseg);
-      var show=mQ&&mSt&&mSrc&&mSeg;
-      card.style.display=show?'':'none';
-      if(show)visible++;
-    });
-    var cnt=document.getElementById('v3-cnt');
-    if(cnt)cnt.textContent=(q||fst||fsrc||fseg)?visible+' תוצאות':'';
-    var sorted=Array.from(list.querySelectorAll('.lead-card[data-dynamic="true"]')).filter(function(c){return c.style.display!=='none';});
-    sorted.sort(function(a,b){
-      if(srt==='score_desc')return(parseInt(b.dataset.score)||0)-(parseInt(a.dataset.score)||0);
-      if(srt==='score_asc')return(parseInt(a.dataset.score)||0)-(parseInt(b.dataset.score)||0);
-      if(srt==='name')return(a.dataset.name||'').localeCompare(b.dataset.name||'','he');
-      if(srt==='created')return new Date(b.dataset.created||0)-new Date(a.dataset.created||0);
-      if(srt==='source')return(a.dataset.source||'').localeCompare(b.dataset.source||'');
-      if(srt==='status'){var o={new:0,contacted:1,followup:2,meeting:3,closed:4};return(o[a.dataset.status||'new']||0)-(o[b.dataset.status||'new']||0);}
-      if(srt==='segment')return(a.dataset.segment||'').localeCompare(b.dataset.segment||'','he');
-      if(srt==='platform')return(a.dataset.platform||'').localeCompare(b.dataset.platform||'','he');
-      return new Date(b.dataset.updated||0)-new Date(a.dataset.updated||0);
-    });
-    sorted.forEach(function(c){list.appendChild(c);});
-  };
-
-  // ===== SELECTION =====
-  var sel3=new Set();
-  function chkCh(id,checked){if(checked)sel3.add(id);else sel3.delete(id);updBulk();}
-  window.toggleSelAll=function(){
-    var all=document.querySelectorAll('.v3chk');
-    var anyOff=Array.from(all).some(function(c){return !c.checked;});
-    all.forEach(function(chk){
-      chk.checked=anyOff;
-      var id=parseInt(chk.dataset.id);
-      if(anyOff)sel3.add(id);else sel3.delete(id);
-      var wrap=chk.parentElement;
-      if(wrap&&wrap.classList.contains('chk-wrap')){
-        wrap.style.background=anyOff?'rgba(108,99,255,0.15)':'transparent';
-        wrap.style.borderColor=anyOff?'var(--accent)':'var(--border)';
-      }
-    });
-    var btn=document.getElementById('sel-all-v3');if(btn)btn.textContent=anyOff?'☑ בטל הכל':'☐ בחר הכל';
-    updBulk();
-  };
-  window.clearSelV3=function(){
-    sel3.clear();
-    document.querySelectorAll('.v3chk').forEach(function(c){
-      c.checked=false;
-      var wrap=c.parentElement;
-      if(wrap&&wrap.classList.contains('chk-wrap')){
-        wrap.style.background='transparent';
-        wrap.style.borderColor='var(--border)';
-      }
-    });
-    var btn=document.getElementById('sel-all-v3');
-    if(btn)btn.textContent='☐ בחר הכל';
-    updBulk();
-  };
-  function updBulk(){var bar=document.getElementById('v3-bulk'),cnt=document.getElementById('v3-bulk-cnt');if(!bar)return;if(sel3.size>0){bar.style.display='flex';if(cnt)cnt.textContent=sel3.size+' נבחרו';}else bar.style.display='none';}
-  window.deleteLead = async function(id) {
-    // Remove from leads array
-    var idx = leads.findIndex(function(l){ return l.id === id; });
-    if (idx !== -1) leads.splice(idx, 1);
-
-    // Remove card from DOM
-    var card = document.getElementById('lead-' + id);
-    if (card) card.remove();
-
-    // Delete from Firebase
-    if (typeof db !== 'undefined' && db) {
-      try { await db.collection('leads').doc(String(id)).delete(); } catch(e) { console.warn('Firebase delete:', e); }
-    }
-
-    // Delete from localStorage backup
-    try {
-      var key = 'xtix_crm_leads';
-      var saved = localStorage.getItem(key);
-      if (saved) {
-        var arr = JSON.parse(saved).filter(function(l){ return l.id !== id; });
-        localStorage.setItem(key, JSON.stringify(arr));
-      }
-    } catch(e) {}
-
-    updateStats();
-    if (typeof updateBadge === 'function') updateBadge();
-  };
-
-  window.bulkV3=async function(action){
-    var ids=Array.from(sel3);if(!ids.length)return;
-    if(action==='delete'){if(!confirm('למחוק '+ids.length+'?'))return;for(var i=0;i<ids.length;i++)if(window.deleteLead)await window.deleteLead(ids[i]);clearSelV3();}
-    else if(action==='enrich'){ids.forEach(function(id){var l=leads.find(function(x){return x.id===id;});if(l&&window.enrichmentQueue)enrichmentQueue.push(l);});if(window.processEnrichmentQueue)processEnrichmentQueue();clearSelV3();}
-    else{var now=new Date().toISOString();ids.forEach(function(id){var l=leads.find(function(x){return x.id===id;});if(l){l.status=action;l.updated_at=now;}var card=document.getElementById('lead-'+id);if(card){card.dataset.status=action;card.dataset.updated=now;}var s=document.querySelector('.status-select[data-lead-id="'+id+'"]');if(s)s.value=action;if(typeof db!=='undefined'&&db)db.collection('leads').doc(String(id)).update({status:action,updated_at:now}).catch(function(){});});if(window.logActivity)logActivity('bulk_status',{count:ids.length,status:action});clearSelV3();if(window.updateStats)updateStats();}
-  };
-
-  // ===== AUTO STATUS on email =====
-  var _origE=window.sendRealEmail;
-  if(_origE){window.sendRealEmail=async function(to,sub,body,lid,hsid){var r=await _origE(to,sub,body,lid,hsid);if(lid){var l=leads.find(function(x){return x.id===lid;});if(l&&l.status==='new'){l.status='contacted';l.updated_at=new Date().toISOString();var card=document.getElementById('lead-'+lid);if(card)card.dataset.status='contacted';var s=document.querySelector('.status-select[data-lead-id="'+lid+'"]');if(s)s.value='contacted';if(typeof db!=='undefined'&&db)db.collection('leads').doc(String(lid)).update({status:'contacted',updated_at:l.updated_at}).catch(function(){});}}return r;};}
-
-  function updateBadge(){var b=document.getElementById('crm-badge');if(b&&typeof leads!=='undefined')b.textContent=leads.length+' לידים';}
-
-  // ===== HUBSPOT UPGRADE =====
-  function injectHSFieldMap(){
-    if(document.getElementById('hs-v3-map'))return;
-    var hsSection=document.querySelector('#tab-hubspot .hs-section');
-    if(!hsSection)return;
-    var mapCard=document.createElement('div');
-    mapCard.className='hs-card'; mapCard.id='hs-v3-map';
-    mapCard.innerHTML=
-      '<div class="hs-title">🎛 שדות לסנכרון עם HubSpot</div>'+
-      '<p class="hs-desc">בחר אילו שדות לשלוח לכל ליד:</p>'+
-      '<div style="display:grid;grid-template-columns:1fr 1fr;gap:6px;font-size:12px">'+
-        hsRow('hm-score','🏆','Lead Score + Tier',true)+
-        hsRow('hm-status','📊','סטטוס → Lifecycle Stage',true)+
-        hsRow('hm-platform','⚙️','פלטפורמה נוכחית',true)+
-        hsRow('hm-source','📌','מקור ליד',true)+
-        hsRow('hm-xtixid','🔑','XTIX Lead ID',true)+
-        hsRow('hm-phone','📞','טלפון',false)+
-        hsRow('hm-segment','🎭','סגמנט / קטגוריה',false)+
-        hsRow('hm-pitch','🎯','Pitch מותאם (AI)',false)+
-        hsRow('hm-pain','💊','Pain Points (AI)',false)+
-        hsRow('hm-social','📱','רשתות חברתיות',false)+
-      '</div>';
-    var cards=hsSection.querySelectorAll('.hs-card');
-    if(cards.length>=2)hsSection.insertBefore(mapCard,cards[2]||cards[1].nextSibling);
-    else hsSection.appendChild(mapCard);
-  }
-  function hsRow(id,icon,label,def){return '<label style="display:flex;align-items:center;gap:6px;padding:5px 8px;background:var(--surface2);border-radius:6px;cursor:pointer"><input type="checkbox" id="'+id+'" '+(def?'checked':'')+' style="accent-color:var(--accent);width:14px;height:14px"> <span>'+icon+' '+label+'</span></label>';}
-
-  // Override pushToHubspot with upgraded version
-  window.pushToHubspot = async function() {
-    var apiKey=(document.getElementById('hs-api-key')&&document.getElementById('hs-api-key').value.trim())||'';
-    var statusEl=document.getElementById('hs-status');
-    if(!apiKey||!apiKey.startsWith('pat-')){if(statusEl){statusEl.style.color='var(--accent2)';statusEl.textContent='⚠️ Token לא תקין';}return;}
-
-    // Field map preferences
-    var gv=function(id){var el=document.getElementById(id);return el?el.checked:true;};
-    var mapScore=gv('hm-score'),mapStatus=gv('hm-status'),mapPlatform=gv('hm-platform'),
-        mapSource=gv('hm-source'),mapXtixId=gv('hm-xtixid'),mapPhone=gv('hm-phone'),
-        mapSegment=gv('hm-segment'),mapPitch=gv('hm-pitch'),mapPain=gv('hm-pain'),mapSocial=gv('hm-social');
-
-    var selected=leads.filter(function(l){var c=document.getElementById('hs-chk-'+l.id);return c&&c.checked;});
-    if(!selected.length){if(statusEl){statusEl.style.color='var(--accent2)';statusEl.textContent='⚠️ לא נבחרו לידים';}return;}
-    if(statusEl){statusEl.style.color='var(--muted)';statusEl.textContent='⏳ שולח '+selected.length+' לידים...';}
-
-    var headers={'Content-Type':'application/json','Authorization':'Bearer '+apiKey};
-    var success=0,errors=0;
-
-    for(var i=0;i<selected.length;i++){
-      var lead=selected[i];
-      var re=document.getElementById('hs-result-'+lead.id);
-      if(re){re.style.color='var(--muted)';re.textContent='⏳';}
-      try{
-        // Company
-        var desc=[];
-        if(mapScore)desc.push('Score: '+(lead.score||0)+'/100 | Tier: '+(lead.tier||'2'));
-        if(mapPlatform&&lead.platform)desc.push('Platform: '+lead.platform);
-        if(mapSegment&&(lead.segment||lead.type))desc.push('Segment: '+(lead.segment||lead.type));
-        if(mapXtixId&&lead.xtix_id)desc.push('XTIX ID: '+lead.xtix_id);
-        if(mapSource&&lead.source)desc.push('Source: '+lead.source);
-        if(mapPitch&&lead.enrichment&&lead.enrichment.pitch)desc.push('Pitch: '+lead.enrichment.pitch);
-        if(mapPain&&lead.enrichment&&lead.enrichment.pain_points)desc.push('Pain: '+lead.enrichment.pain_points.join(', '));
-        if(mapSocial&&lead.enrichment&&lead.enrichment.social&&lead.enrichment.social.followers_estimate)desc.push('Followers: '+lead.enrichment.social.followers_estimate);
-        var compProps={name:lead.name||'',domain:lead.domain||'',website:lead.domain?'https://'+lead.domain:'',industry:'ENTERTAINMENT',description:desc.join(' | ')};
-        if(mapPhone&&lead.phone)compProps.phone=lead.phone;
-        var cRes=await fetch('https://api.hubapi.com/crm/v3/objects/companies',{method:'POST',headers:headers,body:JSON.stringify({properties:compProps})});
-        var cId=null; if(cRes.ok){var cd=await cRes.json();cId=cd.id;}
-
-        // Contact lifecycle mapping
-        var lcMap={new:'lead',contacted:'lead',followup:'lead',meeting:'opportunity',closed:'customer'};
-        var hsMap={new:'NEW',contacted:'IN_PROGRESS',followup:'IN_PROGRESS',meeting:'OPEN_DEAL',closed:'CONNECTED'};
-        var contProps={firstname:lead.name||'',lastname:'(XTIX)',company:lead.name||'',website:lead.domain?'https://'+lead.domain:''};
-        if(mapStatus){contProps.lifecyclestage=lcMap[lead.status||'new']||'lead';contProps.hs_lead_status=hsMap[lead.status||'new']||'NEW';}
-        if(mapScore)contProps.description='XTIX Score: '+(lead.score||0)+'/100';
-        if(lead.email&&lead.email.includes('@'))contProps.email=lead.email;
-        if(mapPhone&&lead.phone)contProps.phone=lead.phone;
-        var tRes=await fetch('https://api.hubapi.com/crm/v3/objects/contacts',{method:'POST',headers:headers,body:JSON.stringify({properties:contProps})});
-
-        // Handle duplicate — patch instead
-        if(tRes.status===409&&lead.email&&lead.email.includes('@')){
-          var exRes=await fetch('https://api.hubapi.com/crm/v3/objects/contacts/'+encodeURIComponent(lead.email)+'?idProperty=email',{headers:headers});
-          if(exRes.ok){var ex=await exRes.json();await fetch('https://api.hubapi.com/crm/v3/objects/contacts/'+ex.id,{method:'PATCH',headers:headers,body:JSON.stringify({properties:contProps})});tRes={ok:true,_id:ex.id};}
-        }
-
-        if(tRes.ok){
-          success++;
-          var tId=tRes._id;
-          if(!tRes._id){var td=await tRes.json();tId=td.id;}
-          if(cId&&tId)await fetch('https://api.hubapi.com/crm/v3/objects/contacts/'+tId+'/associations/companies/'+cId+'/contact_to_company',{method:'PUT',headers:headers}).catch(function(){});
-          lead.hubspot_id=tId; lead.hubspot_company_id=cId;
-          if(typeof db!=='undefined'&&db)db.collection('leads').doc(String(lead.id)).update({hubspot_id:tId,hubspot_company_id:cId}).catch(function(){});
-          if(re){re.style.color='var(--green)';re.textContent='✅';}
-        }else{errors++;var err=await tRes.json().catch(function(){return{};});if(re){re.style.color='var(--accent2)';re.textContent='❌ '+(err.message||'שגיאה').substring(0,40);}}
-      }catch(e){errors++;if(re){re.style.color='var(--accent2)';re.textContent='❌ CORS/רשת';}}
-    }
-    if(statusEl){
-      if(!errors){statusEl.style.color='var(--green)';statusEl.textContent='✅ '+success+' לידים סונכרנו!';}
-      else if(success>0){statusEl.style.color='var(--yellow)';statusEl.textContent='⚠️ '+success+' הצליחו, '+errors+' נכשלו';}
-      else{statusEl.style.color='var(--accent2)';statusEl.textContent='❌ נכשל — בדוק Token';}
-    }
-  };
-
-  var hsTabBtn=document.querySelector('.tab[onclick*="hubspot"]');
-  if(hsTabBtn)hsTabBtn.addEventListener('click',function(){setTimeout(injectHSFieldMap,150);});
-
-  // Init
-  setTimeout(initToolbar, 1500);
-  setTimeout(function(){
-    if(typeof leads!=='undefined')leads.forEach(function(l){ensureLeadId(l);patchCard(l);});
-    filterV3(); updateBadge();
-  }, 2500);
-  setInterval(updateBadge, 4000);
-
-  // Export helpers needed by renderSimpleLead (defined in script block 1)
-  window.ensureLeadId  = ensureLeadId;
-  window.genXTIXId     = genXTIXId;
-
-})();
-
-</script>
 
 
   <!-- =================== AI BRAIN =================== -->
@@ -7904,6 +7092,821 @@ addSalesPlaybookPanel();
     </div>
   </div>
 
+</div> <!-- end main-content -->
+</div> <!-- end app-wrapper -->
+
+<!-- =================== CRM IMPROVEMENTS v3 =================== -->
+<script>
+(function() {
+
+  function genXTIXId() {
+    var chars = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
+    var id = 'XT-';
+    for (var i=0; i<8; i++) id += chars[Math.floor(Math.random()*chars.length)];
+    return id;
+  }
+
+  function ensureLeadId(lead) {
+    if (!lead.xtix_id) {
+      lead.xtix_id = genXTIXId();
+      if (typeof db !== 'undefined' && db && lead.id)
+        db.collection('leads').doc(String(lead.id)).update({xtix_id: lead.xtix_id}).catch(function(){});
+    }
+    return lead.xtix_id;
+  }
+
+  // ===== TOOLBAR INJECTION =====
+  function initToolbar() {
+    if (document.getElementById('crm-v3-toolbar')) return;
+    var leadsPanel = document.getElementById('tab-leads');
+    if (!leadsPanel) return;
+
+    var toolbar = document.createElement('div');
+    toolbar.id = 'crm-v3-toolbar';
+    toolbar.style.marginBottom = '14px';
+    toolbar.innerHTML =
+      '<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px">' +
+        '<span id="crm-badge" style="background:rgba(108,99,255,0.15);border:1px solid rgba(108,99,255,0.3);border-radius:20px;padding:2px 10px;font-size:11px;color:var(--accent)">0 לידים</span>' +
+        '<button onclick="toggleSelAll()" id="sel-all-v3" style="background:none;border:1px solid var(--border);border-radius:6px;padding:3px 10px;font-size:11px;color:var(--muted);cursor:pointer;font-family:Heebo,sans-serif">☐ בחר הכל</button>' +
+      '</div>' +
+      '<div style="position:relative;margin-bottom:8px">' +
+        '<span style="position:absolute;right:10px;top:50%;transform:translateY(-50%);color:var(--muted);pointer-events:none;font-size:13px">🔍</span>' +
+        '<input id="v3-search" type="text" placeholder="חפש שם, דומיין, טלפון, מייל, XTIX-ID, פלטפורמה..." ' +
+          'style="width:100%;background:var(--surface2);border:1px solid var(--border);border-radius:8px;padding:8px 36px 8px 12px;color:var(--text);font-size:12px;font-family:Heebo,sans-serif;outline:none" ' +
+          'oninput="filterV3()" onfocus="this.style.borderColor=\'var(--accent)\'" onblur="this.style.borderColor=\'var(--border)\'">' +
+      '</div>' +
+      '<div style="display:flex;gap:6px;flex-wrap:wrap;margin-bottom:6px;align-items:center">' +
+        '<select id="v3-fst" onchange="filterV3()" style="background:var(--surface2);border:1px solid var(--border);border-radius:6px;padding:5px 8px;color:var(--text);font-size:11px;font-family:Heebo,sans-serif;outline:none">' +
+          '<option value="">כל הסטטוסים</option>' +
+          '<option value="new">🟢 חדש</option><option value="contacted">📧 נשלח מייל</option>' +
+          '<option value="followup">🔁 Follow-up</option><option value="meeting">📅 פגישה</option><option value="closed">✅ נסגר</option>' +
+        '</select>' +
+        '<select id="v3-fsrc" onchange="filterV3()" style="background:var(--surface2);border:1px solid var(--border);border-radius:6px;padding:5px 8px;color:var(--text);font-size:11px;font-family:Heebo,sans-serif;outline:none">' +
+          '<option value="">כל המקורות</option>' +
+          '<option value="clay">🤖 Clay</option><option value="manual">✍️ ידני</option>' +
+          '<option value="hunt">🎯 Hunt</option><option value="csv">📥 CSV</option>' +
+        '</select>' +
+        '<select id="v3-fseg" onchange="filterV3()" style="background:var(--surface2);border:1px solid var(--border);border-radius:6px;padding:5px 8px;color:var(--text);font-size:11px;font-family:Heebo,sans-serif;outline:none">' +
+          '<option value="">כל הסגמנטים</option>' +
+          '<option value="תיאטרון">🎭 תיאטרון</option><option value="מוזיקה">🎵 מוזיקה</option>' +
+          '<option value="קולנוע">🎬 קולנוע</option><option value="סטנד-אפ">🎤 סטנד-אפ</option>' +
+          '<option value="פסטיבל">🎪 פסטיבל</option><option value="ספורט">⚽ ספורט</option>' +
+        '</select>' +
+        '<select id="v3-sort" onchange="filterV3()" style="background:var(--surface2);border:1px solid rgba(108,99,255,0.4);border-radius:6px;padding:5px 8px;color:var(--accent);font-size:11px;font-family:Heebo,sans-serif;outline:none;font-weight:700">' +
+          '<option value="updated">🕐 עדכון אחרון</option>' +
+          '<option value="created">📅 תאריך הוספה</option>' +
+          '<option value="score_desc">🔥 ציון גבוה→נמוך</option>' +
+          '<option value="score_asc">🧊 ציון נמוך→גבוה</option>' +
+          '<option value="name">🔤 שם א→ת</option>' +
+          '<option value="source">📌 מקור</option>' +
+          '<option value="status">📊 סטטוס</option>' +
+          '<option value="segment">🎭 סגמנט</option>' +
+          '<option value="platform">⚙️ פלטפורמה</option>' +
+        '</select>' +
+        '<span id="v3-cnt" style="font-size:11px;color:var(--muted)"></span>' +
+      '</div>' +
+      '<div id="v3-bulk" style="display:none;background:rgba(108,99,255,0.1);border:1px solid rgba(108,99,255,0.25);border-radius:8px;padding:8px 12px;align-items:center;gap:6px;flex-wrap:wrap">' +
+        '<span id="v3-bulk-cnt" style="font-size:12px;font-weight:700;color:var(--accent)">0 נבחרו</span>' +
+        '<div style="flex:1"></div>' +
+        '<button onclick="bulkV3(\'contacted\')" style="background:rgba(0,212,255,0.1);border:1px solid rgba(0,212,255,0.3);border-radius:5px;padding:4px 10px;font-size:11px;color:#00d4ff;cursor:pointer;font-family:Heebo,sans-serif">📧 נשלח מייל</button>' +
+        '<button onclick="bulkV3(\'followup\')" style="background:rgba(255,214,0,0.1);border:1px solid rgba(255,214,0,0.3);border-radius:5px;padding:4px 10px;font-size:11px;color:var(--yellow);cursor:pointer;font-family:Heebo,sans-serif">🔁 Follow-up</button>' +
+        '<button onclick="bulkV3(\'meeting\')" style="background:rgba(0,230,118,0.1);border:1px solid rgba(0,230,118,0.3);border-radius:5px;padding:4px 10px;font-size:11px;color:var(--green);cursor:pointer;font-family:Heebo,sans-serif">📅 פגישה</button>' +
+        '<button onclick="bulkV3(\'enrich\')" style="background:rgba(167,139,250,0.1);border:1px solid rgba(167,139,250,0.3);border-radius:5px;padding:4px 10px;font-size:11px;color:#a78bfa;cursor:pointer;font-family:Heebo,sans-serif">🤖 נתח AI</button>' +
+        '<button onclick="bulkV3(\'delete\')" style="background:rgba(255,71,87,0.1);border:1px solid rgba(255,71,87,0.3);border-radius:5px;padding:4px 10px;font-size:11px;color:var(--red);cursor:pointer;font-family:Heebo,sans-serif">🗑 מחק</button>' +
+        '<button onclick="clearSelV3()" style="background:none;border:1px solid var(--border);border-radius:5px;padding:4px 8px;font-size:11px;color:var(--muted);cursor:pointer">✕</button>' +
+      '</div>';
+
+    var existing = leadsPanel.querySelector('.leads-toolbar');
+    if (existing) { leadsPanel.insertBefore(toolbar, existing); existing.style.display='none'; }
+    else { var ll=document.getElementById('leads-list'); if(ll) leadsPanel.insertBefore(toolbar,ll); }
+
+    // 🔍 header button
+    var hs = document.querySelector('.header-stats');
+    if (hs && !document.getElementById('hdr-srch')) {
+      var btn=document.createElement('button');
+      btn.id='hdr-srch'; btn.textContent='🔍'; btn.title='Ctrl+K';
+      btn.style.cssText='background:rgba(108,99,255,0.2);border:1px solid rgba(108,99,255,0.4);border-radius:5px;padding:2px 8px;font-size:13px;color:var(--accent);cursor:pointer';
+      btn.onclick=function(){if(window.switchTab)switchTab('leads',document.querySelector('.tab[onclick*=leads]'));setTimeout(function(){var s=document.getElementById('v3-search');if(s){s.focus();s.select();}},200);};
+      hs.insertBefore(btn, hs.firstChild);
+    }
+
+    document.addEventListener('keydown',function(e){
+      if((e.ctrlKey||e.metaKey)&&e.key==='k'){e.preventDefault();if(window.switchTab)switchTab('leads',document.querySelector('.tab[onclick*=leads]'));setTimeout(function(){var s=document.getElementById('v3-search');if(s){s.focus();s.select();}},200);}
+    });
+    updateBadge();
+  }
+
+
+  // =====================================================
+  // MISSING FUNCTIONS — updateStats, huntState, huntSend
+  // =====================================================
+
+  // updateStats: refreshes header counters
+  function updateStats() {
+    var total = typeof leads !== 'undefined' ? leads.length : 0;
+    var contacted = typeof leads !== 'undefined'
+      ? leads.filter(function(l){ return l.status === 'contacted' || l.status === 'demo' || l.status === 'closed'; }).length
+      : 0;
+    var el1 = document.getElementById('total-leads');
+    var el2 = document.getElementById('contacted-count');
+    if (el1) el1.textContent = total;
+    if (el2) el2.textContent = contacted;
+  }
+  window.updateStats = updateStats;
+
+  // huntState: AI Hunt conversational state
+  var huntState = { step: 0, answers: {}, domain: '', name: '' };
+  window.huntState = huntState;
+
+  // huntAskNext: drive the AI Hunt chat UI
+  window.huntAskNext = function huntAskNext() {
+    var chat = document.getElementById('hunt-chat');
+    if (!chat) return;
+    var questions = [
+      { key: 'segment',   text: 'באיזה סגמנט תרצה לחפש?', opts: ['מוזיקה', 'תיאטרון', 'סטנד-אפ', 'ספורט', 'פסטיבל', 'קולנוע', 'הכל'] },
+      { key: 'location',  text: 'מאיזה אזור?', opts: ['תל אביב', 'ירושלים', 'חיפה', 'באר שבע', 'ארצי'] },
+      { key: 'size',      text: 'גודל קהל ממוצע לאירוע?', opts: ['קטן (<500)', 'בינוני (500-2000)', 'גדול (2000+)'] },
+      { key: 'platform',  text: 'פלטפורמת כרטיסים נוכחית?', opts: ['SmarTicket', 'Bravo', 'Leaan', 'אחרת', 'לא יודע'] },
+      { key: 'freq',      text: 'כמה אירועים בשנה?', opts: ['1-3', '4-10', '10+'] },
+      { key: 'priority',  text: 'עדיפות חיפוש?', opts: ['הכי חמים (Hot)', 'בינוני (Warm)', 'הכל'] }
+    ];
+    var step = huntState.step;
+    if (step >= questions.length) {
+      huntFinish();
+      return;
+    }
+    var q = questions[step];
+    var msgDiv = document.createElement('div');
+    msgDiv.style.cssText = 'background:rgba(108,99,255,0.12);border-radius:8px;padding:10px 14px;font-size:12px;color:var(--text);margin-bottom:4px';
+    msgDiv.innerHTML = '<div style="font-size:10px;color:var(--accent);margin-bottom:4px;font-weight:700">🤖 AI Hunt</div>' + q.text;
+    chat.appendChild(msgDiv);
+    if (q.opts && q.opts.length) {
+      var optDiv = document.createElement('div');
+      optDiv.style.cssText = 'display:flex;flex-wrap:wrap;gap:6px;margin-bottom:4px';
+      q.opts.forEach(function(opt) {
+        var btn = document.createElement('button');
+        btn.style.cssText = 'background:rgba(108,99,255,0.15);border:1px solid rgba(108,99,255,0.3);border-radius:5px;padding:4px 10px;font-size:11px;color:var(--accent);cursor:pointer;font-family:Heebo,sans-serif';
+        btn.textContent = opt;
+        btn.onclick = function() {
+          huntState.answers[q.key] = opt;
+          huntState.step++;
+          var inp = document.getElementById('hunt-input');
+          if (inp) inp.value = '';
+          var replyDiv = document.createElement('div');
+          replyDiv.style.cssText = 'text-align:left;margin-bottom:4px';
+          replyDiv.innerHTML = '<span style="background:rgba(255,255,255,0.08);border-radius:8px;padding:5px 12px;font-size:12px;display:inline-block">' + opt + '</span>';
+          chat.appendChild(replyDiv);
+          optDiv.remove();
+          huntAskNext();
+        };
+        optDiv.appendChild(btn);
+      });
+      chat.appendChild(optDiv);
+    }
+    if(typeof chat!=='undefined'&&chat&&chat.scrollTop!==undefined)chat.scrollTop=chat.scrollHeight;
+  };
+
+  window.huntSend = function huntSend() {
+    var inp = document.getElementById('hunt-input');
+    if (!inp || !inp.value.trim()) return;
+    var val = inp.value.trim();
+    var chat = document.getElementById('hunt-chat');
+    if (chat) {
+      var replyDiv = document.createElement('div');
+      replyDiv.style.cssText = 'text-align:left;margin-bottom:4px';
+      replyDiv.innerHTML = '<span style="background:rgba(255,255,255,0.08);border-radius:8px;padding:5px 12px;font-size:12px;display:inline-block">' + val + '</span>';
+      chat.appendChild(replyDiv);
+    }
+    inp.value = '';
+    var questions = ['segment','location','size'];
+    var q = questions[huntState.step] || 'extra';
+    huntState.answers[q] = val;
+    huntState.step++;
+    huntAskNext();
+  };
+
+  function huntFinish() {
+    var chat = document.getElementById('hunt-chat');
+    if (!chat) return;
+    var ans = huntState.answers;
+
+    // Build summary
+    var summaryDiv = document.createElement('div');
+    summaryDiv.style.cssText = 'background:rgba(16,185,129,0.08);border:1px solid rgba(16,185,129,0.25);border-radius:10px;padding:14px 16px;font-size:12px;margin-bottom:8px';
+    summaryDiv.innerHTML = '<div style="font-weight:800;color:var(--green);margin-bottom:8px;font-size:13px">✅ פרמטרים הוגדרו</div>'
+      + '<div style="display:grid;grid-template-columns:1fr 1fr;gap:6px;margin-bottom:10px">'
+      + '<div><span style="color:var(--muted)">סגמנט:</span> <strong>' + (ans.segment||'הכל') + '</strong></div>'
+      + '<div><span style="color:var(--muted)">אזור:</span> <strong>' + (ans.location||'ארצי') + '</strong></div>'
+      + '<div><span style="color:var(--muted)">גודל קהל:</span> <strong>' + (ans.size||'כל') + '</strong></div>'
+      + '<div><span style="color:var(--muted)">פלטפורמה:</span> <strong>' + (ans.platform||'כל') + '</strong></div>'
+      + '<div><span style="color:var(--muted)">תדירות:</span> <strong>' + (ans.freq||'כל') + '</strong></div>'
+      + '<div><span style="color:var(--muted)">עדיפות:</span> <strong>' + (ans.priority||'הכל') + '</strong></div>'
+      + '</div>'
+      + '<button onclick="window.runHuntSearch()" style="width:100%;background:linear-gradient(135deg,var(--accent),#8b5cf6);border:none;border-radius:8px;padding:11px;color:#fff;font-size:13px;font-weight:800;cursor:pointer;font-family:Heebo,sans-serif;margin-bottom:6px">🚀 חפש לידים עם AI</button>'
+      + '<div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:5px;margin-top:4px">'
+      + '<button id="btn-save-search" onclick="window.saveCurrentSearch()" style="background:rgba(0,230,118,0.1);border:1px solid rgba(0,230,118,0.25);border-radius:7px;padding:7px 4px;color:var(--green);font-size:11px;font-weight:700;cursor:pointer;font-family:Heebo,sans-serif">💾 שמור</button>'
+      + '<button onclick="window.newHuntSearch()" style="background:rgba(108,99,255,0.1);border:1px solid rgba(108,99,255,0.25);border-radius:7px;padding:7px 4px;color:var(--accent);font-size:11px;font-weight:700;cursor:pointer;font-family:Heebo,sans-serif">✨ חיפוש חדש</button>'
+      + '<button onclick="huntState.step=0;huntState.answers={};huntAskNext()" style="background:transparent;border:1px solid var(--border);border-radius:7px;padding:7px 4px;color:var(--muted);font-size:11px;cursor:pointer;font-family:Heebo,sans-serif">↺ ערוך</button>'
+      + '</div>';
+    chat.appendChild(summaryDiv);
+    if(typeof chat!=='undefined'&&chat&&chat.scrollTop!==undefined)chat.scrollTop=chat.scrollHeight;
+    // Keep answers for search, reset step only
+    huntState.step = 0;
+  }
+
+  window.runHuntSearch = async function runHuntSearch() {
+    var resultsEl = document.getElementById('hunt-results');
+    var p = getHuntParams();
+    var count = p.count || 5;
+    if (!chat) return;
+
+    // Show loading
+    if (resultsEl) { resultsEl.style.display='block'; resultsEl.innerHTML='<div style="background:rgba(59,130,246,0.1);border:1px solid rgba(59,130,246,0.2);border-radius:10px;padding:16px;text-align:center"><div style="font-size:24px;margin-bottom:8px">🤖</div><div style="font-size:13px;color:var(--t1);font-weight:600">AI Hunt פועל...</div><div style="font-size:11px;color:var(--t3);margin-top:4px">מחפש '+(count)+' לידים · '+p.depth+'</div></div>'; }
+    var loadDiv = { remove: function(){} }; // dummy
+
+    var prompt = [
+      'אתה מנהל מכירות ב-XTIX — מערכת מכירת כרטיסים B2B ישראלית. חפש '+count+' לידים ישראלים אמיתיים.',
+      p.segments.length  ? 'סוגי אירועים: '+p.segments.join(', ') : '',
+      p.geo.length       ? 'אזורים: '+p.geo.join(', ') : 'ארצי',
+      p.size.length      ? 'גודל אירוע: '+p.size.join(', ') : '',
+      p.competitors.length ? 'פלטפורמות נוכחיות (מתחרים): '+p.competitors.join(', ') : '',
+      p.market.length    ? 'שוק: '+p.market.join(', ') : '',
+      'תדירות: '+p.freq,
+      'עומק: '+p.depth,
+      p.exclude.length   ? 'אל תכלול: '+p.exclude.join(', ') : '',
+      'לכל ליד: שם, domain, טלפון, segment, platform_current, score (0-100), reason (עברית, 1-2 משפטים), size_estimate, events_per_year.',
+      'החזר JSON בלבד: {"leads":[{"name":"","domain":"","phone":"","segment":"","platform_current":"","score":80,"reason":"","size_estimate":"","events_per_year":""}]}',
+      'רק ארגונים ישראלים אמיתיים ופעילים. '+count+' לידים בלבד.'
+    ].filter(Boolean).join(' ');
+
+    try {
+      var res = await fetch('https://xtix-crm-production.up.railway.app/ai', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          model: 'claude-haiku-4-5-20251001',
+          max_tokens: 1000,
+          system: 'Return ONLY valid JSON. No markdown.',
+          messages: [{ role: 'user', content: prompt }]
+        }),
+        signal: AbortSignal.timeout(25000)
+      });
+      var data = await res.json();
+      var raw = (data.content||[]).map(function(b){return b.text||'';}).join('');
+      var s = raw.indexOf('{'), e = raw.lastIndexOf('}');
+      var parsed = JSON.parse(raw.substring(s, e+1));
+      var foundLeads = parsed.leads || [];
+
+      loadDiv.remove();
+
+      if (!foundLeads.length) {
+        var noRes = document.createElement('div');
+        noRes.style.cssText = 'color:var(--muted);font-size:12px;padding:8px';
+        noRes.textContent = 'לא נמצאו לידים — נסה פרמטרים שונים.';
+        chat.appendChild(noRes);
+        return;
+      }
+
+      // Build results
+      function sColor(s){ return s>=80?'#10b981':s>=60?'#3b82f6':'#f59e0b'; }
+      var resHtml = '<div style="margin-bottom:10px;font-size:11px;color:var(--t3)">נמצאו '+foundLeads.length+' לידים · ממוינים לפי ציון</div>';
+      resHtml += '<div style="display:flex;flex-direction:column;gap:8px">';
+      foundLeads.sort(function(a,b){return (b.score||0)-(a.score||0);}).forEach(function(lead){
+        var sc=lead.score||0; var c=sColor(sc);
+        var circ=100.5; var dash=Math.round((sc/100)*circ);
+        resHtml += '<div style="background:rgba(255,255,255,0.03);border:1px solid rgba(255,255,255,0.08);border-radius:11px;padding:14px 16px;display:grid;grid-template-columns:auto 1fr auto;gap:12px;align-items:center">'          +'<svg width="44" height="44" viewBox="0 0 44 44"><circle cx="22" cy="22" r="16" fill="none" stroke="rgba(255,255,255,0.06)" stroke-width="3.5"/><circle cx="22" cy="22" r="16" fill="none" stroke="'+c+'" stroke-width="3.5" stroke-dasharray="'+dash+' '+circ+'" stroke-dashoffset="'+Math.round(circ/4)+'" stroke-linecap="round" transform="rotate(-90 22 22)"/><text x="22" y="27" text-anchor="middle" fill="'+c+'" font-size="11" font-weight="800" font-family="DM Mono,monospace">'+sc+'</text></svg>'          +'<div>'            +'<div style="font-size:13px;font-weight:700;color:var(--t1);margin-bottom:3px">'+(lead.name||'')+'</div>'            +'<div style="display:flex;flex-wrap:wrap;gap:8px">'              +(lead.domain?'<span style="font-size:11px;color:var(--t3)">🌐 '+lead.domain+'</span>':'')              +(lead.phone?'<span style="font-size:11px;color:var(--t3)">📞 '+lead.phone+'</span>':'')              +(lead.platform_current?'<span style="font-size:10px;background:rgba(139,92,246,0.15);border:1px solid rgba(139,92,246,0.25);border-radius:4px;padding:1px 6px;color:#a78bfa">'+lead.platform_current+'</span>':'')              +(lead.size_estimate?'<span style="font-size:10px;color:var(--t3)">👥 '+lead.size_estimate+'</span>':'')              +(lead.events_per_year?'<span style="font-size:10px;color:var(--t3)">📅 '+lead.events_per_year+'/שנה</span>':'')            +'</div>'            +(lead.reason?'<div style="font-size:11px;color:#10b981;margin-top:5px;line-height:1.5">'+lead.reason+'</div>':'')          +'</div>'          +'<button onclick="huntAddLead('+JSON.stringify(lead).replace(/"/g,'&quot;')+')" style="background:rgba(16,185,129,0.12);border:1px solid rgba(16,185,129,0.3);border-radius:8px;padding:8px 12px;color:#10b981;font-size:11px;font-weight:700;cursor:pointer;font-family:DM Sans,Heebo,sans-serif;white-space:nowrap">➕ CRM</button>'        +'</div>';
+      });
+      resHtml += '</div>';
+      resHtml += '<div style="margin-top:10px;display:flex;gap:8px"><button onclick="window.saveCurrentSearch()" style="flex:1;background:rgba(16,185,129,0.1);border:1px solid rgba(16,185,129,0.25);border-radius:8px;padding:8px;color:#10b981;font-size:11px;font-weight:700;cursor:pointer;font-family:DM Sans,Heebo,sans-serif">💾 שמור חיפוש</button></div>';
+      if(resultsEl){ resultsEl.style.display='block'; resultsEl.innerHTML=resHtml; }
+      setLastFoundLeads(foundLeads, getHuntParams());
+
+    } catch(e) {
+      loadDiv.remove();
+      var errDiv = document.createElement('div');
+      errDiv.style.cssText = 'color:#EF4444;font-size:12px;padding:8px;background:rgba(239,68,68,0.08);border-radius:8px';
+      errDiv.textContent = '⚠️ שגיאה בחיפוש: ' + e.message;
+      chat.appendChild(errDiv);
+    }
+  };
+
+  window.huntAddLead = function huntAddLead(lead) {
+    var now = new Date().toISOString();
+    var newLead = {
+      id: Date.now(),
+      name: lead.name || '',
+      domain: lead.domain || '',
+      phone: lead.phone || '',
+      segment: lead.segment || '',
+      platform: lead.platform || '',
+      score: lead.score || 50,
+      status: 'new',
+      source: 'ai-hunt',
+      created_at: now,
+      updated_at: now,
+      notes: 'נמצא ע"י AI Hunt. ' + (lead.reason || '')
+    };
+    // ── Route through central entry point ──
+    window.addLeadToCRM(newLead, {source: 'hunt'});
+    try {
+      var s = JSON.parse(localStorage.getItem('xtix_crm_leads')||'[]');
+      s.push(newLead); localStorage.setItem('xtix_crm_leads', JSON.stringify(s));
+    } catch(e) {}
+    if (typeof updateStats === 'function') updateStats();
+    if (typeof updateBadge === 'function') updateBadge();
+    // Visual feedback on the button
+    event && event.target && (event.target.textContent = '✅ נוסף!') && (event.target.disabled = true);
+  };
+
+  // ══════════════════════════════════════════════════
+  // SAVED LEAD RESULTS — save/delete found leads per search
+  // Structure: { id, name, params, leads[], savedAt }
+  // ══════════════════════════════════════════════════
+  var SAVED_KEY = 'xtix_saved_searches';
+  var _lastFoundLeads = []; // populated after each runHuntSearch
+
+  function loadSavedSearches() {
+    try { return JSON.parse(localStorage.getItem(SAVED_KEY) || '[]'); } catch(e) { return []; }
+  }
+  function persistSavedSearches(arr) {
+    try { localStorage.setItem(SAVED_KEY, JSON.stringify(arr)); } catch(e) {}
+  }
+
+  // Called after successful hunt — saves leads to _lastFoundLeads
+  function setLastFoundLeads(leadsArr, params) {
+    _lastFoundLeads = leadsArr;
+    window._lastHuntParams = params;
+  }
+
+  // Render saved searches panel
+  window.renderSavedSearches = function() {
+    var list  = document.getElementById('saved-searches-list');
+    var empty = document.getElementById('saved-searches-empty');
+    var count = document.getElementById('saved-count');
+    if (!list) return;
+    var searches = loadSavedSearches();
+    list.innerHTML = '';
+    if (count) count.textContent = searches.length ? searches.length + ' שמורים' : '';
+    if (!searches.length) {
+      if (empty) empty.style.display = 'block';
+      return;
+    }
+    if (empty) empty.style.display = 'none';
+
+    searches.forEach(function(s, idx) {
+      var group = document.createElement('div');
+      group.style.cssText = 'background:var(--surface2);border:1px solid var(--border);border-radius:11px;overflow:hidden;margin-bottom:2px';
+
+      // Header row
+      var params = [s.params && s.params.segment, s.params && s.params.location, s.params && s.params.size].filter(Boolean).join(' · ');
+      var hdr = document.createElement('div');
+      hdr.style.cssText = 'display:flex;align-items:center;gap:8px;padding:10px 12px;cursor:pointer';
+      hdr.innerHTML = '<div style="flex:1;min-width:0">'
+        + '<div style="font-size:12px;font-weight:800;color:var(--text)">' + (s.name || 'חיפוש ללא שם') + '</div>'
+        + '<div style="font-size:10px;color:var(--muted);margin-top:2px">' + params + ' &nbsp;·&nbsp; <span style="color:var(--accent)">' + (s.leads ? s.leads.length : 0) + ' לידים</span></div>'
+        + '</div>'
+        + '<span id="ss-arrow-' + idx + '" style="color:var(--muted);font-size:12px;transition:transform 0.2s">▼</span>'
+        + '<button onclick="event.stopPropagation();window.deleteSavedSearch(' + idx + ')" title="מחק חיפוש" '
+        + 'style="background:rgba(239,68,68,0.1);border:1px solid rgba(239,68,68,0.2);border-radius:7px;padding:4px 9px;color:#EF4444;font-size:11px;cursor:pointer;font-family:Heebo,sans-serif">🗑</button>';
+
+      // Leads list (collapsed by default)
+      var leadsContainer = document.createElement('div');
+      leadsContainer.id = 'ss-leads-' + idx;
+      leadsContainer.style.cssText = 'display:none;border-top:1px solid var(--border);padding:8px 10px;display:flex;flex-direction:column;gap:6px';
+      leadsContainer.style.display = 'none';
+
+      (s.leads || []).forEach(function(lead, li) {
+        var lrow = document.createElement('div');
+        lrow.style.cssText = 'background:var(--bg);border:1px solid var(--border);border-radius:8px;padding:9px 12px;display:flex;align-items:center;gap:8px';
+        lrow.innerHTML = '<div style="flex:1;min-width:0">'
+          + '<div style="font-size:12px;font-weight:700;color:var(--text)">' + (lead.name||'') + '</div>'
+          + '<div style="font-size:10px;color:var(--muted);margin-top:2px">'
+          + (lead.domain ? '🌐 ' + lead.domain + ' &nbsp;' : '')
+          + (lead.platform ? '🎫 ' + lead.platform : '')
+          + '</div>'
+          + (lead.reason ? '<div style="font-size:10px;color:var(--green);margin-top:3px">' + lead.reason + '</div>' : '')
+          + '</div>'
+          + '<span style="background:rgba(108,99,255,0.15);color:var(--accent);border-radius:20px;padding:2px 8px;font-size:11px;font-weight:700;flex-shrink:0">' + (lead.score||'?') + '</span>'
+          + '<button onclick="window.huntAddLeadFromSaved(' + idx + ',' + li + ')" title="הוסף ל-CRM" '
+          + 'style="background:rgba(0,230,118,0.1);border:1px solid rgba(0,230,118,0.3);border-radius:7px;padding:5px 10px;color:var(--green);font-size:11px;font-weight:700;cursor:pointer;font-family:Heebo,sans-serif;white-space:nowrap;flex-shrink:0">➕ CRM</button>'
+          + '<button onclick="window.deleteLeadFromSaved(' + idx + ',' + li + ')" title="מחק ליד" '
+          + 'style="background:rgba(239,68,68,0.08);border:1px solid rgba(239,68,68,0.15);border-radius:7px;padding:5px 8px;color:#EF4444;font-size:11px;cursor:pointer;font-family:Heebo,sans-serif;flex-shrink:0">✕</button>';
+        leadsContainer.appendChild(lrow);
+      });
+
+      // Add "הוסף הכל ל-CRM" if has leads
+      if (s.leads && s.leads.length > 0) {
+        var addAllBtn = document.createElement('button');
+        addAllBtn.textContent = '➕ הוסף הכל ל-CRM (' + s.leads.length + ')';
+        addAllBtn.style.cssText = 'width:100%;margin-top:4px;background:rgba(0,230,118,0.08);border:1px solid rgba(0,230,118,0.2);border-radius:8px;padding:8px;color:var(--green);font-size:12px;font-weight:700;cursor:pointer;font-family:Heebo,sans-serif';
+        addAllBtn.onclick = function() { window.addAllFromSaved(idx); };
+        leadsContainer.appendChild(addAllBtn);
+      }
+
+      // Toggle expand
+      var expanded = false;
+      hdr.onclick = function() {
+        expanded = !expanded;
+        leadsContainer.style.display = expanded ? 'flex' : 'none';
+        var arr = document.getElementById('ss-arrow-' + idx);
+        if (arr) arr.style.transform = expanded ? 'rotate(180deg)' : '';
+      };
+
+      group.appendChild(hdr);
+      group.appendChild(leadsContainer);
+      list.appendChild(group);
+    });
+  };
+
+  // Save current hunt results
+  window.saveCurrentSearch = function() {
+    if (!_lastFoundLeads || !_lastFoundLeads.length) {
+      alert('אין לידים לשמירה — הרץ חיפוש קודם');
+      return;
+    }
+    var ans = window._lastHuntParams || huntState.answers || {};
+    var params = [ans.segment, ans.location, ans.size, ans.platform].filter(Boolean).join(' · ');
+    var label = prompt('שם לרשימה זו:', params || ('חיפוש ' + new Date().toLocaleDateString('he-IL')));
+    if (label === null) return;
+    var searches = loadSavedSearches();
+    searches.unshift({
+      id: Date.now(),
+      name: label || params || 'חיפוש',
+      params: ans,
+      leads: _lastFoundLeads.slice(),
+      savedAt: new Date().toISOString()
+    });
+    persistSavedSearches(searches);
+    window.renderSavedSearches();
+    var btn = document.getElementById('btn-save-search');
+    if (btn) { btn.textContent = '✅ נשמר!'; setTimeout(function(){ btn.textContent = '💾 שמור'; }, 2000); }
+  };
+
+  // Delete entire saved search
+  window.deleteSavedSearch = function(idx) {
+    if (!confirm('למחוק רשימה זו?')) return;
+    var searches = loadSavedSearches();
+    searches.splice(idx, 1);
+    persistSavedSearches(searches);
+    window.renderSavedSearches();
+  };
+
+  // Delete single lead from saved search
+  window.deleteLeadFromSaved = function(searchIdx, leadIdx) {
+    var searches = loadSavedSearches();
+    if (!searches[searchIdx]) return;
+    searches[searchIdx].leads.splice(leadIdx, 1);
+    if (!searches[searchIdx].leads.length) {
+      if (!confirm('הרשימה ריקה — למחוק אותה?')) { persistSavedSearches(searches); window.renderSavedSearches(); return; }
+      searches.splice(searchIdx, 1);
+    }
+    persistSavedSearches(searches);
+    window.renderSavedSearches();
+  };
+
+  // Add single saved lead to CRM
+  window.huntAddLeadFromSaved = function(searchIdx, leadIdx) {
+    var searches = loadSavedSearches();
+    if (!searches[searchIdx] || !searches[searchIdx].leads[leadIdx]) return;
+    var lead = searches[searchIdx].leads[leadIdx];
+    window.huntAddLead(lead);
+    // Mark as added
+    window.renderSavedSearches();
+  };
+
+  // Add all leads from saved search to CRM
+  window.addAllFromSaved = function(searchIdx) {
+    var searches = loadSavedSearches();
+    if (!searches[searchIdx]) return;
+    var count = 0;
+    searches[searchIdx].leads.forEach(function(lead) {
+      window.huntAddLead(lead);
+      count++;
+    });
+    alert('✅ ' + count + ' לידים נוספו ל-CRM');
+  };
+
+  // New search — reset chat
+  window.newHuntSearch = function() {
+    huntState.step = 0;
+    huntState.answers = {};
+    _lastFoundLeads = [];
+    var chat = document.getElementById('hunt-chat');
+    if (chat) chat.innerHTML = '';
+    huntAskNext();
+  };
+
+  // Init on load
+  setTimeout(window.renderSavedSearches, 800);
+
+
+  // =====================================================
+
+  // ===== PATCH renderSimpleLead =====
+  var _orig = window.renderSimpleLead;
+  window.renderSimpleLead = function(lead) {
+    if (!lead.created_at) lead.created_at = new Date().toISOString();
+    if (!lead.updated_at) lead.updated_at = lead.created_at;
+    if (!lead.source) lead.source = 'manual';
+    if(typeof ensureLeadId==="function")ensureLeadId(lead);
+    if(typeof _orig==='function')_orig(lead);
+    setTimeout(function(){ patchCard(lead); updateBadge(); }, 80);
+  };
+
+  function patchCard(lead) {
+    var card = document.getElementById('lead-'+lead.id);
+    if (!card) return;
+    card.dataset.name=lead.name||'';
+    card.dataset.domain=lead.domain||'';
+    card.dataset.source=lead.source||'manual';
+    card.dataset.status=lead.status||'new';
+    card.dataset.score=lead.score||0;
+    card.dataset.phone=lead.phone||'';
+    card.dataset.email=lead.email||'';
+    card.dataset.platform=lead.platform||'';
+    card.dataset.updated=lead.updated_at||'';
+    card.dataset.created=lead.created_at||'';
+    card.dataset.segment=lead.segment||lead.type||'';
+    card.dataset.xtixId=lead.xtix_id||'';
+
+    // Styled checkbox — left side of header
+    var header = card.querySelector('.lead-card-header');
+    if (header && !header.querySelector('.chk-wrap')) {
+      var wrap = document.createElement('label');
+      wrap.className = 'chk-wrap';
+      wrap.style.cssText = 'display:flex;align-items:center;justify-content:center;width:22px;height:22px;border-radius:6px;border:1.5px solid rgba(255,255,255,0.15);cursor:pointer;flex-shrink:0;transition:all 0.2s;background:transparent;margin-left:10px;margin-right:2px';
+      wrap.title = 'בחר ליד';
+      wrap.onclick = function(e){ e.stopPropagation(); };
+      var chk = document.createElement('input');
+      chk.type = 'checkbox'; chk.className = 'v3chk'; chk.dataset.id = lead.id;
+      chk.style.cssText = 'width:14px;height:14px;accent-color:var(--accent);cursor:pointer;margin:0';
+      chk.onclick = function(e){ e.stopPropagation(); };
+      chk.onchange = function(){ 
+        chkCh(lead.id, this.checked);
+        wrap.style.background = this.checked ? 'rgba(108,99,255,0.15)' : 'transparent';
+        wrap.style.borderColor = this.checked ? 'var(--accent)' : 'var(--border)';
+      };
+      wrap.appendChild(chk);
+      // Insert at very start of header (right side in RTL layout)
+      header.insertBefore(wrap, header.firstChild);
+    }
+
+    // XTIX ID + source badge in meta row
+    var meta=card.querySelector('.lead-meta');
+    if (meta && !meta.querySelector('.v3meta')) {
+      var icons={clay:'🤖',manual:'✍️',hunt:'🎯',csv:'📥'};
+      var dateStr=new Date(lead.created_at).toLocaleDateString('he-IL');
+
+      // XTIX ID — click to copy
+      var idBadge=document.createElement('span');
+      idBadge.className='v3meta';
+      idBadge.title='XTIX Lead ID — לחץ להעתקה';
+      idBadge.style.cssText='color:var(--accent);font-size:10px;font-family:Space Mono,monospace;background:rgba(108,99,255,0.1);border:1px solid rgba(108,99,255,0.25);border-radius:4px;padding:1px 6px;cursor:pointer;letter-spacing:0.5px;white-space:nowrap';
+      idBadge.textContent=lead.xtix_id||'XT-????????';
+      idBadge.onclick=function(e){e.stopPropagation();navigator.clipboard.writeText(this.textContent).then(function(){idBadge.style.background='rgba(0,230,118,0.2)';setTimeout(function(){idBadge.style.background='rgba(108,99,255,0.1)';},700);});};
+      meta.insertBefore(idBadge, meta.firstChild);
+
+      // Source + date badge
+      var srcBadge=document.createElement('span');
+      srcBadge.style.cssText='color:var(--muted);font-size:10px;border:1px solid var(--border);border-radius:3px;padding:1px 4px;white-space:nowrap';
+      srcBadge.textContent=(icons[lead.source]||'📌')+' '+dateStr;
+      meta.appendChild(srcBadge);
+    }
+  }
+
+  // ===== FILTER + SORT =====
+  window.filterV3 = function() {
+    var q=(document.getElementById('v3-search')&&document.getElementById('v3-search').value||'').toLowerCase().trim();
+    var fst=(document.getElementById('v3-fst')&&document.getElementById('v3-fst').value)||'';
+    var fsrc=(document.getElementById('v3-fsrc')&&document.getElementById('v3-fsrc').value)||'';
+    var fseg=(document.getElementById('v3-fseg')&&document.getElementById('v3-fseg').value)||'';
+    var srt=(document.getElementById('v3-sort')&&document.getElementById('v3-sort').value)||'updated';
+    var list=document.getElementById('leads-list');
+    if(!list) return;
+    var cards=list.querySelectorAll('.lead-card');
+    var visible=0;
+    cards.forEach(function(card){
+      if(!card.dataset.dynamic){card.style.display='none';return;}
+      var mQ=!q||(card.dataset.name||'').toLowerCase().includes(q)||(card.dataset.domain||'').toLowerCase().includes(q)||(card.dataset.phone||'').includes(q)||(card.dataset.email||'').toLowerCase().includes(q)||(card.dataset.platform||'').toLowerCase().includes(q)||(card.dataset.xtixId||'').toLowerCase().includes(q)||card.id.replace('lead-','').includes(q);
+      var mSt=!fst||(card.dataset.status||'')===fst;
+      var mSrc=!fsrc||(card.dataset.source||'')===fsrc;
+      var mSeg=!fseg||(card.dataset.segment||'').includes(fseg);
+      var show=mQ&&mSt&&mSrc&&mSeg;
+      card.style.display=show?'':'none';
+      if(show)visible++;
+    });
+    var cnt=document.getElementById('v3-cnt');
+    if(cnt)cnt.textContent=(q||fst||fsrc||fseg)?visible+' תוצאות':'';
+    var sorted=Array.from(list.querySelectorAll('.lead-card[data-dynamic="true"]')).filter(function(c){return c.style.display!=='none';});
+    sorted.sort(function(a,b){
+      if(srt==='score_desc')return(parseInt(b.dataset.score)||0)-(parseInt(a.dataset.score)||0);
+      if(srt==='score_asc')return(parseInt(a.dataset.score)||0)-(parseInt(b.dataset.score)||0);
+      if(srt==='name')return(a.dataset.name||'').localeCompare(b.dataset.name||'','he');
+      if(srt==='created')return new Date(b.dataset.created||0)-new Date(a.dataset.created||0);
+      if(srt==='source')return(a.dataset.source||'').localeCompare(b.dataset.source||'');
+      if(srt==='status'){var o={new:0,contacted:1,followup:2,meeting:3,closed:4};return(o[a.dataset.status||'new']||0)-(o[b.dataset.status||'new']||0);}
+      if(srt==='segment')return(a.dataset.segment||'').localeCompare(b.dataset.segment||'','he');
+      if(srt==='platform')return(a.dataset.platform||'').localeCompare(b.dataset.platform||'','he');
+      return new Date(b.dataset.updated||0)-new Date(a.dataset.updated||0);
+    });
+    sorted.forEach(function(c){list.appendChild(c);});
+  };
+
+  // ===== SELECTION =====
+  var sel3=new Set();
+  function chkCh(id,checked){if(checked)sel3.add(id);else sel3.delete(id);updBulk();}
+  window.toggleSelAll=function(){
+    var all=document.querySelectorAll('.v3chk');
+    var anyOff=Array.from(all).some(function(c){return !c.checked;});
+    all.forEach(function(chk){
+      chk.checked=anyOff;
+      var id=parseInt(chk.dataset.id);
+      if(anyOff)sel3.add(id);else sel3.delete(id);
+      var wrap=chk.parentElement;
+      if(wrap&&wrap.classList.contains('chk-wrap')){
+        wrap.style.background=anyOff?'rgba(108,99,255,0.15)':'transparent';
+        wrap.style.borderColor=anyOff?'var(--accent)':'var(--border)';
+      }
+    });
+    var btn=document.getElementById('sel-all-v3');if(btn)btn.textContent=anyOff?'☑ בטל הכל':'☐ בחר הכל';
+    updBulk();
+  };
+  window.clearSelV3=function(){
+    sel3.clear();
+    document.querySelectorAll('.v3chk').forEach(function(c){
+      c.checked=false;
+      var wrap=c.parentElement;
+      if(wrap&&wrap.classList.contains('chk-wrap')){
+        wrap.style.background='transparent';
+        wrap.style.borderColor='var(--border)';
+      }
+    });
+    var btn=document.getElementById('sel-all-v3');
+    if(btn)btn.textContent='☐ בחר הכל';
+    updBulk();
+  };
+  function updBulk(){var bar=document.getElementById('v3-bulk'),cnt=document.getElementById('v3-bulk-cnt');if(!bar)return;if(sel3.size>0){bar.style.display='flex';if(cnt)cnt.textContent=sel3.size+' נבחרו';}else bar.style.display='none';}
+  window.deleteLead = async function(id) {
+    // Remove from leads array
+    var idx = leads.findIndex(function(l){ return l.id === id; });
+    if (idx !== -1) leads.splice(idx, 1);
+
+    // Remove card from DOM
+    var card = document.getElementById('lead-' + id);
+    if (card) card.remove();
+
+    // Delete from Firebase
+    if (typeof db !== 'undefined' && db) {
+      try { await db.collection('leads').doc(String(id)).delete(); } catch(e) { console.warn('Firebase delete:', e); }
+    }
+
+    // Delete from localStorage backup
+    try {
+      var key = 'xtix_crm_leads';
+      var saved = localStorage.getItem(key);
+      if (saved) {
+        var arr = JSON.parse(saved).filter(function(l){ return l.id !== id; });
+        localStorage.setItem(key, JSON.stringify(arr));
+      }
+    } catch(e) {}
+
+    updateStats();
+    if (typeof updateBadge === 'function') updateBadge();
+  };
+
+  window.bulkV3=async function(action){
+    var ids=Array.from(sel3);if(!ids.length)return;
+    if(action==='delete'){if(!confirm('למחוק '+ids.length+'?'))return;for(var i=0;i<ids.length;i++)if(window.deleteLead)await window.deleteLead(ids[i]);clearSelV3();}
+    else if(action==='enrich'){ids.forEach(function(id){var l=leads.find(function(x){return x.id===id;});if(l&&window.enrichmentQueue)enrichmentQueue.push(l);});if(window.processEnrichmentQueue)processEnrichmentQueue();clearSelV3();}
+    else{var now=new Date().toISOString();ids.forEach(function(id){var l=leads.find(function(x){return x.id===id;});if(l){l.status=action;l.updated_at=now;}var card=document.getElementById('lead-'+id);if(card){card.dataset.status=action;card.dataset.updated=now;}var s=document.querySelector('.status-select[data-lead-id="'+id+'"]');if(s)s.value=action;if(typeof db!=='undefined'&&db)db.collection('leads').doc(String(id)).update({status:action,updated_at:now}).catch(function(){});});if(window.logActivity)logActivity('bulk_status',{count:ids.length,status:action});clearSelV3();if(window.updateStats)updateStats();}
+  };
+
+  // ===== AUTO STATUS on email =====
+  var _origE=window.sendRealEmail;
+  if(_origE){window.sendRealEmail=async function(to,sub,body,lid,hsid){var r=await _origE(to,sub,body,lid,hsid);if(lid){var l=leads.find(function(x){return x.id===lid;});if(l&&l.status==='new'){l.status='contacted';l.updated_at=new Date().toISOString();var card=document.getElementById('lead-'+lid);if(card)card.dataset.status='contacted';var s=document.querySelector('.status-select[data-lead-id="'+lid+'"]');if(s)s.value='contacted';if(typeof db!=='undefined'&&db)db.collection('leads').doc(String(lid)).update({status:'contacted',updated_at:l.updated_at}).catch(function(){});}}return r;};}
+
+  function updateBadge(){var b=document.getElementById('crm-badge');if(b&&typeof leads!=='undefined')b.textContent=leads.length+' לידים';}
+
+  // ===== HUBSPOT UPGRADE =====
+  function injectHSFieldMap(){
+    if(document.getElementById('hs-v3-map'))return;
+    var hsSection=document.querySelector('#tab-hubspot .hs-section');
+    if(!hsSection)return;
+    var mapCard=document.createElement('div');
+    mapCard.className='hs-card'; mapCard.id='hs-v3-map';
+    mapCard.innerHTML=
+      '<div class="hs-title">🎛 שדות לסנכרון עם HubSpot</div>'+
+      '<p class="hs-desc">בחר אילו שדות לשלוח לכל ליד:</p>'+
+      '<div style="display:grid;grid-template-columns:1fr 1fr;gap:6px;font-size:12px">'+
+        hsRow('hm-score','🏆','Lead Score + Tier',true)+
+        hsRow('hm-status','📊','סטטוס → Lifecycle Stage',true)+
+        hsRow('hm-platform','⚙️','פלטפורמה נוכחית',true)+
+        hsRow('hm-source','📌','מקור ליד',true)+
+        hsRow('hm-xtixid','🔑','XTIX Lead ID',true)+
+        hsRow('hm-phone','📞','טלפון',false)+
+        hsRow('hm-segment','🎭','סגמנט / קטגוריה',false)+
+        hsRow('hm-pitch','🎯','Pitch מותאם (AI)',false)+
+        hsRow('hm-pain','💊','Pain Points (AI)',false)+
+        hsRow('hm-social','📱','רשתות חברתיות',false)+
+      '</div>';
+    var cards=hsSection.querySelectorAll('.hs-card');
+    if(cards.length>=2)hsSection.insertBefore(mapCard,cards[2]||cards[1].nextSibling);
+    else hsSection.appendChild(mapCard);
+  }
+  function hsRow(id,icon,label,def){return '<label style="display:flex;align-items:center;gap:6px;padding:5px 8px;background:var(--surface2);border-radius:6px;cursor:pointer"><input type="checkbox" id="'+id+'" '+(def?'checked':'')+' style="accent-color:var(--accent);width:14px;height:14px"> <span>'+icon+' '+label+'</span></label>';}
+
+  // Override pushToHubspot with upgraded version
+  window.pushToHubspot = async function() {
+    var apiKey=(document.getElementById('hs-api-key')&&document.getElementById('hs-api-key').value.trim())||'';
+    var statusEl=document.getElementById('hs-status');
+    if(!apiKey||!apiKey.startsWith('pat-')){if(statusEl){statusEl.style.color='var(--accent2)';statusEl.textContent='⚠️ Token לא תקין';}return;}
+
+    // Field map preferences
+    var gv=function(id){var el=document.getElementById(id);return el?el.checked:true;};
+    var mapScore=gv('hm-score'),mapStatus=gv('hm-status'),mapPlatform=gv('hm-platform'),
+        mapSource=gv('hm-source'),mapXtixId=gv('hm-xtixid'),mapPhone=gv('hm-phone'),
+        mapSegment=gv('hm-segment'),mapPitch=gv('hm-pitch'),mapPain=gv('hm-pain'),mapSocial=gv('hm-social');
+
+    var selected=leads.filter(function(l){var c=document.getElementById('hs-chk-'+l.id);return c&&c.checked;});
+    if(!selected.length){if(statusEl){statusEl.style.color='var(--accent2)';statusEl.textContent='⚠️ לא נבחרו לידים';}return;}
+    if(statusEl){statusEl.style.color='var(--muted)';statusEl.textContent='⏳ שולח '+selected.length+' לידים...';}
+
+    var headers={'Content-Type':'application/json','Authorization':'Bearer '+apiKey};
+    var success=0,errors=0;
+
+    for(var i=0;i<selected.length;i++){
+      var lead=selected[i];
+      var re=document.getElementById('hs-result-'+lead.id);
+      if(re){re.style.color='var(--muted)';re.textContent='⏳';}
+      try{
+        // Company
+        var desc=[];
+        if(mapScore)desc.push('Score: '+(lead.score||0)+'/100 | Tier: '+(lead.tier||'2'));
+        if(mapPlatform&&lead.platform)desc.push('Platform: '+lead.platform);
+        if(mapSegment&&(lead.segment||lead.type))desc.push('Segment: '+(lead.segment||lead.type));
+        if(mapXtixId&&lead.xtix_id)desc.push('XTIX ID: '+lead.xtix_id);
+        if(mapSource&&lead.source)desc.push('Source: '+lead.source);
+        if(mapPitch&&lead.enrichment&&lead.enrichment.pitch)desc.push('Pitch: '+lead.enrichment.pitch);
+        if(mapPain&&lead.enrichment&&lead.enrichment.pain_points)desc.push('Pain: '+lead.enrichment.pain_points.join(', '));
+        if(mapSocial&&lead.enrichment&&lead.enrichment.social&&lead.enrichment.social.followers_estimate)desc.push('Followers: '+lead.enrichment.social.followers_estimate);
+        var compProps={name:lead.name||'',domain:lead.domain||'',website:lead.domain?'https://'+lead.domain:'',industry:'ENTERTAINMENT',description:desc.join(' | ')};
+        if(mapPhone&&lead.phone)compProps.phone=lead.phone;
+        var cRes=await fetch('https://api.hubapi.com/crm/v3/objects/companies',{method:'POST',headers:headers,body:JSON.stringify({properties:compProps})});
+        var cId=null; if(cRes.ok){var cd=await cRes.json();cId=cd.id;}
+
+        // Contact lifecycle mapping
+        var lcMap={new:'lead',contacted:'lead',followup:'lead',meeting:'opportunity',closed:'customer'};
+        var hsMap={new:'NEW',contacted:'IN_PROGRESS',followup:'IN_PROGRESS',meeting:'OPEN_DEAL',closed:'CONNECTED'};
+        var contProps={firstname:lead.name||'',lastname:'(XTIX)',company:lead.name||'',website:lead.domain?'https://'+lead.domain:''};
+        if(mapStatus){contProps.lifecyclestage=lcMap[lead.status||'new']||'lead';contProps.hs_lead_status=hsMap[lead.status||'new']||'NEW';}
+        if(mapScore)contProps.description='XTIX Score: '+(lead.score||0)+'/100';
+        if(lead.email&&lead.email.includes('@'))contProps.email=lead.email;
+        if(mapPhone&&lead.phone)contProps.phone=lead.phone;
+        var tRes=await fetch('https://api.hubapi.com/crm/v3/objects/contacts',{method:'POST',headers:headers,body:JSON.stringify({properties:contProps})});
+
+        // Handle duplicate — patch instead
+        if(tRes.status===409&&lead.email&&lead.email.includes('@')){
+          var exRes=await fetch('https://api.hubapi.com/crm/v3/objects/contacts/'+encodeURIComponent(lead.email)+'?idProperty=email',{headers:headers});
+          if(exRes.ok){var ex=await exRes.json();await fetch('https://api.hubapi.com/crm/v3/objects/contacts/'+ex.id,{method:'PATCH',headers:headers,body:JSON.stringify({properties:contProps})});tRes={ok:true,_id:ex.id};}
+        }
+
+        if(tRes.ok){
+          success++;
+          var tId=tRes._id;
+          if(!tRes._id){var td=await tRes.json();tId=td.id;}
+          if(cId&&tId)await fetch('https://api.hubapi.com/crm/v3/objects/contacts/'+tId+'/associations/companies/'+cId+'/contact_to_company',{method:'PUT',headers:headers}).catch(function(){});
+          lead.hubspot_id=tId; lead.hubspot_company_id=cId;
+          if(typeof db!=='undefined'&&db)db.collection('leads').doc(String(lead.id)).update({hubspot_id:tId,hubspot_company_id:cId}).catch(function(){});
+          if(re){re.style.color='var(--green)';re.textContent='✅';}
+        }else{errors++;var err=await tRes.json().catch(function(){return{};});if(re){re.style.color='var(--accent2)';re.textContent='❌ '+(err.message||'שגיאה').substring(0,40);}}
+      }catch(e){errors++;if(re){re.style.color='var(--accent2)';re.textContent='❌ CORS/רשת';}}
+    }
+    if(statusEl){
+      if(!errors){statusEl.style.color='var(--green)';statusEl.textContent='✅ '+success+' לידים סונכרנו!';}
+      else if(success>0){statusEl.style.color='var(--yellow)';statusEl.textContent='⚠️ '+success+' הצליחו, '+errors+' נכשלו';}
+      else{statusEl.style.color='var(--accent2)';statusEl.textContent='❌ נכשל — בדוק Token';}
+    }
+  };
+
+  var hsTabBtn=document.querySelector('.tab[onclick*="hubspot"]');
+  if(hsTabBtn)hsTabBtn.addEventListener('click',function(){setTimeout(injectHSFieldMap,150);});
+
+  // Init
+  setTimeout(initToolbar, 1500);
+  setTimeout(function(){
+    if(typeof leads!=='undefined')leads.forEach(function(l){ensureLeadId(l);patchCard(l);});
+    filterV3(); updateBadge();
+  }, 2500);
+  setInterval(updateBadge, 4000);
+
+  // Export helpers needed by renderSimpleLead (defined in script block 1)
+  window.ensureLeadId  = ensureLeadId;
+  window.genXTIXId     = genXTIXId;
+
+})();
+
+</script>
+
   <!-- Add/Edit Task Modal -->
   <div id="task-modal" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,0.75);backdrop-filter:blur(4px);z-index:9000;align-items:center;justify-content:center">
     <div style="background:#141418;border:1px solid rgba(255,255,255,0.12);border-radius:16px;padding:24px;width:480px;max-width:95vw;font-family:Heebo,sans-serif;box-shadow:0 24px 60px rgba(0,0,0,0.7);">
@@ -7986,9 +7989,6 @@ addSalesPlaybookPanel();
       </div>
     </div>
   </div>
-
-<!-- end main-content -->
-</div> <!-- end app-wrapper -->
 
 
 <script>
