@@ -368,8 +368,7 @@ class Handler(BaseHTTPRequestHandler):
                     headers={
                         'Content-Type': 'application/json',
                         'x-api-key': api_key,
-                        'anthropic-version': '2023-06-01',
-                        'anthropic-beta': 'web-search-2025-03-05'
+                        'anthropic-version': '2023-06-01'
                     },
                     method='POST'
                 )
@@ -378,8 +377,13 @@ class Handler(BaseHTTPRequestHandler):
                 self.json_out(result)
             except urllib.error.HTTPError as e:
                 err = e.read().decode('utf-8')
-                print(f'  [AI] HTTP Error {e.code}: {err}', flush=True)
-                self.json_out({'error': err}, e.code)
+                print(f'  [AI] HTTP Error {e.code}: {err[:300]}', flush=True)
+                try:
+                    err_json = json.loads(err)
+                    msg = err_json.get('error',{}).get('message', err[:200])
+                except:
+                    msg = err[:200]
+                self.json_out({'error': msg, 'status': e.code}, e.code)
             except Exception as e:
                 print(f'  [AI] Error: {e}', flush=True)
                 self.json_out({'error': str(e)}, 500)

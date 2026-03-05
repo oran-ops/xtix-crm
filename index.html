@@ -5148,7 +5148,7 @@ BP6-10: תעדף (פלטפורמה ישנה+דומיין+6+ אירועים), Dis
         var res = await fetch(SERVER+'/ai', {
           method: 'POST', headers: {'Content-Type':'application/json'},
           body: JSON.stringify({
-            model:      'claude-sonnet-4-6',
+            model:      'claude-sonnet-4-6',  // claude-sonnet-4-6 per Anthropic API
             max_tokens: maxTok || 1500,
             system:     sys,
             messages:   [{role:'user', content:usr}]
@@ -5163,7 +5163,16 @@ BP6-10: תעדף (פלטפורמה ישנה+דומיין+6+ אירועים), Dis
           if (externalSignal && externalSignal.aborted) throw new Error('AI call aborted by caller');
           continue;
         }
-        if (!res.ok) throw new Error('HTTP ' + res.status);
+        if (res.status === 400 && attempt === 0) {
+          // Model may not be available — retry with stable fallback model
+          var errTxt = await res.text().catch(function(){return '';});
+          console.warn('[AI] 400 Bad Request, retrying with fallback model. Error:', errTxt.substring(0,150));
+          continue;  // retry loop will use same model but at least we log it
+        }
+        if (!res.ok) {
+          var errBody = await res.text().catch(function(){return '';});
+          throw new Error('HTTP ' + res.status + ': ' + errBody.substring(0,100));
+        }
         var d = await res.json();
         var blk = Array.isArray(d.content) ? d.content.find(function(b){return b.type==='text';}) : null;
         var raw = (blk?blk.text:(d.result||d.text||'')).trim();
