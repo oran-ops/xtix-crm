@@ -5486,7 +5486,7 @@ BP6-10: תעדף (פלטפורמה ישנה+דומיין+6+ אירועים), Dis
 טלפון: ${lead.phone||'?'} | מייל: ${lead.email||'?'} | כתובת: ${lead.address||'?'}
 מידע מאתר: ${pCtx}
 מתחרים בשוק: ${compInfo||''}
-מתודולוגיה: ${METH||''}
+מתודולוגיה: ${(METH||'').substring(0,400)}
 
 החזר JSON עם כל השדות הבאים:
 {
@@ -5516,7 +5516,7 @@ BP6-10: תעדף (פלטפורמה ישנה+דומיין+6+ אירועים), Dis
   "score_confidence": 0.85,
   "reasoning": "נימוק הציון"
 }`,
-      2000, 55000
+      2000, 80000
     );
 
     result.status      = 'done';
@@ -5694,7 +5694,7 @@ BP6-10: תעדף (פלטפורמה ישנה+דומיין+6+ אירועים), Dis
 
     // ── Run all 3 engines in parallel ───────────────────────────────
     var enginePromises = [
-      _runEngine('claude', function() { return _claudeQuickAnalysis(lead, METH, compInfo); }, 75000)
+      _runEngine('claude', function() { return _claudeQuickAnalysis(lead, METH, compInfo); }, 90000)
     ];
     if (_brainKeys && _brainKeys.gpt) {
       enginePromises.push(_runEngine('gpt', function() {
