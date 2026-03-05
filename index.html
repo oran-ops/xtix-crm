@@ -5094,35 +5094,80 @@ BP6-10: תעדף (פלטפורמה ישנה+דומיין+6+ אירועים), Dis
     return JSON.parse(raw);
   }
 
-  // ── Call Gemini directly ────────────────────────────────────────
+  // ── Call Gemini — smart fallback chain across models ─────────────
+  // Order: gemini-2.0-flash → gemini-1.5-flash → gemini-1.5-flash-8b
+  // On quota/rate error → tries next model automatically
   async function _callGemini(systemPrompt, userPrompt, maxTokens) {
     var key = _brainKeys && _brainKeys.gemini;
     if (!key) throw new Error('Gemini key not configured');
-    var res = await fetch(
-      'https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=' + key,
-      {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          system_instruction: { parts: [{ text: systemPrompt }] },
-          contents: [{ parts: [{ text: userPrompt }] }],
-          generationConfig: { maxOutputTokens: maxTokens || 1500, temperature: 0.7 }
-        }),
-        signal: AbortSignal.timeout(45000)
+
+    var MODELS = [
+      'gemini-2.0-flash',
+      'gemini-1.5-flash',
+      'gemini-1.5-flash-8b'
+    ];
+
+    var lastError = null;
+
+    for (var mi = 0; mi < MODELS.length; mi++) {
+      var model = MODELS[mi];
+      try {
+        var res = await fetch(
+          'https://generativelanguage.googleapis.com/v1beta/models/' + model + ':generateContent?key=' + key,
+          {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              system_instruction: { parts: [{ text: systemPrompt }] },
+              contents: [{ parts: [{ text: userPrompt }] }],
+              generationConfig: { maxOutputTokens: maxTokens || 1500, temperature: 0.7 }
+            }),
+            signal: AbortSignal.timeout(45000)
+          }
+        );
+
+        // Quota / rate-limit → try next model
+        if (res.status === 429 || res.status === 503 || res.status === 403) {
+          var errBody = await res.json().catch(function(){return {};});
+          var errMsg  = (errBody.error && errBody.error.message) || 'HTTP ' + res.status;
+          var isQuota = errMsg.toLowerCase().includes('quota') ||
+                        errMsg.toLowerCase().includes('exceeded') ||
+                        errMsg.toLowerCase().includes('rate') ||
+                        res.status === 429;
+          console.warn('[Gemini] ' + model + ' → ' + errMsg + (isQuota ? ' — trying next model' : ''));
+          lastError = new Error('Gemini/' + model + ': ' + errMsg);
+          if (isQuota) continue; // try next model
+          throw lastError;       // non-quota error → stop
+        }
+
+        if (!res.ok) {
+          var err2 = await res.json().catch(function(){return {};});
+          throw new Error('Gemini/' + model + ': ' + ((err2.error && err2.error.message) || 'HTTP ' + res.status));
+        }
+
+        var d = await res.json();
+        var raw = (d.candidates && d.candidates[0] &&
+                   d.candidates[0].content && d.candidates[0].content.parts &&
+                   d.candidates[0].content.parts[0] && d.candidates[0].content.parts[0].text) || '';
+        raw = raw.replace(/^```json\s*/,'').replace(/^```\s*/,'').replace(/\s*```$/,'');
+        var si = raw.indexOf('{'), ei = raw.lastIndexOf('}');
+        if (si !== -1 && ei !== -1) raw = raw.substring(si, ei+1);
+        var parsed = JSON.parse(raw);
+        // Tag which model succeeded — useful for debug
+        parsed._geminiModel = model;
+        return parsed;
+
+      } catch(e) {
+        // Timeout / network → don't try other models (they'll also timeout)
+        if (e.name === 'TimeoutError' || e.name === 'AbortError') throw e;
+        // If it's a quota error we already set lastError and continued
+        // Any other error on last model — throw
+        lastError = e;
+        if (mi === MODELS.length - 1) throw lastError;
       }
-    );
-    if (!res.ok) {
-      var err = await res.json().catch(function(){return {};});
-      throw new Error('Gemini: ' + ((err.error && err.error.message) || 'HTTP ' + res.status));
     }
-    var d = await res.json();
-    var raw = (d.candidates && d.candidates[0] &&
-               d.candidates[0].content && d.candidates[0].content.parts &&
-               d.candidates[0].content.parts[0] && d.candidates[0].content.parts[0].text) || '';
-    raw = raw.replace(/^```json\s*/,'').replace(/^```\s*/,'').replace(/\s*```$/,'');
-    var si = raw.indexOf('{'), ei = raw.lastIndexOf('}');
-    if (si !== -1 && ei !== -1) raw = raw.substring(si, ei+1);
-    return JSON.parse(raw);
+
+    throw lastError || new Error('Gemini: all models exhausted');
   }
 
   // ── Build analysis prompt for a lead ───────────────────────────
@@ -5371,7 +5416,9 @@ BP6-10: תעדף (פלטפורמה ישנה+דומיין+6+ אירועים), Dis
           return _engineEnvelope(id, null, 'error', 'empty response', t0);
         }
         var score = raw.score || null;
-        dbgUpdate(id, '✅ ' + ((Date.now()-t0)/1000).toFixed(1) + 's' + (score ? ' — ציון: ' + score : ''), score, false);
+        var modelNote = (id === 'gemini' && raw._geminiModel && raw._geminiModel !== 'gemini-2.0-flash')
+          ? ' (' + raw._geminiModel + ')' : '';
+        dbgUpdate(id, '✅ ' + ((Date.now()-t0)/1000).toFixed(1) + 's' + modelNote + (score ? ' — ציון: ' + score : ''), score, false);
         return _engineEnvelope(id, raw, 'ok', null, t0);
       } catch(e) {
         var isTimeout = e.name === 'TimeoutError' || e.name === 'AbortError' || (e.message||'').includes('timeout');
