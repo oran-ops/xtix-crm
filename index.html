@@ -5208,7 +5208,7 @@ BP6-10: תעדף (פלטפורמה ישנה+דומיין+6+ אירועים), Dis
       var idx = leads.findIndex(function(l){return l.id===leadId;});
       if (idx!==-1) leads[idx]=lead;
       if (typeof db!=='undefined'&&db)
-        db.collection('leads').doc(String(leadId)).set(lead).catch(function(e){console.warn('[AI]',e);});
+        db.collection('leads').doc(String(leadId)).set(window._cleanForFirebase ? window._cleanForFirebase(lead) : lead).catch(function(e){console.warn('[AI]',e);});
       renderSimpleLead(lead);
       var bdy2=document.getElementById('body-'+leadId);
       if (bdy2) {
@@ -5732,15 +5732,15 @@ BP6-10: תעדף (פלטפורמה ישנה+דומיין+6+ אירועים), Dis
 
     // ── Engine result envelope ──────────────────────────────────────
     // { id, result, status: 'ok'|'error'|'timeout'|'skipped', error, durationMs }
-    // Recursively replace undefined→null before any Firebase write
-  function _cleanForFirebase(obj) {
+    // Recursively replace undefined→null before any Firebase write (global scope)
+  window._cleanForFirebase = function _cleanForFirebase(obj) {
     if (obj === undefined) return null;
     if (obj === null || typeof obj !== 'object') return obj;
-    if (Array.isArray(obj)) return obj.map(_cleanForFirebase);
+    if (Array.isArray(obj)) return obj.map(window._cleanForFirebase);
     var out = {};
-    Object.keys(obj).forEach(function(k) { out[k] = _cleanForFirebase(obj[k]); });
+    Object.keys(obj).forEach(function(k) { out[k] = window._cleanForFirebase(obj[k]); });
     return out;
-  }
+  };
 
   function _engineEnvelope(id, result, status, error, startMs) {
       return {
@@ -5978,7 +5978,7 @@ BP6-10: תעדף (פלטפורמה ישנה+דומיין+6+ אירועים), Dis
           var idx = leads.findIndex(function(l){return l.id===lead.id;});
           if (idx!==-1) leads[idx] = lead;
           if (typeof db!=='undefined'&&db)
-            db.collection('leads').doc(String(lead.id)).set(_cleanForFirebase(lead)).catch(function(){});
+            db.collection('leads').doc(String(lead.id)).set(window._cleanForFirebase(lead)).catch(function(){});
           renderSimpleLead(lead);
           // Re-open tab if card is expanded
           var bdy = document.getElementById('body-'+lead.id);
@@ -6105,7 +6105,7 @@ BP6-10: תעדף (פלטפורמה ישנה+דומיין+6+ אירועים), Dis
     "לא מכיר": "תשובה"
   }
 }`,
-      2500, 55000);
+      2500, 80000);
 
     // ── PHASE B: Methodology + Emails (merged 3+4) ─────────────────
     setP(55, '🧠 Claude — שלב 2/2: ניתוח מתודולוגיה...');
@@ -6146,7 +6146,7 @@ Social: ${pA.social_intel||'?'}
   "attack_angle": "...", "best_opening": "...",
   "risk_factors": ["..."], "summary_for_rep": "..."
 }`,
-      1200, 45000);
+      1200, 65000);
 
     // ── Phase B2: Emails ──────────────────────────────────────────
     setP(80, '🧠 Claude — שלב 2/2: כותב מיילים...');
@@ -6177,7 +6177,7 @@ Blueprint:
   {"email_num":3,"day":${days[2]},"type":"social_proof","subject":"","research_done":[],"what_i_concluded":"","body":"","cta":""},
   {"email_num":4,"day":${days[3]},"type":"breakup","subject":"","research_done":[],"what_i_concluded":"","body":"","cta":""}
 ]}`,
-        2000, 50000);
+        2000, 70000);
     } catch(e) {
       console.warn('[Brain] Email generation failed (non-critical):', e.message);
     }
@@ -8236,6 +8236,15 @@ addSalesPlaybookPanel();
 
 
 <script>
+// Global Firebase helper — always available
+window._cleanForFirebase = function _cleanForFirebase(obj) {
+  if (obj === undefined) return null;
+  if (obj === null || typeof obj !== 'object') return obj;
+  if (Array.isArray(obj)) return obj.map(window._cleanForFirebase);
+  var out = {};
+  Object.keys(obj).forEach(function(k) { out[k] = window._cleanForFirebase(obj[k]); });
+  return out;
+};
 // ═══════════════════════════════════════════════════════════
 // AI CHAT — Claude via Railway proxy
 // ═══════════════════════════════════════════════════════════
@@ -10237,7 +10246,7 @@ window.saveBrainDecision = async function(decision) {
   // Save to Firebase
   try {
     if (typeof db !== 'undefined' && db) {
-      await db.collection(AI_DECISIONS_COL).doc(docId).set(_cleanForFirebase(doc));
+      await db.collection(AI_DECISIONS_COL).doc(docId).set(window._cleanForFirebase(doc));
     }
   } catch(e) {
     console.warn('[Brain] Decision save failed:', e.message);
