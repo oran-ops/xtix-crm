@@ -10035,13 +10035,25 @@ async function loadBrainPerformance() {
 
 // ── Save decision to Firebase (called by Triple Engine later) ─
 window.saveBrainDecision = async function(decision) {
-  // decision: { lead_id, lead_name, lead_segment, claude_raw, gpt_raw, gemini_raw,
-  //             final_score, consensus, meta_reasoning, meta_override, disagreements }
+  // Normalize fields — Triple Engine sends: meta_score, claude_score, gpt_score, gemini_score, etc.
+  // Brain Panel expects: final_score, claude_raw, gpt_raw, gemini_raw, meta_override, consensus
   var doc = Object.assign({}, decision, {
-    timestamp: new Date().toISOString(),
-    outcome: null,
-    was_correct: null,
-    outcome_date: null
+    // Score normalization
+    final_score:    decision.final_score    || decision.meta_score    || null,
+    // Wrap per-engine data into raw objects for the detail modal
+    claude_raw:     decision.claude_raw     || (decision.claude_score != null ? { score: decision.claude_score, summary: decision.claude_summary || '' } : null),
+    gpt_raw:        decision.gpt_raw        || (decision.gpt_score    != null ? { score: decision.gpt_score,    summary: decision.gpt_summary    || '' } : null),
+    gemini_raw:     decision.gemini_raw     || (decision.gemini_score != null ? { score: decision.gemini_score, summary: decision.gemini_summary || '' } : null),
+    // Consensus label from confidence
+    consensus:      decision.consensus      || (decision.confidence >= 0.8 ? 'high' : decision.confidence >= 0.5 ? 'medium' : 'low'),
+    // Meta-Judge override: fired when had_conflict and meta deviated from average
+    meta_override:  decision.meta_override  != null ? decision.meta_override
+                    : (decision.had_conflict && decision.meta_score != null
+                        && Math.abs(decision.meta_score - (decision.claude_score||50)) > 15),
+    timestamp:      new Date().toISOString(),
+    outcome:        null,
+    was_correct:    null,
+    outcome_date:   null
   });
 
   var docId = 'dec_' + Date.now();
@@ -10075,6 +10087,102 @@ window.saveBrainDecision = async function(decision) {
 // ── Get brain keys (for Triple Engine use) ───────────────────
 window.getBrainKeys = function() { return Object.assign({}, _brainKeys); };
 window.getEngineMode = function() { return _engineMode; };
+
+// ── getBrainHistory — last N decisions by segment (Calibration Loop) ──
+window.getBrainHistory = async function(segment, limit) {
+  limit = limit || 10;
+  var results = [];
+  try {
+    if (typeof db !== 'undefined' && db) {
+      var snap = await db.collection(AI_DECISIONS_COL)
+        .where('lead_segment', '==', segment || '')
+        .orderBy('timestamp', 'desc')
+        .limit(limit)
+        .get();
+      snap.forEach(function(doc) {
+        var d = Object.assign({ id: doc.id }, doc.data());
+        results.push(d);
+      });
+    }
+  } catch(e) {
+    // Fallback: filter from in-memory cache
+    console.warn('[Brain] getBrainHistory Firebase failed, using cache:', e.message);
+    results = _brainDecisions
+      .filter(function(d) { return !segment || d.lead_segment === segment; })
+      .slice(0, limit);
+  }
+  // If nothing found for segment, fall back to latest decisions across all segments
+  if (!results.length && _brainDecisions.length) {
+    results = _brainDecisions.slice(0, limit);
+  }
+  return results;
+};
+
+// ── markDealClosed — external trigger (e.g. from lead card "סגור עסקה") ──
+window.markDealClosed = async function(leadId, didClose) {
+  // Find the most recent decision for this lead
+  var decision = null;
+
+  // Search in-memory first
+  decision = _brainDecisions.find(function(d) { return d.lead_id === leadId; });
+
+  // If not in memory, query Firebase
+  if (!decision && typeof db !== 'undefined' && db) {
+    try {
+      var snap = await db.collection(AI_DECISIONS_COL)
+        .where('lead_id', '==', leadId)
+        .orderBy('timestamp', 'desc')
+        .limit(1)
+        .get();
+      if (!snap.empty) {
+        snap.forEach(function(doc) {
+          decision = Object.assign({ id: doc.id }, doc.data());
+        });
+      }
+    } catch(e) { console.warn('[Brain] markDealClosed query failed:', e.message); }
+  }
+
+  if (!decision) {
+    console.warn('[Brain] markDealClosed: no decision found for lead', leadId);
+    return false;
+  }
+
+  var updateData = {
+    outcome:      didClose ? 'closed' : 'lost',
+    was_correct:  didClose
+      ? (decision.final_score >= 60)   // Brain predicted worthy → closed = correct
+      : (decision.final_score < 60),   // Brain predicted low → didn't close = correct
+    outcome_date: new Date().toISOString()
+  };
+
+  // Save to Firebase
+  try {
+    if (typeof db !== 'undefined' && db) {
+      await db.collection(AI_DECISIONS_COL).doc(decision.id).update(updateData);
+    }
+  } catch(e) { console.warn('[Brain] markDealClosed update failed:', e.message); }
+
+  // Update local cache
+  var idx = _brainDecisions.findIndex(function(d) { return d.id === decision.id; });
+  if (idx >= 0) Object.assign(_brainDecisions[idx], updateData);
+
+  // Refresh panel if open
+  var panel = document.getElementById('brain-tab-decisions');
+  if (panel && panel.classList.contains('active')) {
+    _renderDecisionsList();
+    _updateBrainStats();
+  }
+
+  // Toast feedback
+  var msg = didClose ? '🎉 עסקה נסגרה — המוח מעדכן את הלמידה' : '📊 עסקה לא נסגרה — המוח ילמד מהטעות';
+  var toast = document.createElement('div');
+  toast.style.cssText = 'position:fixed;bottom:70px;left:50%;transform:translateX(-50%);background:rgba(17,12,34,0.97);border:1px solid rgba(124,58,237,0.4);border-radius:10px;padding:10px 24px;font-size:13px;color:#a78bfa;font-family:Heebo,sans-serif;z-index:9999;font-weight:700';
+  toast.textContent = msg;
+  document.body.appendChild(toast);
+  setTimeout(function() { toast.remove(); }, 3500);
+
+  return true;
+};
 
 // ── Init on login ─────────────────────────────────────────────
 var _brainInitialized = false;
