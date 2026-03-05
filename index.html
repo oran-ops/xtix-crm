@@ -10484,58 +10484,85 @@ window.loadUsers = async function() {
   if (!list || !window.isAdmin()) return;
   list.innerHTML = '<div style="font-size:12px;color:var(--muted);text-align:center;padding:40px">טוען...</div>';
   try {
-    var usersSnap = await db.collection('users').orderBy('created_at','desc').get();
+    var usersSnap   = await db.collection('users').orderBy('created_at','desc').get();
     var pendingSnap = await db.collection('pending_users').get();
-    var rows = [];
-    usersSnap.forEach(function(doc) {
-      var u = doc.data();
+
+    function makeUserRow(uid, u) {
+      var isSelf = window.currentUser && uid === window.currentUser.uid;
       var rc = u.role==='admin'?'#a78bfa':u.role==='sales'?'#10b981':'#6b7280';
-      var isSelf = window.currentUser && u.uid === window.currentUser.uid;
-      var sel = ['admin','sales','viewer'].map(function(r) {
-        return '<option value="' + r + '"' + (u.role===r?' selected':'') + '>' +
-          (r==='admin'?'👑 Admin':r==='sales'?'💼 Sales':'👁 Viewer') + '</option>';
-      }).join('');
-      var removeBtn = isSelf ? '' :
-        '<button onclick="removeUser(\''+doc.id+'\',\''+encodeURIComponent(u.email||'')+'\')">הסר</button>';
-      rows.push(
-        '<div class="usr-row">' +
-          '<img src="'+(u.photo||'')+'" class="usr-avatar" onerror="this.style.display='none'">' +
-          '<div class="usr-info">' +
-            '<div class="usr-name">'+(u.name||u.email)+(isSelf?' <span class="usr-you">(אתה)</span>':'')+' <span class="usr-role-tag" style="color:'+rc+'">'+u.role+'</span></div>' +
-            '<div class="usr-email">'+u.email+'</div>' +
-            '<div class="usr-seen">כניסה אחרונה: '+(u.last_seen?u.last_seen.substring(0,10):'—')+'</div>' +
-          '</div>' +
-          (isSelf
-            ? '<span class="usr-role-tag" style="color:'+rc+'">'+u.role+'</span>'
-            : '<select class="usr-role-sel" style="color:'+rc+'" onchange="changeUserRole(\''+doc.id+'\',this.value)">'+sel+'</select>'
-          ) +
-          '<button class="usr-remove-btn" onclick="removeUser(\''+doc.id+'\',\''+encodeURIComponent(u.email||'')+'\')" style="'+(isSelf?'display:none':'')+'">' +
-            'הסר' +
-          '</button>' +
-        '</div>'
-      );
-    });
-    var pendingRows = [];
+      var row = document.createElement('div');
+      row.className = 'usr-row';
+
+      var img = document.createElement('img');
+      img.src = u.photo || '';
+      img.className = 'usr-avatar';
+      img.onerror = function(){ this.style.display='none'; };
+      row.appendChild(img);
+
+      var info = document.createElement('div');
+      info.className = 'usr-info';
+      info.innerHTML =
+        '<div class="usr-name">' + (u.name||u.email) + (isSelf?' <span class="usr-you">(אתה)</span>':'') + '</div>' +
+        '<div class="usr-email">' + u.email + '</div>' +
+        '<div class="usr-seen">כניסה אחרונה: ' + (u.last_seen ? u.last_seen.substring(0,10) : '—') + '</div>';
+      row.appendChild(info);
+
+      if (isSelf) {
+        var tag = document.createElement('span');
+        tag.className = 'usr-role-tag';
+        tag.style.color = rc;
+        tag.textContent = u.role;
+        row.appendChild(tag);
+      } else {
+        var sel = document.createElement('select');
+        sel.className = 'usr-role-sel';
+        sel.style.color = rc;
+        ['admin','sales','viewer'].forEach(function(r) {
+          var opt = document.createElement('option');
+          opt.value = r;
+          opt.textContent = r==='admin'?'👑 Admin':r==='sales'?'💼 Sales':'👁 Viewer';
+          if (u.role === r) opt.selected = true;
+          sel.appendChild(opt);
+        });
+        sel.onchange = (function(id){ return function(){ window.changeUserRole(id, this.value); }; })(uid);
+        row.appendChild(sel);
+
+        var btn = document.createElement('button');
+        btn.className = 'usr-remove-btn';
+        btn.textContent = 'הסר';
+        btn.onclick = (function(id, em){ return function(){ window.removeUser(id, em); }; })(uid, u.email||'');
+        row.appendChild(btn);
+      }
+      return row;
+    }
+
+    list.innerHTML = '';
+    if (usersSnap.empty && pendingSnap.empty) {
+      list.innerHTML = '<div style="font-size:12px;color:var(--muted);text-align:center;padding:40px">אין משתמשים</div>';
+      return;
+    }
+
+    usersSnap.forEach(function(doc) { list.appendChild(makeUserRow(doc.id, doc.data())); });
+
     if (!pendingSnap.empty) {
+      var lbl = document.createElement('div');
+      lbl.className = 'usr-section-lbl';
+      lbl.textContent = '⏳ ממתינים לכניסה ראשונה';
+      list.appendChild(lbl);
       pendingSnap.forEach(function(doc) {
         var u = doc.data();
-        pendingRows.push(
-          '<div class="usr-row usr-row-pending">' +
-            '<div class="usr-avatar-ph">✉️</div>' +
-            '<div class="usr-info">' +
-              '<div class="usr-name">'+(u.name||u.email)+'</div>' +
-              '<div class="usr-email">'+u.email+' · '+u.role+'</div>' +
-            '</div>' +
-            '<button class="usr-remove-btn" onclick="removePendingUser(\''+doc.id+'\')">ביטול</button>' +
-          '</div>'
-        );
+        var row = document.createElement('div');
+        row.className = 'usr-row usr-row-pending';
+        row.innerHTML = '<div class="usr-avatar-ph">✉️</div>' +
+          '<div class="usr-info"><div class="usr-name">'+(u.name||u.email)+'</div><div class="usr-email">'+u.email+' · '+u.role+'</div></div>';
+        var btn = document.createElement('button');
+        btn.className = 'usr-remove-btn';
+        btn.textContent = 'ביטול';
+        btn.onclick = (function(id){ return function(){ window.removePendingUser(id); }; })(doc.id);
+        row.appendChild(btn);
+        list.appendChild(row);
       });
     }
-    var html = rows.join('');
-    if (pendingRows.length) {
-      html += '<div class="usr-section-lbl">⏳ ממתינים לכניסה ראשונה</div>' + pendingRows.join('');
-    }
-    list.innerHTML = html || '<div style="font-size:12px;color:var(--muted);text-align:center;padding:40px">אין משתמשים</div>';
   } catch(e) {
     list.innerHTML = '<div style="color:#ef4444;font-size:12px;text-align:center;padding:20px">שגיאה: ' + e.message + '</div>';
   }
