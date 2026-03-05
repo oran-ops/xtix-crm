@@ -5628,7 +5628,17 @@ BP6-10: תעדף (פלטפורמה ישנה+דומיין+6+ אירועים), Dis
 
     // ── Engine result envelope ──────────────────────────────────────
     // { id, result, status: 'ok'|'error'|'timeout'|'skipped', error, durationMs }
-    function _engineEnvelope(id, result, status, error, startMs) {
+    // Recursively replace undefined→null before any Firebase write
+  function _cleanForFirebase(obj) {
+    if (obj === undefined) return null;
+    if (obj === null || typeof obj !== 'object') return obj;
+    if (Array.isArray(obj)) return obj.map(_cleanForFirebase);
+    var out = {};
+    Object.keys(obj).forEach(function(k) { out[k] = _cleanForFirebase(obj[k]); });
+    return out;
+  }
+
+  function _engineEnvelope(id, result, status, error, startMs) {
       return {
         id:         id,
         result:     result  || null,
@@ -5797,9 +5807,9 @@ BP6-10: תעדף (פלטפורמה ישנה+דומיין+6+ אירועים), Dis
       executive_summary: verdict.meta_reasoning || baseResult.executive_summary || '',
       next_action:       verdict.meta_action    || baseResult.next_action || '',
       // Meta-Judge metadata
-      meta_score:        verdict.meta_score,
-      meta_reasoning:    verdict.meta_reasoning,
-      meta_action:       verdict.meta_action,
+      meta_score:        verdict.meta_score        != null ? verdict.meta_score        : null,
+      meta_reasoning:    verdict.meta_reasoning    != null ? verdict.meta_reasoning    : null,
+      meta_action:       verdict.meta_action       != null ? verdict.meta_action       : null,
       disagreements:     verdict.disagreements  || [],
       confidence:        consensus.confidence,
       had_conflict:      consensus.hadConflict,
@@ -5823,9 +5833,9 @@ BP6-10: תעדף (פלטפורמה ישנה+דומיין+6+ אירועים), Dis
         gpt_summary:      gptResult     ? (gptResult.summary   || '') : null,
         gemini_score:     geminiResult  ? (geminiResult.score  || 50) : null,
         gemini_summary:   geminiResult  ? (geminiResult.summary|| '') : null,
-        meta_score:       verdict.meta_score,
-        meta_reasoning:   verdict.meta_reasoning,
-        meta_action:      verdict.meta_action,
+        meta_score:       verdict.meta_score     != null ? verdict.meta_score     : null,
+        meta_reasoning:   verdict.meta_reasoning != null ? verdict.meta_reasoning : null,
+        meta_action:      verdict.meta_action    != null ? verdict.meta_action    : null,
         confidence:       consensus.confidence,
         had_conflict:     consensus.hadConflict,
         disagreements:    verdict.disagreements || [],
@@ -5864,7 +5874,7 @@ BP6-10: תעדף (פלטפורמה ישנה+דומיין+6+ אירועים), Dis
           var idx = leads.findIndex(function(l){return l.id===lead.id;});
           if (idx!==-1) leads[idx] = lead;
           if (typeof db!=='undefined'&&db)
-            db.collection('leads').doc(String(lead.id)).set(lead).catch(function(){});
+            db.collection('leads').doc(String(lead.id)).set(_cleanForFirebase(lead)).catch(function(){});
           renderSimpleLead(lead);
           // Re-open tab if card is expanded
           var bdy = document.getElementById('body-'+lead.id);
@@ -10123,7 +10133,7 @@ window.saveBrainDecision = async function(decision) {
   // Save to Firebase
   try {
     if (typeof db !== 'undefined' && db) {
-      await db.collection(AI_DECISIONS_COL).doc(docId).set(doc);
+      await db.collection(AI_DECISIONS_COL).doc(docId).set(_cleanForFirebase(doc));
     }
   } catch(e) {
     console.warn('[Brain] Decision save failed:', e.message);
