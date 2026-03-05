@@ -153,11 +153,11 @@ def _set_token_cache(id_token, uid, email, role):
             keys = [k for k,v in _token_cache.items() if v['expiry'] < now]
             for k in keys: del _token_cache[k]
 
-def _fetch_user_role_from_firestore(uid):
-    """Fetch user role from Firestore REST API."""
+def _fetch_user_role_from_firestore(uid, id_token):
+    """Fetch user role from Firestore REST API using the user's own ID token."""
     try:
         fs_url = f'https://firestore.googleapis.com/v1/projects/{FIREBASE_PROJECT_ID}/databases/(default)/documents/users/{uid}'
-        req = urllib.request.Request(fs_url)
+        req = urllib.request.Request(fs_url, headers={'Authorization': 'Bearer ' + id_token})
         with urllib.request.urlopen(req, context=ssl_ctx, timeout=8) as r:
             data = json.loads(r.read().decode('utf-8'))
             fields = data.get('fields', {})
@@ -491,7 +491,7 @@ class Handler(BaseHTTPRequestHandler):
                 return None
 
             # Fetch role from Firestore
-            role = _fetch_user_role_from_firestore(uid)
+            role = _fetch_user_role_from_firestore(uid, id_token)
             if not role:
                 self.json_out({'error': 'אין גישה — פנה למנהל', 'code': 'no_role'}, 403)
                 return None
