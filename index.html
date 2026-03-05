@@ -3594,15 +3594,20 @@ BP18: Nurture existing customers — repeat customers spend 67% more
             leads.sort((a, b) => a.id - b.id);
           }
         } catch(e) {}
+        if (typeof window.initToolbar === 'function') window.initToolbar();
         renderAllLeads();
         updateStats();
         showStorageStatus('firebase');
+        // Update nav badge
+        var nc = document.getElementById('leads-nav-count');
+        if (nc) nc.textContent = leads.length;
         return;
       }
       // Empty Firestore — seed with defaults
       leads = DEFAULT_LEADS.slice();
       nextId = 3;
       await saveLeads();
+      if (typeof window.initToolbar === 'function') window.initToolbar();
       renderAllLeads();
       updateStats();
     } catch(e) {
@@ -3697,7 +3702,7 @@ BP18: Nurture existing customers — repeat customers spend 67% more
   }
 
   // =================== renderSimpleLead — builds dynamic lead cards ===================
-    window.renderSimpleLead = function renderSimpleLead(lead) {
+    window._realRenderSimpleLead = window.renderSimpleLead = function renderSimpleLead(lead) {
     if (!lead || !lead.id) return;
     var list = document.getElementById('leads-list');
     if (!list) return;
@@ -3944,7 +3949,8 @@ BP18: Nurture existing customers — repeat customers spend 67% more
     // Also remove any old static hardcoded cards
     document.querySelectorAll('.lead-card:not([data-dynamic])').forEach(el => el.remove());
     // Render ALL leads dynamically
-    leads.forEach(lead => renderSimpleLead(lead));
+    var renderFn = typeof window._realRenderSimpleLead === 'function' ? window._realRenderSimpleLead : renderSimpleLead;
+    leads.forEach(lead => { try { renderFn(lead); } catch(e) { console.error('renderLead failed:', lead.id, e); } });
     document.getElementById('total-leads').textContent = leads.length;
   }
 
@@ -5300,7 +5306,7 @@ BP6-10: תעדף (פלטפורמה ישנה+דומיין+6+ אירועים), Dis
   // only need Phase 1 data + score in one call (~20s), so all 3 engines finish
   // at roughly the same time and Meta-Judge isn't blocked waiting for emails.
   async function _claudeQuickAnalysis(lead, METH, compInfo) {
-    var domain = (lead.domain||'').replace(/https?:\\/\\//,'').split('/')[0] || lead.name;
+    var domain = (lead.domain||'').replace(/https?:\/\//,'').split('/')[0] || lead.name;
 
     // Fetch proxy context (non-blocking, best-effort)
     var pCtx = 'לא נמצא מידע מהאתר';
@@ -7036,9 +7042,12 @@ function buildPlaybookHTML() {
 }
 
 window.calcRoiV4 = function() {
-  var t=parseFloat(document.getElementById('roi-t').value)||0;
-  var p=parseFloat(document.getElementById('roi-p').value)||0;
-  var f=parseFloat(document.getElementById('roi-f').value)||0;
+  var roiT=document.getElementById('roi-t'); if(!roiT) return;
+  var roiP=document.getElementById('roi-p'); if(!roiP) return;
+  var roiF=document.getElementById('roi-f'); if(!roiF) return;
+  var t=parseFloat(roiT.value)||0;
+  var p=parseFloat(roiP.value)||0;
+  var f=parseFloat(roiF.value)||0;
   var rev=t*p,cur=rev*f/100,xtix=rev*2.5/100,sav=cur-xtix;
   var el=document.getElementById('roi-res-v4');if(!el)return;
   el.innerHTML='<div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px">'
@@ -7325,8 +7334,10 @@ addSalesPlaybookPanel();
       : 0;
     var el1 = document.getElementById('total-leads');
     var el2 = document.getElementById('contacted-count');
+    var el3 = document.getElementById('leads-nav-count');
     if (el1) el1.textContent = total;
     if (el2) el2.textContent = contacted;
+    if (el3) el3.textContent = total;
   }
   window.updateStats = updateStats;
 
@@ -10272,5 +10283,42 @@ window.initBrain = async function() {
 
 
 </script>
+
+<script>
+// === ANDY.AI DIAGNOSTIC ===
+setTimeout(function() {
+  var leads_arr = typeof leads !== 'undefined' ? leads : [];
+  var list = document.getElementById('leads-list');
+  var tab = document.getElementById('tab-leads');
+  var toolbar = document.getElementById('crm-v3-toolbar');
+  var badge = document.getElementById('crm-badge');
+  
+  console.log('=== ANDY.AI DIAGNOSTIC (3s) ===');
+  console.log('leads array length:', leads_arr.length);
+  console.log('leads-list exists:', !!list);
+  console.log('leads-list children:', list ? list.children.length : 'N/A');
+  console.log('tab-leads active:', tab ? tab.classList.contains('active') : 'N/A');
+  console.log('toolbar exists:', !!toolbar);
+  console.log('crm-badge text:', badge ? badge.textContent : 'N/A');
+  
+  if (leads_arr.length > 0 && list && list.children.length === 0) {
+    console.warn('BUG: leads in array but NOT in DOM - forcing re-render');
+    // Force re-render by calling the REAL function directly
+    leads_arr.forEach(function(lead) {
+      if (!lead || !lead.id) return;
+      var existing = document.getElementById('lead-' + lead.id);
+      if (existing) existing.remove();
+      if (typeof window.renderSimpleLead === 'function') window.renderSimpleLead(lead);
+    });
+    console.log('Re-render done. leads-list children now:', list.children.length);
+  }
+  
+  // Fix leads-nav-count
+  var navCount = document.getElementById('leads-nav-count');
+  if (navCount && leads_arr.length > 0) navCount.textContent = leads_arr.length;
+  
+}, 3000);
+</script>
+
 </body>
 </html>
