@@ -5839,19 +5839,29 @@ BP6-10: תעדף (פלטפורמה ישנה+דומיין+6+ אירועים), Dis
     var configuredCount = 1 + (_brainKeys&&_brainKeys.gpt?1:0) + (_brainKeys&&_brainKeys.gemini?1:0);
     _dbgSetHeader(successCount, configuredCount);
 
-    // ── If ALL configured engines failed → abort ─────────────────────
+    // ── If ALL configured engines failed → fallback, never abort ───────
     var allFailed = [claudeEnv, gptEnv, geminiEnv]
       .filter(function(e) { return e.status !== 'skipped'; })
       .every(function(e)  { return e.status !== 'ok'; });
 
     if (allFailed) {
-      dbgUpdate('judge', '🚨 כל המנועים נכשלו', null, true);
-      throw new Error('כל מנועי ה-AI נכשלו — ' +
-        [claudeEnv, gptEnv, geminiEnv]
-          .filter(function(e) { return e.status !== 'skipped'; })
-          .map(function(e) { return e.id + ': ' + e.status; })
-          .join(', ')
-      );
+      dbgUpdate('judge', '⚠️ כל המנועים נכשלו — ממשיך עם fallback', null, true);
+      var fallbackResult = {
+        score: 50, tier: 'B',
+        summary: 'ניתוח לא זמין — כל מנועי ה-AI נכשלו',
+        executive_summary: 'נסה שנית מאוחר יותר',
+        next_action: 'בדוק חיבור ל-AI',
+        status: 'done', triple_engine: true,
+        engines_ok: 0, engines_total: configuredCount,
+        engine_statuses: { claude: claudeEnv.status, gpt: gptEnv.status, gemini: geminiEnv.status }
+      };
+      lead.ai_analysis = Object.assign({}, fallbackResult);
+      if (typeof db !== 'undefined' && db)
+        db.collection('leads').doc(String(lead.id))
+          .set(window._cleanForFirebase(lead)).catch(function(){});
+      renderSimpleLead(lead);
+      setP(100, '⚠️ 0/' + configuredCount + ' מנועים — נסה שנית');
+      return fallbackResult;
     }
 
     // ── Pick best available result as Claude baseline ─────────────────
