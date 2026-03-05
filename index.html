@@ -6392,18 +6392,9 @@ Social: ${pA.social_intel||'?'}
                 <span class="brain-info-val">gpt-4o</span>
               </div>
               <div class="brain-info-row">
-                <span class="brain-info-lbl">קבל Key</span>
-                <a href="https://platform.openai.com/api-keys" target="_blank" class="brain-link">platform.openai.com →</a>
+                <span class="brain-info-lbl">API Key</span>
+                <span class="brain-info-val" id="gpt-key-status" style="color:var(--green)">⏳ בודק...</span>
               </div>
-              <div class="brain-key-row">
-                <input type="password" id="gpt-key-input" class="brain-key-input" placeholder="sk-..." />
-                <button class="brain-toggle-key" onclick="toggleKeyVisibility('gpt-key-input',this)">👁</button>
-              </div>
-              <div style="display:flex;gap:8px;margin-top:10px">
-                <button class="brain-save-btn" onclick="saveAIKey('gpt')">💾 שמור</button>
-                <button class="brain-test-btn" onclick="testAIKey('gpt')" id="gpt-test-btn">🧪 בדוק</button>
-              </div>
-              <div id="gpt-key-status" style="font-size:11px;margin-top:6px;min-height:16px"></div>
             </div>
           </div>
 
@@ -6423,18 +6414,9 @@ Social: ${pA.social_intel||'?'}
                 <span class="brain-info-val">gemini-3-flash</span>
               </div>
               <div class="brain-info-row">
-                <span class="brain-info-lbl">קבל Key</span>
-                <a href="https://aistudio.google.com/app/apikey" target="_blank" class="brain-link">aistudio.google.com →</a>
+                <span class="brain-info-lbl">API Key</span>
+                <span class="brain-info-val" id="gemini-key-status" style="color:var(--green)">⏳ בודק...</span>
               </div>
-              <div class="brain-key-row">
-                <input type="password" id="gemini-key-input" class="brain-key-input" placeholder="AIza..." />
-                <button class="brain-toggle-key" onclick="toggleKeyVisibility('gemini-key-input',this)">👁</button>
-              </div>
-              <div style="display:flex;gap:8px;margin-top:10px">
-                <button class="brain-save-btn" onclick="saveAIKey('gemini')">💾 שמור</button>
-                <button class="brain-test-btn" onclick="testAIKey('gemini')" id="gemini-test-btn">🧪 בדוק</button>
-              </div>
-              <div id="gemini-key-status" style="font-size:11px;margin-top:6px;min-height:16px"></div>
             </div>
           </div>
 
@@ -9726,7 +9708,7 @@ const AI_KEYS_DOC      = 'ai_keys';
 const AI_CONFIG_DOC    = 'ai_config';
 
 // ── In-memory state ──────────────────────────────────────────
-var _brainKeys = { gpt: '', gemini: '' };
+var _brainKeys = { gpt: true, gemini: true }; // keys live on Railway server only
 var _engineMode = 'claude_only';  // 'claude_only' | 'triple'
 var _brainDecisions = [];
 
@@ -9755,177 +9737,45 @@ window.toggleKeyVisibility = function(inputId, btn) {
 };
 
 // ── Save API Key to Firebase + localStorage ───────────────────
-window.saveAIKey = async function(engine) {
-  var inputId = engine + '-key-input';
-  var statusId = engine + '-key-status';
-  var badgeId  = engine + '-status-badge';
-  var inp = document.getElementById(inputId);
-  var statusEl = document.getElementById(statusId);
-  if (!inp || !inp.value.trim()) {
-    if (statusEl) { statusEl.style.color='#ef4444'; statusEl.textContent='נא להזין API Key'; }
-    return;
-  }
-  var key = inp.value.trim();
-
-  // Save to localStorage as fallback
-  try { localStorage.setItem('xtix_ai_key_' + engine, key); } catch(e) {}
-
-  // Save to Firebase
-  try {
-    if (typeof db !== 'undefined' && db) {
-      var existing = {};
-      try {
-        var snap = await db.collection('settings').doc(AI_KEYS_DOC).get();
-        if (snap.exists) existing = snap.data();
-      } catch(e2) {}
-      existing[engine + '_key'] = key;
-      existing['updated_at'] = new Date().toISOString();
-      await db.collection('settings').doc(AI_KEYS_DOC).set(existing, { merge: true });
-    }
-  } catch(e) {
-    console.warn('[Brain] Firebase save failed:', e.message);
-  }
-
-  // Update in-memory
-  _brainKeys[engine] = key;
-
-  // Update UI
-  if (statusEl) {
-    statusEl.style.color = '#10b981';
-    statusEl.textContent = '✓ נשמר בהצלחה';
-    setTimeout(() => { if(statusEl) statusEl.textContent = ''; }, 3000);
-  }
-  var badge = document.getElementById(badgeId);
-  if (badge) {
-    badge.textContent = '✓ פעיל';
-    badge.className = 'brain-status-badge active';
-  }
-};
-
-// ── Test API Key ──────────────────────────────────────────────
-window.testAIKey = async function(engine) {
-  var key = document.getElementById(engine + '-key-input')?.value.trim() || _brainKeys[engine];
-  var statusEl = document.getElementById(engine + '-key-status');
-  var btn = document.getElementById(engine + '-test-btn');
-  if (!key) {
-    if (statusEl) { statusEl.style.color='#ef4444'; statusEl.textContent='נא להזין Key קודם'; }
-    return;
-  }
-  if (btn) { btn.textContent = '⏳ בודק...'; btn.disabled = true; }
-  if (statusEl) { statusEl.style.color = 'var(--muted)'; statusEl.textContent = 'שולח בקשת בדיקה...'; }
-
-  var ok = false;
-  var errMsg = '';
-  try {
-    if (engine === 'gpt') {
-      // Use gpt-4o-mini for test — cheaper, same auth
-      var res = await fetch('https://api.openai.com/v1/chat/completions', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + key },
-        body: JSON.stringify({
-          model: 'gpt-4o-mini',
-          messages: [{ role: 'user', content: 'Reply with one word: OK' }],
-          max_tokens: 5
-        }),
-        signal: AbortSignal.timeout(15000)
-      });
-      var data = await res.json();
-      if (data.choices && data.choices[0]) {
-        ok = true;
-      } else if (data.error) {
-        errMsg = data.error.code === 'invalid_api_key' ? 'Key שגוי' :
-                 data.error.code === 'insufficient_quota' ? 'אין קרדיט — הוסף ב-platform.openai.com' :
-                 data.error.message || 'שגיאה לא ידועה';
-      }
-    } else if (engine === 'gemini') {
-      // Use same model as _callGemini — gemini-2.0-flash first
-      var res2 = await fetch(
-        'https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=' + key,
-        {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ contents: [{ parts: [{ text: 'Reply with one word: OK' }] }] }),
-          signal: AbortSignal.timeout(15000)
-        }
-      );
-      var data2 = await res2.json();
-      if (data2.candidates && data2.candidates[0]) {
-        ok = true;
-      } else if (data2.error) {
-        errMsg = data2.error.status === 'INVALID_ARGUMENT' ? 'Key שגוי' :
-                 data2.error.status === 'PERMISSION_DENIED' ? 'Key לא מורשה — בדוק ב-aistudio.google.com' :
-                 data2.error.message || 'שגיאה לא ידועה';
-      }
-    }
-  } catch(e) {
-    errMsg = e.name === 'TimeoutError' ? 'Timeout — בדוק חיבור אינטרנט' : e.message;
-    console.warn('[Brain] Key test error:', e.message);
-  }
-
-  if (btn) { btn.textContent = '🧪 בדוק'; btn.disabled = false; }
-  if (statusEl) {
-    if (ok) {
-      statusEl.style.color = '#10b981';
-      statusEl.textContent = engine === 'gpt' ? '✅ GPT-4o מחובר ✓' : '✅ Gemini 3 Flash מחובר ✓ ✓';
-      // Auto-save on successful test
-      if (_brainKeys[engine]) updateKeyUI(engine, true);
-    } else {
-      statusEl.style.color = '#ef4444';
-      statusEl.textContent = '❌ ' + (errMsg || 'Key לא תקין — בדוק שוב');
-    }
-  }
-};
-
-// ── Save Engine Mode ──────────────────────────────────────────
-window.saveEngineMode = async function() {
-  var modeEl = document.querySelector('input[name="engine_mode"]:checked');
-  var mode = modeEl ? modeEl.value : 'claude_only';
-  _engineMode = mode;
-  try { localStorage.setItem('xtix_engine_mode', mode); } catch(e) {}
-  try {
-    if (typeof db !== 'undefined' && db) {
-      await db.collection('settings').doc(AI_CONFIG_DOC).set({
-        engine_mode: mode,
-        updated_at: new Date().toISOString()
-      }, { merge: true });
-    }
-  } catch(e) {}
-  var statusEl = document.getElementById('mode-status');
-  if (statusEl) {
-    statusEl.style.color = mode === 'triple' ? '#a78bfa' : '#10b981';
-    statusEl.textContent = mode === 'triple'
-      ? '🔺 Triple Engine פעיל — Claude + GPT + Gemini'
-      : '🟣 Claude בלבד פעיל';
-    setTimeout(() => { if(statusEl) statusEl.textContent = ''; }, 4000);
-  }
-};
+// saveAIKey and testAIKey removed — keys managed on Railway server only
+window.saveAIKey = function() { console.warn("[Brain] saveAIKey disabled — keys are managed server-side"); };
+window.testAIKey = function() { console.warn("[Brain] testAIKey disabled — keys are managed server-side"); };
 
 // ── Load keys + config on startup ────────────────────────────
 async function loadBrainConfig() {
-  // localStorage fallback
+  // Keys live on Railway server only — check status via /health
   try {
-    var gk = localStorage.getItem('xtix_ai_key_gpt') || '';
-    var gmk = localStorage.getItem('xtix_ai_key_gemini') || '';
-    var em = localStorage.getItem('xtix_engine_mode') || 'claude_only';
-    if (gk) _brainKeys.gpt = gk;
-    if (gmk) _brainKeys.gemini = gmk;
-    _engineMode = em;
-    _applyBrainConfigToUI();
-  } catch(e) {}
+    var res = await fetch(SERVER + '/health', { signal: AbortSignal.timeout(8000) });
+    var h = await res.json();
+    _brainKeys.gpt    = !!h.openai;
+    _brainKeys.gemini = !!h.gemini;
+    ['gpt','gemini'].forEach(function(engine) {
+      var badge  = document.getElementById(engine + '-status-badge');
+      var status = document.getElementById(engine + '-key-status');
+      var card   = document.getElementById('brain-card-' + engine);
+      if (_brainKeys[engine]) {
+        if (badge)  { badge.textContent = '✓ פעיל'; badge.className = 'brain-status-badge active'; }
+        if (status) { status.style.color = 'var(--green)'; status.textContent = '✓ מוגדר ב-Railway'; }
+        if (card)   card.classList.add('brain-card-active');
+      } else {
+        if (badge)  { badge.textContent = '✗ חסר'; badge.className = 'brain-status-badge'; }
+        if (status) { status.style.color = '#ef4444'; status.textContent = '✗ KEY חסר ב-Railway Variables'; }
+      }
+    });
+  } catch(e) {
+    console.warn('[Brain] Health check failed:', e.message);
+    ['gpt','gemini'].forEach(function(engine) {
+      var status = document.getElementById(engine + '-key-status');
+      if (status) { status.style.color = 'var(--muted)'; status.textContent = 'לא ניתן לבדוק — שרת לא זמין'; }
+    });
+  }
 
-  // Firebase override
+  // Load engine mode from Firebase
   try {
     if (typeof db !== 'undefined' && db) {
-      var snap = await db.collection('settings').doc(AI_KEYS_DOC).get();
-      if (snap.exists) {
-        var d = snap.data();
-        if (d.gpt_key)    { _brainKeys.gpt    = d.gpt_key;    try { localStorage.setItem('xtix_ai_key_gpt', d.gpt_key); } catch(e){} }
-        if (d.gemini_key) { _brainKeys.gemini = d.gemini_key; try { localStorage.setItem('xtix_ai_key_gemini', d.gemini_key); } catch(e){} }
-      }
       var cfgSnap = await db.collection('settings').doc(AI_CONFIG_DOC).get();
       if (cfgSnap.exists && cfgSnap.data().engine_mode) {
         _engineMode = cfgSnap.data().engine_mode;
-        try { localStorage.setItem('xtix_engine_mode', _engineMode); } catch(e) {}
       }
     }
   } catch(e) { console.warn('[Brain] Config load failed:', e.message); }
@@ -9934,19 +9784,9 @@ async function loadBrainConfig() {
 }
 
 function _applyBrainConfigToUI() {
-  // Update key inputs (show masked)
-  ['gpt','gemini'].forEach(function(engine) {
-    var inp = document.getElementById(engine + '-key-input');
-    var badge = document.getElementById(engine + '-status-badge');
-    if (_brainKeys[engine]) {
-      if (inp && !inp.value) inp.value = _brainKeys[engine];
-      if (badge) { badge.textContent = '✓ פעיל'; badge.className = 'brain-status-badge active'; }
-    }
-  });
   // Engine mode radio
   var modeRadio = document.getElementById(_engineMode === 'triple' ? 'mode-triple' : 'mode-claude');
   if (modeRadio) modeRadio.checked = true;
-  // Update status indicator
   var modeStatus = document.getElementById('mode-status');
   if (modeStatus && _engineMode === 'triple') {
     modeStatus.style.color = '#a78bfa';
@@ -10419,6 +10259,11 @@ var _brainInitialized = false;
 window.initBrain = async function() {
   if (_brainInitialized) return;
   _brainInitialized = true;
+  // Clean up any previously stored keys from localStorage
+  try {
+    localStorage.removeItem('xtix_ai_key_gpt');
+    localStorage.removeItem('xtix_ai_key_gemini');
+  } catch(e) {}
   await loadBrainConfig();
   console.log('[Brain] Initialized — mode:', _engineMode);
 };

@@ -286,6 +286,15 @@ class Handler(BaseHTTPRequestHandler):
 
         if p.path=='/ping':
             self.json_out({'status':'ok','version':'2.0','gmail':bool(cfg.get('gmail_user')),'hubspot':bool(cfg.get('hubspot_token'))})
+        elif p.path=='/health':
+            self.json_out({
+                'status': 'ok',
+                'claude':  bool(os.environ.get('ANTHROPIC_API_KEY','')),
+                'openai':  bool(os.environ.get('OPENAI_API_KEY','')),
+                'gemini':  bool(os.environ.get('GEMINI_API_KEY','')),
+                'gmail':   bool(cfg.get('gmail_user','')),
+                'hubspot': bool(cfg.get('hubspot_token','')),
+            })
         elif p.path=='/analyze':
             url=q.get('url',[''])[0]
             if not url: self.json_out({'error':'Missing url'},400); return
