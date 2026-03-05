@@ -5218,6 +5218,78 @@ BP6-10: תעדף (פלטפורמה ישנה+דומיין+6+ אירועים), Dis
                 activeEngines === 2 ? '🚀 Dual Engine — Claude + ' + (_brainKeys.gpt ? 'GPT-4o' : 'Gemini') + ' רצים במקביל...' :
                 '🧠 Claude מנתח...');
 
+    // ── Live Debug Panel ──────────────────────────────────────
+    function showDebugPanel() {
+      var existing = document.getElementById('_triple_debug_panel');
+      if (existing) existing.remove();
+      var panel = document.createElement('div');
+      panel.id = '_triple_debug_panel';
+      panel.style.cssText = 'position:fixed;bottom:60px;left:20px;z-index:9998;background:#0d0d14;border:1px solid rgba(124,58,237,0.4);border-radius:14px;padding:16px 20px;min-width:340px;box-shadow:0 8px 32px rgba(0,0,0,0.7);font-family:Heebo,sans-serif;direction:rtl';
+      panel.innerHTML =
+        '<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:14px">' +
+          '<div style="font-size:13px;font-weight:800;color:#a78bfa">🔬 Triple Engine — Live Debug</div>' +
+          '<button onclick="document.getElementById(\'_triple_debug_panel\').remove()" style="background:rgba(255,255,255,0.06);border:1px solid rgba(255,255,255,0.1);border-radius:5px;padding:2px 8px;color:rgba(255,255,255,0.4);cursor:pointer;font-size:11px">✕</button>' +
+        '</div>' +
+        '<div id="_dbg_claude" style="display:flex;align-items:center;gap:10px;padding:8px 12px;background:rgba(139,92,246,0.08);border:1px solid rgba(139,92,246,0.2);border-radius:8px;margin-bottom:6px">' +
+          '<span style="font-size:18px">🟣</span>' +
+          '<div style="flex:1">' +
+            '<div style="font-size:11px;font-weight:700;color:#a78bfa">Claude (Anthropic)</div>' +
+            '<div id="_dbg_claude_status" style="font-size:11px;color:rgba(255,255,255,0.4)">⏳ ממתין...</div>' +
+          '</div>' +
+          '<div id="_dbg_claude_score" style="font-size:16px;font-weight:800;color:#a78bfa;min-width:32px;text-align:center">—</div>' +
+        '</div>' +
+        '<div id="_dbg_gpt_row" style="display:flex;align-items:center;gap:10px;padding:8px 12px;background:rgba(16,185,129,0.06);border:1px solid rgba(16,185,129,0.2);border-radius:8px;margin-bottom:6px">' +
+          '<span style="font-size:18px">🟢</span>' +
+          '<div style="flex:1">' +
+            '<div style="font-size:11px;font-weight:700;color:#10b981">GPT-4o (OpenAI)</div>' +
+            '<div id="_dbg_gpt_status" style="font-size:11px;color:rgba(255,255,255,0.4)">' + (_brainKeys && _brainKeys.gpt ? '⏳ ממתין...' : '○ לא מוגדר — דלג') + '</div>' +
+          '</div>' +
+          '<div id="_dbg_gpt_score" style="font-size:16px;font-weight:800;color:#10b981;min-width:32px;text-align:center">—</div>' +
+        '</div>' +
+        '<div id="_dbg_gemini_row" style="display:flex;align-items:center;gap:10px;padding:8px 12px;background:rgba(59,130,246,0.06);border:1px solid rgba(59,130,246,0.2);border-radius:8px;margin-bottom:6px">' +
+          '<span style="font-size:18px">🔵</span>' +
+          '<div style="flex:1">' +
+            '<div style="font-size:11px;font-weight:700;color:#3b82f6">Gemini (Google)</div>' +
+            '<div id="_dbg_gemini_status" style="font-size:11px;color:rgba(255,255,255,0.4)">' + (_brainKeys && _brainKeys.gemini ? '⏳ ממתין...' : '○ לא מוגדר — דלג') + '</div>' +
+          '</div>' +
+          '<div id="_dbg_gemini_score" style="font-size:16px;font-weight:800;color:#3b82f6;min-width:32px;text-align:center">—</div>' +
+        '</div>' +
+        '<div id="_dbg_judge_row" style="display:flex;align-items:center;gap:10px;padding:8px 12px;background:rgba(245,158,11,0.06);border:1px solid rgba(245,158,11,0.2);border-radius:8px;margin-bottom:12px">' +
+          '<span style="font-size:18px">⚖️</span>' +
+          '<div style="flex:1">' +
+            '<div style="font-size:11px;font-weight:700;color:#F59E0B">Meta-Judge (Claude)</div>' +
+            '<div id="_dbg_judge_status" style="font-size:11px;color:rgba(255,255,255,0.4)">⏳ מחכה לתוצאות...</div>' +
+          '</div>' +
+          '<div id="_dbg_judge_score" style="font-size:20px;font-weight:800;color:#F59E0B;min-width:32px;text-align:center">—</div>' +
+        '</div>' +
+        '<div id="_dbg_timing" style="font-size:10px;color:rgba(255,255,255,0.25);text-align:center">⏱ זמן ריצה: <span id="_dbg_elapsed">0</span>s</div>';
+      document.body.appendChild(panel);
+
+      // Elapsed timer
+      var _dbgStart = Date.now();
+      var _dbgTimer = setInterval(function() {
+        var el = document.getElementById('_dbg_elapsed');
+        if (el) el.textContent = ((Date.now() - _dbgStart)/1000).toFixed(1);
+        else clearInterval(_dbgTimer);
+      }, 200);
+      panel._dbgTimer = _dbgTimer;
+    }
+
+    function dbgUpdate(engine, status, score, isError) {
+      var statusEl = document.getElementById('_dbg_' + engine + '_status');
+      var scoreEl  = document.getElementById('_dbg_' + engine + '_score');
+      if (statusEl) {
+        statusEl.textContent = status;
+        statusEl.style.color = isError ? '#ef4444' : score ? '#10b981' : 'rgba(255,255,255,0.6)';
+      }
+      if (scoreEl && score !== null && score !== undefined) {
+        scoreEl.textContent = score;
+        scoreEl.style.color = score >= 80 ? '#10b981' : score >= 60 ? '#F59E0B' : '#3b82f6';
+      }
+    }
+
+    showDebugPanel();
+
     // ── Run all engines in parallel ──
     var claudePromise = _deepAIPipeline(lead); // full existing pipeline
     var gptPromise    = null;
