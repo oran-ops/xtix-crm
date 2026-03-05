@@ -5252,9 +5252,16 @@ BP6-10: תעדף (פלטפורמה ישנה+דומיין+6+ אירועים), Dis
   // Order: gemini-2.0-flash → gemini-1.5-flash → gemini-1.5-flash-8b
   // On quota/rate error → tries next model automatically
   async function _callGemini(systemPrompt, userPrompt, maxTokens) {
-    // Route through Railway proxy — key stays server-side, stable latency
-    var MODELS = ['gemini-2.0-flash', 'gemini-1.5-flash', 'gemini-1.5-flash-8b'];
+    // Route through Railway proxy — key stays server-side
+    // Free tier model fallback chain (best quota → least quota)
+    var MODELS = [
+      'gemini-2.0-flash',           // 15 RPM, 1500 RPD free
+      'gemini-2.0-flash-lite',      // 30 RPM, 1500 RPD free — higher RPM budget
+      'gemini-1.5-flash-latest',    // 'latest' alias avoids version 404s
+      'gemini-1.5-flash-8b-latest'  // lightest model, last resort
+    ];
     var lastError = null;
+    var quotaCount = 0;  // track how many quota errors we've seen
 
     for (var mi = 0; mi < MODELS.length; mi++) {
       var model = MODELS[mi];
@@ -5271,11 +5278,32 @@ BP6-10: תעדף (פלטפורמה ישנה+דומיין+6+ אירועים), Dis
           signal: AbortSignal.timeout(35000)
         });
 
-        if (res.status === 429 || res.status === 503 || res.status === 403 || res.status === 404) {
+        if (res.status === 429) {
           var errBody = await res.json().catch(function(){return {};});
-          var errMsg  = (errBody.error && (errBody.error.message || JSON.stringify(errBody.error))) || 'HTTP ' + res.status;
-          console.warn('[Gemini] ' + model + ' → ' + errMsg.substring(0,80) + ' — trying next model');
-          lastError = new Error('Gemini/' + model + ': ' + errMsg);
+          var retryAfter = parseInt(res.headers && res.headers.get && res.headers.get('Retry-After')) || 0;
+          var errMsg = (errBody.error && errBody.error.message) || 'quota exceeded';
+          quotaCount++;
+          // Check if it's RPM (per-minute) limit — short wait might help
+          var isRPM = errMsg.toLowerCase().includes('per_minute') || errMsg.toLowerCase().includes('rate');
+          var isDailyQuota = errMsg.toLowerCase().includes('day') || errMsg.toLowerCase().includes('daily') || errMsg.toLowerCase().includes('exceeded');
+          console.warn('[Gemini] ' + model + ' → 429: ' + errMsg.substring(0, 80));
+          if (isRPM && !isDailyQuota && mi === 0) {
+            // RPM limit on primary model — brief wait, try next model immediately
+            await new Promise(function(r){ setTimeout(r, 1500); });
+          }
+          lastError = new Error('Gemini/' + model + ': quota');
+          continue;
+        }
+
+        if (res.status === 404) {
+          console.warn('[Gemini] ' + model + ' → 404 not found — trying next model');
+          lastError = new Error('Gemini/' + model + ': model not found');
+          continue;
+        }
+
+        if (res.status === 503 || res.status === 403) {
+          console.warn('[Gemini] ' + model + ' → ' + res.status + ' — trying next model');
+          lastError = new Error('Gemini/' + model + ': HTTP ' + res.status);
           continue;
         }
 
@@ -5287,6 +5315,11 @@ BP6-10: תעדף (פלטפורמה ישנה+דומיין+6+ אירועים), Dis
         var raw = (d.candidates && d.candidates[0] &&
                    d.candidates[0].content && d.candidates[0].content.parts &&
                    d.candidates[0].content.parts[0] && d.candidates[0].content.parts[0].text) || '';
+        if (!raw) {
+          // Blocked or empty response
+          lastError = new Error('Gemini/' + model + ': empty response');
+          continue;
+        }
         raw = raw.replace(/^```json\s*/,'').replace(/^```\s*/,'').replace(/\s*```$/,'');
         var si = raw.indexOf('{'), ei = raw.lastIndexOf('}');
         if (si !== -1 && ei !== -1) raw = raw.substring(si, ei+1);
@@ -5296,7 +5329,7 @@ BP6-10: תעדף (פלטפורמה ישנה+דומיין+6+ אירועים), Dis
 
       } catch(e) {
         if (e.name === 'TimeoutError' || e.name === 'AbortError') {
-          console.warn('[Gemini] ' + model + ' → timeout — trying next model');
+          console.warn('[Gemini] ' + model + ' → timeout — trying next');
           lastError = e;
           continue;
         }
@@ -5304,7 +5337,12 @@ BP6-10: תעדף (פלטפורמה ישנה+דומיין+6+ אירועים), Dis
         if (mi === MODELS.length - 1) throw lastError;
       }
     }
-    throw lastError || new Error('Gemini: all models exhausted');
+
+    // All models failed
+    if (quotaCount === MODELS.length) {
+      throw new Error('Gemini: קוטה יומית הוצתה — Gemini לא יהיה זמין עד מחר (חינמי tier)');
+    }
+    throw lastError || new Error('Gemini: all models failed');
   }
 
   // ── Build analysis prompt for a lead ───────────────────────────

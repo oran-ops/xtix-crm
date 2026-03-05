@@ -431,9 +431,17 @@ class Handler(BaseHTTPRequestHandler):
                     result = json.loads(r.read().decode('utf-8'))
                 self.json_out(result)
             except urllib.error.HTTPError as e:
-                err = e.read().decode('utf-8')
-                print(f'  [Gemini] HTTP Error {e.code}: {err[:200]}', flush=True)
-                self.json_out({'error': err, 'status': e.code}, e.code)
+                err_body = e.read().decode('utf-8')
+                retry_after = e.headers.get('Retry-After', '') if e.headers else ''
+                print(f'  [Gemini/{model}] HTTP {e.code}: {err_body[:150]}', flush=True)
+                # Pass status code and Retry-After back to client
+                extra = {'retry_after': retry_after} if retry_after else {}
+                try:
+                    err_json = json.loads(err_body)
+                    err_json.update(extra)
+                    self.json_out(err_json, e.code)
+                except:
+                    self.json_out({'error': err_body[:200], **extra}, e.code)
             except Exception as e:
                 print(f'  [Gemini] Error: {e}', flush=True)
                 self.json_out({'error': str(e)}, 500)
