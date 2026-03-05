@@ -384,6 +384,34 @@ class Handler(BaseHTTPRequestHandler):
                 print(f'  [AI] Error: {e}', flush=True)
                 self.json_out({'error': str(e)}, 500)
             return
+        if p.path=='/gpt':
+            # Proxy to OpenAI API
+            api_key = os.environ.get('OPENAI_API_KEY','')
+            if not api_key:
+                self.json_out({'error':'OPENAI_API_KEY not set in Railway Variables'},500); return
+            try:
+                payload = json.dumps(b).encode('utf-8')
+                req = urllib.request.Request(
+                    'https://api.openai.com/v1/chat/completions',
+                    data=payload,
+                    headers={
+                        'Content-Type': 'application/json',
+                        'Authorization': 'Bearer ' + api_key,
+                    },
+                    method='POST'
+                )
+                with urllib.request.urlopen(req, context=ssl_ctx, timeout=60) as r:
+                    result = json.loads(r.read().decode('utf-8'))
+                self.json_out(result)
+            except urllib.error.HTTPError as e:
+                err = e.read().decode('utf-8')
+                print(f'  [GPT] HTTP Error {e.code}: {err}', flush=True)
+                self.json_out({'error': err}, e.code)
+            except Exception as e:
+                print(f'  [GPT] Error: {e}', flush=True)
+                self.json_out({'error': str(e)}, 500)
+            return
+
         if p.path=='/send-email':
             r=send_gmail(cfg,b.get('to',''),b.get('subject',''),b.get('html',b.get('body','')),b.get('text',''))
             if r['ok'] and cfg.get('hubspot_token') and b.get('hubspot_id'):

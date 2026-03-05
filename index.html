@@ -5213,11 +5213,10 @@ BP6-10: תעדף (פלטפורמה ישנה+דומיין+6+ אירועים), Dis
 
   // ── Call GPT-4o directly ────────────────────────────────────────
   async function _callGPT(systemPrompt, userPrompt, maxTokens) {
-    var key = _brainKeys && _brainKeys.gpt;
-    if (!key) throw new Error('GPT key not configured');
-    var res = await fetch('https://api.openai.com/v1/chat/completions', {
+    // Route through Railway proxy — stable latency, key stays server-side
+    var res = await fetch(SERVER + '/gpt', {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + key },
+      headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
         model: 'gpt-4o-mini',
         max_tokens: maxTokens || 1500,
@@ -5226,7 +5225,7 @@ BP6-10: תעדף (פלטפורמה ישנה+דומיין+6+ אירועים), Dis
           { role: 'user',   content: userPrompt }
         ]
       }),
-      signal: AbortSignal.timeout(15000)
+      signal: AbortSignal.timeout(45000)
     });
     if (!res.ok) {
       var err = await res.json().catch(function(){return {};});
@@ -5668,7 +5667,7 @@ BP6-10: תעדף (פלטפורמה ישנה+דומיין+6+ אירועים), Dis
     if (_brainKeys && _brainKeys.gpt) {
       enginePromises.push(_runEngine('gpt', function() {
         return _callGPT(prompt.system, prompt.user, 1500);
-      }, 20000));
+      }, 50000));
     } else {
       enginePromises.push(Promise.resolve(_engineEnvelope('gpt', null, 'skipped', 'key not configured', Date.now())));
     }
