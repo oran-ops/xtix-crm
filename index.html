@@ -5103,14 +5103,14 @@ BP6-10: תעדף (פלטפורמה ישנה+דומיין+6+ אירועים), Dis
       method: 'POST',
       headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + key },
       body: JSON.stringify({
-        model: 'gpt-4o',
+        model: 'gpt-4o-mini',
         max_tokens: maxTokens || 1500,
         messages: [
           { role: 'system', content: systemPrompt },
           { role: 'user',   content: userPrompt }
         ]
       }),
-      signal: AbortSignal.timeout(45000)
+      signal: AbortSignal.timeout(15000)
     });
     if (!res.ok) {
       var err = await res.json().catch(function(){return {};});
@@ -5152,7 +5152,7 @@ BP6-10: תעדף (פלטפורמה ישנה+דומיין+6+ אירועים), Dis
               contents: [{ parts: [{ text: userPrompt }] }],
               generationConfig: { maxOutputTokens: maxTokens || 1500, temperature: 0.7 }
             }),
-            signal: AbortSignal.timeout(45000)
+            signal: AbortSignal.timeout(12000)
           }
         );
 
@@ -5554,14 +5554,14 @@ BP6-10: תעדף (פלטפורמה ישנה+דומיין+6+ אירועים), Dis
     if (_brainKeys && _brainKeys.gpt) {
       enginePromises.push(_runEngine('gpt', function() {
         return _callGPT(prompt.system, prompt.user, 1500);
-      }, 50000));
+      }, 20000));
     } else {
       enginePromises.push(Promise.resolve(_engineEnvelope('gpt', null, 'skipped', 'key not configured', Date.now())));
     }
     if (_brainKeys && _brainKeys.gemini) {
       enginePromises.push(_runEngine('gemini', function() {
         return _callGemini(prompt.system, prompt.user, 1500);
-      }, 50000));
+      }, 40000));
     } else {
       enginePromises.push(Promise.resolve(_engineEnvelope('gemini', null, 'skipped', 'key not configured', Date.now())));
     }
@@ -10161,14 +10161,16 @@ window.getBrainHistory = async function(segment, limit) {
   var results = [];
   try {
     if (typeof db !== 'undefined' && db) {
+      // Query without where() to avoid composite index requirement
+      // Filter by segment in JS after fetching
       var snap = await db.collection(AI_DECISIONS_COL)
-        .where('lead_segment', '==', segment || '')
         .orderBy('timestamp', 'desc')
-        .limit(limit)
+        .limit(limit * 5)   // fetch more, filter down in JS
         .get();
       snap.forEach(function(doc) {
         var d = Object.assign({ id: doc.id }, doc.data());
-        results.push(d);
+        if (!segment || d.lead_segment === segment) results.push(d);
+        if (results.length >= limit) return;
       });
     }
   } catch(e) {
