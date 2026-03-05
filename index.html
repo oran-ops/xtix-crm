@@ -392,22 +392,7 @@ html, body {
 .analysis-progress-fill { height: 100%; background: var(--blue); border-radius: 2px; transition: width 0.4s ease; }
 
 /* Email body */
-.email-card {
-  background: var(--s3); border: 1px solid var(--b1); border-radius: 8px;
-  margin-bottom: 8px; overflow: hidden;
-}
-.email-card-header {
-  display: flex; align-items: center; gap: 10px; padding: 10px 14px;
-  cursor: pointer; border-bottom: 1px solid var(--b1);
-}
-.email-card-body { padding: 12px 14px; font-size: 12px; color: var(--t2); line-height: 1.75; white-space: pre-wrap; }
-.email-num {
-  width: 22px; height: 22px; border-radius: 50%; background: var(--blue);
-  color: #fff; font-size: 11px; font-weight: 700;
-  display: flex; align-items: center; justify-content: center; flex-shrink: 0;
-}
-.email-subject { font-size: 12px; font-weight: 600; color: var(--t1); flex: 1; }
-.email-day { font-size: 10px; color: var(--t3); font-family: 'DM Mono',monospace; }
+/* OLD email-card CSS removed — see EMAILS GRID section */
 
 /* Summary / methodology blocks */
 .meth-block {
@@ -961,7 +946,7 @@ input::placeholder, textarea::placeholder { color: var(--t3); }
 /* PAIN CARDS */
 .pain-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 14px; }
 .pain-card {
-  border-radius: 12px; padding: 18px; border-left: 3px solid;
+  border-radius: 12px; padding: 18px; border-right: 3px solid;
 }
 .pain-financial { background: rgba(16,185,129,0.06); border-color: #10b981; }
 .pain-data      { background: rgba(59,130,246,0.06); border-color: #3b82f6; }
@@ -1182,7 +1167,7 @@ input::placeholder, textarea::placeholder { color: var(--t3); }
 
 
 /* ══ HUBSPOT v2.0 ══ */
-.hs-wrap { padding: 24px; max-width: 1100px; margin: 0 auto; }
+.hs-wrap { padding: 0; max-width: 1100px; margin: 0 auto; }
 .hs-page-header { margin-bottom: 24px; }
 .hs-page-tag { font-size: 10px; letter-spacing: 2px; color: #f97316; text-transform: uppercase; font-weight: 700; margin-bottom: 6px; }
 .hs-page-title { font-size: 22px; font-weight: 900; color: var(--t1); margin: 0 0 6px; }
@@ -1634,7 +1619,7 @@ input::placeholder, textarea::placeholder { color: var(--t3); }
 <script>
 document.addEventListener("DOMContentLoaded",function(){
   var c=document.querySelector(".container");if(!c)return;
-  ["tab-methodology","tab-hubspot","tab-leadfinder","tab-aichat","tab-tasks"].forEach(function(id){
+  ["tab-hubspot","tab-leadfinder","tab-aichat","tab-tasks"].forEach(function(id){
     var el=document.getElementById(id);
     if(el&&el.parentElement!==c)c.appendChild(el);
   });
@@ -1704,7 +1689,7 @@ document.addEventListener("DOMContentLoaded",function(){
       <button class="nav-sub-btn" onclick="switchMarket('objections',this)">🛡 התנגדויות</button>
       <button class="nav-sub-btn" onclick="switchMarket('kpis',this)">📊 KPIs</button>
     </div>
-    <button class="nav-btn" data-panel="methodology" onclick="switchMainTab('methodology',this)">
+    <button class="nav-btn" data-panel="methodology" onclick="switchMainTab('market',this);setTimeout(function(){window.methTab&&window.methTab('methodology');},80)">
       <span class="nav-icon"><svg width="14" height="14" viewBox="0 0 14 14" fill="none"><path d="M2 3.5h10M2 7h10M2 10.5h6" stroke="currentColor" stroke-width="1.3" stroke-linecap="round"/></svg></span><span class="nav-label">מתודולוגיה</span>
     </button>
     <button class="nav-btn" data-panel="hubspot" onclick="switchMainTab('hubspot',this)">
