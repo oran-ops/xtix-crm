@@ -412,6 +412,29 @@ class Handler(BaseHTTPRequestHandler):
                 self.json_out({'error': str(e)}, 500)
             return
 
+        if p.path=='/gemini':
+            # Proxy to Google Gemini API
+            api_key = os.environ.get('GEMINI_API_KEY','')
+            if not api_key:
+                self.json_out({'error':'GEMINI_API_KEY not set in Railway Variables'},500); return
+            try:
+                model   = b.pop('model', 'gemini-2.0-flash')
+                url     = f'https://generativelanguage.googleapis.com/v1beta/models/{model}:generateContent?key={api_key}'
+                payload = json.dumps(b).encode('utf-8')
+                req = urllib.request.Request(url, data=payload,
+                    headers={'Content-Type': 'application/json'}, method='POST')
+                with urllib.request.urlopen(req, context=ssl_ctx, timeout=30) as r:
+                    result = json.loads(r.read().decode('utf-8'))
+                self.json_out(result)
+            except urllib.error.HTTPError as e:
+                err = e.read().decode('utf-8')
+                print(f'  [Gemini] HTTP Error {e.code}: {err[:200]}', flush=True)
+                self.json_out({'error': err, 'status': e.code}, e.code)
+            except Exception as e:
+                print(f'  [Gemini] Error: {e}', flush=True)
+                self.json_out({'error': str(e)}, 500)
+            return
+
         if p.path=='/send-email':
             r=send_gmail(cfg,b.get('to',''),b.get('subject',''),b.get('html',b.get('body','')),b.get('text',''))
             if r['ok'] and cfg.get('hubspot_token') and b.get('hubspot_id'):

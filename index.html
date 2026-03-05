@@ -5243,48 +5243,35 @@ BP6-10: תעדף (פלטפורמה ישנה+דומיין+6+ אירועים), Dis
   // Order: gemini-2.0-flash → gemini-1.5-flash → gemini-1.5-flash-8b
   // On quota/rate error → tries next model automatically
   async function _callGemini(systemPrompt, userPrompt, maxTokens) {
-    var key = _brainKeys && _brainKeys.gemini;
-    if (!key) throw new Error('Gemini key not configured');
-
-    var MODELS = [
-      'gemini-2.0-flash',
-      'gemini-1.5-flash',
-      'gemini-1.5-flash-8b'
-    ];
-
+    // Route through Railway proxy — key stays server-side, stable latency
+    var MODELS = ['gemini-2.0-flash', 'gemini-1.5-flash', 'gemini-1.5-flash-8b'];
     var lastError = null;
-    var quotaExhausted = false;  // if we get quota errors on ALL models, fail fast
 
     for (var mi = 0; mi < MODELS.length; mi++) {
       var model = MODELS[mi];
       try {
-        var res = await fetch(
-          'https://generativelanguage.googleapis.com/v1beta/models/' + model + ':generateContent?key=' + key,
-          {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({
-              system_instruction: { parts: [{ text: systemPrompt }] },
-              contents: [{ parts: [{ text: userPrompt }] }],
-              generationConfig: { maxOutputTokens: maxTokens || 1500, temperature: 0.7 }
-            }),
-            signal: AbortSignal.timeout(5000)  // 5s per model — fast fail on network hang
-          }
-        );
+        var res = await fetch(SERVER + '/gemini', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            model: model,
+            system_instruction: { parts: [{ text: systemPrompt }] },
+            contents: [{ parts: [{ text: userPrompt }] }],
+            generationConfig: { maxOutputTokens: maxTokens || 1500, temperature: 0.7 }
+          }),
+          signal: AbortSignal.timeout(35000)
+        });
 
-        // Quota / rate-limit / not found → try next model
         if (res.status === 429 || res.status === 503 || res.status === 403 || res.status === 404) {
           var errBody = await res.json().catch(function(){return {};});
-          var errMsg  = (errBody.error && errBody.error.message) || 'HTTP ' + res.status;
-          console.warn('[Gemini] ' + model + ' → ' + errMsg + ' — trying next model');
+          var errMsg  = (errBody.error && (errBody.error.message || JSON.stringify(errBody.error))) || 'HTTP ' + res.status;
+          console.warn('[Gemini] ' + model + ' → ' + errMsg.substring(0,80) + ' — trying next model');
           lastError = new Error('Gemini/' + model + ': ' + errMsg);
-          if (res.status === 429) quotaExhausted = true;
-          continue; // always try next model on these errors
+          continue;
         }
 
         if (!res.ok) {
-          var err2 = await res.json().catch(function(){return {};});
-          throw new Error('Gemini/' + model + ': ' + ((err2.error && err2.error.message) || 'HTTP ' + res.status));
+          throw new Error('Gemini/' + model + ': HTTP ' + res.status);
         }
 
         var d = await res.json();
@@ -5299,17 +5286,15 @@ BP6-10: תעדף (פלטפורמה ישנה+דומיין+6+ אירועים), Dis
         return parsed;
 
       } catch(e) {
-        // Network hang → AbortError after 5s. Continue to next model (not all will hang).
         if (e.name === 'TimeoutError' || e.name === 'AbortError') {
-          console.warn('[Gemini] ' + model + ' → network timeout — trying next model');
+          console.warn('[Gemini] ' + model + ' → timeout — trying next model');
           lastError = e;
-          continue;  // try next model even on timeout
+          continue;
         }
         lastError = e;
         if (mi === MODELS.length - 1) throw lastError;
       }
     }
-
     throw lastError || new Error('Gemini: all models exhausted');
   }
 
