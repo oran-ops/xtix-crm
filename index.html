@@ -5892,7 +5892,6 @@ BP6-10: תעדף (פלטפורמה ישנה+דומיין+6+ אירועים), Dis
     var compInfo = '';
     try { compInfo = Object.values(competitorData||{}).map(function(c){return c.name+': '+c.weakness;}).join('\n'); } catch(e){}
 
-    // Load methodology from Firebase (cached after first call)
     var METH = await ensureMethodologyInFirebase();
 
     function setP(pct, msg) {
@@ -5904,8 +5903,8 @@ BP6-10: תעדף (פלטפורמה ישנה+דומיין+6+ אירועים), Dis
       _pbUpdate(Math.round(gPct*0.7+pct*0.3), msg.substring(0,35), lead);
     }
 
-    // ── PHASE 1: Deep Research ─────────────────────────────────────
-    setP(5, '🧠 Claude — שלב 1/4: סריקת מקורות...');
+    // ── PHASE A: Research + Strategy (merged 1+2) ──────────────────
+    setP(5, '🧠 Claude — שלב 1/2: מחקר + אסטרטגיה...');
     var proxy = null;
     try {
       var pr = await fetch(SERVER+'/analyze?url='+encodeURIComponent('https://'+domain),
@@ -5913,93 +5912,77 @@ BP6-10: תעדף (פלטפורמה ישנה+דומיין+6+ אירועים), Dis
       if (pr.ok) proxy = await pr.json();
     } catch(e) {}
     var pCtx = proxy
-      ? 'פלטפורמה='+( proxy.ticketPlatform||'?')+
+      ? 'פלטפורמה='+(proxy.ticketPlatform||'?')+
         ', מייל='+(proxy.email||'?')+
         ', רשתות='+(((proxy.socialLinks||[]).join(','))||'?')+
         ', טלפון='+(proxy.phone||'?')
       : 'לא נמצא מידע מהאתר';
 
-    setP(12, '🧠 Claude — שלב 1/4: ניתוח פרופיל מעמיק...');
-    var p1 = await _callAI(
-      'אתה חוקר B2B בכיר. החזר JSON נקי בלבד. ענה בעברית.',
-      `נתח את הליד הבא לצורך מכירת XTIX.AI:
+    setP(15, '🧠 Claude — שלב 1/2: ניתוח + אסטרטגיה...');
+    var pA = await _callAI(
+      'אתה חוקר B2B ומנהל מכירות בכיר ב-XTIX.AI. החזר JSON נקי בלבד. ענה בעברית.',
+      `נתח את הליד הבא לצורך מכירת XTIX.AI וגם בנה אסטרטגיית מכירה:
 שם: ${lead.name} | דומיין: ${domain}
 סוג: ${lead.type||'?'} | פלטפורמה: ${lead.platform||'?'}
 טלפון: ${lead.phone||'?'} | מייל: ${lead.email||'?'} | כתובת: ${lead.address||'?'}
 מידע מאתר: ${pCtx}
 מתחרים בשוק: ${compInfo}
 
-חפש כל מידע זמין: אתר, מחירי כרטיסים, רשתות חברתיות, לינקדאין, חדשות, אירועים עתידיים.
-החזר JSON:
+החזר JSON עם כל השדות האלה:
 {
   "summary": "2-3 משפטים על הליד",
-  "executive_summary": "למה הליד מעניין XTIX עכשיו — ספציפי",
+  "executive_summary": "למה הליד מעניין XTIX עכשיו",
   "segment": "קטגוריה",
   "platform_current": "שם פלטפורמה",
-  "platform_weakness": "החולשה הספציפית של הפלטפורמה שלהם",
+  "platform_weakness": "החולשה הספציפית",
   "competitors_used": ["מתחרה"],
   "target_audience": "תיאור קהל",
   "events_per_year": "כמות",
   "venue_size": "גודל מקום",
-  "ticket_price_range": "טווח מחיר כרטיס",
-  "estimated_annual_tickets": "כמות כרטיסים שנתית",
-  "estimated_annual_revenue": "הכנסה שנתית משוערת מכרטיסים",
-  "estimated_annual_fees": "עמלות שמשלמים היום ₪",
-  "estimated_xtix_savings": "חיסכון שנתי עם XTIX ₪",
+  "ticket_price_range": "טווח מחיר",
+  "estimated_annual_tickets": "כמות שנתית",
+  "estimated_annual_revenue": "הכנסה שנתית",
+  "estimated_annual_fees": "עמלות נוכחיות ₪",
+  "estimated_xtix_savings": "חיסכון עם XTIX ₪",
   "pain_points": ["כאב1","כאב2","כאב3"],
-  "social_intel": "כמה עוקבים, תדירות פוסטים, engagement",
-  "pricing_intel": "מידע על תמחור",
-  "address": "כתובת אם נמצאה",
-  "raw_research": "כל המידע הגולמי שנמצא"
-}`,
-      1800, 35000);
-
-    // ── PHASE 2: Sales Strategy + AI Analysis ─────────────────────
-    setP(32, '🧠 Claude — שלב 2/4: אסטרטגיית מכירה...');
-    var p2 = await _callAI(
-      'אתה מנהל מכירות בכיר ב-XTIX.AI. החזר JSON נקי בלבד. ענה בעברית.',
-      `בנה אסטרטגיית מכירה ל-${lead.name}:
-סגמנט: ${p1.segment||'?'} | פלטפורמה: ${p1.platform_current||'?'}
-חולשת פלטפורמה: ${p1.platform_weakness||'?'}
-כאבים: ${(p1.pain_points||[]).join(', ')}
-עמלות נוכחיות: ${p1.estimated_annual_fees||'?'}
-חיסכון XTIX: ${p1.estimated_xtix_savings||'?'}
-Social: ${p1.social_intel||'?'}
-
-החזר JSON:
-{
-  "sales_attack": "איך תוקפים — ספציפי לליד הזה",
+  "social_intel": "עוקבים, תדירות, engagement",
+  "pricing_intel": "מידע תמחור",
+  "address": "כתובת",
+  "raw_research": "מידע גולמי שנמצא",
+  "sales_attack": "איך תוקפים — ספציפי",
   "pitch_angle": "ROI|Data|Brand|AI",
-  "pitch": "פתיחה ספציפית — מה אומרים בשורה הראשונה",
-  "meeting_prep": "הכנה לשיחה — מה לדעת",
+  "pitch": "פתיחה ספציפית — שורה ראשונה",
+  "meeting_prep": "הכנה לשיחה",
   "discovery_questions": ["שאלה1","שאלה2","שאלה3","שאלה4","שאלה5"],
-  "next_action": "מה עושים מחר — פעולה ספציפית אחת",
+  "next_action": "פעולה ספציפית אחת למחר",
   "objection_handlers": {
-    "מרוצים": "תשובה ספציפית לליד זה",
+    "מרוצים": "תשובה ספציפית",
     "אין זמן": "תשובה",
     "יקר": "תשובה",
     "לא מכיר": "תשובה"
   }
 }`,
-      1400, 30000);
+      2500, 55000);
 
-    // ── PHASE 3: Methodology Match ─────────────────────────────────
-    setP(55, '🧠 Claude — שלב 3/4: ניתוח מתודולוגיה...');
-    var p3 = await _callAI(
-      'אתה יועץ מכירות בכיר. החזר JSON נקי בלבד. ענה בעברית.',
-      `נתח את הליד ${lead.name} מול המתודולוגיה הבאה:
+    // ── PHASE B: Methodology + Emails (merged 3+4) ─────────────────
+    setP(55, '🧠 Claude — שלב 2/2: מתודולוגיה + מיילים...');
+    var cadenceDays = {'hot':[1,3,7,14],'cool':[1,7,21,45],'warm':[1,5,12,25]};
 
-${(METH||'').substring(0,800)}
+    var pB = await _callAI(
+      'אתה יועץ מכירות בכיר וכותב מיילים ב-XTIX.AI. החזר JSON נקי בלבד. ענה בעברית.',
+      `נתח את הליד ${lead.name} מול המתודולוגיה וכתוב מיילים:
 
-נתוני ניתוח:
-פלטפורמה: ${p1.platform_current||'?'} | חולשה: ${p1.platform_weakness||'?'}
-קהל: ${p1.target_audience||'?'} | אירועים/שנה: ${p1.events_per_year||'?'}
-כרטיסים/שנה: ${p1.estimated_annual_tickets||'?'} | הכנסה: ${p1.estimated_annual_revenue||'?'}
-עמלות: ${p1.estimated_annual_fees||'?'} | חיסכון: ${p1.estimated_xtix_savings||'?'}
-כאבים: ${(p1.pain_points||[]).join(', ')}
-Social: ${p1.social_intel||'?'}
-אסטרטגיה: ${p2.sales_attack||'?'}
-זווית פנייה: ${p2.pitch_angle||'?'}
+מתודולוגיה:
+${(METH||'').substring(0,700)}
+
+נתוני הליד:
+פלטפורמה: ${pA.platform_current||'?'} | חולשה: ${pA.platform_weakness||'?'}
+קהל: ${pA.target_audience||'?'} | אירועים/שנה: ${pA.events_per_year||'?'}
+עמלות: ${pA.estimated_annual_fees||'?'} | חיסכון XTIX: ${pA.estimated_xtix_savings||'?'}
+כאבים: ${(pA.pain_points||[]).join(', ')}
+Social: ${pA.social_intel||'?'}
+זווית: ${pA.pitch_angle||'ROI'} | פתיחה: ${pA.pitch||'?'}
+אסטרטגיה: ${pA.sales_attack||'?'}
 
 החזר JSON:
 {
@@ -6007,172 +5990,106 @@ Social: ${p1.social_intel||'?'}
   "tier": "A",
   "recommended_cadence": "hot",
   "scoring_breakdown": {
-    "platform": {"score": 28, "reason": "Smarticket — עמלה 6-7%"},
-    "audience_size": {"score": 22, "reason": "אלפי כרטיסים/שנה"},
-    "digital_presence": {"score": 17, "reason": "אתר עצמאי + 10K followers"},
-    "economic_pain": {"score": 14, "reason": "עמלות >50K₪/שנה"},
-    "contact_access": {"score": 9, "reason": "מייל ישיר זמין"}
+    "platform": {"score": 28, "reason": "..."},
+    "audience_size": {"score": 22, "reason": "..."},
+    "digital_presence": {"score": 17, "reason": "..."},
+    "economic_pain": {"score": 14, "reason": "..."},
+    "contact_access": {"score": 9, "reason": "..."}
   },
   "four_fs": {
-    "f1_current": "מה קורה עכשיו — תיאור מצב הליד",
-    "f2_working": "מה עובד להם היום",
-    "f3_pain": "הכאב המרכזי — ספציפי",
-    "f4_future": "לאן הם רוצים להגיע"
+    "f1_current": "מצב עכשיו",
+    "f2_working": "מה עובד",
+    "f3_pain": "הכאב המרכזי",
+    "f4_future": "לאן רוצים להגיע"
   },
   "salesforce_bps": {
     "bp2_persona_fit": "high|medium|low",
     "bp6_priority": "high|medium|low",
-    "bp7_prep_notes": "מה לדעת לפני שיחה",
-    "bp8_decision_maker": "מי מחליט — אם ידוע",
-    "bp11_social_proof": "איזה לקוח דומה להציג",
+    "bp7_prep_notes": "הכנה לשיחה",
+    "bp8_decision_maker": "מי מחליט",
+    "bp11_social_proof": "לקוח דומה להציג",
     "bp17_value_angle": "ROI|Data|Brand"
   },
   "attack_angle": "הסיבה הכי חזקה לפנות עכשיו",
-  "best_opening": "משפט פתיחה אחד — ספציפי לליד",
-  "risk_factors": ["סיכון1", "סיכון2"],
-  "summary_for_rep": "פסקת סיכום לנציג המכירות — מה צריך לדעת לפני שמרים טלפון"
+  "best_opening": "משפט פתיחה אחד ספציפי",
+  "risk_factors": ["סיכון1","סיכון2"],
+  "summary_for_rep": "פסקת סיכום לנציג לפני שמרים טלפון",
+  "email_sequence": [
+    {
+      "email_num": 1, "day": 1, "type": "curiosity",
+      "subject": "נושא ספציפי לליד",
+      "research_done": ["עובדה שחקרתי"],
+      "what_i_concluded": "מסקנה",
+      "body": "גוף מלא 4-6 שורות מתחיל בעובדה ספציפית על הליד",
+      "cta": "CTA קצר"
+    },
+    {"email_num": 2, "day": 5, "type": "roi", "subject": "", "research_done": [], "what_i_concluded": "", "body": "", "cta": ""},
+    {"email_num": 3, "day": 12, "type": "social_proof", "subject": "", "research_done": [], "what_i_concluded": "", "body": "", "cta": ""},
+    {"email_num": 4, "day": 25, "type": "breakup", "subject": "", "research_done": [], "what_i_concluded": "", "body": "", "cta": ""}
+  ]
 }`,
-      1600, 30000);
+      3000, 60000);
 
-    // ── PHASE 4: Email Sequence (Blueprint) ───────────────────────
-    setP(72, '🧠 Claude — שלב 4/4: יצירת מיילים מותאמים...');
-    var cadence = p3.recommended_cadence || 'warm';
-    var days = cadence==='hot' ? [1,3,7,14] : cadence==='cool' ? [1,7,21,45] : [1,5,12,25];
-    var p4 = await _callAI(
-      'אתה כותב מיילי מכירה ב-XTIX.AI. כל מייל ייחודי — לא template. עברית. JSON בלבד.',
-      `כתוב 4 מיילים ל-${lead.name} (${domain}).
-Cadence: ${cadence} — ימים: ${days.join(', ')}
-זווית: ${p2.pitch_angle||'ROI'} | פתיחה: ${p2.pitch||''}
-פלטפורמה: ${p1.platform_current||'?'} | חולשה: ${p1.platform_weakness||'?'}
-עמלות: ${p1.estimated_annual_fees||'?'} | חיסכון: ${p1.estimated_xtix_savings||'?'}
-כאבים: ${(p1.pain_points||[]).join(', ')}
-Social: ${p1.social_intel||'?'}
-מחקר: ${(p1.raw_research||'').substring(0,600)}
-BP המרכזי: ${p3.salesforce_bps&&p3.salesforce_bps.bp17_value_angle||'ROI'}
-
-Blueprint לכל מייל:
-- מייל 1: שאלה אחת סקרנית — מראה שחקרתי את האתר שלהם
-- מייל 2: נתון כלכלי ספציפי שחישבתי — ROI ברור
-- מייל 3: Social Proof מסגמנט דומה + demo offer
-- מייל 4: Break-up — ישיר, קצר, כבוד לזמנם
-
-החזר JSON:
-{"email_sequence": [
-  {
-    "email_num": 1, "day": ${days[0]}, "type": "curiosity",
-    "subject": "נושא ספציפי — לא generic",
-    "research_done": ["עובדה 1 שחקרתי","עובדה 2"],
-    "what_i_concluded": "מסקנה מהמחקר",
-    "body": "גוף מלא, 4-6 שורות, מתחיל בעובדה ספציפית על הליד",
-    "cta": "CTA קצר — פעולה אחת"
-  },
-  {"email_num": 2, "day": ${days[1]}, "type": "roi", "subject": "", "research_done": [], "what_i_concluded": "", "body": "", "cta": ""},
-  {"email_num": 3, "day": ${days[2]}, "type": "social_proof", "subject": "", "research_done": [], "what_i_concluded": "", "body": "", "cta": ""},
-  {"email_num": 4, "day": ${days[3]}, "type": "breakup", "subject": "", "research_done": [], "what_i_concluded": "", "body": "", "cta": ""}
-]}`,
-      2400, 40000);
+    // Fix email days based on actual cadence
+    var cadence = pB.recommended_cadence || 'warm';
+    var days = cadenceDays[cadence] || cadenceDays['warm'];
+    if (Array.isArray(pB.email_sequence)) {
+      pB.email_sequence.forEach(function(em, i) { em.day = days[i] || em.day; });
+    }
 
     setP(97, '💾 שומר תוצאות...');
-    var sc = parseInt(p3.score)||55;
+    var sc = parseInt(pB.score)||55;
     return {
       status: 'done',
       enriched_at: new Date().toISOString(),
-      // Phase 1 — research
-      summary: p1.summary||'',
-      executive_summary: p1.executive_summary||'',
-      segment: p1.segment||lead.type||'',
-      platform_current: p1.platform_current||lead.platform||'',
-      platform_weakness: p1.platform_weakness||'',
-      competitors_used: p1.competitors_used||[],
-      target_audience: p1.target_audience||'',
-      events_per_year: p1.events_per_year||'',
-      venue_size: p1.venue_size||'',
-      ticket_price_range: p1.ticket_price_range||'',
-      estimated_annual_tickets: p1.estimated_annual_tickets||'',
-      estimated_annual_revenue: p1.estimated_annual_revenue||'',
-      estimated_annual_fees: p1.estimated_annual_fees||'',
-      estimated_xtix_savings: p1.estimated_xtix_savings||'',
-      pain_points: p1.pain_points||[],
-      social_intel: p1.social_intel||'',
-      pricing_intel: p1.pricing_intel||'',
-      address: p1.address||lead.address||'',
-      raw_research: p1.raw_research||'',
-      // Phase 2 — strategy
-      sales_attack: p2.sales_attack||'',
-      pitch_angle: p2.pitch_angle||'ROI',
-      pitch: p2.pitch||'',
-      meeting_prep: p2.meeting_prep||'',
-      discovery_questions: p2.discovery_questions||[],
-      next_action: p2.next_action||'',
-      objection_handlers: p2.objection_handlers||{},
-      // Phase 3 — methodology
-      score: sc,
-      tier: p3.tier||(sc>=80?'A':sc>=60?'B':'C'),
-      recommended_cadence: p3.recommended_cadence||'warm',
-      scoring_breakdown: p3.scoring_breakdown||{},
-      four_fs: p3.four_fs||{},
-      salesforce_bps: p3.salesforce_bps||{},
-      attack_angle: p3.attack_angle||'',
-      best_opening: p3.best_opening||'',
-      risk_factors: p3.risk_factors||[],
-      summary_for_rep: p3.summary_for_rep||'',
-      // Phase 4 — emails
-      email_sequence: (p4.email_sequence)||[],
+      // Phase A — research
+      summary:                  pA.summary||'',
+      executive_summary:        pA.executive_summary||'',
+      segment:                  pA.segment||lead.type||'',
+      platform_current:         pA.platform_current||lead.platform||'',
+      platform_weakness:        pA.platform_weakness||'',
+      competitors_used:         pA.competitors_used||[],
+      target_audience:          pA.target_audience||'',
+      events_per_year:          pA.events_per_year||'',
+      venue_size:               pA.venue_size||'',
+      ticket_price_range:       pA.ticket_price_range||'',
+      estimated_annual_tickets: pA.estimated_annual_tickets||'',
+      estimated_annual_revenue: pA.estimated_annual_revenue||'',
+      estimated_annual_fees:    pA.estimated_annual_fees||'',
+      estimated_xtix_savings:   pA.estimated_xtix_savings||'',
+      pain_points:              pA.pain_points||[],
+      social_intel:             pA.social_intel||'',
+      pricing_intel:            pA.pricing_intel||'',
+      address:                  pA.address||lead.address||'',
+      raw_research:             pA.raw_research||'',
+      // Phase A — strategy
+      sales_attack:        pA.sales_attack||'',
+      pitch_angle:         pA.pitch_angle||'ROI',
+      pitch:               pA.pitch||'',
+      meeting_prep:        pA.meeting_prep||'',
+      discovery_questions: pA.discovery_questions||[],
+      next_action:         pA.next_action||'',
+      objection_handlers:  pA.objection_handlers||{},
+      // Phase B — methodology
+      score:              sc,
+      tier:               pB.tier||(sc>=80?'A':sc>=60?'B':'C'),
+      recommended_cadence:pB.recommended_cadence||'warm',
+      scoring_breakdown:  pB.scoring_breakdown||{},
+      four_fs:            pB.four_fs||{},
+      salesforce_bps:     pB.salesforce_bps||{},
+      attack_angle:       pB.attack_angle||'',
+      best_opening:       pB.best_opening||'',
+      risk_factors:       pB.risk_factors||[],
+      summary_for_rep:    pB.summary_for_rep||'',
+      // Phase B — emails
+      email_sequence:  pB.email_sequence||[],
       // Combined
-      internal_summary: (p3.summary_for_rep||p1.executive_summary||'')+(p2.next_action?'\n\nהצעד הבא: '+p2.next_action:'')
+      internal_summary: (pB.summary_for_rep||pA.executive_summary||'')+(pA.next_action?'\n\nהצעד הבא: '+pA.next_action:'')
     };
   };
 
 
-  // ════════════════════════════════════════════════════════════════
-  //  WEBHOOK / CLAY POLLING — polls /webhook/pending every 15s
-  // ════════════════════════════════════════════════════════════════
-  async function _pollWebhook() {
-    try {
-      var res = await fetch(SERVER + '/webhook/pending', {signal: AbortSignal.timeout(8000)});
-      if (!res.ok) return;
-      var data = await res.json();
-      if (!data || !data.leads || data.leads.length === 0) return;
 
-      var added = 0;
-      data.leads.forEach(function(raw) {
-        var lead = window.addLeadToCRM(raw, {source: raw.source||'webhook'});
-        if (lead) added++;
-      });
-
-      if (added > 0) {
-        // Clear the server queue
-        fetch(SERVER + '/webhook/clear', {method:'POST'}).catch(function(){});
-        // Notification
-        var notif = document.createElement('div');
-        notif.style.cssText = 'position:fixed;top:20px;left:50%;transform:translateX(-50%);background:#7c3aed;color:#fff;padding:12px 24px;border-radius:12px;font-size:13px;font-weight:700;z-index:9998;font-family:Heebo,sans-serif;box-shadow:0 4px 20px rgba(124,58,237,.4)';
-        notif.textContent = '🔗 ' + added + ' לידים חדשים מ-Webhook — ניתוח AI מתחיל';
-        document.body.appendChild(notif);
-        setTimeout(function(){notif.remove();}, 5000);
-      }
-    } catch(e) { /* silent — server may be offline */ }
-  }
-
-  // Also keep legacy Clay polling
-  async function pollClayPending() {
-    try {
-      var res = await fetch(SERVER + '/clay-pending', {signal: AbortSignal.timeout(6000)});
-      if (!res.ok) return;
-      var pending = await res.json();
-      if (!pending || pending.length === 0) return;
-      var added = 0;
-      pending.forEach(function(raw) {
-        var lead = window.addLeadToCRM(raw, {source:'clay'});
-        if (lead) added++;
-      });
-      if (added > 0) {
-        fetch(SERVER + '/clay-pending-clear', {method:'POST'}).catch(function(){});
-      }
-    } catch(e) {}
-  }
-
-
-  // ── Collapsible sidebar ────────────────────────────────────────
   window.toggleSidebar = function() {
     var sb = document.getElementById('sidebar');
     sb.classList.toggle('collapsed');
