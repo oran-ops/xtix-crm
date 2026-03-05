@@ -560,6 +560,7 @@ class Handler(BaseHTTPRequestHandler):
             if not url: self.json_out({'error':'Missing url'},400); return
             print(f'  Analyzing: {url}'); self.json_out(analyze_website(url))
         elif p.path=='/export/csv':
+            if not self.auth_check('sales'): return
             raw=q.get('data',['[]'])[0]
             try: leads=json.loads(urllib.parse.unquote(raw))
             except: leads=[]
@@ -569,15 +570,20 @@ class Handler(BaseHTTPRequestHandler):
             self.send_header('Content-Disposition','attachment; filename="xtix-leads.csv"')
             self.send_header('Content-Length',str(len(csv_data))); self.end_headers(); self.wfile.write(csv_data)
         elif p.path=='/leads':
+            if not self.auth_check('sales'): return
             data = load_leads_file()
             self.json_out({'ok': True, 'leads': data, 'exists': data is not None})
         elif p.path=='/reminders':
+            if not self.auth_check('sales'): return
             self.json_out(load_reminders())
         elif p.path=='/clay-pending':
+            if not self.auth_check('sales'): return
             self.json_out(load_clay_pending())
         elif p.path=='/webhook/pending':
+            if not self.auth_check('sales'): return
             self.json_out({'leads': load_webhook_pending()})
         elif p.path=='/config':
+            if not self.auth_check('admin'): return
             safe={k:('***' if any(x in k for x in ['password','token']) else v) for k,v in cfg.items()}
             self.json_out(safe)
         else:
@@ -621,6 +627,7 @@ class Handler(BaseHTTPRequestHandler):
             return
 
         if p.path=='/clay-pending-clear':
+            if not self.auth_check('admin'): return
             save_clay_pending([])
             self.json_out({'ok': True})
             return
@@ -731,25 +738,30 @@ class Handler(BaseHTTPRequestHandler):
                 log_email_hs(b['hubspot_id'],b.get('subject',''),b.get('html',''),cfg['hubspot_token'])
             self.json_out(r)
         elif p.path=='/leads':
+            if not self.auth_check('sales'): return
             leads = b.get('leads', [])
             save_leads_file(leads)
             self.json_out({'ok': True, 'saved': len(leads)})
         elif p.path=='/reminders':
+            if not self.auth_check('sales'): return
             rs=load_reminders()
             rem={'id':int(datetime.datetime.now().timestamp()),'lead_id':b.get('lead_id'),
                  'lead_name':b.get('lead_name',''),'date':b.get('date',''),'note':b.get('note',''),'done':False}
             rs.append(rem); save_reminders(rs); self.json_out({'ok':True,'reminder':rem})
         elif p.path=='/reminders/done':
+            if not self.auth_check('sales'): return
             rs=load_reminders(); rid=b.get('id')
             for r in rs:
                 if r['id']==rid: r['done']=True
             save_reminders(rs); self.json_out({'ok':True})
         elif p.path=='/hubspot/sync':
+            if not self.auth_check('sales'): return
             token=cfg.get('hubspot_token','')
             if not token: self.json_out({'ok':False,'error':'No HubSpot token — set in Settings'}); return
             try: self.json_out(sync_lead(b.get('lead',{}),token))
             except Exception as e: self.json_out({'ok':False,'error':str(e)})
         elif p.path=='/hubspot/sync-all':
+            if not self.auth_check('sales'): return
             token=cfg.get('hubspot_token','')
             if not token: self.json_out({'ok':False,'error':'No HubSpot token'}); return
             results=[]
@@ -758,10 +770,12 @@ class Handler(BaseHTTPRequestHandler):
                 except Exception as e: results.append({'name':lead.get('name'),'ok':False,'error':str(e)})
             self.json_out({'ok':True,'synced':sum(1 for r in results if r.get('ok')),'total':len(results),'results':results})
         elif p.path=='/hubspot/log-email':
+            if not self.auth_check('sales'): return
             token=cfg.get('hubspot_token','')
             if not token: self.json_out({'ok':False,'error':'No token'}); return
             self.json_out(log_email_hs(b.get('hubspot_id',''),b.get('subject',''),b.get('html',''),token))
         elif p.path=='/clay-pending':
+            if not self.auth_check('sales'): return
             self.json_out(load_clay_pending())
         elif p.path=='/webhook/lead':
             # Universal lead intake — accepts from Clay, Zapier, n8n, direct API
@@ -804,6 +818,7 @@ class Handler(BaseHTTPRequestHandler):
             self.json_out({'ok': True})
             return
         elif p.path=='/config':
+            if not self.auth_check('admin'): return
             current=load_config(); current.update(b); save_config(current)
             self.json_out({'ok':True,'message':'Settings saved'})
         else:
