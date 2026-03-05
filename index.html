@@ -5020,7 +5020,7 @@ BP6-10: תעדף (פלטפורמה ישנה+דומיין+6+ אירועים), Dis
 
   // ── callAI helper — retries up to 2x on timeout/5xx ──────────
   async function _callAI(sys, usr, maxTok, timeoutMs, externalSignal) {
-    var MAX_RETRIES = 2;
+    var MAX_RETRIES = 1;
     for (var attempt = 0; attempt <= MAX_RETRIES; attempt++) {
       // If external signal already aborted — stop immediately
       if (externalSignal && externalSignal.aborted) {
@@ -5291,10 +5291,10 @@ BP6-10: תעדף (פלטפורמה ישנה+דומיין+6+ אירועים), Dis
       var judgeAbort  = new AbortController();
       var judgeTimer  = setTimeout(function() {
         judgeAbort.abort();
-        console.warn('[Brain] Meta-Judge hard-cancelled after 30s');
-      }, 30000);
+        console.warn('[Brain] Meta-Judge hard-cancelled after 50s');
+      }, 50000);
 
-      var verdict = await _callAI(system, user, 1000, 28000, judgeAbort.signal);
+      var verdict = await _callAI(system, user, 1000, 45000, judgeAbort.signal);
       clearTimeout(judgeTimer);
 
       if (!verdict) throw new Error('Meta-Judge empty response');
@@ -5836,7 +5836,7 @@ BP6-10: תעדף (פלטפורמה ישנה+דומיין+6+ אירועים), Dis
   "address": "כתובת אם נמצאה",
   "raw_research": "כל המידע הגולמי שנמצא"
 }`,
-      1800, 65000);
+      1800, 35000);
 
     // ── PHASE 2: Sales Strategy + AI Analysis ─────────────────────
     setP(32, '🧠 Claude — שלב 2/4: אסטרטגיית מכירה...');
@@ -5865,7 +5865,7 @@ Social: ${p1.social_intel||'?'}
     "לא מכיר": "תשובה"
   }
 }`,
-      1400, 58000);
+      1400, 30000);
 
     // ── PHASE 3: Methodology Match ─────────────────────────────────
     setP(55, '🧠 Claude — שלב 3/4: ניתוח מתודולוגיה...');
@@ -5873,7 +5873,7 @@ Social: ${p1.social_intel||'?'}
       'אתה יועץ מכירות בכיר. החזר JSON נקי בלבד. ענה בעברית.',
       `נתח את הליד ${lead.name} מול המתודולוגיה הבאה:
 
-${METH}
+${(METH||'').substring(0,800)}
 
 נתוני ניתוח:
 פלטפורמה: ${p1.platform_current||'?'} | חולשה: ${p1.platform_weakness||'?'}
@@ -5916,7 +5916,7 @@ Social: ${p1.social_intel||'?'}
   "risk_factors": ["סיכון1", "סיכון2"],
   "summary_for_rep": "פסקת סיכום לנציג המכירות — מה צריך לדעת לפני שמרים טלפון"
 }`,
-      1600, 62000);
+      1600, 30000);
 
     // ── PHASE 4: Email Sequence (Blueprint) ───────────────────────
     setP(72, '🧠 Claude — שלב 4/4: יצירת מיילים מותאמים...');
@@ -5954,7 +5954,7 @@ Blueprint לכל מייל:
   {"email_num": 3, "day": ${days[2]}, "type": "social_proof", "subject": "", "research_done": [], "what_i_concluded": "", "body": "", "cta": ""},
   {"email_num": 4, "day": ${days[3]}, "type": "breakup", "subject": "", "research_done": [], "what_i_concluded": "", "body": "", "cta": ""}
 ]}`,
-      2400, 68000);
+      2400, 40000);
 
     setP(97, '💾 שומר תוצאות...');
     var sc = parseInt(p3.score)||55;
