@@ -4675,7 +4675,7 @@ ${proxyCtx}
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          model: 'claude-sonnet-4-20250514',
+          model: 'claude-sonnet-4-6',
           max_tokens: 3000,
           system: 'אתה מנהל מכירות ב-XTIX. החזר JSON נקי בלבד ללא markdown.',
           messages: [{ role: 'user', content: prompt }]
@@ -5148,7 +5148,7 @@ BP6-10: תעדף (פלטפורמה ישנה+דומיין+6+ אירועים), Dis
         var res = await fetch(SERVER+'/ai', {
           method: 'POST', headers: {'Content-Type':'application/json'},
           body: JSON.stringify({
-            model:      'claude-sonnet-4-20250514',
+            model:      'claude-sonnet-4-6',
             max_tokens: maxTok || 1500,
             system:     sys,
             messages:   [{role:'user', content:usr}]
@@ -6224,7 +6224,7 @@ Blueprint:
             <div class="brain-card-body">
               <div class="brain-info-row">
                 <span class="brain-info-lbl">מודל</span>
-                <span class="brain-info-val">claude-sonnet-4-20250514</span>
+                <span class="brain-info-val">claude-sonnet-4-6</span>
               </div>
               <div class="brain-info-row">
                 <span class="brain-info-lbl">תפקיד</span>
@@ -8233,7 +8233,7 @@ addSalesPlaybookPanel();
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          model: 'claude-sonnet-4-20250514',
+          model: 'claude-sonnet-4-6',
           max_tokens: 1500,
           system: SYSTEM_PROMPT,
           messages: aiHistory
