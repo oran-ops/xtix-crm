@@ -97,16 +97,31 @@ html, body {
   display: flex; align-items: center; justify-content: space-between;
   flex-shrink: 0;
 }
-.logo-full { display: flex; align-items: center; gap: 9px; }
+.logo-full { display: flex; align-items: center; gap: 10px; }
 .logo-icon {
-  width: 28px; height: 28px; border-radius: 7px;
-  background: var(--blue); display: flex; align-items: center; justify-content: center;
-  font-size: 13px; font-weight: 700; color: #fff; flex-shrink: 0;
-  box-shadow: 0 0 14px var(--blue-glow);
+  width: 30px; height: 30px; border-radius: 8px;
+  background: linear-gradient(135deg, #7c3aed 0%, #2563eb 60%, #06b6d4 100%);
+  display: flex; align-items: center; justify-content: center;
+  font-size: 15px; flex-shrink: 0;
+  box-shadow: 0 0 16px rgba(124,58,237,0.55), 0 0 32px rgba(37,99,235,0.25);
+  position: relative; overflow: hidden;
 }
-.logo { font-size: 14px; font-weight: 700; color: var(--t1); letter-spacing: -0.2px; font-family: 'DM Sans', sans-serif; }
-.logo span { color: var(--blue); }
-.logo-sub { font-size: 9px; color: var(--t3); letter-spacing: 1.5px; margin-top: 1px; font-family: 'DM Mono', monospace; }
+.logo-icon::after {
+  content: '';
+  position: absolute; inset: 0;
+  background: linear-gradient(135deg, rgba(255,255,255,0.18) 0%, transparent 60%);
+  border-radius: inherit;
+}
+.logo { font-size: 15px; font-weight: 800; color: var(--t1); letter-spacing: 0.5px; font-family: 'DM Sans', sans-serif; }
+.logo span {
+  background: linear-gradient(90deg, #a78bfa, #60a5fa);
+  -webkit-background-clip: text; -webkit-text-fill-color: transparent;
+}
+.logo-sub {
+  font-size: 8px; color: #a78bfa; letter-spacing: 2.5px; margin-top: 2px;
+  font-family: 'DM Mono', monospace; font-weight: 600;
+  text-shadow: 0 0 8px rgba(167,139,250,0.6);
+}
 .logo-collapsed { display: none; align-items: center; justify-content: center; }
 .logo-collapsed .logo-icon { margin: 0; }
 
@@ -1227,8 +1242,9 @@ input::placeholder, textarea::placeholder { color: var(--t3); }
 ═══════════════════════════════════════════════════════ */
 .brain-wrap {
   padding: 24px 28px;
-  max-width: 1100px;
-  margin: 0 auto;
+  max-width: 100%;
+  width: 100%;
+  box-sizing: border-box;
   direction: rtl;
 }
 .brain-header {
@@ -1651,14 +1667,14 @@ document.addEventListener("DOMContentLoaded",function(){
   <!-- LOGO + TOGGLE -->
   <div id="sidebar-logo">
     <div class="logo-full">
-      <div class="logo-icon">X</div>
+      <div class="logo-icon">🚀</div>
       <div>
-        <div class="logo">XTIX<span>.</span>CRM</div>
-        <div class="logo-sub">SALES PLATFORM</div>
+        <div class="logo">ANDY<span>.</span>AI</div>
+        <div class="logo-sub">AI SALES ENGINE</div>
       </div>
     </div>
     <div class="logo-collapsed">
-      <div class="logo-icon">X</div>
+      <div class="logo-icon">🚀</div>
     </div>
     <button id="sidebar-toggle" onclick="window.toggleSidebar()" title="הסתר/הצג תפריט">
       <svg width="14" height="14" viewBox="0 0 14 14" fill="none" style="transition:transform 0.2s">
@@ -9167,6 +9183,7 @@ addSalesPlaybookPanel();
 
 /* ── Page background ── */
 #tab-leads { background: transparent; }
+#tab-aibrain { background: transparent; overflow-x: hidden; }
 #leads-list { padding: 8px 16px 32px; }
 
 /* ── Toolbar ── */
