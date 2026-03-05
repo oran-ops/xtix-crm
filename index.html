@@ -5303,12 +5303,16 @@ BP6-10: תעדף (פלטפורמה ישנה+דומיין+6+ אירועים), Dis
     var prompt = _buildAnalysisPrompt(lead, METH, compInfo);
     var activeEngines = 1 + (_brainKeys&&_brainKeys.gpt?1:0) + (_brainKeys&&_brainKeys.gemini?1:0);
 
-    // Progress update helper
+    // Progress update helper — updates both lead bar AND global bottom bar
     function setP(pct, msg) {
       var bar = document.getElementById('analysis-bar-'+lead.id);
       var txt = document.getElementById('analysis-progress-'+lead.id);
       if(bar) bar.style.width = pct + '%';
       if(txt) txt.textContent = msg;
+      // Also update global progress bar
+      var gPct = Math.round(((_aq&&_aq.done||0)/(_aq&&_aq.total||1))*100);
+      if (typeof _pbUpdate === 'function')
+        _pbUpdate(Math.round(gPct*0.7 + pct*0.3), msg.substring(0,40), lead);
     }
 
     setP(5, activeEngines === 3 ? '🚀 Triple Engine — Claude + GPT + Gemini רצים במקביל...' :
@@ -5542,27 +5546,32 @@ BP6-10: תעדף (פלטפורמה ישנה+דומיין+6+ אירועים), Dis
 
     dbgUpdate('judge', '✅ ' + ((verdict._judgeMs||0)/1000).toFixed(1) + 's — ציון: ' + (verdict.meta_score||'?'), verdict.meta_score, false);
 
-    // ── Merge final result ────────────────────────────────────────────
+    // ── Merge final result — baseResult has all _deepAIPipeline fields ──
     var finalResult = Object.assign({}, baseResult, {
-      score:             verdict.meta_score     || baseResult.score,
-      tier:              verdict.final_tier     || baseResult.tier,
-      summary:           verdict.final_summary  || baseResult.summary,
-      executive_summary: verdict.meta_reasoning || baseResult.executive_summary,
-      next_action:       verdict.meta_action    || baseResult.next_action,
+      // Core status — MUST be 'done' for triggerFullAnalysis to render correctly
       status:            'done',
+      enriched_at:       new Date().toISOString(),
       triple_engine:     true,
       engines_ok:        successCount,
       engines_total:     configuredCount,
       engine_statuses:   { claude: claudeEnv.status, gpt: gptEnv.status, gemini: geminiEnv.status },
+      // Meta-Judge overrides — score/tier/summary from verdict
+      score:             verdict.meta_score     || baseResult.score  || 50,
+      tier:              verdict.final_tier     || baseResult.tier   || 'B',
+      summary:           verdict.final_summary  || baseResult.summary || '',
+      executive_summary: verdict.meta_reasoning || baseResult.executive_summary || '',
+      next_action:       verdict.meta_action    || baseResult.next_action || '',
+      // Meta-Judge metadata
       meta_score:        verdict.meta_score,
       meta_reasoning:    verdict.meta_reasoning,
       meta_action:       verdict.meta_action,
-      claude_score:      claudeResult  ? claudeResult.score  : null,
-      gpt_score:         gptResult     ? gptResult.score     : null,
-      gemini_score:      geminiResult  ? geminiResult.score  : null,
+      disagreements:     verdict.disagreements  || [],
       confidence:        consensus.confidence,
       had_conflict:      consensus.hadConflict,
-      disagreements:     verdict.disagreements || []
+      // Per-engine scores for Brain Panel
+      claude_score:      claudeResult  ? claudeResult.score  : null,
+      gpt_score:         gptResult     ? gptResult.score     : null,
+      gemini_score:      geminiResult  ? geminiResult.score  : null
     });
 
     setP(95, '💾 שומר החלטה ל-AI Brain Memory...');
@@ -9830,9 +9839,9 @@ window.testAIKey = async function(engine) {
                  data.error.message || 'שגיאה לא ידועה';
       }
     } else if (engine === 'gemini') {
-      // Use gemini-3-flash — free tier, fast
+      // Use same model as _callGemini — gemini-2.0-flash first
       var res2 = await fetch(
-        'https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=' + key,
+        'https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=' + key,
         {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
