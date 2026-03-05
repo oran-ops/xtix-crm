@@ -7518,81 +7518,7 @@ addSalesPlaybookPanel();
     huntState.step = 0;
   }
 
-  window.runHuntSearch = async function runHuntSearch() {
-    var resultsEl = document.getElementById('hunt-results');
-    var p = getHuntParams();
-    var count = p.count || 5;
-    if (!chat) return;
-
-    // Show loading
-    if (resultsEl) { resultsEl.style.display='block'; resultsEl.innerHTML='<div style="background:rgba(59,130,246,0.1);border:1px solid rgba(59,130,246,0.2);border-radius:10px;padding:16px;text-align:center"><div style="font-size:24px;margin-bottom:8px">🤖</div><div style="font-size:13px;color:var(--t1);font-weight:600">AI Hunt פועל...</div><div style="font-size:11px;color:var(--t3);margin-top:4px">מחפש '+(count)+' לידים · '+p.depth+'</div></div>'; }
-    var loadDiv = { remove: function(){} }; // dummy
-
-    var prompt = [
-      'אתה מנהל מכירות ב-XTIX — מערכת מכירת כרטיסים B2B ישראלית. חפש '+count+' לידים ישראלים אמיתיים.',
-      p.segments.length  ? 'סוגי אירועים: '+p.segments.join(', ') : '',
-      p.geo.length       ? 'אזורים: '+p.geo.join(', ') : 'ארצי',
-      p.size.length      ? 'גודל אירוע: '+p.size.join(', ') : '',
-      p.competitors.length ? 'פלטפורמות נוכחיות (מתחרים): '+p.competitors.join(', ') : '',
-      p.market.length    ? 'שוק: '+p.market.join(', ') : '',
-      'תדירות: '+p.freq,
-      'עומק: '+p.depth,
-      p.exclude.length   ? 'אל תכלול: '+p.exclude.join(', ') : '',
-      'לכל ליד: שם, domain, טלפון, segment, platform_current, score (0-100), reason (עברית, 1-2 משפטים), size_estimate, events_per_year.',
-      'החזר JSON בלבד: {"leads":[{"name":"","domain":"","phone":"","segment":"","platform_current":"","score":80,"reason":"","size_estimate":"","events_per_year":""}]}',
-      'רק ארגונים ישראלים אמיתיים ופעילים. '+count+' לידים בלבד.'
-    ].filter(Boolean).join(' ');
-
-    try {
-      var res = await fetch('https://xtix-crm-production.up.railway.app/ai', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          model: 'claude-haiku-4-5-20251001',
-          max_tokens: 1000,
-          system: 'Return ONLY valid JSON. No markdown.',
-          messages: [{ role: 'user', content: prompt }]
-        }),
-        signal: AbortSignal.timeout(25000)
-      });
-      var data = await res.json();
-      var raw = (data.content||[]).map(function(b){return b.text||'';}).join('');
-      var s = raw.indexOf('{'), e = raw.lastIndexOf('}');
-      var parsed = JSON.parse(raw.substring(s, e+1));
-      var foundLeads = parsed.leads || [];
-
-      loadDiv.remove();
-
-      if (!foundLeads.length) {
-        var noRes = document.createElement('div');
-        noRes.style.cssText = 'color:var(--muted);font-size:12px;padding:8px';
-        noRes.textContent = 'לא נמצאו לידים — נסה פרמטרים שונים.';
-        chat.appendChild(noRes);
-        return;
-      }
-
-      // Build results
-      function sColor(s){ return s>=80?'#10b981':s>=60?'#3b82f6':'#f59e0b'; }
-      var resHtml = '<div style="margin-bottom:10px;font-size:11px;color:var(--t3)">נמצאו '+foundLeads.length+' לידים · ממוינים לפי ציון</div>';
-      resHtml += '<div style="display:flex;flex-direction:column;gap:8px">';
-      foundLeads.sort(function(a,b){return (b.score||0)-(a.score||0);}).forEach(function(lead){
-        var sc=lead.score||0; var c=sColor(sc);
-        var circ=100.5; var dash=Math.round((sc/100)*circ);
-        resHtml += '<div style="background:rgba(255,255,255,0.03);border:1px solid rgba(255,255,255,0.08);border-radius:11px;padding:14px 16px;display:grid;grid-template-columns:auto 1fr auto;gap:12px;align-items:center">'          +'<svg width="44" height="44" viewBox="0 0 44 44"><circle cx="22" cy="22" r="16" fill="none" stroke="rgba(255,255,255,0.06)" stroke-width="3.5"/><circle cx="22" cy="22" r="16" fill="none" stroke="'+c+'" stroke-width="3.5" stroke-dasharray="'+dash+' '+circ+'" stroke-dashoffset="'+Math.round(circ/4)+'" stroke-linecap="round" transform="rotate(-90 22 22)"/><text x="22" y="27" text-anchor="middle" fill="'+c+'" font-size="11" font-weight="800" font-family="DM Mono,monospace">'+sc+'</text></svg>'          +'<div>'            +'<div style="font-size:13px;font-weight:700;color:var(--t1);margin-bottom:3px">'+(lead.name||'')+'</div>'            +'<div style="display:flex;flex-wrap:wrap;gap:8px">'              +(lead.domain?'<span style="font-size:11px;color:var(--t3)">🌐 '+lead.domain+'</span>':'')              +(lead.phone?'<span style="font-size:11px;color:var(--t3)">📞 '+lead.phone+'</span>':'')              +(lead.platform_current?'<span style="font-size:10px;background:rgba(139,92,246,0.15);border:1px solid rgba(139,92,246,0.25);border-radius:4px;padding:1px 6px;color:#a78bfa">'+lead.platform_current+'</span>':'')              +(lead.size_estimate?'<span style="font-size:10px;color:var(--t3)">👥 '+lead.size_estimate+'</span>':'')              +(lead.events_per_year?'<span style="font-size:10px;color:var(--t3)">📅 '+lead.events_per_year+'/שנה</span>':'')            +'</div>'            +(lead.reason?'<div style="font-size:11px;color:#10b981;margin-top:5px;line-height:1.5">'+lead.reason+'</div>':'')          +'</div>'          +'<button onclick="huntAddLead('+JSON.stringify(lead).replace(/"/g,'&quot;')+')" style="background:rgba(16,185,129,0.12);border:1px solid rgba(16,185,129,0.3);border-radius:8px;padding:8px 12px;color:#10b981;font-size:11px;font-weight:700;cursor:pointer;font-family:DM Sans,Heebo,sans-serif;white-space:nowrap">➕ CRM</button>'        +'</div>';
-      });
-      resHtml += '</div>';
-      resHtml += '<div style="margin-top:10px;display:flex;gap:8px"><button onclick="window.saveCurrentSearch()" style="flex:1;background:rgba(16,185,129,0.1);border:1px solid rgba(16,185,129,0.25);border-radius:8px;padding:8px;color:#10b981;font-size:11px;font-weight:700;cursor:pointer;font-family:DM Sans,Heebo,sans-serif">💾 שמור חיפוש</button></div>';
-      if(resultsEl){ resultsEl.style.display='block'; resultsEl.innerHTML=resHtml; }
-      setLastFoundLeads(foundLeads, getHuntParams());
-
-    } catch(e) {
-      loadDiv.remove();
-      var errDiv = document.createElement('div');
-      errDiv.style.cssText = 'color:#EF4444;font-size:12px;padding:8px;background:rgba(239,68,68,0.08);border-radius:8px';
-      errDiv.textContent = '⚠️ שגיאה בחיפוש: ' + e.message;
-      chat.appendChild(errDiv);
-    }
-  };
+;
 
   window.huntAddLead = function huntAddLead(lead) {
     var now = new Date().toISOString();
@@ -8816,8 +8742,18 @@ addSalesPlaybookPanel();
       });
       var data = await res.json();
       var raw = (data.content||[]).map(function(b){return b.text||'';}).join('');
+      raw = raw.replace(/^```json\s*/,'').replace(/^```\s*/,'').replace(/\s*```$/,'');
       var s = raw.indexOf('{'), e = raw.lastIndexOf('}');
-      var parsed = JSON.parse(raw.substring(s, e+1));
+      if (s===-1||e===-1) throw new Error('לא התקבל JSON תקין');
+      var jsonStr = raw.substring(s, e+1);
+      // Fix unescaped newlines inside JSON string values
+      jsonStr = jsonStr.replace(/"([^"\\]*?)\n([^"\\]*?)"/g, function(_,a,b){return '"'+a+' '+b+'"';});
+      var parsed;
+      try { parsed = JSON.parse(jsonStr); }
+      catch(je) {
+        jsonStr = jsonStr.replace(/[\u201c\u201d]/g,'"').replace(/[\u2018\u2019]/g,"'");
+        parsed = JSON.parse(jsonStr);
+      }
       var foundLeads = parsed.leads || [];
 
       if (runBtn) { runBtn.disabled = false; runBtn.style.opacity = '1'; }
