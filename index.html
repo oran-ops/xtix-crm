@@ -3776,12 +3776,23 @@ BP18: Nurture existing customers — repeat customers spend 67% more
     var cadenceLabel={'hot':'🔴 Hot','warm':'🟡 Warm','cool':'🔵 Cool'};
     var typeLabel={'curiosity':'סקרנות','roi':'ROI','social_proof':'Social Proof','breakup':'Break-up','cold outreach':'Cold','value add':'ערך','cold':'Cold'};
 
-    if(!emails.length) return (
-      '<div style="padding:32px;text-align:center">'+
-      '<div style="font-size:40px;margin-bottom:12px">✉️</div>'+
-      '<div style="font-size:13px;color:var(--muted);margin-bottom:16px">המיילים ייווצרו אחרי ניתוח AI</div>'+
-      '<button onclick="window.showAnalysisChoice('+lead.id+')" style="background:var(--accent);border:none;border-radius:8px;padding:10px 24px;font-size:13px;color:#fff;cursor:pointer;font-family:Heebo,sans-serif;font-weight:700">🚀 צור מיילים</button>'+
+    if(!emails.length){
+      var isDone=a.status==='done';
+      var isDeepPending=isDone&&!!(a.triple_engine)&&!(a.email_sequence);
+      if(isDone&&isDeepPending){
+        return('<div style="padding:28px;text-align:center">'+
+          '<div style="width:36px;height:36px;border:3px solid var(--accent);border-top-color:transparent;border-radius:50%;animation:spin 1s linear infinite;margin:0 auto 14px"></div>'+
+          '<div style="font-size:13px;color:var(--text);font-weight:700;margin-bottom:6px">✉️ מיילים בייצור ברקע...</div>'+
+          '<div style="font-size:11px;color:var(--muted);margin-bottom:16px">המוח כותב 4 מיילים מותאמים לליד הזה</div>'+
+          '<button onclick="window.showAnalysisChoice('+lead.id+')" style="background:rgba(108,99,255,0.15);border:1px solid rgba(108,99,255,0.3);border-radius:8px;padding:8px 20px;font-size:12px;color:var(--accent);cursor:pointer;font-family:Heebo,sans-serif;font-weight:700">⚡ צור עכשיו</button>'+
+        '</div>');
+      }
+      return('<div style="padding:32px;text-align:center">'+
+        '<div style="font-size:40px;margin-bottom:12px">✉️</div>'+
+        '<div style="font-size:13px;color:var(--muted);margin-bottom:16px">המיילים ייווצרו אחרי ניתוח AI</div>'+
+        '<button onclick="window.showAnalysisChoice('+lead.id+')" style="background:var(--accent);border:none;border-radius:8px;padding:10px 24px;font-size:13px;color:#fff;cursor:pointer;font-family:Heebo,sans-serif;font-weight:700">🚀 צור מיילים</button>'+
       '</div>');
+    }
 
     var out='<div style="background:rgba(255,255,255,0.03);border:1px solid var(--border);border-radius:8px;padding:10px 14px;margin-bottom:12px;display:flex;align-items:center;gap:12px">'+
       '<span style="font-size:11px;color:var(--muted)">Cadence:</span>'+
@@ -3826,116 +3837,221 @@ BP18: Nurture existing customers — repeat customers spend 67% more
 
   function _ltab_summary(lead,ai,enr){
     var a=ai||{},e=enr||{};
-    var summary=a.internal_summary||a.summary_for_rep||a.executive_summary||e.summary||'';
-    var pitch=a.pitch||e.pitch||'';
-    var cadenceLabel={'hot':'🔴 Hot — תוקפנית','warm':'🟡 Warm — סדירה','cool':'🔵 Cool — סבלנית'};
+    var isMetaJudge = !!(a.meta_score && a.meta_reasoning && !a.meta_reasoning.includes('לא זמין'));
+    var deepReady   = !!(a.scoring_breakdown || a.four_fs || a.summary_for_rep);
+    var cadenceLabel={'hot':'🔴 Hot','warm':'🟡 Warm','cool':'🔵 Cool'};
+    var cadenceColor={'hot':'#ef4444','warm':'#F59E0B','cool':'#3b82f6'};
+    var tier=a.tier||'B';
+    var score=a.score||a.meta_score||0;
+    var cadence=a.recommended_cadence||'warm';
+    var confidence=a.confidence||'';
+    var confLabel={'high':'🟢 גבוה','mid':'🟡 בינוני','low':'🔴 נמוך'};
 
-    // Score + Tier + Cadence bar
-    var scoreRow=(a.status==='done')?
-      '<div style="display:grid;grid-template-columns:1fr 1fr 1fr 1fr;gap:8px;margin-bottom:14px">'+
+    // ── 1. Score bar ──────────────────────────────────────────────
+    var tierColor=tier==='A'?'#10b981':tier==='B'?'#F59E0B':'#6b7280';
+    var scoreBar=
+      '<div style="display:grid;grid-template-columns:1fr 1fr 1fr'+(confidence?(' 1fr'):'')+';gap:8px;margin-bottom:14px">'+
       '<div style="background:rgba(108,99,255,0.1);border:1px solid rgba(108,99,255,0.25);border-radius:8px;padding:10px;text-align:center">'+
-        '<div style="font-size:26px;font-weight:800;color:var(--accent)">'+(a.score||0)+'</div>'+
-        '<div style="font-size:10px;color:var(--muted)">SCORE</div></div>'+
+        '<div style="font-size:28px;font-weight:800;color:var(--accent)">'+score+'</div>'+
+        '<div style="font-size:10px;color:var(--muted)">SCORE'+(isMetaJudge?' · Meta-Judge':''+(a.triple_engine?' · Claude':''))+'</div></div>'+
       '<div style="background:rgba(255,255,255,0.04);border:1px solid var(--border);border-radius:8px;padding:10px;text-align:center">'+
-        '<div style="font-size:26px;font-weight:800;color:var(--text)">'+(a.tier||'?')+'</div>'+
+        '<div style="font-size:28px;font-weight:800;color:'+tierColor+'">'+tier+'</div>'+
         '<div style="font-size:10px;color:var(--muted)">TIER</div></div>'+
-      '<div style="background:rgba(16,185,129,0.06);border:1px solid rgba(16,185,129,0.2);border-radius:8px;padding:10px;text-align:center">'+
-        '<div style="font-size:11px;font-weight:700;color:#10b981">'+(cadenceLabel[a.recommended_cadence||'warm']||a.recommended_cadence||'warm')+'</div>'+
+      '<div style="background:rgba(255,255,255,0.04);border:1px solid var(--border);border-radius:8px;padding:10px;text-align:center">'+
+        '<div style="font-size:13px;font-weight:700;color:'+(cadenceColor[cadence]||'var(--text)')+'">'+cadence.toUpperCase()+'</div>'+
         '<div style="font-size:10px;color:var(--muted)">CADENCE</div></div>'+
-      '<div style="background:rgba(245,158,11,0.06);border:1px solid rgba(245,158,11,0.2);border-radius:8px;padding:10px;text-align:center">'+
-        '<div style="font-size:11px;font-weight:700;color:#F59E0B">'+(a.pitch_angle||a.salesforce_bps&&a.salesforce_bps.bp17_value_angle||'ROI')+'</div>'+
-        '<div style="font-size:10px;color:var(--muted)">זווית</div></div>'+
-      '</div>':'';
+      (confidence?
+        '<div style="background:rgba(255,255,255,0.04);border:1px solid var(--border);border-radius:8px;padding:10px;text-align:center">'+
+          '<div style="font-size:12px;font-weight:700;color:var(--text)">'+(confLabel[confidence]||confidence)+'</div>'+
+          '<div style="font-size:10px;color:var(--muted)">ביטחון</div></div>':'')+
+      '</div>';
 
-    // Scoring Breakdown
+    // ── 2. התכלס — Meta-Judge verdict ────────────────────────────
+    var takhlisHtml='';
+    var metaText = isMetaJudge ? (a.meta_reasoning||'') : (a.executive_summary||a.summary||'');
+    var metaAction = a.meta_action||a.next_action||'';
+    if(metaText){
+      var engineLine='';
+      if(a.engine_statuses){
+        var es=a.engine_statuses;
+        var parts=[];
+        if(es.claude==='ok') parts.push('<span style="color:#10b981">Claude ✓</span>');
+        else parts.push('<span style="color:rgba(255,255,255,0.3)">Claude –</span>');
+        if(es.gpt==='ok') parts.push('<span style="color:#10b981">GPT ✓</span>');
+        else if(es.gpt==='skipped') parts.push('<span style="color:rgba(255,255,255,0.2)">GPT ○</span>');
+        else parts.push('<span style="color:#ef4444">GPT ✗</span>');
+        if(es.gemini==='ok') parts.push('<span style="color:#10b981">Gemini ✓</span>');
+        else if(es.gemini==='skipped') parts.push('<span style="color:rgba(255,255,255,0.2)">Gemini ○</span>');
+        else parts.push('<span style="color:#ef4444">Gemini ✗</span>');
+        engineLine='<div style="font-size:10px;color:var(--muted);margin-bottom:8px;display:flex;gap:10px">'+parts.join('')+'</div>';
+      }
+      var disagreements=a.disagreements||[];
+      var disHtml=disagreements.length?
+        '<div style="margin-top:8px;padding-top:8px;border-top:1px solid rgba(245,158,11,0.2)">'+
+          '<div style="font-size:10px;color:#F59E0B;font-weight:700;margin-bottom:4px">⚡ מחלוקות בין המנועים:</div>'+
+          disagreements.map(function(d){return '<div style="font-size:11px;color:var(--muted)">▸ '+d+'</div>';}).join('')+
+        '</div>':'';
+      takhlisHtml=
+        '<div style="background:linear-gradient(135deg,rgba(108,99,255,0.08),rgba(139,92,246,0.04));border:1px solid rgba(108,99,255,0.3);border-radius:10px;padding:14px;margin-bottom:12px">'+
+          '<div style="font-weight:800;color:var(--accent);font-size:12px;margin-bottom:10px">🧠 '+(isMetaJudge?'Meta-Judge — ההחלטה הסופית':'AI Analysis — הניתוח')+'</div>'+
+          engineLine+
+          '<div style="font-size:13px;color:var(--text);line-height:1.8;margin-bottom:10px">'+metaText+'</div>'+
+          (metaAction?
+            '<div style="background:rgba(16,185,129,0.1);border:1px solid rgba(16,185,129,0.25);border-radius:6px;padding:8px 12px;font-size:12px">'+
+              '<span style="color:var(--muted)">🎯 הצעד הבא: </span>'+
+              '<span style="color:#10b981;font-weight:700">'+metaAction+'</span>'+
+            '</div>':'')+
+          disHtml+
+        '</div>';
+    }
+
+    // ── 3. Attack Angle ──────────────────────────────────────────
+    var attackSrc = a.attack_angle||a.sales_attack||'';
+    var openingSrc = a.best_opening||a.pitch||'';
+    var attackHtml='';
+    if(attackSrc||openingSrc){
+      attackHtml=
+        '<div style="background:rgba(239,68,68,0.05);border:1px solid rgba(239,68,68,0.2);border-radius:10px;padding:12px 14px;margin-bottom:10px">'+
+          '<div style="font-weight:800;color:#ef4444;font-size:11px;margin-bottom:8px">⚡ זווית תקיפה</div>'+
+          (attackSrc?'<div style="font-size:12px;color:var(--text);margin-bottom:8px">'+attackSrc+'</div>':'')+
+          (openingSrc?
+            '<div style="background:rgba(245,158,11,0.08);border-right:2px solid #F59E0B;padding:6px 10px;border-radius:4px">'+
+              '<div style="font-size:10px;color:#F59E0B;font-weight:700;margin-bottom:2px">פתיחה:</div>'+
+              '<div style="font-size:12px;color:var(--text);font-style:italic">"'+openingSrc+'"</div>'+
+            '</div>':'')+
+        '</div>';
+    }
+
+    // ── 4. Pain Points + Economics ───────────────────────────────
+    var pains=a.pain_points||e.pain_points||[];
+    var fees=a.estimated_annual_fees||e.estimated_annual_fees||'';
+    var savings=a.estimated_xtix_savings||e.estimated_xtix_savings||'';
+    var painHtml='';
+    if(pains.length||fees||savings){
+      painHtml=
+        '<div style="background:rgba(245,158,11,0.04);border:1px solid rgba(245,158,11,0.18);border-radius:10px;padding:12px 14px;margin-bottom:10px">'+
+          '<div style="font-weight:800;color:#F59E0B;font-size:11px;margin-bottom:8px">💥 כאבים ומשמעות כלכלית</div>'+
+          (pains.length?
+            '<div style="margin-bottom:8px">'+pains.map(function(p){
+              return '<div style="font-size:11px;color:var(--text);margin-bottom:3px">▸ '+p+'</div>';
+            }).join('')+'</div>':'')+
+          ((fees||savings)?
+            '<div style="display:flex;gap:16px;padding-top:8px;border-top:1px solid rgba(245,158,11,0.15)">'+
+              (fees?'<div><div style="font-size:10px;color:var(--muted)">עמלות נוכחיות</div><div style="font-size:13px;font-weight:700;color:#ef4444">'+fees+'</div></div>':'')+
+              (savings?'<div><div style="font-size:10px;color:var(--muted)">חיסכון עם XTIX</div><div style="font-size:13px;font-weight:700;color:#10b981">'+savings+'</div></div>':'')+
+            '</div>':'')+
+        '</div>';
+    }
+
+    // ── 5. Scoring Breakdown (Phase 3) ──────────────────────────
     var sb=a.scoring_breakdown||{};
     var sbHtml='';
     if(Object.keys(sb).length){
-      sbHtml='<div style="background:rgba(108,99,255,0.05);border:1px solid rgba(108,99,255,0.15);border-radius:10px;padding:12px 14px;margin-bottom:10px">'+
-        '<div style="font-weight:800;color:var(--accent);font-size:11px;margin-bottom:8px">📊 SCORING BREAKDOWN</div>'+
-        Object.entries(sb).map(function(kv){
-          var key=kv[0],v=kv[1];
-          var sc2=parseInt((v&&v.score)||0);
-          var bar=Math.round((sc2/30)*100);
-          return '<div style="display:flex;align-items:center;gap:8px;margin-bottom:5px">'+
-            '<div style="font-size:10px;color:var(--muted);width:90px;flex-shrink:0">'+key+'</div>'+
-            '<div style="flex:1;height:4px;background:rgba(255,255,255,0.08);border-radius:2px;overflow:hidden">'+
-              '<div style="height:100%;width:'+bar+'%;background:var(--accent);border-radius:2px"></div></div>'+
-            '<div style="font-size:10px;color:var(--text);width:24px;text-align:right">'+sc2+'</div>'+
-            '<div style="font-size:10px;color:var(--muted);flex:1">'+(v&&v.reason||'')+'</div>'+
-          '</div>';
-        }).join('')+
-      '</div>';
+      sbHtml=
+        '<div style="background:rgba(108,99,255,0.05);border:1px solid rgba(108,99,255,0.15);border-radius:10px;padding:12px 14px;margin-bottom:10px">'+
+          '<div style="font-weight:800;color:var(--accent);font-size:11px;margin-bottom:8px">📊 Scoring Breakdown</div>'+
+          Object.entries(sb).map(function(kv){
+            var k=kv[0],v=kv[1];
+            var sc2=parseInt((v&&v.score)||0);
+            var maxPts=k==='platform'?30:k==='audience_size'?25:k==='digital_presence'?20:k==='economic_pain'?15:10;
+            var bar=Math.round((sc2/maxPts)*100);
+            return '<div style="display:flex;align-items:center;gap:8px;margin-bottom:6px">'+
+              '<div style="font-size:10px;color:var(--muted);width:100px;flex-shrink:0">'+k.replace(/_/g,' ')+'</div>'+
+              '<div style="flex:1;height:5px;background:rgba(255,255,255,0.06);border-radius:3px;overflow:hidden">'+
+                '<div style="height:100%;width:'+bar+'%;background:linear-gradient(90deg,var(--accent),#8b5cf6);border-radius:3px"></div></div>'+
+              '<div style="font-size:11px;font-weight:700;color:var(--text);width:24px;text-align:right">'+sc2+'</div>'+
+              '<div style="font-size:10px;color:var(--muted);flex:2">'+(v&&v.reason||'')+'</div>'+
+            '</div>';
+          }).join('')+
+        '</div>';
+    } else if(!deepReady && a.status==='done'){
+      sbHtml='<div style="background:rgba(108,99,255,0.03);border:1px solid rgba(108,99,255,0.1);border-radius:8px;padding:10px 14px;margin-bottom:10px;display:flex;align-items:center;gap:10px">'+
+        '<div style="width:16px;height:16px;border:2px solid var(--accent);border-top-color:transparent;border-radius:50%;animation:spin 1s linear infinite;flex-shrink:0"></div>'+
+        '<div style="font-size:11px;color:var(--muted)">מחשב Scoring Breakdown... (Phase 3)</div></div>';
     }
 
-    // Four Fs
+    // ── 6. Four Fs ───────────────────────────────────────────────
     var ff=a.four_fs||{};
     var ffHtml='';
     if(ff.f1_current||ff.f3_pain){
-      ffHtml='<div style="background:rgba(245,158,11,0.05);border:1px solid rgba(245,158,11,0.18);border-radius:10px;padding:12px 14px;margin-bottom:10px">'+
-        '<div style="font-weight:800;color:#F59E0B;font-size:11px;margin-bottom:8px">🎯 FOUR Fs ANALYSIS</div>'+
-        [['F1 עכשיו',ff.f1_current],['F2 עובד',ff.f2_working],['F3 כואב',ff.f3_pain],['F4 חזון',ff.f4_future]]
+      ffHtml=
+        '<div style="background:rgba(245,158,11,0.04);border:1px solid rgba(245,158,11,0.15);border-radius:10px;padding:12px 14px;margin-bottom:10px">'+
+          '<div style="font-weight:800;color:#F59E0B;font-size:11px;margin-bottom:8px">🎯 Four Fs</div>'+
+          '<div style="display:grid;grid-template-columns:1fr 1fr;gap:8px">'+
+          [['F1 עכשיו',ff.f1_current,'rgba(59,130,246,0.1)'],
+           ['F2 עובד',ff.f2_working,'rgba(16,185,129,0.1)'],
+           ['F3 כואב',ff.f3_pain,'rgba(239,68,68,0.1)'],
+           ['F4 חזון',ff.f4_future,'rgba(139,92,246,0.1)']]
           .filter(function(r){return r[1];})
-          .map(function(r){return '<div style="margin-bottom:6px"><span style="font-size:10px;font-weight:700;color:#F59E0B">'+r[0]+': </span><span style="font-size:11px;color:var(--text)">'+r[1]+'</span></div>';})
-          .join('')+
-      '</div>';
+          .map(function(r){
+            return '<div style="background:'+r[2]+';border-radius:6px;padding:8px">'+
+              '<div style="font-size:10px;font-weight:700;color:#F59E0B;margin-bottom:3px">'+r[0]+'</div>'+
+              '<div style="font-size:11px;color:var(--text)">'+r[1]+'</div></div>';
+          }).join('')+
+          '</div></div>';
     }
 
-    // Salesforce BPs
+    // ── 7. Salesforce BPs ────────────────────────────────────────
     var bps=a.salesforce_bps||{};
     var bpHtml='';
     if(Object.keys(bps).length){
       var bpMap={
-        bp2_persona_fit:   'BP#2 Persona Fit',
-        bp6_priority:      'BP#6 Priority',
-        bp7_prep_notes:    'BP#7 Call Prep',
-        bp8_decision_maker:'BP#8 Decision Maker',
-        bp11_social_proof: 'BP#11 Social Proof',
-        bp17_value_angle:  'BP#17 Value Angle'
+        bp2_persona_fit:'BP#2 Persona Fit',bp6_priority:'BP#6 Priority',
+        bp7_prep_notes:'BP#7 Call Prep',bp8_decision_maker:'BP#8 Decision Maker',
+        bp11_social_proof:'BP#11 Social Proof',bp17_value_angle:'BP#17 Value Angle'
       };
-      bpHtml='<div style="background:rgba(16,185,129,0.04);border:1px solid rgba(16,185,129,0.18);border-radius:10px;padding:12px 14px;margin-bottom:10px">'+
-        '<div style="font-weight:800;color:#10b981;font-size:11px;margin-bottom:8px">✅ SALESFORCE 18 BPs</div>'+
-        Object.entries(bps).filter(function(kv){return bpMap[kv[0]]&&kv[1];}).map(function(kv){
-          var v=kv[1];
-          var dot=v==='high'?'🟢':v==='medium'?'🟡':v==='low'?'🔴':'▸';
-          return '<div style="font-size:11px;margin-bottom:4px"><span style="color:#10b981;font-weight:700">'+(bpMap[kv[0]]||kv[0])+': </span>'+dot+' <span style="color:var(--text)">'+v+'</span></div>';
-        }).join('')+
-      '</div>';
+      bpHtml=
+        '<div style="background:rgba(16,185,129,0.03);border:1px solid rgba(16,185,129,0.15);border-radius:10px;padding:12px 14px;margin-bottom:10px">'+
+          '<div style="font-weight:800;color:#10b981;font-size:11px;margin-bottom:8px">✅ Salesforce BPs</div>'+
+          '<div style="display:grid;grid-template-columns:1fr 1fr;gap:6px">'+
+          Object.entries(bps).filter(function(kv){return bpMap[kv[0]]&&kv[1];}).map(function(kv){
+            var v=kv[1];
+            var dot=v==='high'?'🟢':v==='medium'?'🟡':v==='low'?'🔴':'▸';
+            return '<div style="font-size:11px;padding:4px 0;border-bottom:1px solid rgba(255,255,255,0.04)">'+
+              '<span style="color:#10b981;font-weight:700;font-size:10px">'+(bpMap[kv[0]]||kv[0])+': </span>'+
+              dot+' <span style="color:var(--text)">'+v+'</span></div>';
+          }).join('')+
+          '</div></div>';
     }
 
-    // Attack angle + best opening
-    var attackHtml='';
-    if(a.attack_angle||a.best_opening){
-      attackHtml='<div style="background:rgba(239,68,68,0.05);border:1px solid rgba(239,68,68,0.2);border-radius:10px;padding:12px 14px;margin-bottom:10px">'+
-        '<div style="font-weight:800;color:#ef4444;font-size:11px;margin-bottom:8px">⚡ ATTACK ANGLE</div>'+
-        (a.attack_angle?'<div style="font-size:12px;color:var(--text);margin-bottom:6px">'+a.attack_angle+'</div>':'')+
-        (a.best_opening?'<div style="font-size:11px;color:var(--muted)">פתיחה: </div><div style="font-size:12px;color:#F59E0B;font-style:italic;margin-top:2px">'+a.best_opening+'</div>':'')+
-      '</div>';
-    }
-
-    // Risk factors
+    // ── 8. Risk Factors ─────────────────────────────────────────
     var riskHtml='';
     if(a.risk_factors&&a.risk_factors.length){
-      riskHtml='<div style="background:rgba(239,68,68,0.04);border:1px solid rgba(239,68,68,0.14);border-radius:8px;padding:10px 12px;margin-bottom:10px">'+
-        '<div style="font-size:10px;font-weight:700;color:#ef4444;margin-bottom:4px">⚠️ גורמי סיכון</div>'+
-        a.risk_factors.map(function(r){return '<div style="font-size:11px;color:var(--muted)">▸ '+r+'</div>';}).join('')+
-      '</div>';
+      riskHtml=
+        '<div style="background:rgba(239,68,68,0.03);border:1px solid rgba(239,68,68,0.12);border-radius:8px;padding:10px 12px;margin-bottom:10px">'+
+          '<div style="font-size:10px;font-weight:700;color:#ef4444;margin-bottom:5px">⚠️ גורמי סיכון</div>'+
+          a.risk_factors.map(function(r){return '<div style="font-size:11px;color:var(--muted)">▸ '+r+'</div>';}).join('')+
+        '</div>';
     }
 
-    // Summary for rep
-    var repSummaryHtml='<div style="background:rgba(255,255,255,0.03);border:1px solid var(--border);border-radius:10px;padding:14px;margin-bottom:12px">'+
-      '<div style="font-weight:800;color:var(--accent);margin-bottom:8px;font-size:11px">📋 סיכום לנציג — מה לדעת לפני שמרים טלפון</div>'+
-      '<textarea id="summary-text-'+lead.id+'" style="width:100%;background:transparent;border:1px solid var(--border);border-radius:8px;padding:10px;color:var(--text);font-family:Heebo,sans-serif;font-size:12px;line-height:1.75;min-height:100px;resize:vertical;box-sizing:border-box">'+summary+'</textarea>'+
-      '<div style="margin-top:8px;display:flex;gap:8px;flex-wrap:wrap">'+
-        '<button onclick="window.saveSummary('+lead.id+')" style="background:rgba(16,185,129,0.15);border:1px solid rgba(16,185,129,0.3);border-radius:6px;padding:5px 14px;font-size:11px;color:#10b981;cursor:pointer;font-family:Heebo,sans-serif;font-weight:700">💾 שמור</button>'+
-        '<button onclick="window.pushSummaryToHubspot('+lead.id+')" style="background:rgba(245,158,11,0.12);border:1px solid rgba(245,158,11,0.3);border-radius:6px;padding:5px 14px;font-size:11px;color:#F59E0B;cursor:pointer;font-family:Heebo,sans-serif;font-weight:700">🔗 שלח ל-HubSpot</button>'+
-      '</div></div>';
+    // ── 9. Summary for Rep (editable) ───────────────────────────
+    var summaryText=a.summary_for_rep||a.internal_summary||
+      (isMetaJudge?'':(a.executive_summary||a.summary||''));
+    var repSummaryHtml=
+      '<div style="background:rgba(255,255,255,0.03);border:1px solid var(--border);border-radius:10px;padding:14px;margin-bottom:12px">'+
+        '<div style="font-weight:800;color:var(--accent);margin-bottom:8px;font-size:11px">📋 סיכום לנציג — מה לדעת לפני שמרים טלפון</div>'+
+        '<textarea id="summary-text-'+lead.id+'" style="width:100%;background:transparent;border:1px solid var(--border);border-radius:8px;padding:10px;color:var(--text);font-family:Heebo,sans-serif;font-size:12px;line-height:1.75;min-height:90px;resize:vertical;box-sizing:border-box">'+summaryText+'</textarea>'+
+        '<div style="margin-top:8px;display:flex;gap:8px;flex-wrap:wrap">'+
+          '<button onclick="window.saveSummary('+lead.id+')" style="background:rgba(16,185,129,0.15);border:1px solid rgba(16,185,129,0.3);border-radius:6px;padding:5px 14px;font-size:11px;color:#10b981;cursor:pointer;font-family:Heebo,sans-serif;font-weight:700">💾 שמור</button>'+
+          '<button onclick="window.pushSummaryToHubspot('+lead.id+')" style="background:rgba(245,158,11,0.12);border:1px solid rgba(245,158,11,0.3);border-radius:6px;padding:5px 14px;font-size:11px;color:#F59E0B;cursor:pointer;font-family:Heebo,sans-serif;font-weight:700">🔗 שלח ל-HubSpot</button>'+
+          '<button onclick="window.showAnalysisChoice('+lead.id+')" style="background:rgba(108,99,255,0.1);border:1px solid rgba(108,99,255,0.2);border-radius:6px;padding:5px 14px;font-size:11px;color:var(--accent);cursor:pointer;font-family:Heebo,sans-serif;font-weight:700">🔄 נתח מחדש</button>'+
+        '</div></div>';
 
-    var nextHtml=a.next_action?
-      '<div style="background:rgba(16,185,129,0.06);border:1px solid rgba(16,185,129,0.2);border-radius:8px;padding:10px 12px;font-size:12px">'+
-        '<span style="color:var(--muted)">🎯 הצעד הבא: </span><span style="color:#10b981;font-weight:700">'+a.next_action+'</span></div>':'';
+    // ── 10. Phone reminder ───────────────────────────────────────
+    var phone=lead.phone||'';
+    var phoneHtml=phone?
+      '<div style="background:rgba(16,185,129,0.05);border:1px solid rgba(16,185,129,0.15);border-radius:8px;padding:10px 12px;font-size:12px">'+
+        '📞 <span style="color:var(--muted)">הגיע הרגע לאיסוף מידע לפני שמרים טלפון ובדיקה התאמה: </span>'+
+        '<a href="tel:'+phone+'" style="color:#10b981;font-weight:700;text-decoration:none">'+phone+'</a>'+
+      '</div>':'';
 
-    return '<div style="padding:2px">'+scoreRow+sbHtml+ffHtml+bpHtml+attackHtml+riskHtml+repSummaryHtml+nextHtml+'</div>';
+    if(a.status!=='done') return (
+      '<div style="padding:32px;text-align:center">'+
+        '<div style="font-size:40px;margin-bottom:12px">⏳</div>'+
+        '<div style="font-size:13px;color:var(--muted)">הניתוח בתהליך — ייפתח אוטומטית</div>'+
+      '</div>');
+
+    return '<div style="padding:2px">'+scoreBar+takhlisHtml+attackHtml+painHtml+sbHtml+ffHtml+bpHtml+riskHtml+repSummaryHtml+phoneHtml+'</div>';
   }
 
   // ── Email / summary helpers ────────────────────────────────────
