@@ -3370,6 +3370,21 @@ BP18: Nurture existing customers — repeat customers spend 67% more
   }
 
   const SERVER       = 'https://xtix-crm-production.up.railway.app';
+
+  // ── Authenticated fetch — adds Firebase ID Token to every server request ──
+  window._authFetch = async function(url, options) {
+    options = options || {};
+    options.headers = options.headers || {};
+    try {
+      if (auth && auth.currentUser) {
+        const token = await auth.currentUser.getIdToken(false); // false = use cached
+        options.headers['Authorization'] = 'Bearer ' + token;
+      }
+    } catch(e) {
+      console.warn('[authFetch] Could not get ID token:', e.message);
+    }
+    return fetch(url, options);
+  };
   const STORAGE_KEY  = 'xtix_crm_leads';
   const STORAGE_NEXTID = 'xtix_crm_nextid';
 
@@ -4881,7 +4896,7 @@ ${proxyCtx}
 
     let enriched = {};
     try {
-      const res = await fetch(SERVER + '/ai', {
+      const res = await window._authFetch(SERVER + '/ai', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -4944,7 +4959,7 @@ ${proxyCtx}
     // Step 1: Proxy scrape
     let proxyData = null;
     try {
-      const res = await fetch(SERVER + '/analyze?url=' + encodeURIComponent(fullUrl), { signal: AbortSignal.timeout(5000) });
+      const res = await window._authFetch(SERVER + '/analyze?url=' + encodeURIComponent(fullUrl), { signal: AbortSignal.timeout(5000) });
       if (res.ok) proxyData = await res.json();
     } catch(e) {}
 
@@ -4953,7 +4968,7 @@ ${proxyCtx}
 
     // Helper: call AI with short timeout
     async function callAI(prompt, maxTokens) {
-      const res = await fetch(SERVER + '/ai', {
+      const res = await window._authFetch(SERVER + '/ai', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -5355,7 +5370,7 @@ BP6-10: תעדף (פלטפורמה ישנה+דומיין+6+ אירועים), Dis
       try {
         // Use external signal if provided, else create our own timeout signal
         var signal = externalSignal || AbortSignal.timeout(timeoutMs || 60000);
-        var res = await fetch(SERVER+'/ai', {
+        var res = await window._authFetch(SERVER+'/ai', {
           method: 'POST', headers: {'Content-Type':'application/json'},
           body: JSON.stringify({
             model:      'claude-sonnet-4-6',  // claude-sonnet-4-6 per Anthropic API
@@ -5433,7 +5448,7 @@ BP6-10: תעדף (פלטפורמה ישנה+דומיין+6+ אירועים), Dis
   // ── Call GPT-4o directly ────────────────────────────────────────
   async function _callGPT(systemPrompt, userPrompt, maxTokens) {
     // Route through Railway proxy — stable latency, key stays server-side
-    var res = await fetch(SERVER + '/gpt', {
+    var res = await window._authFetch(SERVER + '/gpt', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
@@ -5476,7 +5491,7 @@ BP6-10: תעדף (פלטפורמה ישנה+דומיין+6+ אירועים), Dis
     for (var mi = 0; mi < MODELS.length; mi++) {
       var model = MODELS[mi];
       try {
-        var res = await fetch(SERVER + '/gemini', {
+        var res = await window._authFetch(SERVER + '/gemini', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
@@ -5672,7 +5687,7 @@ BP6-10: תעדף (פלטפורמה ישנה+דומיין+6+ אירועים), Dis
     // Fetch proxy context (non-blocking, best-effort)
     var pCtx = 'לא נמצא מידע מהאתר';
     try {
-      var pr = await fetch(SERVER+'/analyze?url='+encodeURIComponent('https://'+domain),
+      var pr = await window._authFetch(SERVER+'/analyze?url='+encodeURIComponent('https://'+domain),
         { signal: AbortSignal.timeout(7000) });
       if (pr.ok) {
         var px = await pr.json();
@@ -6158,7 +6173,7 @@ BP6-10: תעדף (פלטפורמה ישנה+דומיין+6+ אירועים), Dis
     setP(5, '🧠 Claude — שלב 1/2: מחקר + אסטרטגיה...');
     var proxy = null;
     try {
-      var pr = await fetch(SERVER+'/analyze?url='+encodeURIComponent('https://'+domain),
+      var pr = await window._authFetch(SERVER+'/analyze?url='+encodeURIComponent('https://'+domain),
         {signal: AbortSignal.timeout(5000)});
       if (pr.ok) proxy = await pr.json();
     } catch(e) {}
@@ -6404,7 +6419,7 @@ Social: ${pA.social_intel||'?'}
     var el=document.getElementById('server-status');
     if(!el)return;
     try{
-      var r=await fetch(SERVER+'/analyze?url=xtix.ai',{signal:AbortSignal.timeout(4000)});
+      var r=await window._authFetch(SERVER+'/analyze?url=xtix.ai',{signal:AbortSignal.timeout(4000)});
       el.textContent=r.ok?'🟢 Server':'🟡 Server';
       el.style.color=r.ok?'var(--green)':'var(--yellow)';
     }catch(e){
@@ -8458,7 +8473,7 @@ window._cleanForFirebase = function _cleanForFirebase(obj) {
     setStatus(true);
 
     try {
-      var res = await fetch(AI_SERVER, {
+      var res = await window._authFetch(AI_SERVER, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -8688,7 +8703,7 @@ window._cleanForFirebase = function _cleanForFirebase(obj) {
   // ── Fast AI call — Haiku model, no retry, for speed-sensitive tasks ──
   window._callAIFast = async function _callAIFast(sys, usr, maxTok, timeoutMs) {
     try {
-      var res = await fetch(SERVER+'/ai', {
+      var res = await window._authFetch(SERVER+'/ai', {
         method: 'POST', headers: {'Content-Type':'application/json'},
         body: JSON.stringify({
           model:      'claude-haiku-4-5-20251001',
@@ -9012,7 +9027,7 @@ window._cleanForFirebase = function _cleanForFirebase(obj) {
     ].filter(Boolean).join('\n');
 
     try {
-      var res = await fetch('https://xtix-crm-production.up.railway.app/ai', {
+      var res = await window._authFetch('https://xtix-crm-production.up.railway.app/ai', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -9918,7 +9933,7 @@ window.testAIKey = function() { console.warn("[Brain] testAIKey disabled — key
 async function loadBrainConfig() {
   // Keys live on Railway server only — check status via /health
   try {
-    var res = await fetch(SERVER + '/health', { signal: AbortSignal.timeout(8000) });
+    var res = await window._authFetch(SERVER + '/health', { signal: AbortSignal.timeout(8000) });
     var h = await res.json();
     _brainKeys.gpt    = !!h.openai;
     _brainKeys.gemini = !!h.gemini;
