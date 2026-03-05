@@ -1285,6 +1285,22 @@ input::placeholder, textarea::placeholder { color: var(--t3); }
   color: var(--muted);
   margin-top: 2px;
 }
+/* Users Panel */
+.usr-row { display:flex;align-items:center;gap:12px;background:var(--surface);border:1px solid var(--border);border-radius:12px;padding:14px 16px;margin-bottom:10px; }
+.usr-row-pending { opacity:0.7;border-style:dashed; }
+.usr-avatar { width:36px;height:36px;border-radius:50%;background:var(--bg); }
+.usr-avatar-ph { width:36px;height:36px;border-radius:50%;background:var(--bg);display:flex;align-items:center;justify-content:center;font-size:18px;flex-shrink:0; }
+.usr-info { flex:1;min-width:0; }
+.usr-name { font-size:13px;font-weight:600;color:var(--text); }
+.usr-you { font-size:10px;color:var(--muted);font-weight:400; }
+.usr-role-tag { font-size:10px;font-weight:600; }
+.usr-email { font-size:11px;color:var(--muted);margin-top:2px; }
+.usr-seen { font-size:10px;color:var(--muted);margin-top:2px; }
+.usr-role-sel { background:var(--bg);border:1px solid var(--border);border-radius:6px;padding:4px 8px;font-size:11px;font-family:'Heebo',sans-serif;cursor:pointer; }
+.usr-remove-btn { background:rgba(239,68,68,0.1);border:1px solid rgba(239,68,68,0.3);border-radius:6px;padding:4px 10px;font-size:11px;color:#ef4444;cursor:pointer;font-family:'Heebo',sans-serif;white-space:nowrap; }
+.usr-remove-btn:hover { background:rgba(239,68,68,0.2); }
+.usr-section-lbl { font-size:11px;color:var(--muted);margin:16px 0 8px;font-weight:700;letter-spacing:1px; }
+
 /* Brain Tabs */
 .brain-tabs {
   display: flex;
@@ -4308,7 +4324,7 @@ BP18: Nurture existing customers — repeat customers spend 67% more
       _applyRoleUI(role);
       loadLeadsAsync();
       ensureMethodologyInFirebase();
-      initBrain();
+      if (typeof window.initBrain === 'function') window.initBrain(); else setTimeout(function(){ if(window.initBrain) window.initBrain(); }, 500);
       seedAllCollections(false);
       seedCompetitorsIfEmpty();
       logActivity('login', { email: user.email, name: user.displayName, role: role });
@@ -10470,36 +10486,54 @@ window.loadUsers = async function() {
   try {
     var usersSnap = await db.collection('users').orderBy('created_at','desc').get();
     var pendingSnap = await db.collection('pending_users').get();
-    var html = '';
+    var rows = [];
     usersSnap.forEach(function(doc) {
       var u = doc.data();
-      var roleColor = u.role === 'admin' ? '#a78bfa' : u.role === 'sales' ? '#10b981' : '#6b7280';
+      var rc = u.role==='admin'?'#a78bfa':u.role==='sales'?'#10b981':'#6b7280';
       var isSelf = window.currentUser && u.uid === window.currentUser.uid;
-      html += '<div style="background:var(--surface);border:1px solid var(--border);border-radius:12px;padding:14px 16px;display:flex;align-items:center;gap:12px">' +
-        '<img src="' + (u.photo||'') + '" style="width:36px;height:36px;border-radius:50%;background:var(--bg)" onerror="this.style.display='none'">' +
-        '<div style="flex:1">' +
-          '<div style="font-size:13px;font-weight:600;color:var(--text)">' + (u.name||u.email) + (isSelf?' <span style="font-size:10px;color:var(--muted)">(אתה)</span>':'') + '</div>' +
-          '<div style="font-size:11px;color:var(--muted)">' + u.email + ' · <span style="color:' + roleColor + '">' + u.role + '</span></div>' +
-          '<div style="font-size:10px;color:var(--muted);margin-top:2px">כניסה אחרונה: ' + (u.last_seen ? u.last_seen.substring(0,10) : '—') + '</div>' +
-        '</div>' +
-        '<select onchange="changeUserRole('' + doc.id + '',this.value)" style="background:var(--bg);border:1px solid var(--border);border-radius:6px;padding:4px 8px;font-size:11px;color:' + roleColor + ';font-family:'Heebo',sans-serif"' + (isSelf?' disabled':'') + '>' +
-          '<option value="admin"' + (u.role==='admin'?' selected':'') + '>👑 Admin</option>' +
-          '<option value="sales"' + (u.role==='sales'?' selected':'') + '>💼 Sales</option>' +
-          '<option value="viewer"' + (u.role==='viewer'?' selected':'') + '>👁 Viewer</option>' +
-        '</select>' +
-        (!isSelf ? '<button onclick="removeUser('' + doc.id + '','' + (u.email||'') + '')" style="background:rgba(239,68,68,0.1);border:1px solid rgba(239,68,68,0.3);border-radius:6px;padding:4px 10px;font-size:11px;color:#ef4444;cursor:pointer;font-family:'Heebo',sans-serif">הסר</button>' : '') +
-      '</div>';
+      var sel = ['admin','sales','viewer'].map(function(r) {
+        return '<option value="' + r + '"' + (u.role===r?' selected':'') + '>' +
+          (r==='admin'?'👑 Admin':r==='sales'?'💼 Sales':'👁 Viewer') + '</option>';
+      }).join('');
+      var removeBtn = isSelf ? '' :
+        '<button onclick="removeUser(\''+doc.id+'\',\''+encodeURIComponent(u.email||'')+'\')">הסר</button>';
+      rows.push(
+        '<div class="usr-row">' +
+          '<img src="'+(u.photo||'')+'" class="usr-avatar" onerror="this.style.display='none'">' +
+          '<div class="usr-info">' +
+            '<div class="usr-name">'+(u.name||u.email)+(isSelf?' <span class="usr-you">(אתה)</span>':'')+' <span class="usr-role-tag" style="color:'+rc+'">'+u.role+'</span></div>' +
+            '<div class="usr-email">'+u.email+'</div>' +
+            '<div class="usr-seen">כניסה אחרונה: '+(u.last_seen?u.last_seen.substring(0,10):'—')+'</div>' +
+          '</div>' +
+          (isSelf
+            ? '<span class="usr-role-tag" style="color:'+rc+'">'+u.role+'</span>'
+            : '<select class="usr-role-sel" style="color:'+rc+'" onchange="changeUserRole(\''+doc.id+'\',this.value)">'+sel+'</select>'
+          ) +
+          '<button class="usr-remove-btn" onclick="removeUser(\''+doc.id+'\',\''+encodeURIComponent(u.email||'')+'\')" style="'+(isSelf?'display:none':'')+'">' +
+            'הסר' +
+          '</button>' +
+        '</div>'
+      );
     });
+    var pendingRows = [];
     if (!pendingSnap.empty) {
-      html += '<div style="font-size:11px;color:var(--muted);margin:16px 0 8px;font-weight:700;letter-spacing:1px">⏳ ממתינים לכניסה ראשונה</div>';
       pendingSnap.forEach(function(doc) {
         var u = doc.data();
-        html += '<div style="background:var(--surface);border:1px dashed var(--border);border-radius:12px;padding:12px 16px;display:flex;align-items:center;gap:12px;opacity:0.7">' +
-          '<div style="width:36px;height:36px;border-radius:50%;background:var(--bg);display:flex;align-items:center;justify-content:center;font-size:16px">✉️</div>' +
-          '<div style="flex:1"><div style="font-size:13px;color:var(--text)">' + (u.name||u.email) + '</div><div style="font-size:11px;color:var(--muted)">' + u.email + ' · ' + u.role + '</div></div>' +
-          '<button onclick="removePendingUser('' + doc.id + '')" style="background:rgba(239,68,68,0.1);border:1px solid rgba(239,68,68,0.3);border-radius:6px;padding:4px 10px;font-size:11px;color:#ef4444;cursor:pointer;font-family:'Heebo',sans-serif">ביטול</button>' +
-        '</div>';
+        pendingRows.push(
+          '<div class="usr-row usr-row-pending">' +
+            '<div class="usr-avatar-ph">✉️</div>' +
+            '<div class="usr-info">' +
+              '<div class="usr-name">'+(u.name||u.email)+'</div>' +
+              '<div class="usr-email">'+u.email+' · '+u.role+'</div>' +
+            '</div>' +
+            '<button class="usr-remove-btn" onclick="removePendingUser(\''+doc.id+'\')">ביטול</button>' +
+          '</div>'
+        );
       });
+    }
+    var html = rows.join('');
+    if (pendingRows.length) {
+      html += '<div class="usr-section-lbl">⏳ ממתינים לכניסה ראשונה</div>' + pendingRows.join('');
     }
     list.innerHTML = html || '<div style="font-size:12px;color:var(--muted);text-align:center;padding:40px">אין משתמשים</div>';
   } catch(e) {
@@ -10513,8 +10547,9 @@ window.changeUserRole = async function(uid, newRole) {
   catch(e) { alert('שגיאה: ' + e.message); }
 };
 
-window.removeUser = async function(uid, email) {
+window.removeUser = async function(uid, emailEncoded) {
   if (!window.isAdmin()) return;
+  var email = decodeURIComponent(emailEncoded);
   if (!confirm('להסיר את ' + email + '?')) return;
   try { await db.collection('users').doc(uid).delete(); loadUsers(); }
   catch(e) { alert('שגיאה: ' + e.message); }
