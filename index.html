@@ -4189,8 +4189,10 @@ BP18: Nurture existing customers — repeat customers spend 67% more
     const q_contact  = getRadioVal('q_contact');
     const q_urgency  = getRadioVal('q_urgency');
     const q_segment  = getRadioVal('q_segment');
-    const competitor = document.getElementById('lf-competitor').value;
-    const domain     = (document.getElementById('lf-domain').value || '').trim();
+    const competitorEl = document.getElementById('lf-competitor');
+    const competitor = competitorEl ? competitorEl.value : '';
+    const domainEl   = document.getElementById('lf-domain');
+    const domain     = domainEl ? (domainEl.value || '').trim() : '';
 
     // Scoring
     let score = 0;
@@ -5293,8 +5295,72 @@ BP6-10: תעדף (פלטפורמה ישנה+דומיין+6+ אירועים), Dis
     }
   }
 
+  // ── Claude Quick Analysis — single-call version for Triple Engine ──
+  // Full _deepAIPipeline takes 4 serial calls (~100s). For Triple Engine we
+  // only need Phase 1 data + score in one call (~20s), so all 3 engines finish
+  // at roughly the same time and Meta-Judge isn't blocked waiting for emails.
+  async function _claudeQuickAnalysis(lead, METH, compInfo) {
+    var domain = (lead.domain||'').replace(/https?:\\/\\//,'').split('/')[0] || lead.name;
+
+    // Fetch proxy context (non-blocking, best-effort)
+    var pCtx = 'לא נמצא מידע מהאתר';
+    try {
+      var pr = await fetch(SERVER+'/analyze?url='+encodeURIComponent('https://'+domain),
+        { signal: AbortSignal.timeout(7000) });
+      if (pr.ok) {
+        var px = await pr.json();
+        pCtx = 'פלטפורמה='+(px.ticketPlatform||'?')+', מייל='+(px.email||'?')+', טלפון='+(px.phone||'?');
+      }
+    } catch(e) {}
+
+    var result = await _callAI(
+      'אתה מנהל מכירות בכיר ב-XTIX.AI וחוקר B2B. נתח את הליד ותן ניתוח מכירות מלא. החזר JSON נקי בלבד. ענה בעברית.',
+      `נתח את הליד לצורך מכירת XTIX.AI:
+שם: ${lead.name} | דומיין: ${domain}
+סוג: ${lead.type||'?'} | פלטפורמה: ${lead.platform||'?'}
+טלפון: ${lead.phone||'?'} | מייל: ${lead.email||'?'} | כתובת: ${lead.address||'?'}
+מידע מאתר: ${pCtx}
+מתחרים בשוק: ${compInfo||''}
+מתודולוגיה: ${(METH||'').substring(0,400)}
+
+החזר JSON עם כל השדות הבאים:
+{
+  "score": 75,
+  "tier": "A",
+  "summary": "2-3 משפטים על הליד",
+  "executive_summary": "למה הליד מעניין XTIX עכשיו",
+  "segment": "קטגוריה",
+  "platform_current": "שם פלטפורמה",
+  "platform_weakness": "החולשה של הפלטפורמה",
+  "competitors_used": ["מתחרה1"],
+  "target_audience": "תיאור קהל",
+  "events_per_year": "כמות",
+  "venue_size": "גודל",
+  "ticket_price_range": "טווח מחיר",
+  "estimated_annual_fees": "עמלות בשקלים",
+  "estimated_xtix_savings": "חיסכון בשקלים",
+  "pain_points": ["כאב1","כאב2","כאב3"],
+  "social_intel": "תיאור רשתות",
+  "pricing_intel": "מידע תמחור",
+  "sales_attack": "אסטרטגיית תקיפה",
+  "pitch": "פיץ מכירה קצר",
+  "meeting_prep": "הכנה לשיחה",
+  "discovery_questions": ["שאלה1","שאלה2","שאלה3"],
+  "next_action": "הצעד הבא הספציפי",
+  "recommended_cadence": "warm",
+  "score_confidence": 0.85,
+  "reasoning": "נימוק הציון"
+}`,
+      2000, 55000
+    );
+
+    result.status      = 'done';
+    result.enriched_at = new Date().toISOString();
+    return result;
+  }
+
   // ── Triple Engine Pipeline wrapper ─────────────────────────────
-  // Wraps _deepAIPipeline — calls all 3 engines in parallel then Meta-Judge
+  // Wraps _claudeQuickAnalysis (fast) — calls all 3 engines in parallel then Meta-Judge
   window._tripleEnginePipeline = async function(lead) {
     var METH = await ensureMethodologyInFirebase();
     var compInfo = '';
@@ -5459,7 +5525,7 @@ BP6-10: תעדף (פלטפורמה ישנה+דומיין+6+ אירועים), Dis
 
     // ── Run all 3 engines in parallel ───────────────────────────────
     var enginePromises = [
-      _runEngine('claude', function() { return _deepAIPipeline(lead); }, 120000)
+      _runEngine('claude', function() { return _claudeQuickAnalysis(lead, METH, compInfo); }, 75000)
     ];
     if (_brainKeys && _brainKeys.gpt) {
       enginePromises.push(_runEngine('gpt', function() {
@@ -5602,6 +5668,47 @@ BP6-10: תעדף (פלטפורמה ישנה+דומיין+6+ אירועים), Dis
     setP(100, successCount === configuredCount
       ? '✅ ' + configuredCount + '/' + configuredCount + ' מנועים — Meta-Judge החליט'
       : '⚠️ ' + successCount + '/' + configuredCount + ' מנועים — Meta-Judge החליט בכל זאת');
+
+    // ── Kick off deep enrichment (phases 2-4) async — don't block the result ──
+    // The user sees score+analysis immediately. Strategy/emails enrich in background.
+    (function _deepEnrichAsync() {
+      setTimeout(async function() {
+        try {
+          setP(100, '🔬 מעשיר בעומק — אסטרטגיה + מיילים...');
+          var deepResult = await window._deepAIPipeline(lead);
+          // Merge deep fields into finalResult WITHOUT overriding Meta-Judge score/tier
+          var enriched = Object.assign({}, deepResult, {
+            score:             finalResult.score,
+            tier:              finalResult.tier,
+            summary:           finalResult.summary,
+            executive_summary: finalResult.executive_summary,
+            next_action:       finalResult.next_action,
+            status:            'done',
+            triple_engine:     true,
+            meta_score:        finalResult.meta_score,
+            meta_reasoning:    finalResult.meta_reasoning,
+            engines_ok:        finalResult.engines_ok,
+            engines_total:     finalResult.engines_total,
+            engine_statuses:   finalResult.engine_statuses
+          });
+          lead.ai_analysis = enriched;
+          var idx = leads.findIndex(function(l){return l.id===lead.id;});
+          if (idx!==-1) leads[idx] = lead;
+          if (typeof db!=='undefined'&&db)
+            db.collection('leads').doc(String(lead.id)).set(lead).catch(function(){});
+          renderSimpleLead(lead);
+          // Re-open tab if card is expanded
+          var bdy = document.getElementById('body-'+lead.id);
+          if (bdy && bdy.classList.contains('open')) {
+            var tabs = document.querySelectorAll('#lead-'+lead.id+' .lead-tab');
+            if (tabs[1]) switchLeadTab(lead.id, 'analysis', tabs[1]);
+          }
+          setP(100, '✅ ניתוח מלא הושלם — אסטרטגיה + מיילים מוכנים');
+        } catch(e) {
+          console.warn('[Brain] Deep enrich failed (non-critical):', e.message);
+        }
+      }, 200);
+    })();
 
     // ── Auto-close Debug Panel with summary after 6s ──────────────────
     (function() {
