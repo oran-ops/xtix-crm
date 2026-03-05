@@ -6289,7 +6289,7 @@ Blueprint לכל מייל:
             <div class="brain-card-body">
               <div class="brain-info-row">
                 <span class="brain-info-lbl">מודל</span>
-                <span class="brain-info-val">gemini-2.0-flash</span>
+                <span class="brain-info-val">gemini-1.5-flash-latest</span>
               </div>
               <div class="brain-info-row">
                 <span class="brain-info-lbl">קבל Key</span>
@@ -9177,9 +9177,9 @@ window.testAIKey = async function(engine) {
                  data.error.message || 'שגיאה לא ידועה';
       }
     } else if (engine === 'gemini') {
-      // Use gemini-2.0-flash — free tier, fast
+      // Use gemini-1.5-flash-latest — free tier, fast
       var res2 = await fetch(
-        'https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=' + key,
+        'https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash-latest:generateContent?key=' + key,
         {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
@@ -9205,7 +9205,7 @@ window.testAIKey = async function(engine) {
   if (statusEl) {
     if (ok) {
       statusEl.style.color = '#10b981';
-      statusEl.textContent = engine === 'gpt' ? '✅ GPT-4o מחובר ✓' : '✅ Gemini 2.0 Flash מחובר ✓';
+      statusEl.textContent = engine === 'gpt' ? '✅ GPT-4o מחובר ✓' : '✅ Gemini 1.5 Flash מחובר ✓';
       // Auto-save on successful test
       if (_brainKeys[engine]) updateKeyUI(engine, true);
     } else {
