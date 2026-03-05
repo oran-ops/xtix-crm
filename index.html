@@ -3712,7 +3712,7 @@ BP18: Nurture existing customers — repeat customers spend 67% more
       +(function(){var c=score>=80?'#10b981':score>=60?'#3b82f6':'#f59e0b';var r=16;var circ=2*Math.PI*r;var dash=Math.round((score/100)*circ);return '<div class="score-ring" title="Lead Score: '+score+'"><svg width="40" height="40" viewBox="0 0 40 40"><circle cx="20" cy="20" r="'+r+'" fill="none" stroke="rgba(255,255,255,0.06)" stroke-width="3.5"/><circle cx="20" cy="20" r="'+r+'" fill="none" stroke="'+c+'" stroke-width="3.5" stroke-dasharray="'+dash+' '+circ+'" stroke-dashoffset="'+Math.round(circ/4)+'" stroke-linecap="round" transform="rotate(-90 20 20)"/></svg><span class="score-num" style="color:'+c+'">'+score+'</span></div>';})()
       +'<select class="status-select" data-lead-id="'+lead.id+'" onclick="event.stopPropagation()" onchange="updateStats()">'+statusOpts+'</select>'
       +platBadge+aiBadge
-      +'<button onclick="event.stopPropagation();window.triggerFullAnalysis('+lead.id+')" title="ניתוח AI מחדש" style="background:rgba(108,99,255,0.12);border:1px solid rgba(108,99,255,0.3);border-radius:6px;padding:4px 10px;font-size:10px;color:var(--accent);cursor:pointer;font-family:Heebo,sans-serif">'+(aiSt==='running'?'⏳...':'🤖 נתח')+'</button>'
+      +'<button onclick="event.stopPropagation();window.showAnalysisChoice('+lead.id+')" title="ניתוח AI מחדש" style="background:rgba(108,99,255,0.12);border:1px solid rgba(108,99,255,0.3);border-radius:6px;padding:4px 10px;font-size:10px;color:var(--accent);cursor:pointer;font-family:Heebo,sans-serif">'+(aiSt==='running'?'⏳...':'🤖 נתח')+'</button>'
       +'<span style="font-size:18px;color:var(--muted)" id="arrow-'+lead.id+'">▼</span>'
       +'</div></div>'
       +'<div class="lead-body" id="body-'+lead.id+'">'
@@ -3733,16 +3733,17 @@ BP18: Nurture existing customers — repeat customers spend 67% more
     if(aiSt==='none'&&(lead.domain||lead.name)) setTimeout(function(){window.triggerFullAnalysis(lead.id,true);},900);
   };
 
-  function _ltab_profile(lead,enr,ai){var e=enr||{},a=ai||{};var rows=[['שם',lead.name],['אתר',lead.domain?'<a href="https://'+lead.domain+'" target="_blank" style="color:var(--accent)">'+lead.domain+'</a>':''],['מייל',lead.email],['טלפון',lead.phone],['כתובת',lead.address||e.address||a.address],['פלטפורמה',lead.platform||e.platform_current||a.platform_current],['סגמנט',lead.type||lead.segment||e.segment||a.segment],['קהל יעד',e.target_audience||a.target_audience],['מתחרים',(e.competitors_used||a.competitors_used||[]).join(', ')],['אירועים/שנה',e.events_per_year||a.events_per_year],['גודל מקום',e.venue_size||a.venue_size],['מחירי כרטיסים',e.ticket_price_range||a.ticket_price_range],['עמלות נוכחיות',e.estimated_annual_fees||a.estimated_annual_fees],['חיסכון XTIX',e.estimated_savings||e.estimated_xtix_savings||a.estimated_xtix_savings]];var grid=rows.map(function(r){if(!r[1])return '';return '<div class="info-box"><label>'+r[0]+'</label><value>'+r[1]+'</value></div>';}).join('');var sum=e.summary||a.summary||'';if(sum)grid+='<div class="info-box" style="grid-column:1/-1"><label>סיכום</label><value>'+sum+'</value></div>';return '<div class="info-grid">'+grid+'</div><div style="margin-top:10px"><button onclick="window.triggerFullAnalysis('+lead.id+')" style="background:rgba(108,99,255,0.15);border:1px solid rgba(108,99,255,0.3);border-radius:7px;padding:6px 16px;font-size:11px;color:var(--accent);cursor:pointer;font-family:Heebo,sans-serif;font-weight:700">🤖 הרץ ניתוח AI מלא</button></div>';}
+  function _ltab_profile(lead,enr,ai){var e=enr||{},a=ai||{};var rows=[['שם',lead.name],['אתר',lead.domain?'<a href="https://'+lead.domain+'" target="_blank" style="color:var(--accent)">'+lead.domain+'</a>':''],['מייל',lead.email],['טלפון',lead.phone],['כתובת',lead.address||e.address||a.address],['פלטפורמה',lead.platform||e.platform_current||a.platform_current],['סגמנט',lead.type||lead.segment||e.segment||a.segment],['קהל יעד',e.target_audience||a.target_audience],['מתחרים',(e.competitors_used||a.competitors_used||[]).join(', ')],['אירועים/שנה',e.events_per_year||a.events_per_year],['גודל מקום',e.venue_size||a.venue_size],['מחירי כרטיסים',e.ticket_price_range||a.ticket_price_range],['עמלות נוכחיות',e.estimated_annual_fees||a.estimated_annual_fees],['חיסכון XTIX',e.estimated_savings||e.estimated_xtix_savings||a.estimated_xtix_savings]];var grid=rows.map(function(r){if(!r[1])return '';return '<div class="info-box"><label>'+r[0]+'</label><value>'+r[1]+'</value></div>';}).join('');var sum=e.summary||a.summary||'';if(sum)grid+='<div class="info-box" style="grid-column:1/-1"><label>סיכום</label><value>'+sum+'</value></div>';return '<div class="info-grid">'+grid+'</div><div style="margin-top:10px"><button onclick="window.showAnalysisChoice('+lead.id+')" style="background:rgba(108,99,255,0.15);border:1px solid rgba(108,99,255,0.3);border-radius:7px;padding:6px 16px;font-size:11px;color:var(--accent);cursor:pointer;font-family:Heebo,sans-serif;font-weight:700">🤖 הרץ ניתוח AI מלא</button></div>';}
 
-  function _ltab_analysis(lead,ai,enr){var a=ai||{},e=enr||{};if(!a.status||a.status==='none')return '<div style="padding:32px;text-align:center"><div style="font-size:40px;margin-bottom:12px">🧠</div><div style="font-size:13px;color:var(--muted);margin-bottom:16px">לחץ להפעלת ניתוח AI</div><button onclick="window.triggerFullAnalysis('+lead.id+')" style="background:var(--accent);border:none;border-radius:8px;padding:10px 24px;font-size:13px;color:#fff;cursor:pointer;font-family:Heebo,sans-serif;font-weight:700">🚀 הפעל</button></div>';if(a.status==='running')return '<div style="padding:32px;text-align:center"><div style="font-size:36px;margin-bottom:12px;animation:_aip 1.2s ease-in-out infinite">'+
+  function _ltab_analysis(lead,ai,enr){var a=ai||{},e=enr||{};if(!a.status||a.status==='none')return '<div style="padding:32px;text-align:center"><div style="font-size:40px;margin-bottom:12px">🧠</div><div style="font-size:13px;color:var(--muted);margin-bottom:16px">לחץ להפעלת ניתוח AI</div><button onclick="window.showAnalysisChoice('+lead.id+')" style="background:var(--accent);border:none;border-radius:8px;padding:10px 24px;font-size:13px;color:#fff;cursor:pointer;font-family:Heebo,sans-serif;font-weight:700">🚀 הפעל</button></div>';if(a.status==='running')return '<div style="padding:32px;text-align:center"><div style="font-size:36px;margin-bottom:12px;animation:_aip 1.2s ease-in-out infinite">'+
     (typeof _brainKeys!=='undefined'&&(_brainKeys.gpt||_brainKeys.gemini)?'🧠':'⏳')+'</div>'+
     '<div style="display:inline-flex;align-items:center;gap:6px;background:rgba(124,58,237,0.1);border:1px solid rgba(124,58,237,0.25);border-radius:20px;padding:3px 12px;font-size:10px;font-weight:700;color:#a78bfa;margin-bottom:10px">'+
     (typeof _brainKeys!=='undefined'&&_brainKeys.gpt&&_brainKeys.gemini ? '⚡ TRIPLE ENGINE — Claude + GPT-4o + Gemini' :
      typeof _brainKeys!=='undefined'&&(_brainKeys.gpt||_brainKeys.gemini) ? '⚡ DUAL ENGINE — Claude + '+((_brainKeys&&_brainKeys.gpt)?'GPT-4o':'Gemini') :
      '🧠 Claude') +
     '</div>'+
-    '<div id="analysis-progress-'+lead.id+'" style="font-size:13px;color:var(--text);margin-bottom:8px">מנתח...</div><div style="font-size:11px;color:var(--muted);margin-bottom:16px">שלב 1/3: פרופיל → 2/3: אסטרטגיה → 3/3: מיילים</div><div style="height:4px;background:var(--surface2);border-radius:2px;overflow:hidden"><div id="analysis-bar-'+lead.id+'" style="height:100%;width:5%;background:var(--accent);border-radius:2px;transition:width 2s ease"></div></div></div>';var blocks=[{k:'executive_summary',i:'📊',t:'סיכום מנהלים',c:'rgba(108,99,255,0.08)',b:'rgba(108,99,255,0.25)'},{k:'sales_attack',i:'⚡',t:'אסטרטגיית תקיפה',c:'rgba(239,68,68,0.06)',b:'rgba(239,68,68,0.22)'},{k:'pain_points',i:'🎯',t:'כאבים ונקודות חולשה',c:'rgba(245,158,11,0.06)',b:'rgba(245,158,11,0.22)'},{k:'pricing_intel',i:'💰',t:'מודיעין תמחור',c:'rgba(16,185,129,0.06)',b:'rgba(16,185,129,0.22)'},{k:'social_intel',i:'📱',t:'רשתות חברתיות',c:'rgba(255,255,255,0.03)',b:'var(--border)'},{k:'meeting_prep',i:'🤝',t:'הכנה לשיחה',c:'rgba(139,92,246,0.06)',b:'rgba(139,92,246,0.22)'},{k:'discovery_questions',i:'❓',t:'שאלות Discovery',c:'rgba(255,255,255,0.02)',b:'var(--border)'},{k:'competitors_used',i:'🏁',t:'מתחרים בשימוש',c:'rgba(239,68,68,0.04)',b:'rgba(239,68,68,0.14)'}];var html='';blocks.forEach(function(b){var val=a[b.k]||(e&&e[b.k]);if(!val)return;var inner=Array.isArray(val)?val.map(function(v){return '<div style="padding:5px 0;border-bottom:1px solid rgba(255,255,255,0.04);font-size:12px;color:var(--text)">▸ '+v+'</div>';}).join(''):'<div style="color:var(--text);line-height:1.75;font-size:12px">'+val+'</div>';html+='<div style="background:'+b.c+';border:1px solid '+b.b+';border-radius:10px;padding:12px 14px;margin-bottom:10px"><div style="font-weight:700;color:var(--accent);margin-bottom:8px;font-size:11px;letter-spacing:.4px">'+b.i+' '+b.t.toUpperCase()+'</div>'+inner+'</div>';});if(a.next_action)html+='<div style="background:rgba(16,185,129,0.08);border:1px solid rgba(16,185,129,0.25);border-radius:10px;padding:10px 14px;margin-top:4px"><div style="font-weight:700;color:#10b981;margin-bottom:4px;font-size:11px">🎯 הצעד הבא</div><div style="color:var(--text);font-size:12px">'+a.next_action+'</div></div>';if(a.raw_research)html+='<details style="margin-top:10px"><summary style="cursor:pointer;color:var(--muted);font-size:11px;padding:4px 0">🔍 מחקר גולמי</summary><div style="padding:10px;font-size:11px;color:var(--muted);line-height:1.6;white-space:pre-wrap;max-height:260px;overflow-y:auto;background:rgba(0,0,0,0.2);border-radius:8px;margin-top:6px">'+a.raw_research+'</div></details>';if(a.enriched_at)html+='<div style="margin-top:8px;font-size:10px;color:var(--muted);text-align:left">עודכן: '+new Date(a.enriched_at).toLocaleString('he-IL')+'</div>';return html||'<div style="color:var(--muted);padding:12px">אין נתוני ניתוח</div>';}
+    '<div id="analysis-progress-'+lead.id+'" style="font-size:13px;color:var(--text);margin-bottom:8px">מנתח...</div><div style="font-size:11px;color:var(--muted);margin-bottom:16px">שלב 1/3: פרופיל → 2/3: אסטרטגיה → 3/3: מיילים</div><div style="height:4px;background:var(--surface2);border-radius:2px;overflow:hidden"><div id="analysis-bar-'+lead.id+'" style="height:100%;width:5%;background:var(--accent);border-radius:2px;transition:width 2s ease"></div></div></div>';var blocks=[{k:'executive_summary',i:'📊',t:'סיכום מנהלים',c:'rgba(108,99,255,0.08)',b:'rgba(108,99,255,0.25)'},{k:'sales_attack',i:'⚡',t:'אסטרטגיית תקיפה',c:'rgba(239,68,68,0.06)',b:'rgba(239,68,68,0.22)'},{k:'pain_points',i:'🎯',t:'כאבים ונקודות חולשה',c:'rgba(245,158,11,0.06)',b:'rgba(245,158,11,0.22)'},{k:'pricing_intel',i:'💰',t:'מודיעין תמחור',c:'rgba(16,185,129,0.06)',b:'rgba(16,185,129,0.22)'},{k:'social_intel',i:'📱',t:'רשתות חברתיות',c:'rgba(255,255,255,0.03)',b:'var(--border)'},{k:'meeting_prep',i:'🤝',t:'הכנה לשיחה',c:'rgba(139,92,246,0.06)',b:'rgba(139,92,246,0.22)'},{k:'discovery_questions',i:'❓',t:'שאלות Discovery',c:'rgba(255,255,255,0.02)',b:'var(--border)'},{k:'competitors_used',i:'🏁',t:'מתחרים בשימוש',c:'rgba(239,68,68,0.04)',b:'rgba(239,68,68,0.14)'}];var html='';blocks.forEach(function(b){var val=a[b.k]||(e&&e[b.k]);if(!val)return;var inner=Array.isArray(val)?val.map(function(v){return '<div style="padding:5px 0;border-bottom:1px solid rgba(255,255,255,0.04);font-size:12px;color:var(--text)">▸ '+v+'</div>';}).join(''):'<div style="color:var(--text);line-height:1.75;font-size:12px">'+val+'</div>';html+='<div style="background:'+b.c+';border:1px solid '+b.b+';border-radius:10px;padding:12px 14px;margin-bottom:10px"><div style="font-weight:700;color:var(--accent);margin-bottom:8px;font-size:11px;letter-spacing:.4px">'+b.i+' '+b.t.toUpperCase()+'</div>'+inner+'</div>';});if(a.next_action)html+='<div style="background:rgba(16,185,129,0.08);border:1px solid rgba(16,185,129,0.25);border-radius:10px;padding:10px 14px;margin-top:4px"><div style="font-weight:700;color:#10b981;margin-bottom:4px;font-size:11px">🎯 הצעד הבא</div><div style="color:var(--text);font-size:12px">'+a.next_action+'</div></div>';if(a.raw_research)html+='<details style="margin-top:10px"><summary style="cursor:pointer;color:var(--muted);font-size:11px;padding:4px 0">🔍 מחקר גולמי</summary><div style="padding:10px;font-size:11px;color:var(--muted);line-height:1.6;white-space:pre-wrap;max-height:260px;overflow-y:auto;background:rgba(0,0,0,0.2);border-radius:8px;margin-top:6px">'+a.raw_research+'</div></details>';if(a.enriched_at)html+='<div style="margin-top:8px;font-size:10px;color:var(--muted);text-align:left">עודכן: '+new Date(a.enriched_at).toLocaleString('he-IL')+'</div>';html += '<div style="margin-top:16px;display:flex;gap:10px;justify-content:space-between;align-items:center">'+'<button onclick="window.showAnalysisChoice(\'+lead.id+\')" style="background:rgba(124,58,237,0.12);border:1px solid rgba(124,58,237,0.3);border-radius:8px;padding:7px 16px;font-size:11px;font-weight:700;color:#a78bfa;cursor:pointer;font-family:Heebo,sans-serif">&#x1F504; הפעל ניתוח חדש</button>'+(a.triple_engine ? '<span style="font-size:10px;color:#a78bfa;display:flex;align-items:center;gap:5px"><span style="width:6px;height:6px;border-radius:50%;background:#a78bfa;display:inline-block"></span>&#x2696;&#xFE0F; Meta-Judge</span>' : '<span style="font-size:10px;color:#F59E0B;display:flex;align-items:center;gap:5px"><span style="width:6px;height:6px;border-radius:50%;background:#F59E0B;display:inline-block"></span>&#x1F9E0; Claude</span>')+'</div>';
+    return html||'<div style="color:var(--muted);padding:12px">אין נתוני ניתוח</div>';}
 
   function _ltab_emails(lead,ai,enr){
     var a=ai||{},e=enr||{};
@@ -3755,7 +3756,7 @@ BP18: Nurture existing customers — repeat customers spend 67% more
       '<div style="padding:32px;text-align:center">'+
       '<div style="font-size:40px;margin-bottom:12px">✉️</div>'+
       '<div style="font-size:13px;color:var(--muted);margin-bottom:16px">המיילים ייווצרו אחרי ניתוח AI</div>'+
-      '<button onclick="window.triggerFullAnalysis('+lead.id+')" style="background:var(--accent);border:none;border-radius:8px;padding:10px 24px;font-size:13px;color:#fff;cursor:pointer;font-family:Heebo,sans-serif;font-weight:700">🚀 צור מיילים</button>'+
+      '<button onclick="window.showAnalysisChoice('+lead.id+')" style="background:var(--accent);border:none;border-radius:8px;padding:10px 24px;font-size:13px;color:#fff;cursor:pointer;font-family:Heebo,sans-serif;font-weight:700">🚀 צור מיילים</button>'+
       '</div>');
 
     var out='<div style="background:rgba(255,255,255,0.03);border:1px solid var(--border);border-radius:8px;padding:10px 14px;margin-bottom:12px;display:flex;align-items:center;gap:12px">'+
@@ -4857,6 +4858,56 @@ BP6-10: תעדף (פלטפורמה ישנה+דומיין+6+ אירועים), Dis
   // ════════════════════════════════════════════════════════════════
   //  AI PIPELINE — 3 phases, generous timeouts, retry logic
   // ════════════════════════════════════════════════════════════════
+
+  // ── Analysis Engine Chooser ────────────────────────────────────
+  window.showAnalysisChoice = function(leadId) {
+    var lead = (typeof leads !== 'undefined' ? leads : []).find(function(l){ return l.id === leadId; });
+    if (!lead) return;
+    var hasGPT    = _brainKeys && _brainKeys.gpt;
+    var hasGemini = _brainKeys && _brainKeys.gemini;
+    var hasTriple = hasGPT || hasGemini;
+    var hadPrev   = lead.ai_analysis && lead.ai_analysis.status === 'done';
+    var prevEngine= lead.ai_analysis && lead.ai_analysis.triple_engine ? 'Meta-Judge' : 'Claude';
+    var prevScore = lead.ai_analysis && lead.ai_analysis.score;
+    var prevBadge = hadPrev
+      ? '<div style="font-size:11px;color:var(--muted);margin-bottom:16px;padding:8px 12px;background:rgba(255,255,255,0.04);border-radius:8px">' +
+        'ניתוח קודם: <strong style="color:var(--text)">' + prevEngine + '</strong>' +
+        (prevScore ? ' · ציון <strong style="color:var(--accent)">' + prevScore + '</strong>' : '') + '</div>'
+      : '<div style="font-size:11px;color:var(--muted);margin-bottom:16px">ליד ללא ניתוח קודם</div>';
+    var tripleBtn = hasTriple
+      ? '<button onclick="closeAnalysisChoice();window.triggerFullAnalysisMode(' + leadId + ',\'triple\')" style="width:100%;background:linear-gradient(135deg,rgba(124,58,237,0.2),rgba(59,130,246,0.15));border:1px solid rgba(124,58,237,0.4);border-radius:10px;padding:14px 16px;cursor:pointer;font-family:Heebo,sans-serif;text-align:right;margin-bottom:10px">' +
+          '<div style="font-size:13px;font-weight:800;color:#a78bfa;margin-bottom:4px">&#x26A1; Meta-Judge &#x2014; Triple Engine</div>' +
+          '<div style="font-size:11px;color:var(--muted)">Claude + ' + (hasGPT?'GPT-4o':'') + (hasGPT&&hasGemini?' + ':'') + (hasGemini?'Gemini':'') + ' במקביל · Meta-Judge מחליט · שומר לזיכרון</div>' +
+        '</button>'
+      : '<div style="width:100%;background:rgba(255,255,255,0.03);border:1px solid rgba(255,255,255,0.08);border-radius:10px;padding:14px 16px;margin-bottom:10px;opacity:0.5">' +
+          '<div style="font-size:13px;font-weight:800;color:var(--muted);margin-bottom:4px">&#x26A1; Meta-Judge &#x2014; Triple Engine</div>' +
+          '<div style="font-size:11px;color:var(--muted)">הוסף GPT/Gemini keys ב-AI Brain להפעלה</div>' +
+        '</div>';
+    var html = '<div class="brain-detail-overlay" id="analysis-choice-modal" onclick="if(event.target===this)closeAnalysisChoice()">' +
+      '<div style="background:#141418;border:1px solid rgba(124,58,237,0.3);border-radius:16px;padding:24px;max-width:460px;width:100%;box-shadow:0 24px 60px rgba(0,0,0,0.7)">' +
+        '<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:16px">' +
+          '<div style="font-size:16px;font-weight:800;color:var(--text)">&#x1F9E0; בחר מנוע ניתוח</div>' +
+          '<button onclick="closeAnalysisChoice()" style="background:rgba(255,255,255,0.06);border:1px solid var(--border);border-radius:6px;padding:4px 10px;color:var(--muted);cursor:pointer;font-size:12px;font-family:Heebo,sans-serif">&#x2715;</button>' +
+        '</div>' +
+        '<div style="font-size:13px;font-weight:600;color:var(--text);margin-bottom:8px">' + (lead.name||'ליד') + '</div>' +
+        prevBadge + tripleBtn +
+        '<button onclick="closeAnalysisChoice();window.triggerFullAnalysisMode(' + leadId + ',\'claude\')" style="width:100%;background:rgba(245,158,11,0.1);border:1px solid rgba(245,158,11,0.3);border-radius:10px;padding:14px 16px;cursor:pointer;font-family:Heebo,sans-serif;text-align:right">' +
+          '<div style="font-size:13px;font-weight:800;color:#F59E0B;margin-bottom:4px">&#x1F9E0; Claude בלבד</div>' +
+          '<div style="font-size:11px;color:var(--muted)">ניתוח מעמיק · 3 שלבים · מהיר יותר · ללא Meta-Judge</div>' +
+        '</button>' +
+      '</div></div>';
+    document.body.insertAdjacentHTML('beforeend', html);
+  };
+  window.closeAnalysisChoice = function() {
+    var m = document.getElementById('analysis-choice-modal');
+    if (m) m.remove();
+  };
+  window.triggerFullAnalysisMode = async function(leadId, mode) {
+    window._forceAnalysisMode = mode;
+    try { await window.triggerFullAnalysis(leadId, false); }
+    finally { window._forceAnalysisMode = null; }
+  };
+
   var _aiInProgress = {};
 
   window.triggerFullAnalysis = async function(leadId, silent) {
@@ -4886,9 +4937,10 @@ BP6-10: תעדף (פלטפורמה ישנה+דומיין+6+ אירועים), Dis
     }
 
     try {
-      // Use Triple Engine if keys available, else fall back to Claude alone
-      var hasExtra = (_brainKeys && (_brainKeys.gpt || _brainKeys.gemini));
-      var result = await (hasExtra ? window._tripleEnginePipeline(lead) : window._deepAIPipeline(lead));
+      var hasExtra  = (_brainKeys && (_brainKeys.gpt || _brainKeys.gemini));
+      var forceMode = window._forceAnalysisMode;
+      var useTriple = forceMode === 'triple' ? true : forceMode === 'claude' ? false : hasExtra;
+      var result = await (useTriple ? window._tripleEnginePipeline(lead) : window._deepAIPipeline(lead));
       lead.ai_analysis = result;
       lead.score   = result.score   || lead.score   || 50;
       lead.tier    = result.tier    || lead.tier    || 'B';
