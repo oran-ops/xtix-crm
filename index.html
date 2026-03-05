@@ -5028,14 +5028,19 @@ BP6-10: תעדף (פלטפורמה ישנה+דומיין+6+ אירועים), Dis
             raw_research:get('raw_research')};
         }
       } catch(err) {
-        if (attempt < MAX_RETRIES && (err.name==='TimeoutError'||err.name==='AbortError'||(err.message||'').includes('timeout'))) {
-          console.warn('[AI] Timeout attempt', attempt+1, '— retrying...');
-          await new Promise(function(r){setTimeout(r,3000);});
+        if (err.name === 'TimeoutError' || err.name === 'AbortError' || (err.message||'').includes('timeout')) {
+          // Don't retry on timeout — it will just waste more time
+          throw err;
+        }
+        if (attempt < MAX_RETRIES && (err.message||'').includes('429')) {
+          var wait = (attempt+1) * 15000;
+          console.warn('[AI] 429 — waiting', wait/1000, 's');
+          await new Promise(function(r){setTimeout(r,wait);});
           continue;
         }
         throw err;
       }
-    }
+    } // end for
     throw new Error('AI call failed after ' + MAX_RETRIES + ' retries');
   }
 
@@ -5059,7 +5064,7 @@ BP6-10: תעדף (פלטפורמה ישנה+דומיין+6+ אירועים), Dis
           { role: 'user',   content: userPrompt }
         ]
       }),
-      signal: AbortSignal.timeout(60000)
+      signal: AbortSignal.timeout(45000)
     });
     if (!res.ok) {
       var err = await res.json().catch(function(){return {};});
@@ -5078,7 +5083,7 @@ BP6-10: תעדף (פלטפורמה ישנה+דומיין+6+ אירועים), Dis
     var key = _brainKeys && _brainKeys.gemini;
     if (!key) throw new Error('Gemini key not configured');
     var res = await fetch(
-      'https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=' + key,
+      'https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=' + key,
       {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -5087,7 +5092,7 @@ BP6-10: תעדף (פלטפורמה ישנה+דומיין+6+ אירועים), Dis
           contents: [{ parts: [{ text: userPrompt }] }],
           generationConfig: { maxOutputTokens: maxTokens || 1500, temperature: 0.7 }
         }),
-        signal: AbortSignal.timeout(60000)
+        signal: AbortSignal.timeout(45000)
       }
     );
     if (!res.ok) {
@@ -5124,33 +5129,36 @@ BP6-10: תעדף (פלטפורמה ישנה+דומיין+6+ אירועים), Dis
     };
   }
 
-  // ── Consensus Engine ────────────────────────────────────────────
+  // ── Consensus Engine — works with any combination of available scores ──
   function _calcConsensus(claudeScore, gptScore, geminiScore) {
-    var scores = [claudeScore];
-    var weights = [0.5]; // Claude baseline weight
-    if (gptScore !== null)    { scores.push(gptScore);    weights.push(0.3); }
-    if (geminiScore !== null) { scores.push(geminiScore); weights.push(0.2); }
+    // Build list of available scores with weights
+    var pairs = [
+      { score: claudeScore,  weight: 0.5 },
+      { score: gptScore,     weight: 0.3 },
+      { score: geminiScore,  weight: 0.2 }
+    ].filter(function(p) { return p.score !== null && p.score !== undefined; });
 
-    // Normalize weights
-    var wTotal = weights.reduce(function(a,b){return a+b;}, 0);
-    weights = weights.map(function(w){return w/wTotal;});
+    if (!pairs.length) return { weightedScore: 50, spread: 0, confidence: 'low', hadConflict: false };
 
-    var weighted = scores.reduce(function(sum, s, i){ return sum + s*weights[i]; }, 0);
-    var spread   = Math.max.apply(null, scores) - Math.min.apply(null, scores);
+    // Re-normalize weights across available engines only
+    var wTotal = pairs.reduce(function(a, p) { return a + p.weight; }, 0);
+    pairs.forEach(function(p) { p.weight = p.weight / wTotal; });
 
-    var confidence = spread <= 10 ? 'high' : spread <= 25 ? 'mid' : 'low';
+    var weighted = Math.round(pairs.reduce(function(sum, p) { return sum + p.score * p.weight; }, 0));
+    var scores   = pairs.map(function(p) { return p.score; });
+    var spread   = scores.length > 1 ? Math.max.apply(null, scores) - Math.min.apply(null, scores) : 0;
+
+    var confidence  = spread <= 10 ? 'high' : spread <= 25 ? 'mid' : 'low';
     var hadConflict = spread > (_brainConfig && _brainConfig.conflictThreshold || 20);
 
-    return {
-      weightedScore: Math.round(weighted),
-      spread:        spread,
-      confidence:    confidence,
-      hadConflict:   hadConflict
-    };
+    return { weightedScore: weighted, spread: spread, confidence: confidence, hadConflict: hadConflict };
   }
 
-  // ── Meta-Judge — Claude judges all 3 results ────────────────────
-  async function _metaJudge(lead, claudeResult, gptResult, geminiResult, history) {
+  // ── Meta-Judge — Claude judges all results + knows which engines failed ──
+  async function _metaJudge(lead, baseResult, gptResult, geminiResult, history, engineContext) {
+    var ctx = engineContext || {};
+    var t0 = Date.now();
+
     var historyStr = '';
     if (history && history.length) {
       historyStr = '\n\nהיסטוריית החלטות קודמות בסגמנט זה:\n' +
@@ -5161,37 +5169,52 @@ BP6-10: תעדף (פלטפורמה ישנה+דומיין+6+ אירועים), Dis
         }).join('\n');
     }
 
-    var system = 'אתה Meta-Judge של מערכת XTIX CRM. קיבלת ניתוחים מ-3 מנועי AI על אותו ליד.' +
-                 ' תפקידך: לשפוט בכוח ולהחליט את הציון והמלצת הפעולה הסופית.' +
+    var availableCount = ctx.successCount || 1;
+    var totalCount     = ctx.configuredCount || 1;
+    var partialNote    = availableCount < totalCount
+      ? '\n⚠️ שים לב: ' + (totalCount - availableCount) + ' מנוע(ים) נכשלו (' +
+        [ctx.claudeStatus !== 'ok' ? 'Claude:'+ctx.claudeStatus : '',
+         ctx.gptStatus    !== 'ok' && ctx.gptStatus !== 'skipped' ? 'GPT:'+ctx.gptStatus : '',
+         ctx.geminiStatus !== 'ok' && ctx.geminiStatus !== 'skipped' ? 'Gemini:'+ctx.geminiStatus : '']
+        .filter(Boolean).join(', ') +
+        '). בסס את ההחלטה על המנועים הזמינים בלבד.'
+      : '';
+
+    var system = 'אתה Meta-Judge של מערכת XTIX CRM. קיבלת ניתוחים מ-' + totalCount + ' מנועי AI על אותו ליד.' +
+                 ' תפקידך: לשפוט ולהחליט את הציון והמלצת הפעולה הסופית.' +
                  ' אתה לא ממצע — אתה מחליט. אם יש מחלוקת, נמק למה אתה בוחר צד.' +
+                 ' אם חלק מהמנועים נכשלו, בסס את ההחלטה על הזמינים.' +
                  ' החזר JSON נקי בלבד.';
 
     var user = 'ליד: ' + (lead.name||'') + ' | פלטפורמה: ' + (lead.platform||'') +
                ' | סגמנט: ' + (lead.segment||lead.type||'') +
-               '\n\nתוצאות 3 המנועים:' +
-               '\nClaude: ציון ' + (claudeResult.score||50) + ' | ' + (claudeResult.summary||'') +
-               '\nGPT-4o: ' + (gptResult ? 'ציון ' + (gptResult.score||50) + ' | ' + (gptResult.summary||'') : 'לא זמין') +
-               '\nGemini: ' + (geminiResult ? 'ציון ' + (geminiResult.score||50) + ' | ' + (geminiResult.summary||'') : 'לא זמין') +
-               historyStr +
+               '\n\nתוצאות המנועים:' + (ctx.engineSummary || '') +
+               partialNote + historyStr +
                '\n\nהחלט:\n1. מה הציון הסופי (0-100)? נמק.\n2. מה המלצת הפעולה?\n3. על מה המנועים חלקו?\n4. מה רמת הביטחון שלך?' +
                '\n\nהחזר JSON: { "meta_score": N, "meta_reasoning": "...", "meta_action": "...", ' +
                '"disagreements": [...], "confidence": "high/mid/low", ' +
                '"final_summary": "...", "final_tier": "A/B/C" }';
 
     try {
-      var verdict = await _callAI(system, user, 1000, 45000);
+      var verdict = await _withTimeout(
+        _callAI(system, user, 1000, 30000),
+        35000,
+        'Meta-Judge'
+      );
+      if (!verdict) throw new Error('Meta-Judge timeout');
+      verdict._judgeMs = Date.now() - t0;
       return verdict;
     } catch(e) {
       console.warn('[Brain] Meta-Judge failed:', e.message);
-      // Fallback: use Claude result as verdict
       return {
-        meta_score:     claudeResult.score || 50,
-        meta_reasoning: 'Meta-Judge לא זמין — משתמש בתוצאת Claude',
-        meta_action:    claudeResult.next_action || '',
+        meta_score:     baseResult.score || 50,
+        meta_reasoning: 'Meta-Judge לא זמין — משתמש בתוצאה הטובה ביותר הזמינה',
+        meta_action:    baseResult.next_action || '',
         disagreements:  [],
         confidence:     'low',
-        final_summary:  claudeResult.summary || '',
-        final_tier:     claudeResult.tier || 'B'
+        final_summary:  baseResult.summary || '',
+        final_tier:     baseResult.tier || 'B',
+        _judgeMs:       Date.now() - t0
       };
     }
   }
@@ -5288,100 +5311,179 @@ BP6-10: תעדף (פלטפורמה ישנה+דומיין+6+ אירועים), Dis
       }
     }
 
+    // ════════════════════════════════════════════════════════════════
+    //  RESILIENT ENGINE RUNNER
+    //  כל מנוע רץ בנפרד עם tracking מלא — timeout, error, duration
+    //  אם 1 או 2 נכשלו → ממשיכים. רק אם כולם נכשלו → throw.
+    // ════════════════════════════════════════════════════════════════
+
+    // ── Engine result envelope ──────────────────────────────────────
+    // { id, result, status: 'ok'|'error'|'timeout'|'skipped', error, durationMs }
+    function _engineEnvelope(id, result, status, error, startMs) {
+      return {
+        id:         id,
+        result:     result  || null,
+        status:     status,
+        error:      error   || null,
+        durationMs: Date.now() - startMs
+      };
+    }
+
+    // ── Hard timeout wrapper ─────────────────────────────────────────
+    function _withTimeout(promise, ms, label) {
+      var timeout = new Promise(function(resolve) {
+        setTimeout(function() {
+          console.warn('[Brain] ' + label + ' hard timeout after ' + (ms/1000) + 's');
+          resolve('__TIMEOUT__');
+        }, ms);
+      });
+      return Promise.race([promise, timeout]);
+    }
+
+    // ── Run a single engine safely — always resolves, never rejects ──
+    async function _runEngine(id, promiseFn, timeoutMs) {
+      var t0 = Date.now();
+      dbgUpdate(id === 'judge' ? 'judge' : id, '🔄 רץ...', null, false);
+      try {
+        var raw = await _withTimeout(promiseFn(), timeoutMs, id);
+        if (raw === '__TIMEOUT__') {
+          dbgUpdate(id, '⏱ Timeout (' + (timeoutMs/1000) + 's)', null, true);
+          return _engineEnvelope(id, null, 'timeout', 'timeout after ' + timeoutMs + 'ms', t0);
+        }
+        if (!raw) {
+          dbgUpdate(id, '⚠️ תגובה ריקה', null, true);
+          return _engineEnvelope(id, null, 'error', 'empty response', t0);
+        }
+        var score = raw.score || null;
+        dbgUpdate(id, '✅ ' + ((Date.now()-t0)/1000).toFixed(1) + 's' + (score ? ' — ציון: ' + score : ''), score, false);
+        return _engineEnvelope(id, raw, 'ok', null, t0);
+      } catch(e) {
+        var isTimeout = e.name === 'TimeoutError' || e.name === 'AbortError' || (e.message||'').includes('timeout');
+        var status = isTimeout ? 'timeout' : 'error';
+        dbgUpdate(id, (isTimeout ? '⏱ Timeout' : '❌ שגיאה') + ': ' + (e.message||'').substring(0,40), null, true);
+        return _engineEnvelope(id, null, status, e.message, t0);
+      }
+    }
+
+    // ── Debug: update panel header with live engine count ───────────
+    function _dbgSetHeader(okCount, totalCount) {
+      var el = document.querySelector('#_triple_debug_panel div[style*="font-size:13px"]');
+      if (el) el.textContent = '🔬 Triple Engine — ' + okCount + '/' + totalCount + ' מנועים פעילים';
+    }
+
     showDebugPanel();
 
-    // ── Run all engines in parallel ──
-    var claudePromise = _deepAIPipeline(lead); // full existing pipeline
-    var gptPromise    = null;
-    var geminiPromise = null;
+    // ── Mark skipped engines immediately ────────────────────────────
+    if (!(_brainKeys && _brainKeys.gpt))    dbgUpdate('gpt',    '○ לא מוגדר', null, false);
+    if (!(_brainKeys && _brainKeys.gemini)) dbgUpdate('gemini', '○ לא מוגדר', null, false);
 
+    // ── Run all 3 engines in parallel ───────────────────────────────
+    var enginePromises = [
+      _runEngine('claude', function() { return _deepAIPipeline(lead); }, 120000)
+    ];
     if (_brainKeys && _brainKeys.gpt) {
-      gptPromise = _callGPT(prompt.system, prompt.user, 1500).catch(function(e) {
-        console.warn('[Brain] GPT failed:', e.message); return null;
-      });
-    }
-    if (_brainKeys && _brainKeys.gemini) {
-      geminiPromise = _callGemini(prompt.system, prompt.user, 1500).catch(function(e) {
-        console.warn('[Brain] Gemini failed:', e.message); return null;
-      });
-    }
-
-    // Wait for all
-    var results = await Promise.allSettled([
-      claudePromise,
-      gptPromise    || Promise.resolve(null),
-      geminiPromise || Promise.resolve(null)
-    ]);
-
-    var claudeResult = results[0].status === 'fulfilled' ? results[0].value : null;
-    var gptResult    = results[1].status === 'fulfilled' ? results[1].value : null;
-    var geminiResult = results[2].status === 'fulfilled' ? results[2].value : null;
-
-    // ── Debug Panel updates after parallel engines ──
-    if (claudeResult) {
-      dbgUpdate('claude', '✅ הושלם — ציון: ' + (claudeResult.score || '?'), claudeResult.score, false);
+      enginePromises.push(_runEngine('gpt', function() {
+        return _callGPT(prompt.system, prompt.user, 1500);
+      }, 50000));
     } else {
-      dbgUpdate('claude', '❌ נכשל', null, true);
+      enginePromises.push(Promise.resolve(_engineEnvelope('gpt', null, 'skipped', 'key not configured', Date.now())));
     }
-
-    if (_brainKeys && _brainKeys.gpt) {
-      if (gptResult) {
-        dbgUpdate('gpt', '✅ הושלם — ציון: ' + (gptResult.score || '?'), gptResult.score, false);
-      } else {
-        dbgUpdate('gpt', '❌ נכשל / timeout', null, true);
-      }
-    }
-
     if (_brainKeys && _brainKeys.gemini) {
-      if (geminiResult) {
-        dbgUpdate('gemini', '✅ הושלם — ציון: ' + (geminiResult.score || '?'), geminiResult.score, false);
-      } else {
-        dbgUpdate('gemini', '❌ נכשל / timeout', null, true);
-      }
+      enginePromises.push(_runEngine('gemini', function() {
+        return _callGemini(prompt.system, prompt.user, 1500);
+      }, 50000));
+    } else {
+      enginePromises.push(Promise.resolve(_engineEnvelope('gemini', null, 'skipped', 'key not configured', Date.now())));
     }
 
-    // Claude is mandatory — if it failed, throw
-    if (!claudeResult) throw new Error('Claude pipeline failed');
+    var engineResults = await Promise.all(enginePromises);
+    var claudeEnv  = engineResults[0];
+    var gptEnv     = engineResults[1];
+    var geminiEnv  = engineResults[2];
 
-    setP(80, '⚖️ Meta-Judge (Claude) קורא את ' + (activeEngines) + ' הניתוחים...');
+    var claudeResult  = claudeEnv.result;
+    var gptResult     = gptEnv.result;
+    var geminiResult  = geminiEnv.result;
 
-    // If only Claude available — skip Meta-Judge overhead
-    if (!gptResult && !geminiResult) {
-      return claudeResult;
+    // ── Count successful engines ─────────────────────────────────────
+    var successCount = [claudeEnv, gptEnv, geminiEnv].filter(function(e) { return e.status === 'ok'; }).length;
+    var configuredCount = 1 + (_brainKeys&&_brainKeys.gpt?1:0) + (_brainKeys&&_brainKeys.gemini?1:0);
+    _dbgSetHeader(successCount, configuredCount);
+
+    // ── If ALL configured engines failed → abort ─────────────────────
+    var allFailed = [claudeEnv, gptEnv, geminiEnv]
+      .filter(function(e) { return e.status !== 'skipped'; })
+      .every(function(e)  { return e.status !== 'ok'; });
+
+    if (allFailed) {
+      dbgUpdate('judge', '🚨 כל המנועים נכשלו', null, true);
+      throw new Error('כל מנועי ה-AI נכשלו — ' +
+        [claudeEnv, gptEnv, geminiEnv]
+          .filter(function(e) { return e.status !== 'skipped'; })
+          .map(function(e) { return e.id + ': ' + e.status; })
+          .join(', ')
+      );
     }
 
-    // ── Consensus calculation ──
+    // ── Pick best available result as Claude baseline ─────────────────
+    // Fallback chain: Claude → GPT → Gemini
+    var baseResult = claudeResult || gptResult || geminiResult;
+
+    setP(80, '⚖️ Meta-Judge — מנתח ' + successCount + '/' + configuredCount + ' תוצאות...');
+
+    // ── Consensus (only from successful engines) ──────────────────────
     var consensus = _calcConsensus(
-      claudeResult.score || 50,
-      gptResult    ? (gptResult.score    || 50) : null,
-      geminiResult ? (geminiResult.score || 50) : null
+      claudeResult  ? (claudeResult.score  || 50) : null,
+      gptResult     ? (gptResult.score     || 50) : null,
+      geminiResult  ? (geminiResult.score  || 50) : null
     );
 
-    // ── Load history for Meta-Judge context ──
+    // ── Load history for calibration ──────────────────────────────────
     var history = [];
     try { history = await window.getBrainHistory(lead.segment || lead.type, 8); } catch(e){}
 
-    // ── Meta-Judge decides ──
-    setP(88, '⚖️ Meta-Judge מחליט — מי צודק? מה הציון הסופי?');
-    dbgUpdate('judge', '🔄 מנתח ' + activeEngines + ' תוצאות...', null, false);
-    var verdict = await _metaJudge(lead, claudeResult, gptResult, geminiResult, history);
-    dbgUpdate('judge', '✅ החלטה — ציון סופי: ' + (verdict.meta_score || '?'), verdict.meta_score, false);
+    // ── Meta-Judge — gets full picture including failures ─────────────
+    setP(88, '⚖️ Meta-Judge מחליט...');
+    dbgUpdate('judge', '🔄 מנתח תוצאות...', null, false);
 
-    // ── Merge: Claude result + Meta-Judge verdict ──
-    var finalResult = Object.assign({}, claudeResult, {
-      score:             verdict.meta_score     || claudeResult.score,
-      tier:              verdict.final_tier     || claudeResult.tier,
-      summary:           verdict.final_summary  || claudeResult.summary,
-      executive_summary: verdict.meta_reasoning || claudeResult.executive_summary,
-      next_action:       verdict.meta_action    || claudeResult.next_action,
+    var engineSummary =
+      '\nClaude (' + claudeEnv.status + '): ' +
+        (claudeResult ? 'ציון ' + (claudeResult.score||50) + ' | ' + (claudeResult.summary||'').substring(0,80) : claudeEnv.error || 'נכשל') +
+      '\nGPT-4o (' + gptEnv.status + '): ' +
+        (gptResult ? 'ציון ' + (gptResult.score||50) + ' | ' + (gptResult.summary||'').substring(0,80) : gptEnv.status === 'skipped' ? 'לא מוגדר' : gptEnv.error || 'נכשל') +
+      '\nGemini (' + geminiEnv.status + '): ' +
+        (geminiResult ? 'ציון ' + (geminiResult.score||50) + ' | ' + (geminiResult.summary||'').substring(0,80) : geminiEnv.status === 'skipped' ? 'לא מוגדר' : geminiEnv.error || 'נכשל');
+
+    var verdict = await _metaJudge(lead, baseResult, gptResult, geminiResult, history, {
+      engineSummary: engineSummary,
+      successCount:  successCount,
+      configuredCount: configuredCount,
+      claudeStatus:  claudeEnv.status,
+      gptStatus:     gptEnv.status,
+      geminiStatus:  geminiEnv.status,
+      consensus:     consensus
+    });
+
+    dbgUpdate('judge', '✅ ' + ((verdict._judgeMs||0)/1000).toFixed(1) + 's — ציון: ' + (verdict.meta_score||'?'), verdict.meta_score, false);
+
+    // ── Merge final result ────────────────────────────────────────────
+    var finalResult = Object.assign({}, baseResult, {
+      score:             verdict.meta_score     || baseResult.score,
+      tier:              verdict.final_tier     || baseResult.tier,
+      summary:           verdict.final_summary  || baseResult.summary,
+      executive_summary: verdict.meta_reasoning || baseResult.executive_summary,
+      next_action:       verdict.meta_action    || baseResult.next_action,
       status:            'done',
       triple_engine:     true,
+      engines_ok:        successCount,
+      engines_total:     configuredCount,
+      engine_statuses:   { claude: claudeEnv.status, gpt: gptEnv.status, gemini: geminiEnv.status },
       meta_score:        verdict.meta_score,
       meta_reasoning:    verdict.meta_reasoning,
       meta_action:       verdict.meta_action,
-      claude_score:      claudeResult.score,
-      gpt_score:         gptResult    ? gptResult.score    : null,
-      gemini_score:      geminiResult ? geminiResult.score : null,
+      claude_score:      claudeResult  ? claudeResult.score  : null,
+      gpt_score:         gptResult     ? gptResult.score     : null,
+      gemini_score:      geminiResult  ? geminiResult.score  : null,
       confidence:        consensus.confidence,
       had_conflict:      consensus.hadConflict,
       disagreements:     verdict.disagreements || []
@@ -5389,56 +5491,59 @@ BP6-10: תעדף (פלטפורמה ישנה+דומיין+6+ אירועים), Dis
 
     setP(95, '💾 שומר החלטה ל-AI Brain Memory...');
 
-    // ── Save to Brain Memory (Firebase ai_decisions) ──
+    // ── Save to Brain Memory ──────────────────────────────────────────
     try {
       await window.saveBrainDecision({
         lead_id:          lead.id,
         lead_name:        lead.name,
         lead_segment:     lead.segment || lead.type || '',
-        claude_score:     claudeResult.score   || 50,
-        claude_summary:   claudeResult.summary || '',
-        gpt_score:        gptResult    ? (gptResult.score    || 50) : null,
-        gpt_summary:      gptResult    ? (gptResult.summary  || '') : null,
-        gemini_score:     geminiResult ? (geminiResult.score || 50) : null,
-        gemini_summary:   geminiResult ? (geminiResult.summary||'') : null,
+        claude_score:     claudeResult  ? (claudeResult.score  || 50) : null,
+        claude_summary:   claudeResult  ? (claudeResult.summary || '') : null,
+        gpt_score:        gptResult     ? (gptResult.score     || 50) : null,
+        gpt_summary:      gptResult     ? (gptResult.summary   || '') : null,
+        gemini_score:     geminiResult  ? (geminiResult.score  || 50) : null,
+        gemini_summary:   geminiResult  ? (geminiResult.summary|| '') : null,
         meta_score:       verdict.meta_score,
         meta_reasoning:   verdict.meta_reasoning,
         meta_action:      verdict.meta_action,
         confidence:       consensus.confidence,
         had_conflict:     consensus.hadConflict,
-        disagreements:    verdict.disagreements || []
+        disagreements:    verdict.disagreements || [],
+        engine_statuses:  { claude: claudeEnv.status, gpt: gptEnv.status, gemini: geminiEnv.status },
+        engines_ok:       successCount
       });
     } catch(e) { console.warn('[Brain] saveBrainDecision failed:', e.message); }
 
-    setP(100, activeEngines > 1 ? '✅ Triple Engine הושלם — Meta-Judge החליט' : '✅ ניתוח Claude הושלם');
+    setP(100, successCount === configuredCount
+      ? '✅ ' + configuredCount + '/' + configuredCount + ' מנועים — Meta-Judge החליט'
+      : '⚠️ ' + successCount + '/' + configuredCount + ' מנועים — Meta-Judge החליט בכל זאת');
 
-    // ── Auto-close Debug Panel with summary after 6s ──
+    // ── Auto-close Debug Panel with summary after 6s ──────────────────
     (function() {
       var panel = document.getElementById('_triple_debug_panel');
       if (!panel) return;
-      // Clear the elapsed timer
       if (panel._dbgTimer) clearInterval(panel._dbgTimer);
 
-      // Update timing line to show final elapsed
       var elEl = document.getElementById('_dbg_elapsed');
       var timingEl = document.getElementById('_dbg_timing');
       if (timingEl && elEl) {
-        timingEl.innerHTML = '✅ הושלם ב-<strong style="color:#a78bfa">' + elEl.textContent + 's</strong> — נסגר אוטומטית...';
+        timingEl.innerHTML = (successCount < configuredCount
+          ? '<span style="color:#F59E0B">⚠️ ' + successCount + '/' + configuredCount + ' מנועים</span> — '
+          : '✅ ') +
+          'הושלם ב-<strong style="color:#a78bfa">' + elEl.textContent + 's</strong>';
       }
 
-      // Add final score summary bar at bottom of panel
       var summary = document.createElement('div');
       summary.style.cssText = 'margin-top:8px;padding:8px 12px;background:rgba(245,158,11,0.1);border:1px solid rgba(245,158,11,0.3);border-radius:8px;text-align:center';
       var finalScore = finalResult.score || '?';
-      var finalTier  = finalResult.tier  || '';
       var scoreColor = finalScore >= 80 ? '#10b981' : finalScore >= 60 ? '#F59E0B' : '#ef4444';
       summary.innerHTML =
         '<div style="font-size:11px;color:rgba(255,255,255,0.4);margin-bottom:4px">ציון סופי (Meta-Judge)</div>' +
         '<div style="font-size:26px;font-weight:900;color:' + scoreColor + '">' + finalScore + '</div>' +
-        (finalTier ? '<div style="font-size:11px;color:rgba(255,255,255,0.5);margin-top:2px">' + finalTier + '</div>' : '');
+        (finalResult.tier ? '<div style="font-size:11px;color:rgba(255,255,255,0.5);margin-top:2px">' + finalResult.tier + '</div>' : '') +
+        (successCount < configuredCount ? '<div style="font-size:10px;color:#F59E0B;margin-top:4px">⚠️ ' + (configuredCount - successCount) + ' מנוע(ים) נכשל — תוצאה חלקית</div>' : '');
       panel.appendChild(summary);
 
-      // Fade out and remove after 6 seconds
       setTimeout(function() {
         panel.style.transition = 'opacity 0.8s ease';
         panel.style.opacity = '0';
