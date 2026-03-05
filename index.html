@@ -4997,10 +4997,16 @@ BP6-10: תעדף (פלטפורמה ישנה+דומיין+6+ אירועים), Dis
   };
 
   // ── callAI helper — retries up to 2x on timeout/5xx ──────────
-  async function _callAI(sys, usr, maxTok, timeoutMs) {
+  async function _callAI(sys, usr, maxTok, timeoutMs, externalSignal) {
     var MAX_RETRIES = 2;
     for (var attempt = 0; attempt <= MAX_RETRIES; attempt++) {
+      // If external signal already aborted — stop immediately
+      if (externalSignal && externalSignal.aborted) {
+        throw new Error('AI call aborted by caller');
+      }
       try {
+        // Use external signal if provided, else create our own timeout signal
+        var signal = externalSignal || AbortSignal.timeout(timeoutMs || 60000);
         var res = await fetch(SERVER+'/ai', {
           method: 'POST', headers: {'Content-Type':'application/json'},
           body: JSON.stringify({
@@ -5009,12 +5015,14 @@ BP6-10: תעדף (פלטפורמה ישנה+דומיין+6+ אירועים), Dis
             system:     sys,
             messages:   [{role:'user', content:usr}]
           }),
-          signal: AbortSignal.timeout(timeoutMs || 60000)
+          signal: signal
         });
         if (res.status === 429) {
-          var wait = (attempt+1) * 15000;
+          if (externalSignal && externalSignal.aborted) throw new Error('AI call aborted by caller');
+          var wait = (attempt+1) * 10000;
           console.warn('[AI] 429 — waiting', wait/1000, 's');
           await new Promise(function(r){setTimeout(r,wait);});
+          if (externalSignal && externalSignal.aborted) throw new Error('AI call aborted by caller');
           continue;
         }
         if (!res.ok) throw new Error('HTTP ' + res.status);
@@ -5257,12 +5265,17 @@ BP6-10: תעדף (פלטפורמה ישנה+דומיין+6+ אירועים), Dis
                '"final_summary": "...", "final_tier": "A/B/C" }';
 
     try {
-      var verdict = await _withTimeout(
-        _callAI(system, user, 1000, 30000),
-        35000,
-        'Meta-Judge'
-      );
-      if (!verdict) throw new Error('Meta-Judge timeout');
+      // Use AbortController so we can truly cancel the fetch inside _callAI
+      var judgeAbort  = new AbortController();
+      var judgeTimer  = setTimeout(function() {
+        judgeAbort.abort();
+        console.warn('[Brain] Meta-Judge hard-cancelled after 30s');
+      }, 30000);
+
+      var verdict = await _callAI(system, user, 1000, 28000, judgeAbort.signal);
+      clearTimeout(judgeTimer);
+
+      if (!verdict) throw new Error('Meta-Judge empty response');
       verdict._judgeMs = Date.now() - t0;
       return verdict;
     } catch(e) {
