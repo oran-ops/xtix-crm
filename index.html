@@ -4370,28 +4370,19 @@ BP18: Nurture existing customers — repeat customers spend 67% more
 
 
   window.switchMainTab = function(name, btn) {
-    // Hide all top-level panels (inside .container and direct panel siblings)
-    var container = document.querySelector('.container');
-    if (container) {
-      Array.from(container.children).forEach(function(el){
-        if (el.classList.contains('panel')) el.classList.remove('active');
-      });
-    }
-    // Also hide any extra panels outside container (e.g. tab-users)
-    document.querySelectorAll('.panel').forEach(function(el){ el.classList.remove('active'); el.style.display = ''; });
-
+    // Hide all panels
+    document.querySelectorAll('.panel').forEach(function(el){
+      el.classList.remove('active');
+    });
     // Show target panel
     var target = document.getElementById('tab-' + name);
-    if (target) { target.classList.add('active'); target.style.display = 'block'; }
+    if (target) target.classList.add('active');
 
-    // Update sidebar nav buttons + open relevant nav-sub
+    // Update sidebar nav buttons
     document.querySelectorAll('.nav-btn').forEach(function(b){ b.classList.remove('active'); });
-    document.querySelectorAll('.nav-sub').forEach(function(s){ s.classList.remove('open'); });
-    var subEl = document.getElementById('sub-' + name);
-    if (subEl) subEl.classList.add('open');
     if (btn) btn.classList.add('active');
 
-    // Show/hide sub-menus
+    // Sub-menus
     document.querySelectorAll('.nav-sub').forEach(function(s){ s.classList.remove('open'); });
     var sub = document.getElementById('sub-' + name);
     if (sub) sub.classList.add('open');
@@ -7499,8 +7490,10 @@ addSalesPlaybookPanel();
     </div>
   </div>
 
+
+
   <!-- =================== USERS PANEL (Admin only) =================== -->
-  <div class="panel" id="tab-users" style="display:none">
+  <div class="panel" id="tab-users">
     <div style="max-width:700px;margin:0 auto;padding:8px 0">
       <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:20px">
         <div>
