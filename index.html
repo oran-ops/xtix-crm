@@ -3135,6 +3135,9 @@ document.addEventListener("DOMContentLoaded",function(){
 </div>
 
 <script>
+  // ── Brain config defaults (can be overridden by AI Brain block) ──
+  window._brainConfig = window._brainConfig || { conflictThreshold: 20 };
+
   // =================== FIREBASE — AUTH + CLOUD PERSISTENCE (compat) ===================
   var db = null, auth = null;
   try {
@@ -4106,10 +4109,21 @@ BP18: Nurture existing customers — repeat customers spend 67% more
   window.switchMarket = function switchMarket(name, btn) {
     // Ensure market panel is visible
     window.switchMainTab('market');
-    document.querySelectorAll('#tab-market .meth-btn').forEach(b => b.classList.remove('active'));
-    document.querySelectorAll('#tab-market .meth-panel').forEach(p => p.classList.remove('active'));
-    document.getElementById('market-' + name).classList.add('active');
-    btn.classList.add('active');
+    // Map sidebar sub-nav names to actual meth-panel names
+    var methMap = {
+      'competitors': 'overview',
+      'positioning': 'pains',
+      'scoring':     'scoring',
+      'leadfinder':  'overview'
+    };
+    var methName = methMap[name] || name;
+    // Use methTab() to activate the correct panel (handles null safely)
+    if (typeof window.methTab === 'function') {
+      window.methTab(methName);
+    }
+    // Update sidebar sub-button active state
+    document.querySelectorAll('.nav-sub-btn').forEach(function(b) { b.classList.remove('active'); });
+    if (btn && btn.classList) btn.classList.add('active');
     if (name === 'leadfinder') initChecklist();
   }
 
@@ -5226,7 +5240,7 @@ BP6-10: תעדף (פלטפורמה ישנה+דומיין+6+ אירועים), Dis
     var spread   = scores.length > 1 ? Math.max.apply(null, scores) - Math.min.apply(null, scores) : 0;
 
     var confidence  = spread <= 10 ? 'high' : spread <= 25 ? 'mid' : 'low';
-    var hadConflict = spread > (_brainConfig && _brainConfig.conflictThreshold || 20);
+    var hadConflict = spread > (window._brainConfig && window._brainConfig.conflictThreshold || 20);
 
     return { weightedScore: weighted, spread: spread, confidence: confidence, hadConflict: hadConflict };
   }
@@ -5481,13 +5495,17 @@ BP6-10: תעדף (פלטפורמה ישנה+דומיין+6+ אירועים), Dis
 
     // ── Hard timeout wrapper ─────────────────────────────────────────
     function _withTimeout(promise, ms, label) {
+      var timerId;
       var timeout = new Promise(function(resolve) {
-        setTimeout(function() {
+        timerId = setTimeout(function() {
           console.warn('[Brain] ' + label + ' hard timeout after ' + (ms/1000) + 's');
           resolve('__TIMEOUT__');
         }, ms);
       });
-      return Promise.race([promise, timeout]);
+      return Promise.race([promise, timeout]).then(function(result) {
+        clearTimeout(timerId);
+        return result;
+      });
     }
 
     // ── Run a single engine safely — always resolves, never rejects ──
