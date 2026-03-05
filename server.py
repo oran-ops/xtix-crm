@@ -442,7 +442,7 @@ class Handler(BaseHTTPRequestHandler):
     def cors(self):
         self.send_header('Access-Control-Allow-Origin','*')
         self.send_header('Access-Control-Allow-Methods','GET,POST,OPTIONS')
-        self.send_header('Access-Control-Allow-Headers','Content-Type')
+        self.send_header('Access-Control-Allow-Headers','Content-Type,Authorization')
 
     def json_out(self,data,status=200):
         b=json.dumps(data,ensure_ascii=False).encode('utf-8')
