@@ -9053,7 +9053,9 @@ window._cleanForFirebase = function _cleanForFirebase(obj) {
           messages: [{ role: 'user', content: prompt }]
         }),
         signal: AbortSignal.timeout(60000)
-      raw = raw.replace(/^```json\s*/,'').replace(/^```\s*/,'').replace(/\s*```$/,'');
+      });
+      var data = await res.json();
+      var raw = (data.content||[]).map(function(b){return b.text||'';}).join('');
       var s = raw.indexOf('{'), e = raw.lastIndexOf('}');
       if (s===-1||e===-1) throw new Error('לא התקבל JSON תקין');
       var jsonStr = raw.substring(s, e+1);
