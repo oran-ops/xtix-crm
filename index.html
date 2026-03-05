@@ -5376,7 +5376,11 @@ BP6-10: תעדף (פלטפורמה ישנה+דומיין+6+ אירועים), Dis
           var isRPM = errMsg.toLowerCase().includes('per_minute') || errMsg.toLowerCase().includes('rate');
           var isDailyQuota = errMsg.toLowerCase().includes('day') || errMsg.toLowerCase().includes('daily') || errMsg.toLowerCase().includes('exceeded');
           console.warn('[Gemini] ' + model + ' → 429: ' + errMsg.substring(0, 80));
-          if (isRPM && !isDailyQuota && mi === 0) {
+          if (isDailyQuota) {
+            // Daily quota exhausted — no point trying other models, exit immediately
+            throw new Error('Gemini: daily quota exhausted — ' + errMsg.substring(0,60));
+          }
+          if (isRPM && mi === 0) {
             // RPM limit on primary model — brief wait, try next model immediately
             await new Promise(function(r){ setTimeout(r, 1500); });
           }
@@ -5805,7 +5809,7 @@ BP6-10: תעדף (פלטפורמה ישנה+דומיין+6+ אירועים), Dis
     if (_brainKeys && _brainKeys.gemini) {
       enginePromises.push(_runEngine('gemini', function() {
         return _callGemini(prompt.system, prompt.user, 1500);
-      }, 20000));
+      }, 10000));
     } else {
       enginePromises.push(Promise.resolve(_engineEnvelope('gemini', null, 'skipped', 'key not configured', Date.now())));
     }
@@ -6046,7 +6050,7 @@ BP6-10: תעדף (פלטפורמה ישנה+דומיין+6+ אירועים), Dis
     var proxy = null;
     try {
       var pr = await fetch(SERVER+'/analyze?url='+encodeURIComponent('https://'+domain),
-        {signal: AbortSignal.timeout(9000)});
+        {signal: AbortSignal.timeout(5000)});
       if (pr.ok) proxy = await pr.json();
     } catch(e) {}
     var pCtx = proxy
@@ -6111,8 +6115,8 @@ BP6-10: תעדף (פלטפורמה ישנה+דומיין+6+ אירועים), Dis
       'אתה יועץ מכירות בכיר. החזר JSON נקי בלבד. ענה בעברית.',
       `נתח את הליד ${lead.name} מול המתודולוגיה:
 
-מתודולוגיה:
-${METH||''}
+מתודולוגיה (עיקרים):
+${(METH||'').substring(0,800)}
 
 נתוני הליד:
 פלטפורמה: ${pA.platform_current||'?'} | חולשה: ${pA.platform_weakness||'?'}
@@ -6149,30 +6153,22 @@ Social: ${pA.social_intel||'?'}
     var days = cadenceDays[cadence] || cadenceDays['warm'];
     var pB2 = { email_sequence: [] };
     try {
-      pB2 = await _callAI(
-        'אתה כותב מיילי מכירה ב-XTIX.AI. כל מייל ייחודי. עברית. JSON בלבד.',
-        `כתוב 4 מיילים ל-${lead.name}.
-Cadence: ${cadence} | ימים: ${days.join(', ')}
-זווית: ${pA.pitch_angle||'ROI'} | פתיחה: ${pA.pitch||'?'}
-פלטפורמה: ${pA.platform_current||'?'} | חולשה: ${pA.platform_weakness||'?'}
-עמלות: ${pA.estimated_annual_fees||'?'} | חיסכון: ${pA.estimated_xtix_savings||'?'}
+      pB2 = await _callAIFast(
+        'מומחה מכירות XTIX. כתוב 4 מיילים ספציפיים המבוססים על המחקר. JSON בלבד. עברית.',
+        `4 מיילים ל-${lead.name} (${pA.platform_current||'?'})
+ימים: ${days.join(' → ')} | Cadence: ${cadence} | זווית: ${pA.pitch_angle||'ROI'}
+עמלות נוכחיות: ${pA.estimated_annual_fees||'?'} | חיסכון עם XTIX: ${pA.estimated_xtix_savings||'?'}
 כאבים: ${(pA.pain_points||[]).join(', ')}
-מחקר: ${(pA.raw_research||'').substring(0,400)}
-BP: ${pB1.salesforce_bps&&pB1.salesforce_bps.bp17_value_angle||'ROI'}
+מחקר על הליד: ${(pA.raw_research||'').substring(0,300)}
+פתיחה מומלצת: ${pA.pitch||'?'}
 
-Blueprint:
-- מייל 1 (יום ${days[0]}): סקרנות — עובדה ספציפית על האתר שלהם
-- מייל 2 (יום ${days[1]}): ROI — נתון כלכלי ספציפי שחישבתי
-- מייל 3 (יום ${days[2]}): Social Proof + demo offer
-- מייל 4 (יום ${days[3]}): Break-up — קצר, ישיר
-
-{"email_sequence": [
-  {"email_num":1,"day":${days[0]},"type":"curiosity","subject":"","research_done":[],"what_i_concluded":"","body":"","cta":""},
-  {"email_num":2,"day":${days[1]},"type":"roi","subject":"","research_done":[],"what_i_concluded":"","body":"","cta":""},
-  {"email_num":3,"day":${days[2]},"type":"social_proof","subject":"","research_done":[],"what_i_concluded":"","body":"","cta":""},
-  {"email_num":4,"day":${days[3]},"type":"breakup","subject":"","research_done":[],"what_i_concluded":"","body":"","cta":""}
+{"email_sequence":[
+{"email_num":1,"day":${days[0]},"type":"curiosity","subject":"","body":"","cta":""},
+{"email_num":2,"day":${days[1]},"type":"roi","subject":"","body":"","cta":""},
+{"email_num":3,"day":${days[2]},"type":"social_proof","subject":"","body":"","cta":""},
+{"email_num":4,"day":${days[3]},"type":"breakup","subject":"","body":"","cta":""}
 ]}`,
-        2000, 70000);
+        1400, 40000);
     } catch(e) {
       console.warn('[Brain] Email generation failed (non-critical):', e.message);
     }
@@ -8546,6 +8542,33 @@ window._cleanForFirebase = function _cleanForFirebase(obj) {
       b.style.fontWeight = isActive ? '700' : '400';
     });
     renderTasks();
+
+  // ── Fast AI call — Haiku model, no retry, for speed-sensitive tasks ──
+  async function _callAIFast(sys, usr, maxTok, timeoutMs) {
+    try {
+      var res = await fetch(SERVER+'/ai', {
+        method: 'POST', headers: {'Content-Type':'application/json'},
+        body: JSON.stringify({
+          model:      'claude-haiku-4-5-20251001',
+          max_tokens: maxTok || 1000,
+          system:     sys,
+          messages:   [{role:'user', content:usr}]
+        }),
+        signal: AbortSignal.timeout(timeoutMs || 30000)
+      });
+      if (!res.ok) throw new Error('HTTP ' + res.status);
+      var data = await res.json();
+      var raw = (data.content||[]).map(function(b){return b.text||'';}).join('');
+      raw = raw.replace(/^```json\s*/,'').replace(/^```\s*/,'').replace(/\s*```$/,'');
+      var s = raw.indexOf('{'), e = raw.lastIndexOf('}');
+      if (s === -1) throw new Error('No JSON in response');
+      return JSON.parse(raw.substring(s, e+1));
+    } catch(e) {
+      console.warn('[AI Fast] Failed:', e.message);
+      return null;
+    }
+  }
+
   };
 
   // ── Open modal ──────────────────────────────────────────
