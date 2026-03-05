@@ -5368,22 +5368,10 @@ BP6-10: תעדף (פלטפורמה ישנה+דומיין+6+ אירועים), Dis
 
         if (res.status === 429) {
           var errBody = await res.json().catch(function(){return {};});
-          var retryAfter = parseInt(res.headers && res.headers.get && res.headers.get('Retry-After')) || 0;
           var errMsg = (errBody.error && errBody.error.message) || 'quota exceeded';
           quotaCount++;
-          // Check if it's RPM (per-minute) limit — short wait might help
-          var isRPM = errMsg.toLowerCase().includes('per_minute') || errMsg.toLowerCase().includes('rate');
-          var isDailyQuota = errMsg.toLowerCase().includes('day') || errMsg.toLowerCase().includes('daily') || errMsg.toLowerCase().includes('exceeded');
           console.warn('[Gemini] ' + model + ' → 429: ' + errMsg.substring(0, 80));
-          if (isDailyQuota) {
-            // Daily quota exhausted — no point trying other models, exit immediately
-            throw new Error('Gemini: daily quota exhausted — ' + errMsg.substring(0,60));
-          }
-          if (isRPM && mi === 0) {
-            // RPM limit on primary model — brief wait, try next model immediately
-            await new Promise(function(r){ setTimeout(r, 1500); });
-          }
-          lastError = new Error('Gemini/' + model + ': quota');
+          lastError = new Error('Gemini/' + model + ': 429');
           continue;
         }
 
@@ -5808,7 +5796,7 @@ BP6-10: תעדף (פלטפורמה ישנה+דומיין+6+ אירועים), Dis
     if (_brainKeys && _brainKeys.gemini) {
       enginePromises.push(_runEngine('gemini', function() {
         return _callGemini(prompt.system, prompt.user, 1500);
-      }, 10000));
+      }, 20000));
     } else {
       enginePromises.push(Promise.resolve(_engineEnvelope('gemini', null, 'skipped', 'key not configured', Date.now())));
     }
@@ -6152,7 +6140,7 @@ Social: ${pA.social_intel||'?'}
     var days = cadenceDays[cadence] || cadenceDays['warm'];
     var pB2 = { email_sequence: [] };
     try {
-      pB2 = await _callAIFast(
+      pB2 = await window._callAIFast(
         'מומחה מכירות XTIX. כתוב 4 מיילים ספציפיים המבוססים על המחקר. JSON בלבד. עברית.',
         `4 מיילים ל-${lead.name} (${pA.platform_current||'?'})
 ימים: ${days.join(' → ')} | Cadence: ${cadence} | זווית: ${pA.pitch_angle||'ROI'}
@@ -8543,7 +8531,7 @@ window._cleanForFirebase = function _cleanForFirebase(obj) {
     renderTasks();
 
   // ── Fast AI call — Haiku model, no retry, for speed-sensitive tasks ──
-  async function _callAIFast(sys, usr, maxTok, timeoutMs) {
+  window._callAIFast = async function _callAIFast(sys, usr, maxTok, timeoutMs) {
     try {
       var res = await fetch(SERVER+'/ai', {
         method: 'POST', headers: {'Content-Type':'application/json'},
