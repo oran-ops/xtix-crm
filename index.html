@@ -5254,6 +5254,7 @@ BP6-10: תעדף (פלטפורמה ישנה+דומיין+6+ אירועים), Dis
     ];
 
     var lastError = null;
+    var quotaExhausted = false;  // if we get quota errors on ALL models, fail fast
 
     for (var mi = 0; mi < MODELS.length; mi++) {
       var model = MODELS[mi];
@@ -5268,22 +5269,18 @@ BP6-10: תעדף (פלטפורמה ישנה+דומיין+6+ אירועים), Dis
               contents: [{ parts: [{ text: userPrompt }] }],
               generationConfig: { maxOutputTokens: maxTokens || 1500, temperature: 0.7 }
             }),
-            signal: AbortSignal.timeout(12000)
+            signal: AbortSignal.timeout(5000)  // 5s per model — fast fail on network hang
           }
         );
 
-        // Quota / rate-limit → try next model
-        if (res.status === 429 || res.status === 503 || res.status === 403) {
+        // Quota / rate-limit / not found → try next model
+        if (res.status === 429 || res.status === 503 || res.status === 403 || res.status === 404) {
           var errBody = await res.json().catch(function(){return {};});
           var errMsg  = (errBody.error && errBody.error.message) || 'HTTP ' + res.status;
-          var isQuota = errMsg.toLowerCase().includes('quota') ||
-                        errMsg.toLowerCase().includes('exceeded') ||
-                        errMsg.toLowerCase().includes('rate') ||
-                        res.status === 429;
-          console.warn('[Gemini] ' + model + ' → ' + errMsg + (isQuota ? ' — trying next model' : ''));
+          console.warn('[Gemini] ' + model + ' → ' + errMsg + ' — trying next model');
           lastError = new Error('Gemini/' + model + ': ' + errMsg);
-          if (isQuota) continue; // try next model
-          throw lastError;       // non-quota error → stop
+          if (res.status === 429) quotaExhausted = true;
+          continue; // always try next model on these errors
         }
 
         if (!res.ok) {
@@ -5299,15 +5296,16 @@ BP6-10: תעדף (פלטפורמה ישנה+דומיין+6+ אירועים), Dis
         var si = raw.indexOf('{'), ei = raw.lastIndexOf('}');
         if (si !== -1 && ei !== -1) raw = raw.substring(si, ei+1);
         var parsed = JSON.parse(raw);
-        // Tag which model succeeded — useful for debug
         parsed._geminiModel = model;
         return parsed;
 
       } catch(e) {
-        // Timeout / network → don't try other models (they'll also timeout)
-        if (e.name === 'TimeoutError' || e.name === 'AbortError') throw e;
-        // If it's a quota error we already set lastError and continued
-        // Any other error on last model — throw
+        // Network hang → AbortError after 5s. Continue to next model (not all will hang).
+        if (e.name === 'TimeoutError' || e.name === 'AbortError') {
+          console.warn('[Gemini] ' + model + ' → network timeout — trying next model');
+          lastError = e;
+          continue;  // try next model even on timeout
+        }
         lastError = e;
         if (mi === MODELS.length - 1) throw lastError;
       }
@@ -5677,7 +5675,7 @@ BP6-10: תעדף (פלטפורמה ישנה+דומיין+6+ אירועים), Dis
     if (_brainKeys && _brainKeys.gemini) {
       enginePromises.push(_runEngine('gemini', function() {
         return _callGemini(prompt.system, prompt.user, 1500);
-      }, 40000));
+      }, 20000));
     } else {
       enginePromises.push(Promise.resolve(_engineEnvelope('gemini', null, 'skipped', 'key not configured', Date.now())));
     }
@@ -5965,12 +5963,13 @@ BP6-10: תעדף (פלטפורמה ישנה+דומיין+6+ אירועים), Dis
       2500, 55000);
 
     // ── PHASE B: Methodology + Emails (merged 3+4) ─────────────────
-    setP(55, '🧠 Claude — שלב 2/2: מתודולוגיה + מיילים...');
+    setP(55, '🧠 Claude — שלב 2/2: ניתוח מתודולוגיה...');
     var cadenceDays = {'hot':[1,3,7,14],'cool':[1,7,21,45],'warm':[1,5,12,25]};
 
-    var pB = await _callAI(
-      'אתה יועץ מכירות בכיר וכותב מיילים ב-XTIX.AI. החזר JSON נקי בלבד. ענה בעברית.',
-      `נתח את הליד ${lead.name} מול המתודולוגיה וכתוב מיילים:
+    // ── Phase B1: Methodology (scoring + BPs + strategy) ─────────────
+    var pB1 = await _callAI(
+      'אתה יועץ מכירות בכיר. החזר JSON נקי בלבד. ענה בעברית.',
+      `נתח את הליד ${lead.name} מול המתודולוגיה:
 
 מתודולוגיה:
 ${METH||''}
@@ -5981,14 +5980,11 @@ ${METH||''}
 עמלות: ${pA.estimated_annual_fees||'?'} | חיסכון XTIX: ${pA.estimated_xtix_savings||'?'}
 כאבים: ${(pA.pain_points||[]).join(', ')}
 Social: ${pA.social_intel||'?'}
-זווית: ${pA.pitch_angle||'ROI'} | פתיחה: ${pA.pitch||'?'}
-אסטרטגיה: ${pA.sales_attack||'?'}
+זווית: ${pA.pitch_angle||'ROI'} | אסטרטגיה: ${pA.sales_attack||'?'}
 
 החזר JSON:
 {
-  "score": 75,
-  "tier": "A",
-  "recommended_cadence": "hot",
+  "score": 75, "tier": "A", "recommended_cadence": "hot",
   "scoring_breakdown": {
     "platform": {"score": 28, "reason": "..."},
     "audience_size": {"score": 22, "reason": "..."},
@@ -5996,53 +5992,56 @@ Social: ${pA.social_intel||'?'}
     "economic_pain": {"score": 14, "reason": "..."},
     "contact_access": {"score": 9, "reason": "..."}
   },
-  "four_fs": {
-    "f1_current": "מצב עכשיו",
-    "f2_working": "מה עובד",
-    "f3_pain": "הכאב המרכזי",
-    "f4_future": "לאן רוצים להגיע"
-  },
+  "four_fs": {"f1_current": "...", "f2_working": "...", "f3_pain": "...", "f4_future": "..."},
   "salesforce_bps": {
-    "bp2_persona_fit": "high|medium|low",
-    "bp6_priority": "high|medium|low",
-    "bp7_prep_notes": "הכנה לשיחה",
-    "bp8_decision_maker": "מי מחליט",
-    "bp11_social_proof": "לקוח דומה להציג",
-    "bp17_value_angle": "ROI|Data|Brand"
+    "bp2_persona_fit": "high|medium|low", "bp6_priority": "high|medium|low",
+    "bp7_prep_notes": "...", "bp8_decision_maker": "...",
+    "bp11_social_proof": "...", "bp17_value_angle": "ROI|Data|Brand"
   },
-  "attack_angle": "הסיבה הכי חזקה לפנות עכשיו",
-  "best_opening": "משפט פתיחה אחד ספציפי",
-  "risk_factors": ["סיכון1","סיכון2"],
-  "summary_for_rep": "פסקת סיכום לנציג לפני שמרים טלפון",
-  "email_sequence": [
-    {
-      "email_num": 1, "day": 1, "type": "curiosity",
-      "subject": "נושא ספציפי לליד",
-      "research_done": ["עובדה שחקרתי"],
-      "what_i_concluded": "מסקנה",
-      "body": "גוף מלא 4-6 שורות מתחיל בעובדה ספציפית על הליד",
-      "cta": "CTA קצר"
-    },
-    {"email_num": 2, "day": 5, "type": "roi", "subject": "", "research_done": [], "what_i_concluded": "", "body": "", "cta": ""},
-    {"email_num": 3, "day": 12, "type": "social_proof", "subject": "", "research_done": [], "what_i_concluded": "", "body": "", "cta": ""},
-    {"email_num": 4, "day": 25, "type": "breakup", "subject": "", "research_done": [], "what_i_concluded": "", "body": "", "cta": ""}
-  ]
+  "attack_angle": "...", "best_opening": "...",
+  "risk_factors": ["..."], "summary_for_rep": "..."
 }`,
-      3000, 60000);
+      1200, 45000);
 
-    // Fix email days based on actual cadence
-    var cadence = pB.recommended_cadence || 'warm';
+    // ── Phase B2: Emails ──────────────────────────────────────────
+    setP(80, '🧠 Claude — שלב 2/2: כותב מיילים...');
+    var cadence = pB1.recommended_cadence || 'warm';
     var days = cadenceDays[cadence] || cadenceDays['warm'];
-    if (Array.isArray(pB.email_sequence)) {
-      pB.email_sequence.forEach(function(em, i) { em.day = days[i] || em.day; });
+    var pB2 = { email_sequence: [] };
+    try {
+      pB2 = await _callAI(
+        'אתה כותב מיילי מכירה ב-XTIX.AI. כל מייל ייחודי. עברית. JSON בלבד.',
+        `כתוב 4 מיילים ל-${lead.name}.
+Cadence: ${cadence} | ימים: ${days.join(', ')}
+זווית: ${pA.pitch_angle||'ROI'} | פתיחה: ${pA.pitch||'?'}
+פלטפורמה: ${pA.platform_current||'?'} | חולשה: ${pA.platform_weakness||'?'}
+עמלות: ${pA.estimated_annual_fees||'?'} | חיסכון: ${pA.estimated_xtix_savings||'?'}
+כאבים: ${(pA.pain_points||[]).join(', ')}
+מחקר: ${(pA.raw_research||'').substring(0,400)}
+BP: ${pB1.salesforce_bps&&pB1.salesforce_bps.bp17_value_angle||'ROI'}
+
+Blueprint:
+- מייל 1 (יום ${days[0]}): סקרנות — עובדה ספציפית על האתר שלהם
+- מייל 2 (יום ${days[1]}): ROI — נתון כלכלי ספציפי שחישבתי
+- מייל 3 (יום ${days[2]}): Social Proof + demo offer
+- מייל 4 (יום ${days[3]}): Break-up — קצר, ישיר
+
+{"email_sequence": [
+  {"email_num":1,"day":${days[0]},"type":"curiosity","subject":"","research_done":[],"what_i_concluded":"","body":"","cta":""},
+  {"email_num":2,"day":${days[1]},"type":"roi","subject":"","research_done":[],"what_i_concluded":"","body":"","cta":""},
+  {"email_num":3,"day":${days[2]},"type":"social_proof","subject":"","research_done":[],"what_i_concluded":"","body":"","cta":""},
+  {"email_num":4,"day":${days[3]},"type":"breakup","subject":"","research_done":[],"what_i_concluded":"","body":"","cta":""}
+]}`,
+        2000, 50000);
+    } catch(e) {
+      console.warn('[Brain] Email generation failed (non-critical):', e.message);
     }
 
     setP(97, '💾 שומר תוצאות...');
-    var sc = parseInt(pB.score)||55;
+    var sc = parseInt(pB1.score)||55;
     return {
       status: 'done',
       enriched_at: new Date().toISOString(),
-      // Phase A — research
       summary:                  pA.summary||'',
       executive_summary:        pA.executive_summary||'',
       segment:                  pA.segment||lead.type||'',
@@ -6062,29 +6061,25 @@ Social: ${pA.social_intel||'?'}
       pricing_intel:            pA.pricing_intel||'',
       address:                  pA.address||lead.address||'',
       raw_research:             pA.raw_research||'',
-      // Phase A — strategy
-      sales_attack:        pA.sales_attack||'',
-      pitch_angle:         pA.pitch_angle||'ROI',
-      pitch:               pA.pitch||'',
-      meeting_prep:        pA.meeting_prep||'',
-      discovery_questions: pA.discovery_questions||[],
-      next_action:         pA.next_action||'',
-      objection_handlers:  pA.objection_handlers||{},
-      // Phase B — methodology
-      score:              sc,
-      tier:               pB.tier||(sc>=80?'A':sc>=60?'B':'C'),
-      recommended_cadence:pB.recommended_cadence||'warm',
-      scoring_breakdown:  pB.scoring_breakdown||{},
-      four_fs:            pB.four_fs||{},
-      salesforce_bps:     pB.salesforce_bps||{},
-      attack_angle:       pB.attack_angle||'',
-      best_opening:       pB.best_opening||'',
-      risk_factors:       pB.risk_factors||[],
-      summary_for_rep:    pB.summary_for_rep||'',
-      // Phase B — emails
-      email_sequence:  pB.email_sequence||[],
-      // Combined
-      internal_summary: (pB.summary_for_rep||pA.executive_summary||'')+(pA.next_action?'\n\nהצעד הבא: '+pA.next_action:'')
+      sales_attack:             pA.sales_attack||'',
+      pitch_angle:              pA.pitch_angle||'ROI',
+      pitch:                    pA.pitch||'',
+      meeting_prep:             pA.meeting_prep||'',
+      discovery_questions:      pA.discovery_questions||[],
+      next_action:              pA.next_action||'',
+      objection_handlers:       pA.objection_handlers||{},
+      score:                    sc,
+      tier:                     pB1.tier||(sc>=80?'A':sc>=60?'B':'C'),
+      recommended_cadence:      pB1.recommended_cadence||'warm',
+      scoring_breakdown:        pB1.scoring_breakdown||{},
+      four_fs:                  pB1.four_fs||{},
+      salesforce_bps:           pB1.salesforce_bps||{},
+      attack_angle:             pB1.attack_angle||'',
+      best_opening:             pB1.best_opening||'',
+      risk_factors:             pB1.risk_factors||[],
+      summary_for_rep:          pB1.summary_for_rep||'',
+      email_sequence:           pB2.email_sequence||[],
+      internal_summary: (pB1.summary_for_rep||pA.executive_summary||'')+(pA.next_action?'\n\nהצעד הבא: '+pA.next_action:'')
     };
   };
 
