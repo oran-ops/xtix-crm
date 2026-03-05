@@ -7,11 +7,47 @@ XTIX CRM — Full Stack Server v2.0
 עצירה: Ctrl+C
 """
 
-import json, re, ssl, os, csv, io, smtplib, datetime, threading
+import json, re, ssl, os, csv, io, smtplib, datetime, threading, time, collections
 import urllib.request, urllib.parse
 from http.server import HTTPServer, BaseHTTPRequestHandler
 from email.mime.text import MIMEText
 from email.mime.multipart import MIMEMultipart
+
+# ── Rate Limiter ────────────────────────────────────────────────────────────
+# Tracks requests per IP per endpoint, resets every window_seconds
+class RateLimiter:
+    def __init__(self):
+        self._lock   = threading.Lock()
+        self._counts = {}  # (ip, endpoint) -> deque of timestamps
+
+    # Returns (allowed: bool, remaining: int, retry_after: int)
+    def check(self, ip, endpoint, limit, window_seconds=60):
+        key = (ip, endpoint)
+        now = time.time()
+        with self._lock:
+            if key not in self._counts:
+                self._counts[key] = collections.deque()
+            dq = self._counts[key]
+            # Remove old timestamps outside window
+            while dq and dq[0] < now - window_seconds:
+                dq.popleft()
+            if len(dq) >= limit:
+                retry_after = int(window_seconds - (now - dq[0])) + 1
+                return False, 0, retry_after
+            dq.append(now)
+            return True, limit - len(dq), 0
+
+_limiter = RateLimiter()
+
+# Rate limits per endpoint (requests per 60 seconds per IP)
+RATE_LIMITS = {
+    '/ai':      20,   # Claude — expensive, limit tightly
+    '/gpt':     20,   # GPT
+    '/gemini':  30,   # Gemini — cheaper
+    '/analyze': 30,   # Website analyzer
+    '/send-email': 10, # Email sending
+    'default':  120,  # All other endpoints
+}
 
 PORT           = int(os.environ.get('PORT', 8765))
 CONFIG_FILE    = os.path.join(os.path.dirname(__file__), 'xtix_config.json')
@@ -266,6 +302,26 @@ class Handler(BaseHTTPRequestHandler):
     def do_OPTIONS(self):
         self.send_response(200); self.cors(); self.end_headers()
 
+    def get_ip(self):
+        # Support X-Forwarded-For (Railway proxy)
+        xff = self.headers.get('X-Forwarded-For', '')
+        if xff:
+            return xff.split(',')[0].strip()
+        return self.client_address[0]
+
+    def rate_check(self, endpoint):
+        ip    = self.get_ip()
+        limit = RATE_LIMITS.get(endpoint, RATE_LIMITS['default'])
+        allowed, remaining, retry_after = _limiter.check(ip, endpoint, limit)
+        if not allowed:
+            print(f'  [RATE] {ip} blocked on {endpoint} — retry in {retry_after}s', flush=True)
+            self.json_out({
+                'error': f'יותר מדי בקשות. נסה שוב בעוד {retry_after} שניות.',
+                'retry_after': retry_after
+            }, 429)
+            return False
+        return True
+
     def do_GET(self):
         p=urllib.parse.urlparse(self.path); q=urllib.parse.parse_qs(p.query); cfg=load_config()
 
@@ -296,6 +352,7 @@ class Handler(BaseHTTPRequestHandler):
                 'hubspot': bool(cfg.get('hubspot_token','')),
             })
         elif p.path=='/analyze':
+            if not self.rate_check('/analyze'): return
             url=q.get('url',[''])[0]
             if not url: self.json_out({'error':'Missing url'},400); return
             print(f'  Analyzing: {url}'); self.json_out(analyze_website(url))
@@ -365,6 +422,7 @@ class Handler(BaseHTTPRequestHandler):
             return
 
         if p.path=='/ai':
+            if not self.rate_check('/ai'): return
             # Proxy to Anthropic API
             api_key = os.environ.get('ANTHROPIC_API_KEY','')
             if not api_key:
@@ -398,6 +456,7 @@ class Handler(BaseHTTPRequestHandler):
                 self.json_out({'error': str(e)}, 500)
             return
         if p.path=='/gpt':
+            if not self.rate_check('/gpt'): return
             # Proxy to OpenAI API
             api_key = os.environ.get('OPENAI_API_KEY','')
             if not api_key:
@@ -426,6 +485,7 @@ class Handler(BaseHTTPRequestHandler):
             return
 
         if p.path=='/gemini':
+            if not self.rate_check('/gemini'): return
             # Proxy to Google Gemini API
             api_key = os.environ.get('GEMINI_API_KEY','')
             if not api_key:
@@ -457,6 +517,7 @@ class Handler(BaseHTTPRequestHandler):
             return
 
         if p.path=='/send-email':
+            if not self.rate_check('/send-email'): return
             r=send_gmail(cfg,b.get('to',''),b.get('subject',''),b.get('html',b.get('body','')),b.get('text',''))
             if r['ok'] and cfg.get('hubspot_token') and b.get('hubspot_id'):
                 log_email_hs(b['hubspot_id'],b.get('subject',''),b.get('html',''),cfg['hubspot_token'])
