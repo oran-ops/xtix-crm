@@ -4879,7 +4879,9 @@ BP6-10: תעדף (פלטפורמה ישנה+דומיין+6+ אירועים), Dis
     }
 
     try {
-      var result = await window._deepAIPipeline(lead);
+      // Use Triple Engine if keys available, else fall back to Claude alone
+      var hasExtra = (_brainKeys && (_brainKeys.gpt || _brainKeys.gemini));
+      var result = await (hasExtra ? window._tripleEnginePipeline(lead) : window._deepAIPipeline(lead));
       lead.ai_analysis = result;
       lead.score   = result.score   || lead.score   || 50;
       lead.tier    = result.tier    || lead.tier    || 'B';
@@ -4978,7 +4980,283 @@ BP6-10: תעדף (פלטפורמה ישנה+דומיין+6+ אירועים), Dis
     throw new Error('AI call failed after ' + MAX_RETRIES + ' retries');
   }
 
-  // ── Deep pipeline: 3 phases ───────────────────────────────────
+  // ════════════════════════════════════════════════════════════════
+  //  TRIPLE ENGINE — Parallel Claude + GPT + Gemini + Meta-Judge
+  //  שלב 2: מנועים מקבילים + שיפוט סופי + שמירת זיכרון
+  // ════════════════════════════════════════════════════════════════
+
+  // ── Call GPT-4o directly ────────────────────────────────────────
+  async function _callGPT(systemPrompt, userPrompt, maxTokens) {
+    var key = _brainKeys && _brainKeys.gpt;
+    if (!key) throw new Error('GPT key not configured');
+    var res = await fetch('https://api.openai.com/v1/chat/completions', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + key },
+      body: JSON.stringify({
+        model: 'gpt-4o',
+        max_tokens: maxTokens || 1500,
+        messages: [
+          { role: 'system', content: systemPrompt },
+          { role: 'user',   content: userPrompt }
+        ]
+      }),
+      signal: AbortSignal.timeout(60000)
+    });
+    if (!res.ok) {
+      var err = await res.json().catch(function(){return {};});
+      throw new Error('GPT: ' + ((err.error && err.error.message) || 'HTTP ' + res.status));
+    }
+    var d = await res.json();
+    var raw = (d.choices && d.choices[0] && d.choices[0].message && d.choices[0].message.content) || '';
+    raw = raw.replace(/^```json\s*/,'').replace(/^```\s*/,'').replace(/\s*```$/,'');
+    var si = raw.indexOf('{'), ei = raw.lastIndexOf('}');
+    if (si !== -1 && ei !== -1) raw = raw.substring(si, ei+1);
+    return JSON.parse(raw);
+  }
+
+  // ── Call Gemini directly ────────────────────────────────────────
+  async function _callGemini(systemPrompt, userPrompt, maxTokens) {
+    var key = _brainKeys && _brainKeys.gemini;
+    if (!key) throw new Error('Gemini key not configured');
+    var res = await fetch(
+      'https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=' + key,
+      {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          system_instruction: { parts: [{ text: systemPrompt }] },
+          contents: [{ parts: [{ text: userPrompt }] }],
+          generationConfig: { maxOutputTokens: maxTokens || 1500, temperature: 0.7 }
+        }),
+        signal: AbortSignal.timeout(60000)
+      }
+    );
+    if (!res.ok) {
+      var err = await res.json().catch(function(){return {};});
+      throw new Error('Gemini: ' + ((err.error && err.error.message) || 'HTTP ' + res.status));
+    }
+    var d = await res.json();
+    var raw = (d.candidates && d.candidates[0] &&
+               d.candidates[0].content && d.candidates[0].content.parts &&
+               d.candidates[0].content.parts[0] && d.candidates[0].content.parts[0].text) || '';
+    raw = raw.replace(/^```json\s*/,'').replace(/^```\s*/,'').replace(/\s*```$/,'');
+    var si = raw.indexOf('{'), ei = raw.lastIndexOf('}');
+    if (si !== -1 && ei !== -1) raw = raw.substring(si, ei+1);
+    return JSON.parse(raw);
+  }
+
+  // ── Build analysis prompt for a lead ───────────────────────────
+  function _buildAnalysisPrompt(lead, METH, compInfo) {
+    var domain = (lead.domain||'').replace(/https?:\/\//,'').split('/')[0] || lead.name;
+    return {
+      system: 'אתה מנהל מכירות בכיר ב-XTIX. נתח את הליד הבא לפי המתודולוגיה. החזר JSON נקי בלבד — ללא markdown, ללא backticks.\n\nמתודולוגיה:\n' + (METH||'') + '\n\nמתחרים:\n' + (compInfo||''),
+      user: 'נתח את הליד הבא ותן ציון 0-100 ודיוק גבוה.\n\nשם: ' + (lead.name||'') +
+            '\nדומיין: ' + domain +
+            '\nפלטפורמה: ' + (lead.platform||'לא ידוע') +
+            '\nסגמנט: ' + (lead.segment||lead.type||'') +
+            '\nטלפון: ' + (lead.phone||'') +
+            '\nמייל: ' + (lead.email||'') +
+            '\nכתובת: ' + (lead.address||'') +
+            '\n\nהחזר JSON עם השדות: score (0-100), tier (A/B/C), summary, executive_summary, ' +
+            'segment, platform_current, platform_weakness, pain_points (array), ' +
+            'sales_attack, meeting_prep, pricing_intel, estimated_annual_fees, ' +
+            'estimated_xtix_savings, next_action, recommended_cadence, pitch, ' +
+            'discovery_questions (array), score_confidence (0-1), reasoning'
+    };
+  }
+
+  // ── Consensus Engine ────────────────────────────────────────────
+  function _calcConsensus(claudeScore, gptScore, geminiScore) {
+    var scores = [claudeScore];
+    var weights = [0.5]; // Claude baseline weight
+    if (gptScore !== null)    { scores.push(gptScore);    weights.push(0.3); }
+    if (geminiScore !== null) { scores.push(geminiScore); weights.push(0.2); }
+
+    // Normalize weights
+    var wTotal = weights.reduce(function(a,b){return a+b;}, 0);
+    weights = weights.map(function(w){return w/wTotal;});
+
+    var weighted = scores.reduce(function(sum, s, i){ return sum + s*weights[i]; }, 0);
+    var spread   = Math.max.apply(null, scores) - Math.min.apply(null, scores);
+
+    var confidence = spread <= 10 ? 'high' : spread <= 25 ? 'mid' : 'low';
+    var hadConflict = spread > (_brainConfig && _brainConfig.conflictThreshold || 20);
+
+    return {
+      weightedScore: Math.round(weighted),
+      spread:        spread,
+      confidence:    confidence,
+      hadConflict:   hadConflict
+    };
+  }
+
+  // ── Meta-Judge — Claude judges all 3 results ────────────────────
+  async function _metaJudge(lead, claudeResult, gptResult, geminiResult, history) {
+    var historyStr = '';
+    if (history && history.length) {
+      historyStr = '\n\nהיסטוריית החלטות קודמות בסגמנט זה:\n' +
+        history.slice(0,5).map(function(h) {
+          return '• ' + (h.lead_name||'') + ': ציון ' + (h.meta_score||'?') +
+                 ' → ' + (h.outcome==='closed'?'✅ נסגר':h.outcome==='lost'?'❌ אבד':'⏳ פתוח') +
+                 (h.was_correct===false ? ' [Meta-Judge טעה — למד מזה]' : '');
+        }).join('\n');
+    }
+
+    var system = 'אתה Meta-Judge של מערכת XTIX CRM. קיבלת ניתוחים מ-3 מנועי AI על אותו ליד.' +
+                 ' תפקידך: לשפוט בכוח ולהחליט את הציון והמלצת הפעולה הסופית.' +
+                 ' אתה לא ממצע — אתה מחליט. אם יש מחלוקת, נמק למה אתה בוחר צד.' +
+                 ' החזר JSON נקי בלבד.';
+
+    var user = 'ליד: ' + (lead.name||'') + ' | פלטפורמה: ' + (lead.platform||'') +
+               ' | סגמנט: ' + (lead.segment||lead.type||'') +
+               '\n\nתוצאות 3 המנועים:' +
+               '\nClaude: ציון ' + (claudeResult.score||50) + ' | ' + (claudeResult.summary||'') +
+               '\nGPT-4o: ' + (gptResult ? 'ציון ' + (gptResult.score||50) + ' | ' + (gptResult.summary||'') : 'לא זמין') +
+               '\nGemini: ' + (geminiResult ? 'ציון ' + (geminiResult.score||50) + ' | ' + (geminiResult.summary||'') : 'לא זמין') +
+               historyStr +
+               '\n\nהחלט:\n1. מה הציון הסופי (0-100)? נמק.\n2. מה המלצת הפעולה?\n3. על מה המנועים חלקו?\n4. מה רמת הביטחון שלך?' +
+               '\n\nהחזר JSON: { "meta_score": N, "meta_reasoning": "...", "meta_action": "...", ' +
+               '"disagreements": [...], "confidence": "high/mid/low", ' +
+               '"final_summary": "...", "final_tier": "A/B/C" }';
+
+    try {
+      var verdict = await _callAI(system, user, 1000, 45000);
+      return verdict;
+    } catch(e) {
+      console.warn('[Brain] Meta-Judge failed:', e.message);
+      // Fallback: use Claude result as verdict
+      return {
+        meta_score:     claudeResult.score || 50,
+        meta_reasoning: 'Meta-Judge לא זמין — משתמש בתוצאת Claude',
+        meta_action:    claudeResult.next_action || '',
+        disagreements:  [],
+        confidence:     'low',
+        final_summary:  claudeResult.summary || '',
+        final_tier:     claudeResult.tier || 'B'
+      };
+    }
+  }
+
+  // ── Triple Engine Pipeline wrapper ─────────────────────────────
+  // Wraps _deepAIPipeline — calls all 3 engines in parallel then Meta-Judge
+  window._tripleEnginePipeline = async function(lead) {
+    var METH = await ensureMethodologyInFirebase();
+    var compInfo = '';
+    try { compInfo = Object.values(competitorData||{}).map(function(c){return c.name+': '+c.weakness;}).join('\n'); } catch(e){}
+
+    var prompt = _buildAnalysisPrompt(lead, METH, compInfo);
+    var activeEngines = 1 + (_brainKeys&&_brainKeys.gpt?1:0) + (_brainKeys&&_brainKeys.gemini?1:0);
+
+    // Progress update helper
+    function setP(pct, msg) {
+      var bar = document.getElementById('analysis-bar-'+lead.id);
+      var txt = document.getElementById('analysis-progress-'+lead.id);
+      if(bar) bar.style.width = pct + '%';
+      if(txt) txt.textContent = msg;
+    }
+
+    setP(5, activeEngines > 1 ? '🚀 ' + activeEngines + ' מנועים רצים במקביל...' : '🧠 Claude מנתח...');
+
+    // ── Run all engines in parallel ──
+    var claudePromise = _deepAIPipeline(lead); // full existing pipeline
+    var gptPromise    = null;
+    var geminiPromise = null;
+
+    if (_brainKeys && _brainKeys.gpt) {
+      gptPromise = _callGPT(prompt.system, prompt.user, 1500).catch(function(e) {
+        console.warn('[Brain] GPT failed:', e.message); return null;
+      });
+    }
+    if (_brainKeys && _brainKeys.gemini) {
+      geminiPromise = _callGemini(prompt.system, prompt.user, 1500).catch(function(e) {
+        console.warn('[Brain] Gemini failed:', e.message); return null;
+      });
+    }
+
+    // Wait for all
+    var results = await Promise.allSettled([
+      claudePromise,
+      gptPromise    || Promise.resolve(null),
+      geminiPromise || Promise.resolve(null)
+    ]);
+
+    var claudeResult = results[0].status === 'fulfilled' ? results[0].value : null;
+    var gptResult    = results[1].status === 'fulfilled' ? results[1].value : null;
+    var geminiResult = results[2].status === 'fulfilled' ? results[2].value : null;
+
+    // Claude is mandatory — if it failed, throw
+    if (!claudeResult) throw new Error('Claude pipeline failed');
+
+    setP(80, '⚖️ Meta-Judge שופט...');
+
+    // If only Claude available — skip Meta-Judge overhead
+    if (!gptResult && !geminiResult) {
+      return claudeResult;
+    }
+
+    // ── Consensus calculation ──
+    var consensus = _calcConsensus(
+      claudeResult.score || 50,
+      gptResult    ? (gptResult.score    || 50) : null,
+      geminiResult ? (geminiResult.score || 50) : null
+    );
+
+    // ── Load history for Meta-Judge context ──
+    var history = [];
+    try { history = await window.getBrainHistory(lead.segment || lead.type, 8); } catch(e){}
+
+    // ── Meta-Judge decides ──
+    setP(88, '⚖️ Meta-Judge מחליט...');
+    var verdict = await _metaJudge(lead, claudeResult, gptResult, geminiResult, history);
+
+    // ── Merge: Claude result + Meta-Judge verdict ──
+    var finalResult = Object.assign({}, claudeResult, {
+      score:             verdict.meta_score     || claudeResult.score,
+      tier:              verdict.final_tier     || claudeResult.tier,
+      summary:           verdict.final_summary  || claudeResult.summary,
+      executive_summary: verdict.meta_reasoning || claudeResult.executive_summary,
+      next_action:       verdict.meta_action    || claudeResult.next_action,
+      status:            'done',
+      triple_engine:     true,
+      meta_score:        verdict.meta_score,
+      meta_reasoning:    verdict.meta_reasoning,
+      meta_action:       verdict.meta_action,
+      claude_score:      claudeResult.score,
+      gpt_score:         gptResult    ? gptResult.score    : null,
+      gemini_score:      geminiResult ? geminiResult.score : null,
+      confidence:        consensus.confidence,
+      had_conflict:      consensus.hadConflict,
+      disagreements:     verdict.disagreements || []
+    });
+
+    setP(95, '💾 שומר זיכרון...');
+
+    // ── Save to Brain Memory (Firebase ai_decisions) ──
+    try {
+      await window.saveBrainDecision({
+        lead_id:          lead.id,
+        lead_name:        lead.name,
+        lead_segment:     lead.segment || lead.type || '',
+        claude_score:     claudeResult.score   || 50,
+        claude_summary:   claudeResult.summary || '',
+        gpt_score:        gptResult    ? (gptResult.score    || 50) : null,
+        gpt_summary:      gptResult    ? (gptResult.summary  || '') : null,
+        gemini_score:     geminiResult ? (geminiResult.score || 50) : null,
+        gemini_summary:   geminiResult ? (geminiResult.summary||'') : null,
+        meta_score:       verdict.meta_score,
+        meta_reasoning:   verdict.meta_reasoning,
+        meta_action:      verdict.meta_action,
+        confidence:       consensus.confidence,
+        had_conflict:     consensus.hadConflict,
+        disagreements:    verdict.disagreements || []
+      });
+    } catch(e) { console.warn('[Brain] saveBrainDecision failed:', e.message); }
+
+    setP(100, '✅ Triple Engine הושלם');
+    return finalResult;
+  };
+
+    // ── Deep pipeline: 3 phases ───────────────────────────────────
   window._deepAIPipeline = async function(lead) {
     var domain = (lead.domain||'').replace(/https?:\/\//,'').split('/')[0] || lead.name;
     var compInfo = '';
