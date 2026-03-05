@@ -5317,6 +5317,29 @@ BP6-10: תעדף (פלטפורמה ישנה+דומיין+6+ אירועים), Dis
     var gptResult    = results[1].status === 'fulfilled' ? results[1].value : null;
     var geminiResult = results[2].status === 'fulfilled' ? results[2].value : null;
 
+    // ── Debug Panel updates after parallel engines ──
+    if (claudeResult) {
+      dbgUpdate('claude', '✅ הושלם — ציון: ' + (claudeResult.score || '?'), claudeResult.score, false);
+    } else {
+      dbgUpdate('claude', '❌ נכשל', null, true);
+    }
+
+    if (_brainKeys && _brainKeys.gpt) {
+      if (gptResult) {
+        dbgUpdate('gpt', '✅ הושלם — ציון: ' + (gptResult.score || '?'), gptResult.score, false);
+      } else {
+        dbgUpdate('gpt', '❌ נכשל / timeout', null, true);
+      }
+    }
+
+    if (_brainKeys && _brainKeys.gemini) {
+      if (geminiResult) {
+        dbgUpdate('gemini', '✅ הושלם — ציון: ' + (geminiResult.score || '?'), geminiResult.score, false);
+      } else {
+        dbgUpdate('gemini', '❌ נכשל / timeout', null, true);
+      }
+    }
+
     // Claude is mandatory — if it failed, throw
     if (!claudeResult) throw new Error('Claude pipeline failed');
 
@@ -5340,7 +5363,9 @@ BP6-10: תעדף (פלטפורמה ישנה+דומיין+6+ אירועים), Dis
 
     // ── Meta-Judge decides ──
     setP(88, '⚖️ Meta-Judge מחליט — מי צודק? מה הציון הסופי?');
+    dbgUpdate('judge', '🔄 מנתח ' + activeEngines + ' תוצאות...', null, false);
     var verdict = await _metaJudge(lead, claudeResult, gptResult, geminiResult, history);
+    dbgUpdate('judge', '✅ החלטה — ציון סופי: ' + (verdict.meta_score || '?'), verdict.meta_score, false);
 
     // ── Merge: Claude result + Meta-Judge verdict ──
     var finalResult = Object.assign({}, claudeResult, {
@@ -5386,6 +5411,41 @@ BP6-10: תעדף (פלטפורמה ישנה+דומיין+6+ אירועים), Dis
     } catch(e) { console.warn('[Brain] saveBrainDecision failed:', e.message); }
 
     setP(100, activeEngines > 1 ? '✅ Triple Engine הושלם — Meta-Judge החליט' : '✅ ניתוח Claude הושלם');
+
+    // ── Auto-close Debug Panel with summary after 6s ──
+    (function() {
+      var panel = document.getElementById('_triple_debug_panel');
+      if (!panel) return;
+      // Clear the elapsed timer
+      if (panel._dbgTimer) clearInterval(panel._dbgTimer);
+
+      // Update timing line to show final elapsed
+      var elEl = document.getElementById('_dbg_elapsed');
+      var timingEl = document.getElementById('_dbg_timing');
+      if (timingEl && elEl) {
+        timingEl.innerHTML = '✅ הושלם ב-<strong style="color:#a78bfa">' + elEl.textContent + 's</strong> — נסגר אוטומטית...';
+      }
+
+      // Add final score summary bar at bottom of panel
+      var summary = document.createElement('div');
+      summary.style.cssText = 'margin-top:8px;padding:8px 12px;background:rgba(245,158,11,0.1);border:1px solid rgba(245,158,11,0.3);border-radius:8px;text-align:center';
+      var finalScore = finalResult.score || '?';
+      var finalTier  = finalResult.tier  || '';
+      var scoreColor = finalScore >= 80 ? '#10b981' : finalScore >= 60 ? '#F59E0B' : '#ef4444';
+      summary.innerHTML =
+        '<div style="font-size:11px;color:rgba(255,255,255,0.4);margin-bottom:4px">ציון סופי (Meta-Judge)</div>' +
+        '<div style="font-size:26px;font-weight:900;color:' + scoreColor + '">' + finalScore + '</div>' +
+        (finalTier ? '<div style="font-size:11px;color:rgba(255,255,255,0.5);margin-top:2px">' + finalTier + '</div>' : '');
+      panel.appendChild(summary);
+
+      // Fade out and remove after 6 seconds
+      setTimeout(function() {
+        panel.style.transition = 'opacity 0.8s ease';
+        panel.style.opacity = '0';
+        setTimeout(function() { if (panel.parentNode) panel.remove(); }, 800);
+      }, 6000);
+    })();
+
     return finalResult;
   };
 
