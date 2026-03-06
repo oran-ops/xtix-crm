@@ -14,6 +14,40 @@
 (function() {
 'use strict';
 
+// ── guard: _callAI חייב להיות מוגדר ב-index.html ──────────────
+// אם לא קיים — Meta-Judge יכשל בשקט. נרשום אזהרה ברורה.
+if (typeof _callAI === 'undefined' && typeof window._callAI === 'undefined') {
+  console.error('[ai-engine-v3] ⚠️ _callAI לא מוגדר! וודא ש-index.html נטען לפני ai-engine.js');
+}
+
+// ── fallback: _callAIFast — אם index.html עדיין לא הגדיר אותו ──
+if (typeof window._callAIFast !== 'function') {
+  window._callAIFast = async function(sys, usr, maxTok, timeoutMs) {
+    try {
+      var res = await window._authFetch(window.SERVER + '/ai', {
+        method: 'POST', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          model: 'claude-haiku-4-5-20251001',
+          max_tokens: maxTok || 1000,
+          system: sys,
+          messages: [{ role: 'user', content: usr }]
+        }),
+        signal: AbortSignal.timeout(timeoutMs || 30000)
+      });
+      if (!res.ok) throw new Error('HTTP ' + res.status);
+      var data = await res.json();
+      var raw = (data.content || []).map(function(b) { return b.text || ''; }).join('');
+      raw = raw.replace(/^```json\s*/, '').replace(/^```\s*/, '').replace(/\s*```$/, '');
+      var s = raw.indexOf('{'), e = raw.lastIndexOf('}');
+      if (s === -1) throw new Error('No JSON');
+      return JSON.parse(raw.substring(s, e + 1));
+    } catch (e) {
+      console.warn('[AI Fast fallback] Failed:', e.message);
+      return null;
+    }
+  };
+}
+
 // ════════════════════════════════════════════════════════════════
 //  CONSTANTS
 // ════════════════════════════════════════════════════════════════
@@ -436,7 +470,7 @@ async function _gptMoneyAnalyst(lead, proxyCtx, compInfo) {
     '}'
   ].join('\n');
 
-  var result = await _callGPT(system, user, 2000);
+  var result = await _callGPT(system, user, 2500);
   result._engine = 'gpt';
   result.status  = 'done';
   return result;
@@ -481,7 +515,7 @@ async function _geminiIntelScanner(lead, proxyCtx, compInfo) {
     '}'
   ].join('\n');
 
-  var result = await _callGemini(system, user, 2000);
+  var result = await _callGemini(system, user, 2500);
   result._engine = 'gemini';
   result.status  = 'done';
   return result;
@@ -533,68 +567,42 @@ async function _metaJudge(lead, claudeResult, gptResult, geminiResult, memory, c
     '=== זיכרון Firebase ===',
     memStr,
     '',
-    '=== 25 שאלות לענות עליהן בניתוח ===',
-    '1. ציון סופי — פרט נקודות לכל פרמטר',
-    '2. Killer Combo קיים?',
-    '3. אילו כאבים מאושרים? אילו ממוצאים?',
-    '4. מה הפלטפורמה הנכונה + ראיה',
-    '5. מחלוקות בין מנועים — למה בחרת צד?',
-    '6. אחוז סגירה בסגמנט (Firebase)',
-    '7. ציון ממוצע לידים שנסגרו בסגמנט',
-    '8. כאב שהכי הוביל לסגירה בסגמנט',
-    '9. pattern טעות שחוזרת',
-    '10. ROI לציג בשיחה',
-    '11. דחיפות — אירוע קרוב?',
-    '12. cadence מומלץ (Firebase)',
-    '13. רמת ביטחון + נימוק',
-    '14. פעולה ספציפית מחר',
-    '15. נוסח פתיחה מדויק לשיחה',
-    '16. Tier סופי',
-    '17. סיכוני סגירה',
-    '18. social proof שניתן להשתמש',
-    '19. שאלות גילוי לשיחה',
-    '20. תשובה ל"מרוצים מהפלטפורמה"',
-    '21. pitch angle מומלץ (ROI/Data/Brand/AI)',
-    '22. blast potential (כמה אנשים)',
-    '23. מה Gemini גילה שמשפיע על גישה',
-    '24. מצב שיווק + איך XTIX משפר',
-    '25. סיכום לנציג — 3 משפטים לפני שיחה',
-    '',
-    'החזר JSON:',
+    'החזר JSON מדויק עם כל השדות הבאים — ענה על 25 נקודות בתוך השדות עצמם:',
     '{',
-    '  "meta_score": 82,',
-    '  "final_tier": "A",',
-    '  "score_breakdown": {"sells_tickets":30,"external_platform":25,"recurring_events":10,"event_size":10,"ticket_price":5,"deductions":0},',
-    '  "platform_verdict": "SmartTicket — מאושר ע"י URL ישיר",',
-    '  "pain_verdict": ["כאב מאושר בראיה"],',
-    '  "killer_combo": true,',
-    '  "killer_combo_explanation": "7% + הרשמה חובה",',
-    '  "roi_pitch": "₪3,000 חיסכון + 1,400 קונים",',
-    '  "next_event_urgency": "15.4 — 6 שבועות",',
-    '  "recommended_cadence": "hot",',
-    '  "meta_reasoning": "נימוק מפורט בנקודות",',
-    '  "meta_action": "פעולה מחר",',
-    '  "opening_line": "נוסח פתיחה מדויק",',
-    '  "pitch_angle": "ROI",',
-    '  "blast_potential": 16500,',
-    '  "discovery_questions": ["שאלה1","שאלה2","שאלה3","שאלה4","שאלה5"],',
-    '  "objection_handler": "איך לטפל ב\'מרוצים\'",',
-    '  "risk_factors": ["סיכון1","סיכון2"],',
-    '  "social_proof": "social proof רלוונטי",',
-    '  "marketing_insight": "מה גילה Gemini",',
-    '  "rep_summary": "3 משפטים לנציג לפני שיחה",',
-    '  "firebase_context": "מה Firebase לימד",',
-    '  "disagreements": ["מנוע X נתן Y כי Z — בחרתי A כי B"],',
-    '  "confidence": "high",',
-    '  "confidence_reason": "3 ראיות עצמאיות",',
-    '  "final_summary": "סיכום מלא"',
+    '  "meta_score": <0-100>,',
+    '  "final_tier": "<A|B|C>",',
+    '  "score_breakdown": {"sells_tickets":<0-30>,"external_platform":<0-25>,"recurring_events":<0-10>,"event_size":<0-10>,"ticket_price":<0-5>,"deductions":<0 or negative>},',
+    '  "platform_verdict": "<פלטפורמה + ראיה>",',
+    '  "pain_verdict": ["<כאב מאושר בראיה>"],',
+    '  "killer_combo": <true|false>,',
+    '  "killer_combo_explanation": "<הסבר>",',
+    '  "roi_pitch": "<ROI קונקרטי לציג>",',
+    '  "next_event_urgency": "<תאריך + דחיפות>",',
+    '  "recommended_cadence": "<hot|warm|cool>",',
+    '  "meta_reasoning": "<נימוק מפורט — ציון, כאבים, Firebase pattern, מחלוקות>",',
+    '  "meta_action": "<פעולה ספציפית מחר>",',
+    '  "opening_line": "<נוסח פתיחה מדויק>",',
+    '  "pitch_angle": "<ROI|Data|Brand|AI>",',
+    '  "blast_potential": <מספר>,',
+    '  "discovery_questions": ["<שאלה>","<שאלה>","<שאלה>","<שאלה>","<שאלה>"],',
+    '  "objection_handler": "<תשובה ל\'מרוצים מהפלטפורמה\'>",',
+    '  "risk_factors": ["<סיכון>"],',
+    '  "social_proof": "<social proof רלוונטי>",',
+    '  "marketing_insight": "<תובנת Gemini>",',
+    '  "rep_summary": "<3 משפטים לנציג לפני שיחה>",',
+    '  "firebase_context": "<מה Firebase לימד על הסגמנט/פלטפורמה>",',
+    '  "disagreements": ["<מנוע X נתן Y — בחרתי A כי B>"],',
+    '  "confidence": "<high|mid|low>",',
+    '  "confidence_reason": "<נימוק ביטחון>",',
+    '  "final_summary": "<סיכום מלא>"',
     '}'
   ].join('\n');
 
   try {
+    if (typeof _callAI === 'undefined') throw new Error('_callAI לא מוגדר — index.html לא נטען?');
     var judgeAbort = new AbortController();
     var judgeTimer = setTimeout(function(){ judgeAbort.abort(); }, TIMEOUT_META_JUDGE);
-    var verdict = await _callAI(system, user, 2000, TIMEOUT_META_JUDGE, judgeAbort.signal);
+    var verdict = await _callAI(system, user, 3500, TIMEOUT_META_JUDGE, judgeAbort.signal);
     clearTimeout(judgeTimer);
     if(!verdict) throw new Error('empty');
     verdict._judgeMs = Date.now()-t0;
