@@ -3375,7 +3375,7 @@ BP18: Nurture existing customers — repeat customers spend 67% more
     return _methodologyCache;
   }
 
-  const SERVER = window.SERVER = 'https://xtix-crm-production.up.railway.app';
+  const SERVER = window.SERVER = 'https://xtix-crm-test.up.railway.app';
 
   // ── Authenticated fetch — adds Firebase ID Token to every server request ──
   window._authFetch = async function(url, options) {
@@ -4780,7 +4780,7 @@ BP18: Nurture existing customers — repeat customers spend 67% more
     // Step 1: Try local proxy for raw data
     let proxyData = null;
     try {
-      const res = await fetch(`https://xtix-crm-production.up.railway.app/analyze?url=${encodeURIComponent(fullUrl)}`, { signal: AbortSignal.timeout(5000) });
+      const res = await fetch(`https://xtix-crm-test.up.railway.app/analyze?url=${encodeURIComponent(fullUrl)}`, { signal: AbortSignal.timeout(5000) });
       if (res.ok) proxyData = await res.json();
     } catch(e) {}
 
@@ -7640,7 +7640,7 @@ window._cleanForFirebase = function _cleanForFirebase(obj) {
 // AI CHAT — Claude via Railway proxy
 // ═══════════════════════════════════════════════════════════
 (function() {
-  var AI_SERVER = 'https://xtix-crm-production.up.railway.app/ai';
+  var AI_SERVER = 'https://xtix-crm-test.up.railway.app/ai';
   var aiHistory = [];   // { role, content } — full conversation
   var aiThinking = false;
 
@@ -8270,7 +8270,7 @@ window._cleanForFirebase = function _cleanForFirebase(obj) {
     ].filter(Boolean).join('\n');
 
     try {
-      var res = await window._authFetch('https://xtix-crm-production.up.railway.app/ai', {
+      var res = await window._authFetch('https://xtix-crm-test.up.railway.app/ai', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -9929,7 +9929,7 @@ setTimeout(function() {
     var btn = document.getElementById('kb-trigger-btn');
     if (btn) { btn.textContent = '⏳ אוסף נתונים...'; btn.disabled = true; }
     try {
-      var srv = window.SERVER || 'https://xtix-crm-production.up.railway.app';
+      var srv = window.SERVER || 'https://xtix-crm-test.up.railway.app';
 
       // 1. Collect KB docs from Firebase
       var kbDocs = [], decisions = [];
@@ -10235,7 +10235,7 @@ setTimeout(function() {
   // ── Fetch URL content via proxy ──
   async function _kbFetchContent(url) {
     try {
-      var srv = window.SERVER || 'https://xtix-crm-production.up.railway.app';
+      var srv = window.SERVER || 'https://xtix-crm-test.up.railway.app';
       var res = await window._authFetch(srv + '/analyze?url=' + encodeURIComponent(url), { signal: AbortSignal.timeout(8000) });
       if (!res.ok) throw new Error('HTTP ' + res.status);
       var d = await res.json();
