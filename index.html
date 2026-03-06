@@ -19,8 +19,8 @@
   --b2:          rgba(255,255,255,0.11);
   --b3:          rgba(255,255,255,0.17);
   --t1:          #f4f4f5;
-  --t2:          #a1a1aa;
-  --t3:          #52525b;
+  --t2:          #c0c0cc;
+  --t3:          #7a7a8e;
   --blue:        #3b82f6;
   --blue-dim:    rgba(59,130,246,0.12);
   --blue-glow:   rgba(59,130,246,0.22);
@@ -45,8 +45,8 @@
   --accent-blue: #3b82f6;
   --accent-glow: rgba(59,130,246,0.22);
   --text:        #f4f4f5;
-  --text2:       #a1a1aa;
-  --muted:       #52525b;
+  --text2:       #c4c4cc;
+  --muted:       #8b8b9a;
   --sidebar-w:     220px;
   --sidebar-w-col: 56px;
 }
@@ -1292,14 +1292,14 @@ input::placeholder, textarea::placeholder { color: var(--t3); }
 .usr-avatar-ph { width:36px;height:36px;border-radius:50%;background:var(--bg);display:flex;align-items:center;justify-content:center;font-size:18px;flex-shrink:0; }
 .usr-info { flex:1;min-width:0; }
 .usr-name { font-size:13px;font-weight:600;color:var(--text); }
-.usr-you { font-size:10px;color:var(--muted);font-weight:400; }
+.usr-you { font-size:10px;color:var(--text2);font-weight:400; }
 .usr-role-tag { font-size:10px;font-weight:600; }
 .usr-email { font-size:11px;color:var(--muted);margin-top:2px; }
-.usr-seen { font-size:10px;color:var(--muted);margin-top:2px; }
+.usr-seen { font-size:10px;color:rgba(196,196,204,0.75);margin-top:2px; }
 .usr-role-sel { background:var(--bg);border:1px solid var(--border);border-radius:6px;padding:4px 8px;font-size:11px;font-family:'Heebo',sans-serif;cursor:pointer; }
 .usr-remove-btn { background:rgba(239,68,68,0.1);border:1px solid rgba(239,68,68,0.3);border-radius:6px;padding:4px 10px;font-size:11px;color:#ef4444;cursor:pointer;font-family:'Heebo',sans-serif;white-space:nowrap; }
 .usr-remove-btn:hover { background:rgba(239,68,68,0.2); }
-.usr-section-lbl { font-size:11px;color:var(--muted);margin:16px 0 8px;font-weight:700;letter-spacing:1px; }
+.usr-section-lbl { font-size:11px;color:rgba(196,196,204,0.75);margin:16px 0 8px;font-weight:700;letter-spacing:1px; }
 
 /* Brain Tabs */
 .brain-tabs {
@@ -1647,10 +1647,10 @@ document.addEventListener("DOMContentLoaded",function(){
 <!-- =================== LOGIN SCREEN =================== -->
 <div id="login-screen" style="display:none;position:fixed;inset:0;background:var(--bg);z-index:9999;flex-direction:column;align-items:center;justify-content:center;gap:24px">
   <div style="font-family:'Space Mono',monospace;font-size:32px;color:var(--accent);letter-spacing:4px">XTIX<span style="color:var(--accent2)">.</span>CRM</div>
-  <div style="font-size:13px;color:var(--muted);margin-top:-12px">Sales Intelligence Platform</div>
+  <div style="font-size:13px;color:var(--text2);margin-top:-12px">Sales Intelligence Platform</div>
   <div style="background:var(--surface);border:1px solid var(--border);border-radius:16px;padding:36px 40px;text-align:center;max-width:340px;width:90%">
     <div style="font-size:14px;color:var(--text);margin-bottom:8px;font-weight:600">כניסה ל-CRM</div>
-    <div style="font-size:11px;color:var(--muted);margin-bottom:24px">הנתונים שלך מאובטחים ב-Firebase</div>
+    <div style="font-size:11px;color:rgba(196,196,204,0.75);margin-bottom:24px">הנתונים שלך מאובטחים ב-Firebase</div>
     <button onclick="googleLogin()" style="display:flex;align-items:center;justify-content:center;gap:10px;width:100%;background:#fff;border:none;border-radius:10px;padding:12px 20px;font-size:13px;font-weight:600;color:#3c4043;cursor:pointer;font-family:'Heebo',sans-serif;box-shadow:0 2px 8px rgba(0,0,0,0.3)">
       <svg width="18" height="18" viewBox="0 0 48 48"><path fill="#EA4335" d="M24 9.5c3.54 0 6.71 1.22 9.21 3.6l6.85-6.85C35.9 2.38 30.47 0 24 0 14.62 0 6.51 5.38 2.56 13.22l7.98 6.19C12.43 13.72 17.74 9.5 24 9.5z"/><path fill="#4285F4" d="M46.98 24.55c0-1.57-.15-3.09-.38-4.55H24v9.02h12.94c-.58 2.96-2.26 5.48-4.78 7.18l7.73 6c4.51-4.18 7.09-10.36 7.09-17.65z"/><path fill="#FBBC05" d="M10.53 28.59c-.48-1.45-.76-2.99-.76-4.59s.27-3.14.76-4.59l-7.98-6.19C.92 16.46 0 20.12 0 24c0 3.88.92 7.54 2.56 10.78l7.97-6.19z"/><path fill="#34A853" d="M24 48c6.48 0 11.93-2.13 15.89-5.81l-7.73-6c-2.18 1.48-4.97 2.34-8.16 2.34-6.26 0-11.57-4.22-13.47-9.91l-7.98 6.19C6.51 42.62 14.62 48 24 48z"/></svg>
       התחבר עם Google
@@ -2772,7 +2772,7 @@ document.addEventListener("DOMContentLoaded",function(){
         <button id="mode-form-btn" onclick="setLeadMode('form')" style="padding:8px 18px;border-radius:8px;border:2px solid var(--accent);background:var(--accent);color:#fff;font-size:12px;font-weight:700;cursor:pointer;font-family:'Heebo',sans-serif">📋 טופס שאלות</button>
         <button id="mode-url-btn" onclick="setLeadMode('url')" style="padding:8px 18px;border-radius:8px;border:2px solid var(--border);background:transparent;color:var(--muted);font-size:12px;font-weight:700;cursor:pointer;font-family:'Heebo',sans-serif">🔗 הזן URL</button>
         <button id="mode-hunt-btn" onclick="setLeadMode('hunt')" style="padding:8px 18px;border-radius:8px;border:2px solid var(--border);background:transparent;color:var(--muted);font-size:12px;font-weight:700;cursor:pointer;font-family:'Heebo',sans-serif">🤖 AI Hunt</button>
-        <span style="font-size:11px;color:var(--muted);align-self:center;margin-right:8px">SF BP #2 Persona + BP #6 Priority — ניקוד אוטומטי לליד חדש</span>
+        <span style="font-size:11px;color:rgba(196,196,204,0.75);align-self:center;margin-right:8px">SF BP #2 Persona + BP #6 Priority — ניקוד אוטומטי לליד חדש</span>
       </div>
 
       <div style="display:grid;grid-template-columns:1fr 380px;gap:16px;align-items:start">
@@ -2788,11 +2788,11 @@ document.addEventListener("DOMContentLoaded",function(){
 
               <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px">
                 <div>
-                  <label style="font-size:10px;color:var(--muted);display:block;margin-bottom:4px;letter-spacing:1px;text-transform:uppercase">שם ליד / חברה</label>
+                  <label style="font-size:10px;color:rgba(200,200,215,0.65);color:var(--muted);display:block;margin-bottom:4px;letter-spacing:1px;text-transform:uppercase">שם ליד / חברה</label>
                   <input id="lf-name" type="text" placeholder="שומרי המלכה..." style="width:100%;background:var(--surface2);border:1px solid var(--border);border-radius:7px;padding:8px 12px;color:var(--text);font-size:12px;font-family:'Heebo',sans-serif;outline:none">
                 </div>
                 <div>
-                  <label style="font-size:10px;color:var(--muted);display:block;margin-bottom:4px;letter-spacing:1px;text-transform:uppercase">דומיין (אם יש)</label>
+                  <label style="font-size:10px;color:rgba(200,200,215,0.65);color:var(--muted);display:block;margin-bottom:4px;letter-spacing:1px;text-transform:uppercase">דומיין (אם יש)</label>
                   <input id="lf-domain" type="text" placeholder="example.co.il" style="width:100%;background:var(--surface2);border:1px solid var(--border);border-radius:7px;padding:8px 12px;color:var(--text);font-size:12px;font-family:'Heebo',sans-serif;outline:none" oninput="runScorer()">
                 </div>
               </div>
@@ -2913,7 +2913,7 @@ document.addEventListener("DOMContentLoaded",function(){
           <!-- URL MODE -->
           <div id="mode-url" style="display:none">
             <div class="card-title"><div class="dot" style="background:var(--accent)"></div>הכנס URL של אתר הליד</div>
-            <p style="font-size:11px;color:var(--muted);margin-bottom:14px;line-height:1.6">המערכת תנסה לזהות: דומיין פעיל, כפתורי כרטיסים חיצוניים, נוכחות ברשתות — ותתן ניקוד ראשוני.</p>
+            <p style="font-size:11px;color:rgba(196,196,204,0.75);margin-bottom:14px;line-height:1.6">המערכת תנסה לזהות: דומיין פעיל, כפתורי כרטיסים חיצוניים, נוכחות ברשתות — ותתן ניקוד ראשוני.</p>
             <input id="lf-url" type="text" placeholder="https://queen-guards.com" style="width:100%;background:var(--surface2);border:1px solid var(--border);border-radius:7px;padding:10px 14px;color:var(--text);font-size:13px;font-family:'Space Mono',sans-serif;outline:none;margin-bottom:12px">
             <input id="lf-name-url" type="text" placeholder="שם הליד / חברה" style="width:100%;background:var(--surface2);border:1px solid var(--border);border-radius:7px;padding:8px 12px;color:var(--text);font-size:12px;font-family:'Heebo',sans-serif;outline:none;margin-bottom:12px">
             <button onclick="analyzeUrl()" style="width:100%;background:var(--accent);border:none;border-radius:8px;padding:11px;color:#fff;font-size:13px;font-weight:700;cursor:pointer;font-family:'Heebo',sans-serif">🔍 נתח URL</button>
@@ -3164,25 +3164,25 @@ document.addEventListener("DOMContentLoaded",function(){
 
           <!-- Score Display -->
           <div class="card" style="text-align:center;padding:20px">
-            <div style="font-size:10px;letter-spacing:2px;color:var(--muted);margin-bottom:8px;text-transform:uppercase">LEAD SCORE</div>
+            <div style="font-size:10px;letter-spacing:2px;color:var(--text2);margin-bottom:8px;text-transform:uppercase">LEAD SCORE</div>
             <div id="score-display" style="font-family:'Space Mono',monospace;font-size:52px;font-weight:800;color:var(--green);line-height:1;margin-bottom:6px">0</div>
-            <div style="font-size:11px;color:var(--muted)">מתוך 100</div>
+            <div style="font-size:11px;color:rgba(196,196,204,0.75)">מתוך 100</div>
             <div style="height:6px;background:var(--surface2);border-radius:3px;margin:12px 0;overflow:hidden">
               <div id="score-bar" style="height:100%;width:0%;background:var(--green);border-radius:3px;transition:width 0.4s ease,background 0.4s ease"></div>
             </div>
-            <div id="score-verdict" style="font-size:13px;font-weight:700;color:var(--muted);padding:8px;border-radius:7px;background:var(--surface2)">ממתין לנתונים...</div>
+            <div id="score-verdict" style="font-size:13px;font-weight:700;color:var(--text2);padding:8px;border-radius:7px;background:var(--surface2)">ממתין לנתונים...</div>
           </div>
 
           <!-- Competitor Intel -->
           <div class="card" id="competitor-intel" style="display:none">
             <div class="card-title"><div class="dot" style="background:var(--accent2)"></div>⚔️ נגד המתחרה</div>
-            <div id="competitor-intel-content" style="font-size:11px;line-height:1.7;color:var(--muted)"></div>
+            <div id="competitor-intel-content" style="font-size:11px;line-height:1.7;color:rgba(196,196,204,0.75)"></div>
           </div>
 
           <!-- Email Cadence Recommendation -->
           <div class="card" id="cadence-rec" style="display:none">
             <div class="card-title"><div class="dot" style="background:var(--yellow)"></div>📧 ציר מיילים מומלץ</div>
-            <div id="cadence-rec-content" style="font-size:11px;line-height:1.8;color:var(--muted)"></div>
+            <div id="cadence-rec-content" style="font-size:11px;line-height:1.8;color:rgba(196,196,204,0.75)"></div>
           </div>
 
           <!-- Action Buttons -->
@@ -3233,27 +3233,27 @@ document.addEventListener("DOMContentLoaded",function(){
 
     <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:12px">
       <div class="form-group" style="margin:0">
-        <label style="font-size:11px;color:var(--muted);display:block;margin-bottom:5px">שם חברה / פרויקט *</label>
+        <label style="font-size:11px;color:rgba(196,196,204,0.75);display:block;margin-bottom:5px">שם חברה / פרויקט *</label>
         <input type="text" id="new-name" placeholder="לדוג׳: להקת האלפים" style="width:100%;background:var(--surface2);border:1px solid var(--border);border-radius:8px;padding:8px 12px;font-size:13px;color:var(--text);font-family:Heebo,sans-serif;outline:none;box-sizing:border-box">
       </div>
       <div class="form-group" style="margin:0">
-        <label style="font-size:11px;color:var(--muted);display:block;margin-bottom:5px">דומיין / אתר</label>
+        <label style="font-size:11px;color:rgba(196,196,204,0.75);display:block;margin-bottom:5px">דומיין / אתר</label>
         <input type="text" id="new-domain" placeholder="example.co.il" style="width:100%;background:var(--surface2);border:1px solid var(--border);border-radius:8px;padding:8px 12px;font-size:13px;color:var(--text);font-family:Heebo,sans-serif;outline:none;box-sizing:border-box">
       </div>
       <div class="form-group" style="margin:0">
-        <label style="font-size:11px;color:var(--muted);display:block;margin-bottom:5px">מייל</label>
+        <label style="font-size:11px;color:rgba(196,196,204,0.75);display:block;margin-bottom:5px">מייל</label>
         <input type="text" id="new-email" placeholder="email@..." style="width:100%;background:var(--surface2);border:1px solid var(--border);border-radius:8px;padding:8px 12px;font-size:13px;color:var(--text);font-family:Heebo,sans-serif;outline:none;box-sizing:border-box">
       </div>
       <div class="form-group" style="margin:0">
-        <label style="font-size:11px;color:var(--muted);display:block;margin-bottom:5px">טלפון</label>
+        <label style="font-size:11px;color:rgba(196,196,204,0.75);display:block;margin-bottom:5px">טלפון</label>
         <input type="text" id="new-phone" placeholder="050-0000000" style="width:100%;background:var(--surface2);border:1px solid var(--border);border-radius:8px;padding:8px 12px;font-size:13px;color:var(--text);font-family:Heebo,sans-serif;outline:none;box-sizing:border-box">
       </div>
       <div class="form-group" style="margin:0">
-        <label style="font-size:11px;color:var(--muted);display:block;margin-bottom:5px">פלטפורמה נוכחית</label>
+        <label style="font-size:11px;color:rgba(196,196,204,0.75);display:block;margin-bottom:5px">פלטפורמה נוכחית</label>
         <input type="text" id="new-platform" placeholder="SmarTicket, Mevalim..." style="width:100%;background:var(--surface2);border:1px solid var(--border);border-radius:8px;padding:8px 12px;font-size:13px;color:var(--text);font-family:Heebo,sans-serif;outline:none;box-sizing:border-box">
       </div>
       <div class="form-group" style="margin:0">
-        <label style="font-size:11px;color:var(--muted);display:block;margin-bottom:5px">סגמנט</label>
+        <label style="font-size:11px;color:rgba(196,196,204,0.75);display:block;margin-bottom:5px">סגמנט</label>
         <select id="new-type" style="width:100%;background:var(--surface2);border:1px solid var(--border);border-radius:8px;padding:8px 12px;font-size:13px;color:var(--text);font-family:Heebo,sans-serif;outline:none;box-sizing:border-box">
           <option value="">-- בחר סגמנט --</option>
           <option>תיאטרון</option><option>מוזיקה</option><option>סטנד-אפ</option>
@@ -3262,11 +3262,11 @@ document.addEventListener("DOMContentLoaded",function(){
         </select>
       </div>
       <div class="form-group" style="margin:0">
-        <label style="font-size:11px;color:var(--muted);display:block;margin-bottom:5px">כתובת</label>
+        <label style="font-size:11px;color:rgba(196,196,204,0.75);display:block;margin-bottom:5px">כתובת</label>
         <input type="text" id="new-address" placeholder="עיר / כתובת" style="width:100%;background:var(--surface2);border:1px solid var(--border);border-radius:8px;padding:8px 12px;font-size:13px;color:var(--text);font-family:Heebo,sans-serif;outline:none;box-sizing:border-box">
       </div>
       <div class="form-group" style="margin:0">
-        <label style="font-size:11px;color:var(--muted);display:block;margin-bottom:5px">סטטוס</label>
+        <label style="font-size:11px;color:rgba(196,196,204,0.75);display:block;margin-bottom:5px">סטטוס</label>
         <select id="new-status" style="width:100%;background:var(--surface2);border:1px solid var(--border);border-radius:8px;padding:8px 12px;font-size:13px;color:var(--text);font-family:Heebo,sans-serif;outline:none;box-sizing:border-box">
           <option value="new">🆕 ליד חדש</option>
           <option value="contacted">📧 נוצר קשר</option>
@@ -3279,14 +3279,14 @@ document.addEventListener("DOMContentLoaded",function(){
     </div>
 
     <div class="form-group" style="margin:0 0 16px 0">
-      <label style="font-size:11px;color:var(--muted);display:block;margin-bottom:5px">הערות</label>
+      <label style="font-size:11px;color:rgba(196,196,204,0.75);display:block;margin-bottom:5px">הערות</label>
       <textarea id="new-notes" placeholder="מידע רלוונטי, trigger events, הקשר..." style="width:100%;background:var(--surface2);border:1px solid var(--border);border-radius:8px;padding:8px 12px;font-size:13px;color:var(--text);font-family:Heebo,sans-serif;outline:none;box-sizing:border-box;resize:vertical;min-height:70px"></textarea>
     </div>
 
     <div id="add-lead-error" style="display:none;background:rgba(239,68,68,0.1);border:1px solid rgba(239,68,68,0.3);border-radius:8px;padding:8px 12px;font-size:12px;color:#ef4444;margin-bottom:12px"></div>
 
     <div style="display:flex;gap:10px;justify-content:flex-end">
-      <button onclick="window.closeModal()" style="background:none;border:1px solid var(--border);border-radius:8px;padding:9px 20px;font-size:13px;color:var(--muted);cursor:pointer;font-family:Heebo,sans-serif">ביטול</button>
+      <button onclick="window.closeModal()" style="background:none;border:1px solid var(--border);border-radius:8px;padding:9px 20px;font-size:13px;color:var(--text2);cursor:pointer;font-family:Heebo,sans-serif">ביטול</button>
       <button onclick="window.addLead()" style="background:var(--accent);border:none;border-radius:8px;padding:9px 24px;font-size:13px;font-weight:700;color:#fff;cursor:pointer;font-family:Heebo,sans-serif">✅ שמור ליד</button>
     </div>
   </div>
@@ -4069,7 +4069,7 @@ BP18: Nurture existing customers — repeat customers spend 67% more
   }).join('');
   // שדות enrichment כ-read-only גם במצב עריכה
   enrichFields.forEach(function(r){
-    if(r[1]) editGrid+='<div class="info-box"><label style="color:rgba(255,255,255,0.2)">'+r[0]+' <span style="font-size:9px">(AI)</span></label><value style="color:var(--muted)">'+r[1]+'</value></div>';
+    if(r[1]) editGrid+='<div class="info-box"><label style="color:rgba(255,255,255,0.2)">'+r[0]+' <span style="font-size:9px">(AI)</span></label><value style="color:var(--text2)">'+r[1]+'</value></div>';
   });
 
   var btnStyle='border-radius:7px;padding:6px 14px;font-size:11px;cursor:pointer;font-family:Heebo,sans-serif;font-weight:700;border:1px solid';
@@ -4085,8 +4085,8 @@ BP18: Nurture existing customers — repeat customers spend 67% more
       '<div class="info-grid">'+editGrid+'</div>' +
       '<div style="margin-top:10px;display:flex;gap:8px;align-items:center">' +
         '<button onclick="window._editLeadSave('+lid+')" style="'+btnStyle+' rgba(16,185,129,0.4);background:rgba(16,185,129,0.15);color:#10b981">💾 שמור</button>' +
-        '<button onclick="window._editLeadCancel('+lid+')" style="'+btnStyle+' var(--border);background:none;color:var(--muted)">ביטול</button>' +
-        '<span id="ledit-status-'+lid+'" style="font-size:11px;color:var(--muted)"></span>' +
+        '<button onclick="window._editLeadCancel('+lid+')" style="'+btnStyle+' var(--border);background:none;color:var(--text2)">ביטול</button>' +
+        '<span id="ledit-status-'+lid+'" style="font-size:11px;color:rgba(196,196,204,0.75)"></span>' +
       '</div>' +
     '</div>';
   return html;
@@ -4211,15 +4211,15 @@ window._editLeadSave = function(lid){
   }
 };
 
-  function _ltab_analysis(lead,ai,enr){var a=ai||{},e=enr||{};if(!a.status||a.status==='none')return '<div style="padding:32px;text-align:center"><div style="font-size:40px;margin-bottom:12px">🧠</div><div style="font-size:13px;color:var(--muted);margin-bottom:16px">לחץ להפעלת ניתוח AI</div><button onclick="window.showAnalysisChoice('+lead.id+')" style="background:var(--accent);border:none;border-radius:8px;padding:10px 24px;font-size:13px;color:#fff;cursor:pointer;font-family:Heebo,sans-serif;font-weight:700">🚀 הפעל</button></div>';if(a.status==='running')return '<div style="padding:32px;text-align:center"><div style="font-size:36px;margin-bottom:12px;animation:_aip 1.2s ease-in-out infinite">'+
+  function _ltab_analysis(lead,ai,enr){var a=ai||{},e=enr||{};if(!a.status||a.status==='none')return '<div style="padding:32px;text-align:center"><div style="font-size:40px;margin-bottom:12px">🧠</div><div style="font-size:13px;color:var(--text2);margin-bottom:16px">לחץ להפעלת ניתוח AI</div><button onclick="window.showAnalysisChoice('+lead.id+')" style="background:var(--accent);border:none;border-radius:8px;padding:10px 24px;font-size:13px;color:#fff;cursor:pointer;font-family:Heebo,sans-serif;font-weight:700">🚀 הפעל</button></div>';if(a.status==='running')return '<div style="padding:32px;text-align:center"><div style="font-size:36px;margin-bottom:12px;animation:_aip 1.2s ease-in-out infinite">'+
     (typeof _brainKeys!=='undefined'&&(_brainKeys.gpt||_brainKeys.gemini)?'🧠':'⏳')+'</div>'+
     '<div style="display:inline-flex;align-items:center;gap:6px;background:rgba(124,58,237,0.1);border:1px solid rgba(124,58,237,0.25);border-radius:20px;padding:3px 12px;font-size:10px;font-weight:700;color:#a78bfa;margin-bottom:10px">'+
     (typeof _brainKeys!=='undefined'&&_brainKeys.gpt&&_brainKeys.gemini ? '⚡ TRIPLE ENGINE — Claude + GPT-4o + Gemini' :
      typeof _brainKeys!=='undefined'&&(_brainKeys.gpt||_brainKeys.gemini) ? '⚡ DUAL ENGINE — Claude + '+((_brainKeys&&_brainKeys.gpt)?'GPT-4o':'Gemini') :
      '🧠 Claude') +
     '</div>'+
-    '<div id="analysis-progress-'+lead.id+'" style="font-size:13px;color:var(--text);margin-bottom:8px">מנתח...</div><div style="font-size:11px;color:var(--muted);margin-bottom:16px">שלב 1/3: פרופיל → 2/3: אסטרטגיה → 3/3: מיילים</div><div style="height:4px;background:var(--surface2);border-radius:2px;overflow:hidden"><div id="analysis-bar-'+lead.id+'" style="height:100%;width:5%;background:var(--accent);border-radius:2px;transition:width 2s ease"></div></div></div>';var blocks=[{k:'executive_summary',i:'📊',t:'סיכום מנהלים',c:'rgba(108,99,255,0.08)',b:'rgba(108,99,255,0.25)'},{k:'sales_attack',i:'⚡',t:'אסטרטגיית תקיפה',c:'rgba(239,68,68,0.06)',b:'rgba(239,68,68,0.22)'},{k:'pain_points',i:'🎯',t:'כאבים ונקודות חולשה',c:'rgba(245,158,11,0.06)',b:'rgba(245,158,11,0.22)'},{k:'pricing_intel',i:'💰',t:'מודיעין תמחור',c:'rgba(16,185,129,0.06)',b:'rgba(16,185,129,0.22)'},{k:'social_intel',i:'📱',t:'רשתות חברתיות',c:'rgba(255,255,255,0.03)',b:'var(--border)'},{k:'meeting_prep',i:'🤝',t:'הכנה לשיחה',c:'rgba(139,92,246,0.06)',b:'rgba(139,92,246,0.22)'},{k:'discovery_questions',i:'❓',t:'שאלות Discovery',c:'rgba(255,255,255,0.02)',b:'var(--border)'},{k:'competitors_used',i:'🏁',t:'מתחרים בשימוש',c:'rgba(239,68,68,0.04)',b:'rgba(239,68,68,0.14)'}];var html='';blocks.forEach(function(b){var val=a[b.k]||(e&&e[b.k]);if(!val)return;var inner=Array.isArray(val)?val.map(function(v){return '<div style="padding:5px 0;border-bottom:1px solid rgba(255,255,255,0.04);font-size:12px;color:var(--text)">▸ '+v+'</div>';}).join(''):'<div style="color:var(--text);line-height:1.75;font-size:12px">'+val+'</div>';html+='<div style="background:'+b.c+';border:1px solid '+b.b+';border-radius:10px;padding:12px 14px;margin-bottom:10px"><div style="font-weight:700;color:var(--accent);margin-bottom:8px;font-size:11px;letter-spacing:.4px">'+b.i+' '+b.t.toUpperCase()+'</div>'+inner+'</div>';});if(a.next_action)html+='<div style="background:rgba(16,185,129,0.08);border:1px solid rgba(16,185,129,0.25);border-radius:10px;padding:10px 14px;margin-top:4px"><div style="font-weight:700;color:#10b981;margin-bottom:4px;font-size:11px">🎯 הצעד הבא</div><div style="color:var(--text);font-size:12px">'+a.next_action+'</div></div>';if(a.raw_research)html+='<details style="margin-top:10px"><summary style="cursor:pointer;color:var(--muted);font-size:11px;padding:4px 0">🔍 מחקר גולמי</summary><div style="padding:10px;font-size:11px;color:var(--muted);line-height:1.6;white-space:pre-wrap;max-height:260px;overflow-y:auto;background:rgba(0,0,0,0.2);border-radius:8px;margin-top:6px">'+a.raw_research+'</div></details>';if(a.enriched_at)html+='<div style="margin-top:8px;font-size:10px;color:var(--muted);text-align:left">עודכן: '+new Date(a.enriched_at).toLocaleString('he-IL')+'</div>';html += '<div style="margin-top:16px;display:flex;gap:10px;justify-content:space-between;align-items:center">'+'<button onclick="window.showAnalysisChoice(\'+lead.id+\')" style="background:rgba(124,58,237,0.12);border:1px solid rgba(124,58,237,0.3);border-radius:8px;padding:7px 16px;font-size:11px;font-weight:700;color:#a78bfa;cursor:pointer;font-family:Heebo,sans-serif">&#x1F504; הפעל ניתוח חדש</button>'+'<div style="display:flex;gap:8px;align-items:center">'+'<button onclick="event.stopPropagation();window._confirmDealClose('+lead.id+',true)" style="background:rgba(16,185,129,0.12);border:1px solid rgba(16,185,129,0.3);border-radius:8px;padding:7px 14px;font-size:11px;font-weight:700;color:#10b981;cursor:pointer;font-family:Heebo,sans-serif">🎉 עסקה נסגרה</button>'+'<button onclick="event.stopPropagation();window._confirmDealClose('+lead.id+',false)" style="background:rgba(239,68,68,0.08);border:1px solid rgba(239,68,68,0.25);border-radius:8px;padding:7px 14px;font-size:11px;font-weight:700;color:#ef4444;cursor:pointer;font-family:Heebo,sans-serif">❌ לא נסגר</button>'+(a.triple_engine ? '<span style="font-size:10px;color:#a78bfa;display:flex;align-items:center;gap:5px"><span style="width:6px;height:6px;border-radius:50%;background:#a78bfa;display:inline-block"></span>&#x2696;&#xFE0F; Meta-Judge</span>' : '<span style="font-size:10px;color:#F59E0B;display:flex;align-items:center;gap:5px"><span style="width:6px;height:6px;border-radius:50%;background:#F59E0B;display:inline-block"></span>&#x1F9E0; Claude</span>')+'</div>'+'</div>';
-    return html||'<div style="color:var(--muted);padding:12px">אין נתוני ניתוח</div>';}
+    '<div id="analysis-progress-'+lead.id+'" style="font-size:13px;color:var(--text);margin-bottom:8px">מנתח...</div><div style="font-size:11px;color:rgba(196,196,204,0.75);margin-bottom:16px">שלב 1/3: פרופיל → 2/3: אסטרטגיה → 3/3: מיילים</div><div style="height:4px;background:var(--surface2);border-radius:2px;overflow:hidden"><div id="analysis-bar-'+lead.id+'" style="height:100%;width:5%;background:var(--accent);border-radius:2px;transition:width 2s ease"></div></div></div>';var blocks=[{k:'executive_summary',i:'📊',t:'סיכום מנהלים',c:'rgba(108,99,255,0.08)',b:'rgba(108,99,255,0.25)'},{k:'sales_attack',i:'⚡',t:'אסטרטגיית תקיפה',c:'rgba(239,68,68,0.06)',b:'rgba(239,68,68,0.22)'},{k:'pain_points',i:'🎯',t:'כאבים ונקודות חולשה',c:'rgba(245,158,11,0.06)',b:'rgba(245,158,11,0.22)'},{k:'pricing_intel',i:'💰',t:'מודיעין תמחור',c:'rgba(16,185,129,0.06)',b:'rgba(16,185,129,0.22)'},{k:'social_intel',i:'📱',t:'רשתות חברתיות',c:'rgba(255,255,255,0.03)',b:'var(--border)'},{k:'meeting_prep',i:'🤝',t:'הכנה לשיחה',c:'rgba(139,92,246,0.06)',b:'rgba(139,92,246,0.22)'},{k:'discovery_questions',i:'❓',t:'שאלות Discovery',c:'rgba(255,255,255,0.02)',b:'var(--border)'},{k:'competitors_used',i:'🏁',t:'מתחרים בשימוש',c:'rgba(239,68,68,0.04)',b:'rgba(239,68,68,0.14)'}];var html='';blocks.forEach(function(b){var val=a[b.k]||(e&&e[b.k]);if(!val)return;var inner=Array.isArray(val)?val.map(function(v){return '<div style="padding:5px 0;border-bottom:1px solid rgba(255,255,255,0.04);font-size:12px;color:var(--text)">▸ '+v+'</div>';}).join(''):'<div style="color:var(--text);line-height:1.75;font-size:12px">'+val+'</div>';html+='<div style="background:'+b.c+';border:1px solid '+b.b+';border-radius:10px;padding:12px 14px;margin-bottom:10px"><div style="font-weight:700;color:var(--accent);margin-bottom:8px;font-size:11px;letter-spacing:.4px">'+b.i+' '+b.t.toUpperCase()+'</div>'+inner+'</div>';});if(a.next_action)html+='<div style="background:rgba(16,185,129,0.08);border:1px solid rgba(16,185,129,0.25);border-radius:10px;padding:10px 14px;margin-top:4px"><div style="font-weight:700;color:#10b981;margin-bottom:4px;font-size:11px">🎯 הצעד הבא</div><div style="color:var(--text);font-size:12px">'+a.next_action+'</div></div>';if(a.raw_research)html+='<details style="margin-top:10px"><summary style="cursor:pointer;color:var(--text2);font-size:11px;padding:4px 0">🔍 מחקר גולמי</summary><div style="padding:10px;font-size:11px;color:rgba(196,196,204,0.75);line-height:1.6;white-space:pre-wrap;max-height:260px;overflow-y:auto;background:rgba(0,0,0,0.2);border-radius:8px;margin-top:6px">'+a.raw_research+'</div></details>';if(a.enriched_at)html+='<div style="margin-top:8px;font-size:10px;color:var(--text2);text-align:left">עודכן: '+new Date(a.enriched_at).toLocaleString('he-IL')+'</div>';html += '<div style="margin-top:16px;display:flex;gap:10px;justify-content:space-between;align-items:center">'+'<button onclick="window.showAnalysisChoice(\'+lead.id+\')" style="background:rgba(124,58,237,0.12);border:1px solid rgba(124,58,237,0.3);border-radius:8px;padding:7px 16px;font-size:11px;font-weight:700;color:#a78bfa;cursor:pointer;font-family:Heebo,sans-serif">&#x1F504; הפעל ניתוח חדש</button>'+'<div style="display:flex;gap:8px;align-items:center">'+'<button onclick="event.stopPropagation();window._confirmDealClose('+lead.id+',true)" style="background:rgba(16,185,129,0.12);border:1px solid rgba(16,185,129,0.3);border-radius:8px;padding:7px 14px;font-size:11px;font-weight:700;color:#10b981;cursor:pointer;font-family:Heebo,sans-serif">🎉 עסקה נסגרה</button>'+'<button onclick="event.stopPropagation();window._confirmDealClose('+lead.id+',false)" style="background:rgba(239,68,68,0.08);border:1px solid rgba(239,68,68,0.25);border-radius:8px;padding:7px 14px;font-size:11px;font-weight:700;color:#ef4444;cursor:pointer;font-family:Heebo,sans-serif">❌ לא נסגר</button>'+(a.triple_engine ? '<span style="font-size:10px;color:#a78bfa;display:flex;align-items:center;gap:5px"><span style="width:6px;height:6px;border-radius:50%;background:#a78bfa;display:inline-block"></span>&#x2696;&#xFE0F; Meta-Judge</span>' : '<span style="font-size:10px;color:#F59E0B;display:flex;align-items:center;gap:5px"><span style="width:6px;height:6px;border-radius:50%;background:#F59E0B;display:inline-block"></span>&#x1F9E0; Claude</span>')+'</div>'+'</div>';
+    return html||'<div style="color:var(--text2);padding:12px">אין נתוני ניתוח</div>';}
 
   function _ltab_emails(lead,ai,enr){
     var a=ai||{},e=enr||{};
@@ -4235,22 +4235,22 @@ window._editLeadSave = function(lid){
         return('<div style="padding:28px;text-align:center">'+
           '<div style="width:36px;height:36px;border:3px solid var(--accent);border-top-color:transparent;border-radius:50%;animation:spin 1s linear infinite;margin:0 auto 14px"></div>'+
           '<div style="font-size:13px;color:var(--text);font-weight:700;margin-bottom:6px">✉️ מיילים בייצור ברקע...</div>'+
-          '<div style="font-size:11px;color:var(--muted);margin-bottom:16px">המוח כותב 4 מיילים מותאמים לליד הזה</div>'+
+          '<div style="font-size:11px;color:rgba(196,196,204,0.75);margin-bottom:16px">המוח כותב 4 מיילים מותאמים לליד הזה</div>'+
           '<button onclick="window.showAnalysisChoice('+lead.id+')" style="background:rgba(108,99,255,0.15);border:1px solid rgba(108,99,255,0.3);border-radius:8px;padding:8px 20px;font-size:12px;color:var(--accent);cursor:pointer;font-family:Heebo,sans-serif;font-weight:700">⚡ צור עכשיו</button>'+
         '</div>');
       }
       return('<div style="padding:32px;text-align:center">'+
         '<div style="font-size:40px;margin-bottom:12px">✉️</div>'+
-        '<div style="font-size:13px;color:var(--muted);margin-bottom:16px">המיילים ייווצרו אחרי ניתוח AI</div>'+
+        '<div style="font-size:13px;color:var(--text2);margin-bottom:16px">המיילים ייווצרו אחרי ניתוח AI</div>'+
         '<button onclick="window.showAnalysisChoice('+lead.id+')" style="background:var(--accent);border:none;border-radius:8px;padding:10px 24px;font-size:13px;color:#fff;cursor:pointer;font-family:Heebo,sans-serif;font-weight:700">🚀 צור מיילים</button>'+
       '</div>');
     }
 
     var out='<div style="background:rgba(255,255,255,0.03);border:1px solid var(--border);border-radius:8px;padding:10px 14px;margin-bottom:12px;display:flex;align-items:center;gap:12px">'+
-      '<span style="font-size:11px;color:var(--muted)">Cadence:</span>'+
+      '<span style="font-size:11px;color:rgba(196,196,204,0.75)">Cadence:</span>'+
       '<span style="font-weight:700;font-size:12px;color:var(--text)">'+(cadenceLabel[cadence]||cadence)+'</span>'+
-      '<span style="font-size:11px;color:var(--muted)">·</span>'+
-      '<span style="font-size:11px;color:var(--muted)">4 מיילים לפי Blueprint XTIX</span>'+
+      '<span style="font-size:11px;color:rgba(196,196,204,0.75)">·</span>'+
+      '<span style="font-size:11px;color:rgba(196,196,204,0.75)">4 מיילים לפי Blueprint XTIX</span>'+
       (a.pitch_angle?'<span style="margin-right:auto;background:rgba(108,99,255,0.15);border-radius:4px;padding:2px 8px;font-size:10px;color:var(--accent)">'+a.pitch_angle+'</span>':'')+
       '</div>';
 
@@ -4517,7 +4517,7 @@ window._editLeadSave = function(lid){
         var roleLabel = role === 'admin' ? '👑 Admin' : role === 'sales' ? '💼 Sales' : '👁 Viewer';
         userInfo.innerHTML =
           '<img src="' + (user.photoURL||'') + '" style="width:22px;height:22px;border-radius:50%;vertical-align:middle" onerror="this.style.display=\'none\'">' +
-          '<span style="font-size:11px;color:var(--muted);margin:0 6px">' + (user.displayName||user.email) + '</span>' +
+          '<span style="font-size:11px;color:rgba(196,196,204,0.75);margin:0 6px">' + (user.displayName||user.email) + '</span>' +
           '<span style="font-size:10px;color:var(--accent2);margin-right:4px">' + roleLabel + '</span>' +
           '<button onclick="googleLogout()" style="background:none;border:1px solid var(--border);border-radius:5px;padding:2px 8px;font-size:10px;color:var(--muted);cursor:pointer;font-family:\'Heebo\',sans-serif">התנתק</button>';
       }
@@ -4921,7 +4921,7 @@ window._editLeadSave = function(lid){
       msg.style.display = 'block';
       msg.innerHTML = '<div style="background:rgba(0,230,118,0.12);border:1px solid rgba(0,230,118,0.35);border-radius:9px;padding:12px 16px;font-size:13px;color:var(--green);text-align:center">'
         + '✅ <strong>' + name.trim() + '</strong> נוסף ל-CRM בהצלחה!'
-        + '<br><span style="font-size:11px;color:var(--muted);margin-top:4px;display:block">עבור ללידים לצפייה בכרטיס</span>'
+        + '<br><span style="font-size:11px;color:rgba(196,196,204,0.75);margin-top:4px;display:block">עבור ללידים לצפייה בכרטיס</span>'
         + '<button onclick="switchMainTab(&quot;leads&quot;,document.querySelector(&quot;[data-panel=leads]&quot;))" '
         + 'style="margin-top:8px;background:var(--accent);border:none;border-radius:7px;padding:6px 16px;color:#fff;font-size:12px;font-family:Heebo,sans-serif;cursor:pointer">👤 עבור ללידים</button>'
         + '</div>';
@@ -5435,18 +5435,18 @@ BP6-10: תעדף (פלטפורמה ישנה+דומיין+6+ אירועים), Dis
     var prevEngine= lead.ai_analysis && lead.ai_analysis.triple_engine ? 'Meta-Judge' : 'Claude';
     var prevScore = lead.ai_analysis && lead.ai_analysis.score;
     var prevBadge = hadPrev
-      ? '<div style="font-size:11px;color:var(--muted);margin-bottom:16px;padding:8px 12px;background:rgba(255,255,255,0.04);border-radius:8px">' +
+      ? '<div style="font-size:11px;color:rgba(196,196,204,0.75);margin-bottom:16px;padding:8px 12px;background:rgba(255,255,255,0.04);border-radius:8px">' +
         'ניתוח קודם: <strong style="color:var(--text)">' + prevEngine + '</strong>' +
         (prevScore ? ' · ציון <strong style="color:var(--accent)">' + prevScore + '</strong>' : '') + '</div>'
-      : '<div style="font-size:11px;color:var(--muted);margin-bottom:16px">ליד ללא ניתוח קודם</div>';
+      : '<div style="font-size:11px;color:rgba(196,196,204,0.75);margin-bottom:16px">ליד ללא ניתוח קודם</div>';
     var tripleBtn = hasTriple
       ? '<button onclick="closeAnalysisChoice();window.triggerFullAnalysisMode(' + leadId + ',\'triple\')" style="width:100%;background:linear-gradient(135deg,rgba(124,58,237,0.2),rgba(59,130,246,0.15));border:1px solid rgba(124,58,237,0.4);border-radius:10px;padding:14px 16px;cursor:pointer;font-family:Heebo,sans-serif;text-align:right;margin-bottom:10px">' +
           '<div style="font-size:13px;font-weight:800;color:#a78bfa;margin-bottom:4px">&#x26A1; Meta-Judge &#x2014; Triple Engine</div>' +
-          '<div style="font-size:11px;color:var(--muted)">Claude + ' + (hasGPT?'GPT-4o':'') + (hasGPT&&hasGemini?' + ':'') + (hasGemini?'Gemini':'') + ' במקביל · Meta-Judge מחליט · שומר לזיכרון</div>' +
+          '<div style="font-size:11px;color:rgba(196,196,204,0.75)">Claude + ' + (hasGPT?'GPT-4o':'') + (hasGPT&&hasGemini?' + ':'') + (hasGemini?'Gemini':'') + ' במקביל · Meta-Judge מחליט · שומר לזיכרון</div>' +
         '</button>'
       : '<div style="width:100%;background:rgba(255,255,255,0.03);border:1px solid rgba(255,255,255,0.08);border-radius:10px;padding:14px 16px;margin-bottom:10px;opacity:0.5">' +
-          '<div style="font-size:13px;font-weight:800;color:var(--muted);margin-bottom:4px">&#x26A1; Meta-Judge &#x2014; Triple Engine</div>' +
-          '<div style="font-size:11px;color:var(--muted)">הוסף GPT/Gemini keys ב-AI Brain להפעלה</div>' +
+          '<div style="font-size:13px;font-weight:800;color:var(--text2);margin-bottom:4px">&#x26A1; Meta-Judge &#x2014; Triple Engine</div>' +
+          '<div style="font-size:11px;color:rgba(196,196,204,0.75)">הוסף GPT/Gemini keys ב-AI Brain להפעלה</div>' +
         '</div>';
     var html = '<div class="brain-detail-overlay" id="analysis-choice-modal" onclick="if(event.target===this)closeAnalysisChoice()">' +
       '<div style="background:#141418;border:1px solid rgba(124,58,237,0.3);border-radius:16px;padding:24px;max-width:460px;width:100%;box-shadow:0 24px 60px rgba(0,0,0,0.7)">' +
@@ -5458,7 +5458,7 @@ BP6-10: תעדף (פלטפורמה ישנה+דומיין+6+ אירועים), Dis
         prevBadge + tripleBtn +
         '<button onclick="closeAnalysisChoice();window.triggerFullAnalysisMode(' + leadId + ',\'claude\')" style="width:100%;background:rgba(245,158,11,0.1);border:1px solid rgba(245,158,11,0.3);border-radius:10px;padding:14px 16px;cursor:pointer;font-family:Heebo,sans-serif;text-align:right">' +
           '<div style="font-size:13px;font-weight:800;color:#F59E0B;margin-bottom:4px">&#x1F9E0; Claude בלבד</div>' +
-          '<div style="font-size:11px;color:var(--muted)">ניתוח מעמיק · 3 שלבים · מהיר יותר · ללא Meta-Judge</div>' +
+          '<div style="font-size:11px;color:rgba(196,196,204,0.75)">ניתוח מעמיק · 3 שלבים · מהיר יותר · ללא Meta-Judge</div>' +
         '</button>' +
       '</div></div>';
     document.body.insertAdjacentHTML('beforeend', html);
@@ -5892,7 +5892,7 @@ BP6-10: תעדף (פלטפורמה ישנה+דומיין+6+ אירועים), Dis
       <div class="brain-panel" id="brain-tab-decisions">
         <div class="brain-decisions-header">
           <div style="font-size:13px;font-weight:700;color:var(--text)">היסטוריית החלטות</div>
-          <div style="font-size:11px;color:var(--muted)">לחץ על שורה לפירוט מלא של החשיבה</div>
+          <div style="font-size:11px;color:rgba(196,196,204,0.75)">לחץ על שורה לפירוט מלא של החשיבה</div>
         </div>
         <div id="brain-decisions-list">
           <div style="text-align:center;padding:48px;color:var(--muted);font-size:13px">
@@ -6569,14 +6569,14 @@ BP6-10: תעדף (פלטפורמה ישנה+דומיין+6+ אירועים), Dis
             'style="flex:1;background:var(--surface2);border:1px solid var(--border);border-radius:7px;padding:6px 10px;color:var(--text);font-size:12px;font-family:Heebo,sans-serif;outline:none" ' +
             'oninput="filterHSLeads()">' +
           '<button onclick="hsSelectAll(true)" style="background:rgba(108,99,255,0.15);border:1px solid rgba(108,99,255,0.3);border-radius:6px;padding:5px 12px;font-size:11px;color:var(--accent);cursor:pointer;font-family:Heebo,sans-serif;white-space:nowrap">☑ בחר הכל</button>' +
-          '<button onclick="hsSelectAll(false)" style="background:none;border:1px solid var(--border);border-radius:6px;padding:5px 12px;font-size:11px;color:var(--muted);cursor:pointer;font-family:Heebo,sans-serif;white-space:nowrap">☐ בטל הכל</button>' +
+          '<button onclick="hsSelectAll(false)" style="background:none;border:1px solid var(--border);border-radius:6px;padding:5px 12px;font-size:11px;color:rgba(196,196,204,0.75);cursor:pointer;font-family:Heebo,sans-serif;white-space:nowrap">☐ בטל הכל</button>' +
         '</div>' +
         '<div style="display:flex;gap:6px;flex-wrap:wrap;margin-bottom:6px">' +
           '<button onclick="hsFilterStatus(\'\')" class="hs-flt-btn hs-flt-active" data-flt="" style="background:rgba(108,99,255,0.15);border:1px solid rgba(108,99,255,0.3);border-radius:5px;padding:3px 10px;font-size:11px;color:var(--accent);cursor:pointer;font-family:Heebo,sans-serif">הכל</button>' +
-          '<button onclick="hsFilterStatus(\'new\')" class="hs-flt-btn" data-flt="new" style="background:var(--surface2);border:1px solid var(--border);border-radius:5px;padding:3px 10px;font-size:11px;color:var(--muted);cursor:pointer;font-family:Heebo,sans-serif">🟢 חדש</button>' +
-          '<button onclick="hsFilterStatus(\'contacted\')" class="hs-flt-btn" data-flt="contacted" style="background:var(--surface2);border:1px solid var(--border);border-radius:5px;padding:3px 10px;font-size:11px;color:var(--muted);cursor:pointer;font-family:Heebo,sans-serif">📧 נשלח מייל</button>' +
-          '<button onclick="hsFilterStatus(\'meeting\')" class="hs-flt-btn" data-flt="meeting" style="background:var(--surface2);border:1px solid var(--border);border-radius:5px;padding:3px 10px;font-size:11px;color:var(--muted);cursor:pointer;font-family:Heebo,sans-serif">📅 פגישה</button>' +
-          '<span id="hs-sel-count" style="font-size:11px;color:var(--muted);align-self:center;margin-right:auto">0 נבחרו</span>' +
+          '<button onclick="hsFilterStatus(\'new\')" class="hs-flt-btn" data-flt="new" style="background:var(--surface2);border:1px solid var(--border);border-radius:5px;padding:3px 10px;font-size:11px;color:rgba(196,196,204,0.75);cursor:pointer;font-family:Heebo,sans-serif">🟢 חדש</button>' +
+          '<button onclick="hsFilterStatus(\'contacted\')" class="hs-flt-btn" data-flt="contacted" style="background:var(--surface2);border:1px solid var(--border);border-radius:5px;padding:3px 10px;font-size:11px;color:rgba(196,196,204,0.75);cursor:pointer;font-family:Heebo,sans-serif">📧 נשלח מייל</button>' +
+          '<button onclick="hsFilterStatus(\'meeting\')" class="hs-flt-btn" data-flt="meeting" style="background:var(--surface2);border:1px solid var(--border);border-radius:5px;padding:3px 10px;font-size:11px;color:rgba(196,196,204,0.75);cursor:pointer;font-family:Heebo,sans-serif">📅 פגישה</button>' +
+          '<span id="hs-sel-count" style="font-size:11px;color:rgba(196,196,204,0.75);align-self:center;margin-right:auto">0 נבחרו</span>' +
         '</div>';
       container.parentNode.insertBefore(ctrl, container);
     }
@@ -6662,7 +6662,7 @@ BP6-10: תעדף (פלטפורמה ישנה+דומיין+6+ אירועים), Dis
 .bp-card{border-radius:10px;overflow:hidden;margin-bottom:12px;border:2px solid var(--border)}
 .bp-hdr{padding:11px 16px}
 .bp-sec{padding:10px 16px;border-top:1px solid rgba(255,255,255,0.07)}
-.bp-lbl{font-size:9px;text-transform:uppercase;letter-spacing:1px;color:var(--muted);margin-bottom:6px;font-weight:700}
+.bp-lbl{font-size:9px;text-transform:uppercase;letter-spacing:1px;color:rgba(200,200,215,0.65);margin-bottom:6px;font-weight:700}
 .bp-ri{font-size:11px;padding:3px 0;display:flex;gap:6px;color:var(--text);line-height:1.5}
 .bp-body{font-size:12px;color:var(--text);line-height:1.8;white-space:pre-wrap;background:var(--surface2);border-radius:7px;padding:10px 14px;margin-top:4px}
 .bp-cta{font-size:11px;font-weight:700;padding:4px 12px;border-radius:5px;display:inline-flex;align-items:center;gap:6px;margin-top:8px}
@@ -6941,11 +6941,11 @@ addSalesPlaybookPanel();
         <div style="width:40px;height:40px;border-radius:12px;background:linear-gradient(135deg,var(--accent),#8b5cf6);display:flex;align-items:center;justify-content:center;font-size:20px;flex-shrink:0">🤖</div>
         <div>
           <div style="font-size:16px;font-weight:800;color:var(--text)">Claude AI</div>
-          <div style="font-size:11px;color:var(--muted)">מופעל על ידי Claude Sonnet — שיח ישיר</div>
+          <div style="font-size:11px;color:rgba(196,196,204,0.75)">מופעל על ידי Claude Sonnet — שיח ישיר</div>
         </div>
         <div style="margin-right:auto;display:flex;gap:8px">
           <div id="ai-status-dot" style="width:8px;height:8px;border-radius:50%;background:var(--muted);margin-top:4px"></div>
-          <span id="ai-status-txt" style="font-size:11px;color:var(--muted)">לא מחובר</span>
+          <span id="ai-status-txt" style="font-size:11px;color:rgba(196,196,204,0.75)">לא מחובר</span>
         </div>
         <button onclick="clearAiChat()" title="נקה שיחה" style="background:rgba(255,255,255,0.04);border:1px solid var(--border);border-radius:8px;padding:6px 12px;color:var(--muted);font-size:11px;cursor:pointer;font-family:Heebo,sans-serif">🗑 נקה שיחה</button>
       </div>
@@ -6993,7 +6993,7 @@ addSalesPlaybookPanel();
       <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:20px">
         <div>
           <div style="font-size:20px;font-weight:800;color:var(--text)">✅ לוח משימות</div>
-          <div style="font-size:11px;color:var(--muted);margin-top:2px">ניהול משותף — אורן ו-Claude</div>
+          <div style="font-size:11px;color:rgba(196,196,204,0.75);margin-top:2px">ניהול משותף — אורן ו-Claude</div>
         </div>
         <button onclick="window.openAddTask()" 
           style="background:var(--accent);border:none;border-radius:10px;padding:9px 20px;
@@ -7012,33 +7012,33 @@ addSalesPlaybookPanel();
         </button>
         <button onclick="window.filterTasks('open')" class="task-filter-btn" data-filter="open"
           style="background:rgba(255,255,255,0.04);border:1px solid var(--border);border-radius:8px;
-                 padding:5px 14px;font-size:11px;color:var(--muted);cursor:pointer;font-family:Heebo,sans-serif">
+                 padding:5px 14px;font-size:11px;color:rgba(196,196,204,0.75);cursor:pointer;font-family:Heebo,sans-serif">
           🔵 פתוח
         </button>
         <button onclick="window.filterTasks('inprogress')" class="task-filter-btn" data-filter="inprogress"
           style="background:rgba(255,255,255,0.04);border:1px solid var(--border);border-radius:8px;
-                 padding:5px 14px;font-size:11px;color:var(--muted);cursor:pointer;font-family:Heebo,sans-serif">
+                 padding:5px 14px;font-size:11px;color:rgba(196,196,204,0.75);cursor:pointer;font-family:Heebo,sans-serif">
           🟡 בעבודה
         </button>
         <button onclick="window.filterTasks('done')" class="task-filter-btn" data-filter="done"
           style="background:rgba(255,255,255,0.04);border:1px solid var(--border);border-radius:8px;
-                 padding:5px 14px;font-size:11px;color:var(--muted);cursor:pointer;font-family:Heebo,sans-serif">
+                 padding:5px 14px;font-size:11px;color:rgba(196,196,204,0.75);cursor:pointer;font-family:Heebo,sans-serif">
           ✅ הושלם
         </button>
         <div style="margin-right:auto;display:flex;gap:6px">
           <button onclick="window.filterTasks('claude')" class="task-filter-btn" data-filter="claude"
             style="background:rgba(108,99,255,0.06);border:1px solid rgba(108,99,255,0.2);border-radius:8px;
-                   padding:5px 14px;font-size:11px;color:var(--muted);cursor:pointer;font-family:Heebo,sans-serif">
+                   padding:5px 14px;font-size:11px;color:rgba(196,196,204,0.75);cursor:pointer;font-family:Heebo,sans-serif">
             🤖 Claude
           </button>
           <button onclick="window.filterTasks('oran')" class="task-filter-btn" data-filter="oran"
             style="background:rgba(16,185,129,0.06);border:1px solid rgba(16,185,129,0.2);border-radius:8px;
-                   padding:5px 14px;font-size:11px;color:var(--muted);cursor:pointer;font-family:Heebo,sans-serif">
+                   padding:5px 14px;font-size:11px;color:rgba(196,196,204,0.75);cursor:pointer;font-family:Heebo,sans-serif">
             👤 אורן
           </button>
           <button onclick="window.filterTasks('together')" class="task-filter-btn" data-filter="together"
             style="background:rgba(245,158,11,0.06);border:1px solid rgba(245,158,11,0.2);border-radius:8px;
-                   padding:5px 14px;font-size:11px;color:var(--muted);cursor:pointer;font-family:Heebo,sans-serif">
+                   padding:5px 14px;font-size:11px;color:rgba(196,196,204,0.75);cursor:pointer;font-family:Heebo,sans-serif">
             🤝 ביחד
           </button>
         </div>
@@ -7086,7 +7086,7 @@ addSalesPlaybookPanel();
       <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:20px">
         <div>
           <div style="font-size:20px;font-weight:800;color:var(--text)">📚 Knowledge Base</div>
-          <div style="font-size:11px;color:var(--muted);margin-top:2px">מקורות מידע ל-Meta-Judge — גלובליים ולפי ליד</div>
+          <div style="font-size:11px;color:rgba(196,196,204,0.75);margin-top:2px">מקורות מידע ל-Meta-Judge — גלובליים ולפי ליד</div>
         </div>
         <div style="display:flex;gap:8px">
           <button onclick="window._kbShowAdd()" style="background:var(--accent);border:none;border-radius:10px;padding:9px 20px;color:#fff;font-size:13px;font-weight:700;cursor:pointer;font-family:Heebo,sans-serif;display:flex;align-items:center;gap:6px">+ הוסף מקור</button>
@@ -7099,17 +7099,17 @@ addSalesPlaybookPanel();
       <!-- brain_insights status bar -->
       <div id="kb-insights-bar" style="background:rgba(124,58,237,0.06);border:1px solid rgba(124,58,237,0.2);border-radius:10px;padding:10px 14px;margin-bottom:16px;display:flex;align-items:center;gap:12px;flex-wrap:wrap">
         <span style="font-size:11px;font-weight:800;color:#a78bfa">🧠 brain_insights</span>
-        <span id="kb-insights-status" style="font-size:11px;color:var(--muted)">בודק...</span>
+        <span id="kb-insights-status" style="font-size:11px;color:rgba(196,196,204,0.75)">בודק...</span>
         <span id="kb-insights-details" style="font-size:10px;color:rgba(255,255,255,0.3)"></span>
       </div>
 
       <div style="display:flex;gap:8px;margin-bottom:16px;flex-wrap:wrap;align-items:center">
         <button onclick="window._kbFilter('all')" class="kb-filter-btn active" data-kbf="all" style="background:rgba(108,99,255,0.15);border:1px solid rgba(108,99,255,0.35);border-radius:8px;padding:5px 14px;font-size:11px;color:var(--accent);cursor:pointer;font-family:Heebo,sans-serif;font-weight:700">הכל</button>
-        <button onclick="window._kbFilter('global')" class="kb-filter-btn" data-kbf="global" style="background:rgba(255,255,255,0.04);border:1px solid var(--border);border-radius:8px;padding:5px 14px;font-size:11px;color:var(--muted);cursor:pointer;font-family:Heebo,sans-serif;font-weight:600">🌐 גלובלי</button>
-        <button onclick="window._kbFilter('lead')" class="kb-filter-btn" data-kbf="lead" style="background:rgba(255,255,255,0.04);border:1px solid var(--border);border-radius:8px;padding:5px 14px;font-size:11px;color:var(--muted);cursor:pointer;font-family:Heebo,sans-serif;font-weight:600">👤 לפי ליד</button>
-        <button onclick="window._kbFilter('url')" class="kb-filter-btn" data-kbf="url" style="background:rgba(255,255,255,0.04);border:1px solid var(--border);border-radius:8px;padding:5px 14px;font-size:11px;color:var(--muted);cursor:pointer;font-family:Heebo,sans-serif;font-weight:600">🔗 URL</button>
-        <button onclick="window._kbFilter('github')" class="kb-filter-btn" data-kbf="github" style="background:rgba(255,255,255,0.04);border:1px solid var(--border);border-radius:8px;padding:5px 14px;font-size:11px;color:var(--muted);cursor:pointer;font-family:Heebo,sans-serif;font-weight:600">🐙 GitHub</button>
-        <button onclick="window._kbFilter('file')" class="kb-filter-btn" data-kbf="file" style="background:rgba(255,255,255,0.04);border:1px solid var(--border);border-radius:8px;padding:5px 14px;font-size:11px;color:var(--muted);cursor:pointer;font-family:Heebo,sans-serif;font-weight:600">📄 קובץ</button>
+        <button onclick="window._kbFilter('global')" class="kb-filter-btn" data-kbf="global" style="background:rgba(255,255,255,0.04);border:1px solid var(--border);border-radius:8px;padding:5px 14px;font-size:11px;color:rgba(196,196,204,0.75);cursor:pointer;font-family:Heebo,sans-serif;font-weight:600">🌐 גלובלי</button>
+        <button onclick="window._kbFilter('lead')" class="kb-filter-btn" data-kbf="lead" style="background:rgba(255,255,255,0.04);border:1px solid var(--border);border-radius:8px;padding:5px 14px;font-size:11px;color:rgba(196,196,204,0.75);cursor:pointer;font-family:Heebo,sans-serif;font-weight:600">👤 לפי ליד</button>
+        <button onclick="window._kbFilter('url')" class="kb-filter-btn" data-kbf="url" style="background:rgba(255,255,255,0.04);border:1px solid var(--border);border-radius:8px;padding:5px 14px;font-size:11px;color:rgba(196,196,204,0.75);cursor:pointer;font-family:Heebo,sans-serif;font-weight:600">🔗 URL</button>
+        <button onclick="window._kbFilter('github')" class="kb-filter-btn" data-kbf="github" style="background:rgba(255,255,255,0.04);border:1px solid var(--border);border-radius:8px;padding:5px 14px;font-size:11px;color:rgba(196,196,204,0.75);cursor:pointer;font-family:Heebo,sans-serif;font-weight:600">🐙 GitHub</button>
+        <button onclick="window._kbFilter('file')" class="kb-filter-btn" data-kbf="file" style="background:rgba(255,255,255,0.04);border:1px solid var(--border);border-radius:8px;padding:5px 14px;font-size:11px;color:rgba(196,196,204,0.75);cursor:pointer;font-family:Heebo,sans-serif;font-weight:600">📄 קובץ</button>
         <input id="kb-search" onkeyup="window._kbRender()" placeholder="🔍 חיפוש..." style="margin-right:auto;background:var(--surface2);border:1px solid var(--border);border-radius:8px;padding:5px 12px;font-size:11px;color:var(--text);font-family:Heebo,sans-serif;outline:none;width:180px">
       </div>
 
@@ -7133,37 +7133,37 @@ addSalesPlaybookPanel();
 
       <!-- Type selector -->
       <div style="margin-bottom:16px">
-        <label style="font-size:11px;color:var(--muted);font-weight:700;display:block;margin-bottom:6px">סוג מקור</label>
+        <label style="font-size:11px;color:rgba(196,196,204,0.75);font-weight:700;display:block;margin-bottom:6px">סוג מקור</label>
         <div style="display:flex;gap:8px;flex-wrap:wrap">
           <button onclick="window._kbSetType('url')" data-kbtype="url" class="kb-type-btn active" style="background:rgba(108,99,255,0.15);border:1px solid rgba(108,99,255,0.4);border-radius:8px;padding:6px 14px;font-size:11px;font-weight:700;color:var(--accent);cursor:pointer;font-family:Heebo,sans-serif">🔗 URL / אתר</button>
-          <button onclick="window._kbSetType('github')" data-kbtype="github" class="kb-type-btn" style="background:rgba(255,255,255,0.04);border:1px solid var(--border);border-radius:8px;padding:6px 14px;font-size:11px;font-weight:600;color:var(--muted);cursor:pointer;font-family:Heebo,sans-serif">🐙 GitHub</button>
-          <button onclick="window._kbSetType('text')" data-kbtype="text" class="kb-type-btn" style="background:rgba(255,255,255,0.04);border:1px solid var(--border);border-radius:8px;padding:6px 14px;font-size:11px;font-weight:600;color:var(--muted);cursor:pointer;font-family:Heebo,sans-serif">📝 טקסט חופשי</button>
-          <button onclick="window._kbSetType('file')" data-kbtype="file" class="kb-type-btn" style="background:rgba(255,255,255,0.04);border:1px solid var(--border);border-radius:8px;padding:6px 14px;font-size:11px;font-weight:600;color:var(--muted);cursor:pointer;font-family:Heebo,sans-serif">📄 PDF/Word</button>
+          <button onclick="window._kbSetType('github')" data-kbtype="github" class="kb-type-btn" style="background:rgba(255,255,255,0.04);border:1px solid var(--border);border-radius:8px;padding:6px 14px;font-size:11px;font-weight:600;color:rgba(196,196,204,0.75);cursor:pointer;font-family:Heebo,sans-serif">🐙 GitHub</button>
+          <button onclick="window._kbSetType('text')" data-kbtype="text" class="kb-type-btn" style="background:rgba(255,255,255,0.04);border:1px solid var(--border);border-radius:8px;padding:6px 14px;font-size:11px;font-weight:600;color:rgba(196,196,204,0.75);cursor:pointer;font-family:Heebo,sans-serif">📝 טקסט חופשי</button>
+          <button onclick="window._kbSetType('file')" data-kbtype="file" class="kb-type-btn" style="background:rgba(255,255,255,0.04);border:1px solid var(--border);border-radius:8px;padding:6px 14px;font-size:11px;font-weight:600;color:rgba(196,196,204,0.75);cursor:pointer;font-family:Heebo,sans-serif">📄 PDF/Word</button>
         </div>
       </div>
 
       <!-- URL fields -->
       <div id="kb-field-url">
-        <label style="font-size:11px;color:var(--muted);font-weight:700;display:block;margin-bottom:6px">כתובת URL</label>
+        <label style="font-size:11px;color:rgba(196,196,204,0.75);font-weight:700;display:block;margin-bottom:6px">כתובת URL</label>
         <input id="kb-inp-url" placeholder="https://example.com/article" style="width:100%;background:var(--surface2);border:1px solid var(--border);border-radius:8px;padding:9px 12px;font-size:12px;color:var(--text);font-family:Heebo,sans-serif;outline:none;box-sizing:border-box;margin-bottom:12px">
       </div>
 
       <!-- GitHub fields -->
       <div id="kb-field-github" style="display:none">
-        <label style="font-size:11px;color:var(--muted);font-weight:700;display:block;margin-bottom:6px">GitHub URL (repo או קובץ ספציפי)</label>
+        <label style="font-size:11px;color:rgba(196,196,204,0.75);font-weight:700;display:block;margin-bottom:6px">GitHub URL (repo או קובץ ספציפי)</label>
         <input id="kb-inp-github" placeholder="https://github.com/user/repo או /blob/main/file.md" style="width:100%;background:var(--surface2);border:1px solid var(--border);border-radius:8px;padding:9px 12px;font-size:12px;color:var(--text);font-family:Heebo,sans-serif;outline:none;box-sizing:border-box;margin-bottom:6px">
         <div style="font-size:10px;color:var(--muted);margin-bottom:12px">ניתן להדביק URL של repo, תיקייה, או קובץ בודד</div>
       </div>
 
       <!-- Text fields -->
       <div id="kb-field-text" style="display:none">
-        <label style="font-size:11px;color:var(--muted);font-weight:700;display:block;margin-bottom:6px">תוכן (תכתובת / מאמר / הערות)</label>
+        <label style="font-size:11px;color:rgba(196,196,204,0.75);font-weight:700;display:block;margin-bottom:6px">תוכן (תכתובת / מאמר / הערות)</label>
         <textarea id="kb-inp-text" placeholder="הדבק כאן טקסט, תכתובת, או כל מידע רלוונטי..." style="width:100%;background:var(--surface2);border:1px solid var(--border);border-radius:8px;padding:9px 12px;font-size:12px;color:var(--text);font-family:Heebo,sans-serif;outline:none;box-sizing:border-box;min-height:120px;resize:vertical;margin-bottom:12px"></textarea>
       </div>
 
       <!-- File upload -->
       <div id="kb-field-file" style="display:none">
-        <label style="font-size:11px;color:var(--muted);font-weight:700;display:block;margin-bottom:6px">העלה קובץ (PDF / Word / TXT)</label>
+        <label style="font-size:11px;color:rgba(196,196,204,0.75);font-weight:700;display:block;margin-bottom:6px">העלה קובץ (PDF / Word / TXT)</label>
         <div id="kb-drop-zone" onclick="document.getElementById('kb-file-inp').click()" style="border:2px dashed var(--border);border-radius:10px;padding:24px;text-align:center;cursor:pointer;margin-bottom:12px;transition:border-color .2s" onmouseenter="this.style.borderColor='var(--accent)'" onmouseleave="this.style.borderColor='var(--border)'">
           <div style="font-size:24px;margin-bottom:8px">📁</div>
           <div style="font-size:12px;color:var(--muted)">לחץ לבחירת קובץ</div>
@@ -7175,18 +7175,18 @@ addSalesPlaybookPanel();
 
       <!-- Common fields -->
       <div style="margin-bottom:12px">
-        <label style="font-size:11px;color:var(--muted);font-weight:700;display:block;margin-bottom:6px">כותרת / תיאור</label>
+        <label style="font-size:11px;color:rgba(196,196,204,0.75);font-weight:700;display:block;margin-bottom:6px">כותרת / תיאור</label>
         <input id="kb-inp-title" placeholder="תן שם למקור הזה..." style="width:100%;background:var(--surface2);border:1px solid var(--border);border-radius:8px;padding:9px 12px;font-size:12px;color:var(--text);font-family:Heebo,sans-serif;outline:none;box-sizing:border-box">
       </div>
 
       <div style="margin-bottom:12px">
-        <label style="font-size:11px;color:var(--muted);font-weight:700;display:block;margin-bottom:6px">תגיות (אופציונלי)</label>
+        <label style="font-size:11px;color:rgba(196,196,204,0.75);font-weight:700;display:block;margin-bottom:6px">תגיות (אופציונלי)</label>
         <input id="kb-inp-tags" placeholder="מכירות, מתחרים, תמחור..." style="width:100%;background:var(--surface2);border:1px solid var(--border);border-radius:8px;padding:9px 12px;font-size:12px;color:var(--text);font-family:Heebo,sans-serif;outline:none;box-sizing:border-box">
       </div>
 
       <!-- Scope -->
       <div style="margin-bottom:20px">
-        <label style="font-size:11px;color:var(--muted);font-weight:700;display:block;margin-bottom:8px">שימוש</label>
+        <label style="font-size:11px;color:rgba(196,196,204,0.75);font-weight:700;display:block;margin-bottom:8px">שימוש</label>
         <div style="display:flex;gap:10px">
           <label style="display:flex;align-items:center;gap:6px;cursor:pointer;font-size:12px;color:var(--text)">
             <input type="radio" name="kb-scope" value="global" checked style="accent-color:var(--accent)"> 🌐 גלובלי — לכל הלידים
@@ -7204,9 +7204,9 @@ addSalesPlaybookPanel();
 
       <div style="display:flex;gap:10px">
         <button onclick="window._kbSave()" style="flex:1;background:var(--accent);border:none;border-radius:10px;padding:11px;font-size:13px;font-weight:700;color:#fff;cursor:pointer;font-family:Heebo,sans-serif">💾 שמור</button>
-        <button onclick="window._kbCloseModal()" style="background:rgba(255,255,255,0.06);border:1px solid var(--border);border-radius:10px;padding:11px 20px;font-size:13px;color:var(--muted);cursor:pointer;font-family:Heebo,sans-serif">ביטול</button>
+        <button onclick="window._kbCloseModal()" style="background:rgba(255,255,255,0.06);border:1px solid var(--border);border-radius:10px;padding:11px 20px;font-size:13px;color:var(--text2);cursor:pointer;font-family:Heebo,sans-serif">ביטול</button>
       </div>
-      <div id="kb-save-status" style="margin-top:10px;font-size:11px;text-align:center;color:var(--muted)"></div>
+      <div id="kb-save-status" style="margin-top:10px;font-size:11px;text-align:center;color:rgba(196,196,204,0.75)"></div>
     </div>
   </div>
 
@@ -7217,7 +7217,7 @@ addSalesPlaybookPanel();
       <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:20px">
         <div>
           <div style="font-size:20px;font-weight:800;color:var(--text)">👥 ניהול משתמשים</div>
-          <div style="font-size:11px;color:var(--muted);margin-top:2px">הוסף, הסר ושנה הרשאות</div>
+          <div style="font-size:11px;color:rgba(196,196,204,0.75);margin-top:2px">הוסף, הסר ושנה הרשאות</div>
         </div>
         <button onclick="openAddUserModal()" style="display:flex;align-items:center;gap:6px;background:var(--accent);border:none;border-radius:8px;padding:8px 16px;font-size:12px;font-weight:700;color:#fff;cursor:pointer;font-family:'Heebo',sans-serif">
           ➕ הוסף משתמש
@@ -7235,15 +7235,15 @@ addSalesPlaybookPanel();
       <div style="background:var(--surface);border:1px solid var(--border);border-radius:16px;padding:32px;width:360px;max-width:90vw">
         <div style="font-size:16px;font-weight:700;color:var(--text);margin-bottom:20px">➕ הוסף משתמש חדש</div>
         <div style="margin-bottom:14px">
-          <label style="font-size:11px;color:var(--muted);display:block;margin-bottom:6px">אימייל Google</label>
+          <label style="font-size:11px;color:rgba(196,196,204,0.75);display:block;margin-bottom:6px">אימייל Google</label>
           <input id="new-user-email" type="email" placeholder="user@gmail.com" style="width:100%;box-sizing:border-box;background:var(--bg);border:1px solid var(--border);border-radius:8px;padding:10px 12px;font-size:13px;color:var(--text);font-family:'Heebo',sans-serif">
         </div>
         <div style="margin-bottom:14px">
-          <label style="font-size:11px;color:var(--muted);display:block;margin-bottom:6px">שם (אופציונלי)</label>
+          <label style="font-size:11px;color:rgba(196,196,204,0.75);display:block;margin-bottom:6px">שם (אופציונלי)</label>
           <input id="new-user-name" type="text" placeholder="שם המשתמש" style="width:100%;box-sizing:border-box;background:var(--bg);border:1px solid var(--border);border-radius:8px;padding:10px 12px;font-size:13px;color:var(--text);font-family:'Heebo',sans-serif">
         </div>
         <div style="margin-bottom:20px">
-          <label style="font-size:11px;color:var(--muted);display:block;margin-bottom:6px">הרשאה</label>
+          <label style="font-size:11px;color:rgba(196,196,204,0.75);display:block;margin-bottom:6px">הרשאה</label>
           <select id="new-user-role" style="width:100%;background:var(--bg);border:1px solid var(--border);border-radius:8px;padding:10px 12px;font-size:13px;color:var(--text);font-family:'Heebo',sans-serif">
             <option value="sales">💼 Sales — גישה מלאה</option>
             <option value="viewer">👁 Viewer — צפייה בלבד</option>
@@ -7253,7 +7253,7 @@ addSalesPlaybookPanel();
         <div id="add-user-status" style="font-size:11px;min-height:16px;margin-bottom:12px"></div>
         <div style="display:flex;gap:10px">
           <button onclick="addUserByEmail()" style="flex:1;background:var(--accent);border:none;border-radius:8px;padding:10px;font-size:13px;font-weight:700;color:#fff;cursor:pointer;font-family:'Heebo',sans-serif">הוסף</button>
-          <button onclick="closeAddUserModal()" style="flex:1;background:var(--bg);border:1px solid var(--border);border-radius:8px;padding:10px;font-size:13px;color:var(--muted);cursor:pointer;font-family:'Heebo',sans-serif">ביטול</button>
+          <button onclick="closeAddUserModal()" style="flex:1;background:var(--bg);border:1px solid var(--border);border-radius:8px;padding:10px;font-size:13px;color:var(--text2);cursor:pointer;font-family:'Heebo',sans-serif">ביטול</button>
         </div>
       </div>
     </div>
@@ -7296,7 +7296,7 @@ addSalesPlaybookPanel();
       '<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px">' +
         '<span id="crm-badge" style="background:rgba(108,99,255,0.15);border:1px solid rgba(108,99,255,0.3);border-radius:20px;padding:2px 10px;font-size:11px;color:var(--accent)">0 לידים</span>' +
         '<button onclick="window.openAddLeadModal&&window.openAddLeadModal()" style="background:rgba(16,185,129,0.12);border:1px solid rgba(16,185,129,0.3);border-radius:20px;padding:2px 12px;font-size:11px;color:#10b981;cursor:pointer;font-family:Heebo,sans-serif;font-weight:700">+ הוסף ליד</button>' +
-        '<button onclick="toggleSelAll()" id="sel-all-v3" style="background:none;border:1px solid var(--border);border-radius:6px;padding:3px 10px;font-size:11px;color:var(--muted);cursor:pointer;font-family:Heebo,sans-serif">☐ בחר הכל</button>' +
+        '<button onclick="toggleSelAll()" id="sel-all-v3" style="background:none;border:1px solid var(--border);border-radius:6px;padding:3px 10px;font-size:11px;color:rgba(196,196,204,0.75);cursor:pointer;font-family:Heebo,sans-serif">☐ בחר הכל</button>' +
       '</div>' +
       '<div style="position:relative;margin-bottom:8px">' +
         '<span style="position:absolute;right:10px;top:50%;transform:translateY(-50%);color:var(--muted);pointer-events:none;font-size:13px">🔍</span>' +
@@ -7332,7 +7332,7 @@ addSalesPlaybookPanel();
           '<option value="segment">🎭 סגמנט</option>' +
           '<option value="platform">⚙️ פלטפורמה</option>' +
         '</select>' +
-        '<span id="v3-cnt" style="font-size:11px;color:var(--muted)"></span>' +
+        '<span id="v3-cnt" style="font-size:11px;color:rgba(196,196,204,0.75)"></span>' +
       '</div>' +
       '<div id="v3-bulk" style="display:flex;background:rgba(108,99,255,0.07);border:1px solid rgba(108,99,255,0.18);border-radius:8px;padding:8px 12px;align-items:center;gap:6px;flex-wrap:wrap">' +
         '<span id="v3-bulk-cnt" style="font-size:12px;font-weight:700;color:var(--accent)">0 נבחרו</span>' +
@@ -7342,7 +7342,7 @@ addSalesPlaybookPanel();
         '<button onclick="window.bulkV3(\'meeting\')" style="background:rgba(0,230,118,0.1);border:1px solid rgba(0,230,118,0.3);border-radius:5px;padding:4px 10px;font-size:11px;color:var(--green);cursor:pointer;font-family:Heebo,sans-serif">📅 פגישה</button>' +
         '<button onclick="window.bulkV3(\'enrich\')" style="background:rgba(167,139,250,0.1);border:1px solid rgba(167,139,250,0.3);border-radius:5px;padding:4px 10px;font-size:11px;color:#a78bfa;cursor:pointer;font-family:Heebo,sans-serif">🤖 נתח AI</button>' +
         '<button onclick="window.bulkV3(\'delete\')" style="background:rgba(255,71,87,0.1);border:1px solid rgba(255,71,87,0.3);border-radius:5px;padding:4px 10px;font-size:11px;color:var(--red);cursor:pointer;font-family:Heebo,sans-serif">🗑 מחק</button>' +
-        '<button onclick="window.clearSelV3&&window.clearSelV3()" style="background:none;border:1px solid var(--border);border-radius:5px;padding:4px 8px;font-size:11px;color:var(--muted);cursor:pointer">✕</button>' +
+        '<button onclick="window.clearSelV3&&window.clearSelV3()" style="background:none;border:1px solid var(--border);border-radius:5px;padding:4px 8px;font-size:11px;color:rgba(196,196,204,0.75);cursor:pointer">✕</button>' +
       '</div>';
 
     var existing = leadsPanel.querySelector('.leads-toolbar');
@@ -8020,14 +8020,14 @@ addSalesPlaybookPanel();
       <div style="font-size:16px;font-weight:800;color:var(--text);margin-bottom:18px" id="task-modal-title">+ משימה חדשה</div>
 
       <div style="margin-bottom:12px">
-        <label style="font-size:11px;color:var(--muted);display:block;margin-bottom:4px">כותרת *</label>
+        <label style="font-size:11px;color:rgba(196,196,204,0.75);display:block;margin-bottom:4px">כותרת *</label>
         <input id="task-inp-title" type="text" placeholder="מה צריך לעשות?"
           style="width:100%;background:rgba(255,255,255,0.06);border:1px solid var(--border);border-radius:8px;
                  padding:9px 12px;color:var(--text);font-size:13px;font-family:Heebo,sans-serif;box-sizing:border-box">
       </div>
 
       <div style="margin-bottom:12px">
-        <label style="font-size:11px;color:var(--muted);display:block;margin-bottom:4px">תיאור / הערות</label>
+        <label style="font-size:11px;color:rgba(196,196,204,0.75);display:block;margin-bottom:4px">תיאור / הערות</label>
         <textarea id="task-inp-desc" placeholder="פרטים נוספים, קונטקסט, לינקים..."
           style="width:100%;background:rgba(255,255,255,0.06);border:1px solid var(--border);border-radius:8px;
                  padding:9px 12px;color:var(--text);font-size:12px;font-family:Heebo,sans-serif;
@@ -8036,7 +8036,7 @@ addSalesPlaybookPanel();
 
       <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:12px">
         <div>
-          <label style="font-size:11px;color:var(--muted);display:block;margin-bottom:4px">עדיפות</label>
+          <label style="font-size:11px;color:rgba(196,196,204,0.75);display:block;margin-bottom:4px">עדיפות</label>
           <select id="task-inp-priority"
             style="width:100%;background:rgba(255,255,255,0.06);border:1px solid var(--border);border-radius:8px;
                    padding:8px 10px;color:var(--text);font-size:12px;font-family:Heebo,sans-serif">
@@ -8046,7 +8046,7 @@ addSalesPlaybookPanel();
           </select>
         </div>
         <div>
-          <label style="font-size:11px;color:var(--muted);display:block;margin-bottom:4px">מבצע</label>
+          <label style="font-size:11px;color:rgba(196,196,204,0.75);display:block;margin-bottom:4px">מבצע</label>
           <select id="task-inp-owner"
             style="width:100%;background:rgba(255,255,255,0.06);border:1px solid var(--border);border-radius:8px;
                    padding:8px 10px;color:var(--text);font-size:12px;font-family:Heebo,sans-serif">
@@ -8059,7 +8059,7 @@ addSalesPlaybookPanel();
 
       <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:18px">
         <div>
-          <label style="font-size:11px;color:var(--muted);display:block;margin-bottom:4px">קטגוריה</label>
+          <label style="font-size:11px;color:rgba(196,196,204,0.75);display:block;margin-bottom:4px">קטגוריה</label>
           <select id="task-inp-category"
             style="width:100%;background:rgba(255,255,255,0.06);border:1px solid var(--border);border-radius:8px;
                    padding:8px 10px;color:var(--text);font-size:12px;font-family:Heebo,sans-serif">
@@ -8071,7 +8071,7 @@ addSalesPlaybookPanel();
           </select>
         </div>
         <div>
-          <label style="font-size:11px;color:var(--muted);display:block;margin-bottom:4px">סטטוס</label>
+          <label style="font-size:11px;color:rgba(196,196,204,0.75);display:block;margin-bottom:4px">סטטוס</label>
           <select id="task-inp-status"
             style="width:100%;background:rgba(255,255,255,0.06);border:1px solid var(--border);border-radius:8px;
                    padding:8px 10px;color:var(--text);font-size:12px;font-family:Heebo,sans-serif">
@@ -8380,7 +8380,7 @@ window._cleanForFirebase = function _cleanForFirebase(obj) {
         '<button class="task-del" data-id="' + id + '" ' +
           'style="background:none;border:none;color:var(--muted);cursor:pointer;font-size:14px;padding:0;flex-shrink:0" title="מחק">🗑</button>' +
       '</div>' +
-      (t.description ? '<div style="font-size:11px;color:var(--muted);margin-bottom:8px;margin-right:22px;line-height:1.5">' +
+      (t.description ? '<div style="font-size:11px;color:rgba(196,196,204,0.75);margin-bottom:8px;margin-right:22px;line-height:1.5">' +
         escHtml(t.description) + '</div>' : '') +
       '<div style="display:flex;gap:5px;flex-wrap:wrap;margin-right:22px">' +
         (t.owner    ? '<span style="font-size:10px;background:rgba(255,255,255,0.06);border-radius:5px;padding:2px 7px;color:var(--muted)">' + (ownerLabel[t.owner]||t.owner) + '</span>' : '') +
@@ -9816,7 +9816,7 @@ window.showDecisionDetail = function(decisionId) {
   var outcomeSection = '';
   if (d.outcome === null || d.outcome === undefined) {
     outcomeSection = '<div style="border-top:1px solid rgba(255,255,255,0.07);padding-top:16px;margin-top:4px">' +
-      '<div style="font-size:11px;color:var(--muted);margin-bottom:8px">עדכן תוצאה — האם ההחלטה הייתה נכונה?</div>' +
+      '<div style="font-size:11px;color:rgba(196,196,204,0.75);margin-bottom:8px">עדכן תוצאה — האם ההחלטה הייתה נכונה?</div>' +
       '<button class="brain-outcome-btn" data-did="' + decisionId + '" data-correct="true" onclick="markDecisionOutcome(this.dataset.did,this.dataset.correct===\'true\')">✅ נכון — העסקה נסגרה</button>' +
       '<button class="brain-outcome-btn wrong" data-did="' + decisionId + '" data-correct="false" onclick="markDecisionOutcome(this.dataset.did,this.dataset.correct===\'true\')">❌ טעות — לא נסגר</button>' +
       '</div>';
@@ -9966,7 +9966,7 @@ async function loadBrainPerformance() {
       var color = pct === null ? 'var(--muted)' : pct >= 70 ? '#10b981' : pct >= 50 ? '#F59E0B' : '#ef4444';
       return '<div style="display:flex;align-items:center;gap:10px;padding:8px 0;border-bottom:1px solid rgba(255,255,255,0.04)">' +
         '<div style="flex:1;font-size:12px;color:var(--text)">' + seg + '</div>' +
-        '<div style="font-size:11px;color:var(--muted)">' + data.total + ' ניתוחים</div>' +
+        '<div style="font-size:11px;color:rgba(196,196,204,0.75)">' + data.total + ' ניתוחים</div>' +
         '<div style="font-size:12px;font-weight:700;color:' + color + ';min-width:40px;text-align:left">' +
           (pct !== null ? pct + '%' : '—') + '</div>' +
         '</div>';
@@ -10591,7 +10591,7 @@ setTimeout(function() {
             '<span style="font-size:13px;font-weight:700;color:var(--text)">'+statusDot+' '+(d.title||'ללא שם')+'</span>'+
             scopeBadge+tagBadges+
           '</div>'+
-          (preview?'<div style="font-size:11px;color:var(--muted);margin-bottom:6px;word-break:break-all">'+preview+'</div>':'')+
+          (preview?'<div style="font-size:11px;color:rgba(196,196,204,0.75);margin-bottom:6px;word-break:break-all">'+preview+'</div>':'')+
           (d.url||d.github_url?'<a href="'+(d.url||d.github_url)+'" target="_blank" style="font-size:10px;color:var(--accent);text-decoration:none">'+(d.url||d.github_url)+'</a>':'')+
           '<div style="font-size:10px;color:rgba(255,255,255,0.2);margin-top:5px">'+new Date(d.created_at||Date.now()).toLocaleString('he-IL')+'</div>'+
         '</div>'+
