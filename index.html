@@ -9925,17 +9925,57 @@ setTimeout(function() {
   // ── Manual trigger (admin) ──
   window._kbTriggerJob = async function() {
     var btn = document.getElementById('kb-trigger-btn');
-    if (btn) { btn.textContent = '⏳ רץ...'; btn.disabled = true; }
+    if (btn) { btn.textContent = '⏳ אוסף נתונים...'; btn.disabled = true; }
     try {
       var srv = window.SERVER || 'https://xtix-crm-production.up.railway.app';
-      var res = await window._authFetch(srv + '/kb/trigger', { method: 'POST', headers: {'Content-Type':'application/json'}, body: '{}' });
-      var d   = await res.json();
-      if (d.ok) {
-        if (btn) btn.textContent = '✅ הופעל!';
-        setTimeout(function(){ if(btn){btn.textContent='🧠 הרץ למידה';btn.disabled=false;} window._kbLoadInsightsStatus(); }, 3000);
+
+      // 1. Collect KB docs from Firebase
+      var kbDocs = [], decisions = [];
+      if (typeof db !== 'undefined' && db) {
+        if (btn) btn.textContent = '⏳ טוען KB...';
+        var kbSnap = await db.collection('knowledge_base').where('status','==','ready').get();
+        kbSnap.forEach(function(d){ var data = d.data(); data._id = d.id; kbDocs.push(data); });
+
+        if (btn) btn.textContent = '⏳ טוען ניתוחים...';
+        var decSnap = await db.collection('ai_decisions').orderBy('timestamp','desc').limit(100).get();
+        decSnap.forEach(function(d){ var data = d.data(); data._id = d.id; decisions.push(data); });
+      }
+
+      if (!kbDocs.length) {
+        if (btn) { btn.textContent = '⚠️ אין מקורות KB'; btn.disabled = false; }
+        setTimeout(function(){ if(btn) btn.textContent = '🧠 הרץ למידה'; }, 3000);
+        return;
+      }
+
+      if (btn) btn.textContent = '⏳ Claude מסנתז...';
+
+      // 2. Send to server — server calls Claude and returns insights
+      var res = await window._authFetch(srv + '/kb/run', {
+        method: 'POST',
+        headers: {'Content-Type':'application/json'},
+        body: JSON.stringify({ knowledge_base: kbDocs, ai_decisions: decisions }),
+        signal: AbortSignal.timeout(90000)
+      });
+      var d = await res.json();
+
+      if (d.ok && d.insights) {
+        // 3. Client writes insights to Firebase (no SA needed)
+        if (btn) btn.textContent = '⏳ שומר ב-Firebase...';
+        if (typeof db !== 'undefined' && db) {
+          await db.collection('brain_insights').doc('latest').set(d.insights);
+          var histId = new Date().toISOString().slice(0,16).replace('T','_').replace(':','');
+          db.collection('brain_insights_history').doc(histId).set(d.insights).catch(function(){});
+        }
+        if (btn) btn.textContent = '✅ הסתיים!';
+        setTimeout(function(){ if(btn){btn.textContent='🧠 הרץ למידה';btn.disabled=false;} window._kbLoadInsightsStatus(); }, 2000);
+      } else {
+        if (btn) { btn.textContent = '❌ ' + (d.error||'שגיאה'); btn.disabled = false; }
+        setTimeout(function(){ if(btn) btn.textContent = '🧠 הרץ למידה'; }, 4000);
       }
     } catch(e) {
-      if (btn) { btn.textContent = '❌ שגיאה'; btn.disabled = false; }
+      console.error('[KB trigger]', e);
+      if (btn) { btn.textContent = '❌ שגיאה: ' + e.message.substring(0,30); btn.disabled = false; }
+      setTimeout(function(){ if(btn) btn.textContent = '🧠 הרץ למידה'; }, 4000);
     }
   };
 
@@ -9972,8 +10012,45 @@ setTimeout(function() {
     window._kbLoadInsightsStatus();
   };
 
-  // Load status on page load too
+  // Load status on page load
   setTimeout(window._kbLoadInsightsStatus, 3000);
+
+  // ── Auto-scheduler: run KB learning every 6h while user is active ──
+  (function _kbAutoScheduler() {
+    var KB_AUTO_INTERVAL = 6 * 60 * 60 * 1000; // 6 hours
+    var KB_LAST_RUN_KEY  = 'kb_last_run';
+
+    function _shouldRunNow() {
+      try {
+        var last = parseInt(localStorage.getItem(KB_LAST_RUN_KEY) || '0');
+        return (Date.now() - last) > KB_AUTO_INTERVAL;
+      } catch(e) { return false; }
+    }
+
+    function _markRan() {
+      try { localStorage.setItem(KB_LAST_RUN_KEY, String(Date.now())); } catch(e){}
+    }
+
+    async function _autoRun() {
+      if (!_shouldRunNow()) return;
+      if (typeof db === 'undefined' || !db) return;
+      // Check if there are KB docs
+      try {
+        var snap = await db.collection('knowledge_base').where('status','==','ready').limit(1).get();
+        if (snap.empty) return;
+        console.log('[KB Auto] 6h elapsed — triggering learning job');
+        _markRan();
+        await window._kbTriggerJob();
+      } catch(e) {
+        console.warn('[KB Auto] failed:', e.message);
+      }
+    }
+
+    // Check on page load (after 10s to let Firebase connect)
+    setTimeout(_autoRun, 10000);
+    // Then every hour — check if 6h passed
+    setInterval(_autoRun, 60 * 60 * 1000);
+  })();
 
 
 (function() {

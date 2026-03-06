@@ -12,109 +12,21 @@ import urllib.request, urllib.parse
 
 # ══════════════════════════════════════════════════════════════════
 #  KNOWLEDGE BASE — Background Learning Engine
-#  רץ כל 6 שעות, קורא KB + ניתוחי עבר, מייצר brain_insights
+#  Client sends KB docs + decisions → server synthesizes with Claude
+#  → returns insights JSON → client writes to Firebase (no SA needed)
 # ══════════════════════════════════════════════════════════════════
 
 FIREBASE_PROJECT_ID = os.environ.get('FIREBASE_PROJECT_ID', 'xtix-crm')
-FIREBASE_SA_KEY     = os.environ.get('FIREBASE_SERVICE_ACCOUNT_KEY', '')  # JSON string
 
-_fs_token       = None   # cached service account access token
-_fs_token_expiry = 0
-
-def _get_firebase_token():
-    """Get Google OAuth2 access token via service account JWT."""
-    global _fs_token, _fs_token_expiry
-    if _fs_token and time.time() < _fs_token_expiry - 60:
-        return _fs_token
-    if not FIREBASE_SA_KEY:
-        return None
-    try:
-        sa = json.loads(FIREBASE_SA_KEY)
-        now = int(time.time())
-        header  = base64.urlsafe_b64encode(json.dumps({'alg':'RS256','typ':'JWT'}).encode()).rstrip(b'=')
-        payload = base64.urlsafe_b64encode(json.dumps({
-            'iss': sa['client_email'],
-            'sub': sa['client_email'],
-            'aud': 'https://oauth2.googleapis.com/token',
-            'iat': now,
-            'exp': now + 3600,
-            'scope': 'https://www.googleapis.com/auth/datastore'
-        }).encode()).rstrip(b'=')
-        msg = header + b'.' + payload
-        from cryptography.hazmat.primitives import hashes, serialization
-        from cryptography.hazmat.primitives.asymmetric import padding as apad
-        priv_key = serialization.load_pem_private_key(sa['private_key'].encode(), password=None)
-        sig = base64.urlsafe_b64encode(priv_key.sign(msg, apad.PKCS1v15(), hashes.SHA256())).rstrip(b'=')
-        jwt_token = (msg + b'.' + sig).decode()
-        req = urllib.request.Request(
-            'https://oauth2.googleapis.com/token',
-            data=urllib.parse.urlencode({'grant_type':'urn:ietf:params:oauth:grant-type:jwt-bearer','assertion':jwt_token}).encode(),
-            headers={'Content-Type':'application/x-www-form-urlencoded'}, method='POST')
-        with urllib.request.urlopen(req, context=ssl.create_default_context(), timeout=10) as r:
-            data = json.loads(r.read())
-            _fs_token = data['access_token']
-            _fs_token_expiry = now + data.get('expires_in', 3600)
-            return _fs_token
-    except Exception as e:
-        print(f'[KB] Firebase token error: {e}', flush=True)
-        return None
-
-def _fs_get_collection(collection, limit=200, order_by=None):
-    """Read documents from Firestore collection via REST."""
-    token = _get_firebase_token()
-    if not token:
-        return []
-    try:
-        url = f'https://firestore.googleapis.com/v1/projects/{FIREBASE_PROJECT_ID}/databases/(default)/documents/{collection}?pageSize={limit}'
-        if order_by:
-            url += f'&orderBy={order_by}'
-        req = urllib.request.Request(url, headers={'Authorization': 'Bearer ' + token})
-        with urllib.request.urlopen(req, context=ssl.create_default_context(), timeout=15) as r:
-            data = json.loads(r.read())
-        docs = []
-        for d in data.get('documents', []):
-            doc_id = d['name'].split('/')[-1]
-            fields = d.get('fields', {})
-            parsed = {'_id': doc_id}
-            for k, v in fields.items():
-                for vtype, vval in v.items():
-                    if vtype == 'stringValue':   parsed[k] = vval
-                    elif vtype == 'integerValue': parsed[k] = int(vval)
-                    elif vtype == 'doubleValue':  parsed[k] = float(vval)
-                    elif vtype == 'booleanValue': parsed[k] = vval
-                    elif vtype == 'arrayValue':
-                        parsed[k] = [list(x.values())[0] for x in v['arrayValue'].get('values', [])]
-                    else: parsed[k] = str(vval)
-            docs.append(parsed)
-        return docs
-    except Exception as e:
-        print(f'[KB] Firestore read {collection}: {e}', flush=True)
-        return []
-
-def _fs_set_document(collection, doc_id, data):
-    """Write/update a document in Firestore via REST."""
-    token = _get_firebase_token()
-    if not token:
-        return False
-    try:
-        def _to_fs_value(v):
-            if isinstance(v, bool):   return {'booleanValue': v}
-            if isinstance(v, int):    return {'integerValue': str(v)}
-            if isinstance(v, float):  return {'doubleValue': v}
-            if isinstance(v, list):   return {'arrayValue': {'values': [_to_fs_value(x) for x in v]}}
-            if isinstance(v, dict):   return {'mapValue': {'fields': {kk: _to_fs_value(vv) for kk, vv in v.items()}}}
-            return {'stringValue': str(v) if v is not None else ''}
-        fields = {k: _to_fs_value(v) for k, v in data.items()}
-        payload = json.dumps({'fields': fields}).encode()
-        url = f'https://firestore.googleapis.com/v1/projects/{FIREBASE_PROJECT_ID}/databases/(default)/documents/{collection}/{doc_id}'
-        req = urllib.request.Request(url, data=payload,
-            headers={'Authorization': 'Bearer ' + token, 'Content-Type': 'application/json'}, method='PATCH')
-        with urllib.request.urlopen(req, context=ssl.create_default_context(), timeout=15) as r:
-            r.read()
-        return True
-    except Exception as e:
-        print(f'[KB] Firestore write {collection}/{doc_id}: {e}', flush=True)
-        return False
+# In-memory cache — client uploads KB docs + decisions via /kb/run
+_kb_cache = {
+    'knowledge_base': [],
+    'ai_decisions':   [],
+    'last_updated':   None,
+}
+# Last insights result — stored in memory, returned to client
+_kb_last_insights = None
+_kb_job_running   = False
 
 def _call_claude_background(system_prompt, user_prompt, max_tokens=2000):
     """Call Anthropic Claude directly from server (no auth needed — internal)."""
@@ -146,41 +58,37 @@ def _call_claude_background(system_prompt, user_prompt, max_tokens=2000):
 def _kb_learning_job():
     """
     Background job — runs every 6 hours.
-    1. Reads knowledge_base collection (methodology, articles, sales tone)
-    2. Reads recent ai_decisions (past lead analyses with outcomes)
-    3. Asks Claude: "what patterns work? what should Meta-Judge know?"
-    4. Writes brain_insights to Firebase
+    1. Reads knowledge_base collection via Firebase REST (needs SA key) OR
+       returns insights JSON for client to write (no SA key needed).
+    2. Reads recent ai_decisions
+    3. Asks Claude to synthesize insights
+    4. Returns insights dict (client writes to Firebase)
     """
     print(f'\n[KB] ══ Background Learning Job started — {datetime.datetime.now().isoformat()} ══', flush=True)
 
-    # ── Step 1: Load Knowledge Base documents ──
-    kb_docs = _fs_get_collection('knowledge_base', limit=50)
-    if not kb_docs:
-        print('[KB] No KB documents found — skipping.', flush=True)
-        return
+    # ── Step 1: Load KB docs passed from client (no SA needed) ──
+    # kb_docs and decisions are passed in via /kb/run endpoint
+    # This function now accepts optional data or reads from in-memory cache
+    kb_docs   = _kb_cache.get('knowledge_base', [])
+    decisions = _kb_cache.get('ai_decisions', [])
 
     kb_ready = [d for d in kb_docs if d.get('status') == 'ready' and d.get('content')]
     if not kb_ready:
-        print(f'[KB] {len(kb_docs)} docs found but none are ready — skipping.', flush=True)
-        return
+        print(f'[KB] No ready KB docs in cache — skipping.', flush=True)
+        return None
 
-    print(f'[KB] Loaded {len(kb_ready)} KB documents', flush=True)
+    print(f'[KB] {len(kb_ready)} KB docs, {len(decisions)} decisions', flush=True)
 
-    # ── Step 2: Load recent lead analyses with outcomes ──
-    decisions = _fs_get_collection('ai_decisions', limit=100)
-    # Focus on decisions that have outcomes (closed/not closed) — most valuable learning
     decisions_with_outcome = [d for d in decisions if d.get('outcome') and d.get('meta_score')]
     decisions_recent       = sorted(decisions, key=lambda x: x.get('timestamp',''), reverse=True)[:30]
 
-    print(f'[KB] Loaded {len(decisions)} decisions ({len(decisions_with_outcome)} with outcomes)', flush=True)
-
-    # ── Step 3: Build KB context (condensed) ──
+    # ── Step 2: Build KB context ──
     kb_text = '\n\n'.join([
         f"[{d.get('title','מקור')}]\n{str(d.get('content',''))[:1500]}"
-        for d in kb_ready[:10]  # top 10 sources
+        for d in kb_ready[:10]
     ])
 
-    # ── Step 4: Build outcomes summary ──
+    # ── Step 3: Build outcomes summary ──
     outcomes_summary = ''
     if decisions_with_outcome:
         closed_won  = [d for d in decisions_with_outcome if d.get('outcome') == 'נסגר']
@@ -196,13 +104,12 @@ def _kb_learning_job():
 - פלטפורמות שנסגרו: {', '.join(set(d.get('platform','') for d in closed_won if d.get('platform')))}
 """
 
-    # ── Step 5: Recent analysis patterns ──
     recent_summary = '\n'.join([
         f"- {d.get('lead_name','')} | ציון:{d.get('meta_score','?')} | cadence:{d.get('recommended_cadence','?')} | תוצאה:{d.get('outcome','לא ידוע')}"
         for d in decisions_recent[:20]
     ])
 
-    # ── Step 6: Ask Claude to synthesize insights ──
+    # ── Step 4: Claude synthesis ──
     system = """אתה מנוע למידה של מערכת CRM לתחום הופעות ואירועים בישראל.
 תפקידך: לנתח מידע מתודולוגי ממקורות ידע + ניתוחי עבר של לידים → ולייצר insights מעשיים.
 ה-insights שתייצר ישמשו את ה-Meta-Judge בניתוחים הבאים.
@@ -239,52 +146,52 @@ def _kb_learning_job():
     raw = _call_claude_background(system, user, max_tokens=2500)
     if not raw:
         print('[KB] Claude returned empty — aborting.', flush=True)
-        return
+        return None
 
-    # ── Step 7: Parse and save to Firebase ──
+    # ── Step 5: Parse ──
     try:
         s = raw.find('{'); e = raw.rfind('}')
         if s == -1: raise ValueError('No JSON found')
         insights = json.loads(raw[s:e+1])
     except Exception as ex:
-        print(f'[KB] JSON parse failed: {ex}\nRaw: {raw[:300]}', flush=True)
-        # Save raw as fallback
+        print(f'[KB] JSON parse failed: {ex}', flush=True)
         insights = {
             'sales_methodology_summary': raw[:500],
-            'generated_at': datetime.datetime.now().isoformat(),
             'parse_error': str(ex)
         }
 
-    # Always stamp with metadata
-    insights['generated_at']      = datetime.datetime.now().isoformat()
-    insights['kb_sources_count']  = len(kb_ready)
+    # Stamp metadata
+    insights['generated_at']       = datetime.datetime.now().isoformat()
+    insights['kb_sources_count']   = len(kb_ready)
     insights['decisions_analyzed'] = len(decisions_with_outcome)
-    insights['version']           = f'v{int(time.time())}'
+    insights['version']            = f'v{int(time.time())}'
 
-    doc_id = 'latest'  # always overwrite — keep history in versions
-    ok = _fs_set_document('brain_insights', doc_id, insights)
-
-    # Also save versioned snapshot
-    version_id = datetime.datetime.now().strftime('%Y%m%d_%H%M')
-    _fs_set_document('brain_insights_history', version_id, insights)
-
-    if ok:
-        print(f'[KB] ✅ brain_insights saved — {len(kb_ready)} KB sources, {len(decisions_with_outcome)} outcomes analyzed', flush=True)
-    else:
-        print(f'[KB] ⚠️  Firebase write failed (no service account key?)', flush=True)
-
+    print(f'[KB] ✅ Insights ready — {len(kb_ready)} KB sources, {len(decisions_with_outcome)} outcomes', flush=True)
     print(f'[KB] ══ Job complete — {datetime.datetime.now().isoformat()} ══\n', flush=True)
 
+    # Return insights — CLIENT writes to Firebase (no SA key needed)
+    return insights
+
 def _kb_scheduler_loop():
-    """Runs _kb_learning_job every 6 hours."""
-    # Wait 2 minutes after startup before first run
-    time.sleep(120)
+    """
+    Every 6 hours: checks if client has uploaded fresh KB data.
+    If yes — runs synthesis job and stores result in memory.
+    Client polls /kb/poll to get result and writes to Firebase.
+    """
+    time.sleep(120)  # wait 2min after startup
     while True:
         try:
-            _kb_learning_job()
+            if _kb_cache['knowledge_base']:
+                print('[KB] Scheduler: running job...', flush=True)
+                result = _kb_learning_job()
+                if result:
+                    global _kb_last_insights
+                    _kb_last_insights = result
+                    print('[KB] Scheduler: insights ready for client pickup', flush=True)
+            else:
+                print('[KB] Scheduler: no KB data yet — waiting for client upload', flush=True)
         except Exception as e:
-            print(f'[KB] Job crashed: {e}', flush=True)
-        # Sleep 6 hours
+            print(f'[KB] Scheduler crashed: {e}', flush=True)
         time.sleep(6 * 60 * 60)
 
 
@@ -866,30 +773,32 @@ class Handler(BaseHTTPRequestHandler):
             safe={k:('***' if any(x in k for x in ['password','token']) else v) for k,v in cfg.items()}
             self.json_out(safe)
         elif p.path=='/kb/insights':
-            # Return latest brain_insights for Meta-Judge
+            # Return latest insights from memory (populated by /kb/run)
             if not self.auth_check('sales'): return
-            docs = _fs_get_collection('brain_insights', limit=1)
-            if docs:
-                self.json_out({'ok': True, 'insights': docs[0]})
-            else:
-                self.json_out({'ok': True, 'insights': None})
-        elif p.path=='/kb/status':
+            self.json_out({'ok': True, 'insights': _kb_last_insights})
+        elif p.path=='/kb/poll':
+            # Client polls after triggering job — returns result when ready
             if not self.auth_check('sales'): return
-            kb_docs  = _fs_get_collection('knowledge_base', limit=200)
-            insights = _fs_get_collection('brain_insights', limit=1)
-            decisions_with_outcome = [d for d in _fs_get_collection('ai_decisions', limit=100) if d.get('outcome')]
             self.json_out({
                 'ok': True,
-                'kb_count': len(kb_docs),
-                'kb_ready': len([d for d in kb_docs if d.get('status')=='ready']),
-                'has_insights': bool(insights),
-                'insights_generated_at': insights[0].get('generated_at','') if insights else '',
-                'decisions_with_outcome': len(decisions_with_outcome),
+                'running': _kb_job_running,
+                'insights': _kb_last_insights
+            })
+        elif p.path=='/kb/status':
+            if not self.auth_check('sales'): return
+            self.json_out({
+                'ok': True,
+                'kb_count': len(_kb_cache['knowledge_base']),
+                'kb_ready': len([d for d in _kb_cache['knowledge_base'] if d.get('status')=='ready']),
+                'has_insights': bool(_kb_last_insights),
+                'insights_generated_at': _kb_last_insights.get('generated_at','') if _kb_last_insights else '',
+                'decisions_with_outcome': len([d for d in _kb_cache['ai_decisions'] if d.get('outcome')]),
+                'job_running': _kb_job_running,
             })
         elif p.path=='/kb/history':
+            # Not supported without SA — return empty
             if not self.auth_check('sales'): return
-            history = _fs_get_collection('brain_insights_history', limit=20)
-            self.json_out({'ok': True, 'history': sorted(history, key=lambda x: x.get('generated_at',''), reverse=True)})
+            self.json_out({'ok': True, 'history': []})
         else:
             self.json_out({'error':'Not found'},404)
 
@@ -1125,11 +1034,57 @@ class Handler(BaseHTTPRequestHandler):
             if not self.auth_check('admin'): return
             current=load_config(); current.update(b); save_config(current)
             self.json_out({'ok':True,'message':'Settings saved'})
+        elif p.path=='/kb/run':
+            # Client sends KB docs + decisions → server synthesizes → returns insights
+            # Client writes insights to Firebase (no SA needed)
+            if not self.auth_check('sales'): return
+            global _kb_last_insights, _kb_job_running
+            if _kb_job_running:
+                self.json_out({'ok': False, 'error': 'Job already running', 'running': True})
+                return
+            kb_docs   = b.get('knowledge_base', [])
+            decisions = b.get('ai_decisions', [])
+            if not kb_docs:
+                self.json_out({'ok': False, 'error': 'No KB docs provided'})
+                return
+            # Update in-memory cache
+            _kb_cache['knowledge_base'] = kb_docs
+            _kb_cache['ai_decisions']   = decisions
+            _kb_cache['last_updated']   = datetime.datetime.now().isoformat()
+            print(f'[KB] /kb/run received: {len(kb_docs)} KB docs, {len(decisions)} decisions', flush=True)
+            # Run synchronously (client waits) — typical time: 10-30s
+            _kb_job_running = True
+            try:
+                insights = _kb_learning_job()
+                if insights:
+                    _kb_last_insights = insights
+                    self.json_out({'ok': True, 'insights': insights})
+                else:
+                    self.json_out({'ok': False, 'error': 'No KB docs ready or Claude failed'})
+            except Exception as e:
+                self.json_out({'ok': False, 'error': str(e)}, 500)
+            finally:
+                _kb_job_running = False
+
         elif p.path=='/kb/trigger':
-            # Manual trigger of KB learning job (admin only)
+            # Legacy: trigger job with cached data (admin only)
             if not self.auth_check('admin'): return
-            self.json_out({'ok': True, 'message': 'KB learning job started in background'})
-            threading.Thread(target=_kb_learning_job, daemon=True).start()
+            if _kb_job_running:
+                self.json_out({'ok': False, 'message': 'Job already running'})
+                return
+            if not _kb_cache['knowledge_base']:
+                self.json_out({'ok': False, 'message': 'No KB data in cache — use /kb/run first'})
+                return
+            def _run():
+                global _kb_last_insights, _kb_job_running
+                _kb_job_running = True
+                try:
+                    result = _kb_learning_job()
+                    if result: _kb_last_insights = result
+                finally:
+                    _kb_job_running = False
+            self.json_out({'ok': True, 'message': 'KB job started'})
+            threading.Thread(target=_run, daemon=True).start()
         else:
             self.json_out({'error':'Not found'},404)
 
