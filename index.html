@@ -3949,19 +3949,57 @@ BP18: Nurture existing customers — repeat customers spend 67% more
       .map(function(o){return '<option value="'+o[0]+'"'+(lead.status===o[0]?' selected':'')+'>'+o[1]+'</option>';}).join('');
     var platBadge=(lead.platform||enr.platform_current)?'<span class="plat-badge">'+(lead.platform||enr.platform_current)+'</span>':'';
     var aiBadge=aiSt==='done'?'<span class="ai-badge done">✓ AI</span>':aiSt==='running'?'<span id="ai-badge-'+lead.id+'" class="ai-badge running">⏳</span>':'';
+    var tierLabel = score>=80?'A':score>=60?'B':'C';
+    var tierColor = score>=80?'#10b981':score>=60?'#3b82f6':'#f59e0b';
+    var tierBg    = score>=80?'rgba(16,185,129,0.12)':score>=60?'rgba(59,130,246,0.12)':'rgba(245,158,11,0.12)';
+    var tierBorder= score>=80?'rgba(16,185,129,0.35)':score>=60?'rgba(59,130,246,0.35)':'rgba(245,158,11,0.35)';
+
+    var statusDot = {new:'#10b981',contacted:'#3b82f6',followup:'#f59e0b',meeting:'#8b5cf6',closed:'#6b7280'}[lead.status||'new']||'#10b981';
+
+    var platformTag = (lead.platform||enr.platform_current)
+      ? '<span class="_lbar-tag">'+(lead.platform||enr.platform_current)+'</span>' : '';
+
+    var aiChip = aiSt==='done'
+      ? '<span class="_lbar-ai-done">AI &#10003;</span>'
+      : aiSt==='running'
+        ? '<span class="_lbar-ai-run" id="ai-badge-'+lead.id+'">&#8987; מנתח</span>'
+        : '<button class="_lbar-ai-btn" onclick="event.stopPropagation();window.showAnalysisChoice('+lead.id+')" title="הפעל ניתוח AI">&#9679; נתח AI</button>';
+
+    var updTime = '';
+    if(lead.updated_at||lead.created_at){
+      var d=new Date(lead.updated_at||lead.created_at);
+      var now=new Date();
+      var diff=Math.floor((now-d)/60000);
+      updTime = diff<60 ? diff+'m' : diff<1440 ? Math.floor(diff/60)+'h' : Math.floor(diff/1440)+'d';
+    }
+
     var html='<div class="lead-card" id="lead-'+lead.id+'" data-dynamic="true" data-status="'+(lead.status||'new')+'" data-score="'+score+'" data-name="'+(lead.name||'')+'" data-domain="'+(lead.domain||'')+'" data-email="'+(lead.email||'')+'" data-phone="'+(lead.phone||'')+'" data-segment="'+(lead.segment||lead.type||'')+'" data-source="'+(lead.source||'')+'">'
       +'<div class="lead-card-header" onclick="window.toggleLead('+lead.id+')">'
-      +'<div class="lead-info"><div class="lead-avatar" data-initials="'+initials+'">'+initials+'</div><div>'
+      +'<div class="lead-info">'
+      +'<div class="lead-avatar">'+initials+'</div>'
+      +'<div class="_lbar-name-block">'
       +'<div class="lead-name">'+(lead.name||'ליד חדש')+'</div>'
-      +'<div class="lead-meta">'+(lead.type?'<span>🎭 '+lead.type+'</span>':'')+(lead.domain?'<span>🌐 '+lead.domain+'</span>':'')+(lead.phone?'<span>📞 '+lead.phone+'</span>':'')+'</div>'
+      +'<div class="_lbar-meta">'
+      +(lead.domain?'<span class="_lbar-meta-item">&#127760; '+lead.domain+'</span>':'')
+      +(lead.phone?'<span class="_lbar-meta-item">&#128222; '+lead.phone+'</span>':'')
+      +(lead.type||lead.segment?'<span class="_lbar-meta-item _lbar-seg">'+(lead.type||lead.segment)+'</span>':'')
+      +'</div>'
       +'</div></div>'
       +'<div class="lead-badges">'
-      +(function(){var c=score>=80?'#10b981':score>=60?'#3b82f6':'#f59e0b';var r=16;var circ=2*Math.PI*r;var dash=Math.round((score/100)*circ);return '<div class="score-ring" title="Lead Score: '+score+'"><svg width="40" height="40" viewBox="0 0 40 40"><circle cx="20" cy="20" r="'+r+'" fill="none" stroke="rgba(255,255,255,0.06)" stroke-width="3.5"/><circle cx="20" cy="20" r="'+r+'" fill="none" stroke="'+c+'" stroke-width="3.5" stroke-dasharray="'+dash+' '+circ+'" stroke-dashoffset="'+Math.round(circ/4)+'" stroke-linecap="round" transform="rotate(-90 20 20)"/></svg><span class="score-num" style="color:'+c+'">'+score+'</span></div>';})()
-      +'<select class="status-select" data-lead-id="'+lead.id+'" onclick="event.stopPropagation()" onchange="updateStats()">'+statusOpts+'</select>'
-      +platBadge+aiBadge
-      +'<button onclick="event.stopPropagation();window.showAnalysisChoice('+lead.id+')" title="ניתוח AI מחדש" style="background:rgba(108,99,255,0.12);border:1px solid rgba(108,99,255,0.3);border-radius:6px;padding:4px 10px;font-size:10px;color:var(--accent);cursor:pointer;font-family:Heebo,sans-serif">'+(aiSt==='running'?'⏳...':'🤖 נתח')+'</button>'
-      +'<span style="font-size:18px;color:var(--muted)" id="arrow-'+lead.id+'">▼</span>'
-      +'</div></div>'
+      +platformTag
+      +aiChip
+      +'<div class="_lbar-status" onclick="event.stopPropagation()">'
+      +'<span class="_lbar-sdot" style="background:'+statusDot+'"></span>'
+      +'<select class="status-select _lbar-sel" data-lead-id="'+lead.id+'" onclick="event.stopPropagation()" onchange="updateStats()">'+statusOpts+'</select>'
+      +'</div>'
+      +'<div class="_lbar-score" style="background:'+tierBg+';border-color:'+tierBorder+';color:'+tierColor+'">'
+      +'<span class="_lbar-score-val">'+score+'</span>'
+      +'<span class="_lbar-score-tier">'+tierLabel+'</span>'
+      +'</div>'
+      +(updTime?'<span class="_lbar-time">'+updTime+'</span>':'')
+      +'<svg class="_lbar-chevron" id="arrow-'+lead.id+'" width="16" height="16" viewBox="0 0 24 24" fill="none"><polyline points="6,9 12,15 18,9" stroke="rgba(255,255,255,0.25)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>'
+      +'</div>'  
+      +'</div>'
       +'<div class="lead-body" id="body-'+lead.id+'">'
       +'<div class="lead-tabs">'
       +'<button class="lead-tab active" onclick="switchLeadTab('+lead.id+',\'profile\',this)">👤 פרופיל</button>'
@@ -6152,6 +6190,184 @@ BP6-10: תעדף (פלטפורמה ישנה+דומיין+6+ אירועים), Dis
 .lead-tab:hover { color: var(--t1) !important; background: rgba(255,255,255,0.03) !important; }
 .lead-tab-panel { display: none !important; padding: 16px !important; }
 .lead-tab-panel.active { display: block !important; }
+
+/* ══════════════════════════════════════════════════════
+   LEAD BAR — Industrial Tech v5
+══════════════════════════════════════════════════════ */
+
+/* ── Card ── */
+.lead-card {
+  background: rgba(255,255,255,0.022) !important;
+  border: 1px solid rgba(255,255,255,0.07) !important;
+  border-radius: 10px !important;
+  margin-bottom: 5px !important;
+  overflow: hidden !important;
+  transition: border-color 0.15s, box-shadow 0.15s !important;
+  position: relative !important;
+}
+.lead-card::before {
+  content:'';position:absolute;right:0;top:0;bottom:0;width:3px;border-radius:0 10px 10px 0;
+  transition: opacity 0.2s;
+}
+.lead-card[data-status="new"]::before       { background:#10b981; }
+.lead-card[data-status="contacted"]::before { background:#3b82f6; }
+.lead-card[data-status="followup"]::before  { background:#f59e0b; }
+.lead-card[data-status="meeting"]::before   { background:#8b5cf6; }
+.lead-card[data-status="closed"]::before    { background:#6b7280; opacity:0.5; }
+.lead-card:hover { border-color:rgba(255,255,255,0.13) !important; box-shadow:0 2px 16px rgba(0,0,0,0.25) !important; }
+
+/* ── Header row ── */
+.lead-card-header {
+  display: flex !important; align-items: center !important;
+  padding: 10px 14px 10px 12px !important; gap: 10px !important;
+  min-height: 52px !important; cursor: pointer !important;
+}
+
+/* ── Avatar ── */
+.lead-avatar {
+  width: 34px !important; height: 34px !important;
+  border-radius: 8px !important; flex-shrink: 0 !important;
+  display: flex !important; align-items: center !important; justify-content: center !important;
+  font-size: 12px !important; font-weight: 700 !important; color: #fff !important;
+  background: linear-gradient(135deg, #2563eb 0%, #7c3aed 100%) !important;
+  letter-spacing: 0.5px !important; font-family: 'DM Mono', monospace !important;
+}
+
+/* ── Name block ── */
+._lbar-name-block { display:flex; flex-direction:column; gap:2px; min-width:0; }
+.lead-name {
+  font-size:13px !important; font-weight:600 !important; color:rgba(255,255,255,0.92) !important;
+  white-space:nowrap !important; overflow:hidden !important; text-overflow:ellipsis !important;
+  font-family:'DM Sans','Heebo',sans-serif !important; letter-spacing:-0.01em !important;
+}
+
+/* ── Meta row ── */
+._lbar-meta { display:flex; align-items:center; gap:8px; flex-wrap:wrap; }
+._lbar-meta-item {
+  display:inline-flex; align-items:center; gap:3px;
+  font-size:10.5px; color:rgba(255,255,255,0.35);
+  font-family:'DM Mono', monospace; letter-spacing:0.01em;
+}
+._lbar-seg {
+  background:rgba(139,92,246,0.12); border:1px solid rgba(139,92,246,0.2);
+  border-radius:4px; padding:1px 6px; color:rgba(167,139,250,0.8);
+  font-family:'DM Sans','Heebo',sans-serif !important; font-size:10px !important;
+}
+
+/* ── Badges (right side) ── */
+.lead-badges {
+  display:flex !important; align-items:center !important;
+  gap:6px !important; flex-shrink:0 !important; margin-right:auto !important;
+}
+
+/* ── Platform tag ── */
+._lbar-tag {
+  background:rgba(255,255,255,0.05); border:1px solid rgba(255,255,255,0.1);
+  border-radius:5px; padding:2px 8px; font-size:10px; color:rgba(255,255,255,0.45);
+  font-family:'DM Mono',monospace; white-space:nowrap; letter-spacing:0.02em;
+}
+
+/* ── AI chips ── */
+._lbar-ai-done {
+  display:inline-flex; align-items:center; gap:3px;
+  background:rgba(16,185,129,0.1); border:1px solid rgba(16,185,129,0.25);
+  border-radius:5px; padding:2px 8px; font-size:10px; font-weight:700;
+  color:#10b981; font-family:'DM Mono',monospace; white-space:nowrap;
+}
+._lbar-ai-run {
+  display:inline-flex; align-items:center; gap:4px;
+  background:rgba(245,158,11,0.1); border:1px solid rgba(245,158,11,0.25);
+  border-radius:5px; padding:2px 8px; font-size:10px; color:#f59e0b;
+  font-family:'DM Mono',monospace; white-space:nowrap;
+}
+._lbar-spin { animation: _lbar-rotate 1s linear infinite; }
+@keyframes _lbar-rotate { to { transform: rotate(360deg); } }
+
+._lbar-ai-btn {
+  display:inline-flex; align-items:center; gap:4px;
+  background:rgba(124,58,237,0.1); border:1px solid rgba(124,58,237,0.25);
+  border-radius:5px; padding:3px 10px; font-size:10px; font-weight:700;
+  color:#a78bfa; cursor:pointer; font-family:'DM Sans','Heebo',sans-serif;
+  white-space:nowrap; transition: background 0.15s, border-color 0.15s;
+}
+._lbar-ai-btn:hover {
+  background:rgba(124,58,237,0.2) !important; border-color:rgba(124,58,237,0.5) !important;
+}
+
+/* ── Status pill ── */
+._lbar-status {
+  display:inline-flex; align-items:center; gap:5px;
+  background:rgba(255,255,255,0.04); border:1px solid rgba(255,255,255,0.08);
+  border-radius:6px; padding:3px 2px 3px 8px; cursor:default;
+}
+._lbar-sdot {
+  width:6px; height:6px; border-radius:50%; flex-shrink:0;
+}
+.status-select._lbar-sel {
+  background:transparent !important; border:none !important;
+  color:rgba(255,255,255,0.55) !important; font-size:10.5px !important;
+  font-family:'DM Sans','Heebo',sans-serif !important; padding:0 4px 0 0 !important;
+  cursor:pointer !important; outline:none !important; -webkit-appearance:none;
+}
+
+/* ── Score pill ── */
+._lbar-score {
+  display:inline-flex; align-items:center; gap:4px;
+  border:1px solid; border-radius:7px; padding:3px 9px;
+  flex-shrink:0;
+}
+._lbar-score-val {
+  font-size:13px; font-weight:800; font-family:'DM Mono',monospace; line-height:1;
+}
+._lbar-score-tier {
+  font-size:9px; font-weight:700; font-family:'DM Mono',monospace;
+  opacity:0.7; letter-spacing:0.05em;
+}
+
+/* ── Time ── */
+._lbar-time {
+  font-size:10px; color:rgba(255,255,255,0.2);
+  font-family:'DM Mono',monospace; flex-shrink:0;
+}
+
+/* ── Chevron ── */
+._lbar-chevron {
+  flex-shrink:0; transition:transform 0.2s ease;
+}
+.lead-card.expanded ._lbar-chevron {
+  transform: rotate(180deg);
+}
+
+/* ── Lead info wrapper ── */
+.lead-info {
+  display:flex !important; align-items:center !important;
+  gap:10px !important; flex:1 !important; min-width:0 !important; overflow:hidden !important;
+}
+
+/* ── Body ── */
+.lead-body { border-top:1px solid rgba(255,255,255,0.06) !important; display:none !important; }
+.lead-body.open { display:block !important; }
+
+/* ── Tabs ── */
+.lead-tabs {
+  display:flex !important; gap:0 !important;
+  border-bottom:1px solid rgba(255,255,255,0.06) !important;
+  padding:0 14px !important;
+  background:rgba(255,255,255,0.01) !important;
+}
+.lead-tab {
+  padding:9px 14px !important; font-size:11.5px !important; font-weight:500 !important;
+  border:none !important; border-bottom:2px solid transparent !important;
+  background:none !important; color:rgba(255,255,255,0.3) !important;
+  cursor:pointer !important; white-space:nowrap !important;
+  font-family:'DM Sans','Heebo',sans-serif !important; transition:all 0.12s !important;
+}
+.lead-tab:hover  { color:rgba(255,255,255,0.7) !important; }
+.lead-tab.active {
+  color:#3b82f6 !important; border-bottom-color:#3b82f6 !important; font-weight:600 !important;
+}
+.lead-tab-panel         { display:none !important; padding:16px !important; }
+.lead-tab-panel.active  { display:block !important; }
 
 /* ══════════════════════════════════════════════════════
    LEADS PAGE — FULL REDESIGN v2
