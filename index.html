@@ -4032,8 +4032,9 @@ BP18: Nurture existing customers — repeat customers spend 67% more
   var html=
     '<div id="lview-'+lid+'">' +
       '<div class="info-grid">'+viewGrid+'</div>' +
-      '<div style="margin-top:10px;display:flex;gap:8px;align-items:center">' +
+      '<div style="margin-top:10px;display:flex;gap:8px;align-items:center;flex-wrap:wrap">' +
         '<button onclick="window._editLeadOpen('+lid+')" style="'+btnStyle+' rgba(108,99,255,0.3);background:rgba(108,99,255,0.12);color:var(--accent)">✏️ ערוך פרטים</button>' +
+        '<button onclick="window._importLeadExcel('+lid+')" style="'+btnStyle+' rgba(16,185,129,0.3);background:rgba(16,185,129,0.1);color:#10b981">📥 ייבוא אקסל</button>' +
       '</div>' +
     '</div>' +
     '<div id="ledit-'+lid+'" style="display:none">' +
@@ -4059,6 +4060,174 @@ window._editLeadCancel = function(lid){
   var ed=document.getElementById('ledit-'+lid);
   if(ed) ed.style.display='none';
   if(v) v.style.display='block';
+};
+
+window._importLeadExcel = function(lid){
+  // יצירת input file זמני
+  var inp = document.createElement('input');
+  inp.type = 'file';
+  inp.accept = '.xlsx,.xls,.csv';
+  inp.style.display = 'none';
+  document.body.appendChild(inp);
+  inp.onchange = function(){
+    var file = inp.files[0];
+    if(!file){ document.body.removeChild(inp); return; }
+    var reader = new FileReader();
+    reader.onload = function(ev){
+      try {
+        var data, rows=[];
+        if(file.name.match(/\.csv$/i)){
+          // CSV פשוט
+          var lines = ev.target.result.split(/\r?\n/).filter(Boolean);
+          var headers = lines[0].split(',').map(function(h){return h.trim().replace(/^"|"$/g,'');});
+          for(var i=1;i<lines.length;i++){
+            var vals = lines[i].split(',').map(function(v){return v.trim().replace(/^"|"$/g,'');});
+            var row={};
+            headers.forEach(function(h,j){row[h]=vals[j]||'';});
+            rows.push(row);
+          }
+        } else {
+          // XLSX
+          var wb = XLSX.read(ev.target.result, {type:'array'});
+          var ws = wb.Sheets[wb.SheetNames[0]];
+          rows = XLSX.utils.sheet_to_json(ws, {defval:''});
+        }
+        if(!rows.length){ alert('הקובץ ריק או לא נקרא'); document.body.removeChild(inp); return; }
+        window._showImportLeadModal(lid, rows);
+      } catch(e){
+        alert('שגיאה בקריאת הקובץ: '+e.message);
+      }
+      document.body.removeChild(inp);
+    };
+    if(file.name.match(/\.csv$/i)) reader.readAsText(file,'UTF-8');
+    else reader.readAsArrayBuffer(file);
+  };
+  inp.click();
+};
+
+window._showImportLeadModal = function(lid, rows){
+  var lead = (typeof leads!=='undefined'?leads:[]).find(function(l){return l.id===lid;});
+  if(!lead) return;
+
+  // מיפוי עמודות לשדות ליד
+  var fieldMap = {
+    'name':    ['שם','name','company','חברה','שם חברה','שם פרויקט'],
+    'email':   ['מייל','email','mail','אימייל','דואר'],
+    'phone':   ['טלפון','phone','tel','נייד','mobile'],
+    'domain':  ['דומיין','domain','website','site','אתר'],
+    'address': ['כתובת','address','עיר','city'],
+    'platform':['פלטפורמה','platform','מערכת'],
+    'type':    ['סגמנט','segment','type','סוג'],
+    'notes':   ['הערות','notes','remarks','comment']
+  };
+
+  // מוצא את העמודות בשורה הראשונה
+  var firstRow = rows[0];
+  var colKeys = Object.keys(firstRow);
+
+  // ממפה אוטומטית
+  var autoMap = {};
+  Object.keys(fieldMap).forEach(function(field){
+    var aliases = fieldMap[field];
+    colKeys.forEach(function(col){
+      var colLow = col.toLowerCase().trim();
+      if(aliases.some(function(a){ return colLow===a.toLowerCase()||colLow.indexOf(a.toLowerCase())!==-1; })){
+        if(!autoMap[field]) autoMap[field] = col;
+      }
+    });
+  });
+
+  // בונה UI
+  var IS = 'background:var(--surface2);border:1px solid var(--border);border-radius:6px;padding:5px 9px;font-size:12px;color:var(--text);font-family:Heebo,sans-serif;width:100%;box-sizing:border-box';
+  var fieldLabels = {name:'שם',email:'מייל',phone:'טלפון',domain:'אתר',address:'כתובת',platform:'פלטפורמה',type:'סגמנט',notes:'הערות'};
+
+  var colOpts = '<option value="">-- בחר עמודה --</option>' +
+    colKeys.map(function(c){return '<option value="'+c+'">'+c+'</option>';}).join('');
+
+  var mapRows = Object.keys(fieldLabels).map(function(field){
+    var sel = autoMap[field]||'';
+    var opts = colOpts.replace('value="'+sel+'"','value="'+sel+'" selected');
+    return '<tr><td style="padding:5px 8px;font-size:12px;color:var(--muted);white-space:nowrap">'+fieldLabels[field]+'</td>'+
+           '<td style="padding:5px 8px"><select id="imp-map-'+field+'-'+lid+'" style="'+IS+'">'+opts+'</select></td>'+
+           '<td style="padding:5px 8px;font-size:11px;color:var(--muted);max-width:120px;overflow:hidden;text-overflow:ellipsis">'+
+           (sel&&firstRow[sel]!==undefined?String(firstRow[sel]).substring(0,30):'')+'</td></tr>';
+  }).join('');
+
+  var rowCount = rows.length;
+  var modal = document.createElement('div');
+  modal.id = 'import-lead-modal-'+lid;
+  modal.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,0.75);backdrop-filter:blur(4px);z-index:9999;display:flex;align-items:center;justify-content:center';
+  modal.innerHTML =
+    '<div style="background:#141418;border:1px solid rgba(255,255,255,0.12);border-radius:16px;padding:24px;width:520px;max-width:95vw;max-height:90vh;overflow-y:auto;font-family:Heebo,sans-serif">' +
+      '<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px">' +
+        '<div style="font-size:15px;font-weight:800;color:var(--text)">📥 ייבוא מאקסל → '+lead.name+'</div>' +
+        '<button onclick="document.getElementById(\'import-lead-modal-'+lid+'\').remove()" style="background:none;border:none;color:var(--muted);font-size:18px;cursor:pointer">✕</button>' +
+      '</div>' +
+      '<div style="font-size:11px;color:var(--muted);margin-bottom:12px">נמצאו <b style="color:var(--text)">'+rowCount+'</b> שורות. בחר איזו שורה לייבא ואיך למפות עמודות לשדות הליד:</div>' +
+
+      '<div style="margin-bottom:14px">' +
+        '<label style="font-size:11px;color:var(--muted);display:block;margin-bottom:5px">שורה לייבוא (1-'+rowCount+')</label>' +
+        '<div style="display:flex;align-items:center;gap:8px">' +
+          '<input type="number" id="imp-row-'+lid+'" value="1" min="1" max="'+rowCount+'" style="'+IS+';width:70px"> ' +
+          '<span style="font-size:11px;color:var(--muted)">מתוך '+rowCount+' שורות</span>' +
+        '</div>' +
+      '</div>' +
+
+      '<div style="font-size:11px;font-weight:700;color:var(--accent);margin-bottom:8px;text-transform:uppercase;letter-spacing:.5px">מיפוי עמודות</div>' +
+      '<table style="width:100%;border-collapse:collapse;margin-bottom:16px">' +
+        '<thead><tr style="border-bottom:1px solid var(--border)">' +
+          '<th style="padding:4px 8px;font-size:10px;color:var(--muted);text-align:right">שדה</th>' +
+          '<th style="padding:4px 8px;font-size:10px;color:var(--muted);text-align:right">עמודה באקסל</th>' +
+          '<th style="padding:4px 8px;font-size:10px;color:var(--muted);text-align:right">תצוגה מקדימה</th>' +
+        '</tr></thead>' +
+        '<tbody>'+mapRows+'</tbody>' +
+      '</table>' +
+
+      '<div style="display:flex;gap:10px;justify-content:flex-end">' +
+        '<button onclick="document.getElementById(\'import-lead-modal-'+lid+'\').remove()" style="background:none;border:1px solid var(--border);border-radius:8px;padding:8px 18px;font-size:13px;color:var(--muted);cursor:pointer;font-family:Heebo,sans-serif">ביטול</button>' +
+        '<button onclick="window._applyLeadImport('+lid+','+JSON.stringify(rows).replace(/</g,'\\u003c')+')" style="background:rgba(16,185,129,0.15);border:1px solid rgba(16,185,129,0.4);border-radius:8px;padding:8px 20px;font-size:13px;font-weight:700;color:#10b981;cursor:pointer;font-family:Heebo,sans-serif">✅ ייבא</button>' +
+      '</div>' +
+    '</div>';
+  document.body.appendChild(modal);
+};
+
+window._applyLeadImport = function(lid, rows){
+  var lead = (typeof leads!=='undefined'?leads:[]).find(function(l){return l.id===lid;});
+  if(!lead) return;
+  var rowIdx = parseInt((document.getElementById('imp-row-'+lid)||{}).value||'1') - 1;
+  rowIdx = Math.max(0, Math.min(rowIdx, rows.length-1));
+  var row = rows[rowIdx];
+  var fields = ['name','email','phone','domain','address','platform','type','notes'];
+  var updates = {updated_at: new Date().toISOString()};
+  fields.forEach(function(field){
+    var sel = document.getElementById('imp-map-'+field+'-'+lid);
+    if(!sel||!sel.value) return;
+    var val = String(row[sel.value]||'').trim();
+    if(val){ lead[field]=val; updates[field]=val; }
+  });
+  // שמור ל-Firebase
+  if(typeof db!=='undefined'&&db){
+    db.collection('leads').doc(String(lid)).update(updates)
+      .then(function(){
+        var m=document.getElementById('import-lead-modal-'+lid);
+        if(m) m.remove();
+        // רענן תצוגה
+        var body=document.getElementById('body-'+lid);
+        if(body&&typeof _renderLeadTabs==='function') _renderLeadTabs(lead,body);
+        // toast
+        var t=document.createElement('div');
+        t.style.cssText='position:fixed;bottom:24px;left:50%;transform:translateX(-50%);background:#10b981;color:#fff;padding:10px 22px;border-radius:10px;font-family:Heebo,sans-serif;font-size:13px;font-weight:700;z-index:99999;box-shadow:0 4px 20px rgba(0,0,0,0.4)';
+        t.textContent='✅ הנתונים יובאו בהצלחה';
+        document.body.appendChild(t);
+        setTimeout(function(){t.remove();},2500);
+      })
+      .catch(function(e){ alert('שגיאה בשמירה: '+e.message); });
+  } else {
+    var m=document.getElementById('import-lead-modal-'+lid);
+    if(m) m.remove();
+    var body=document.getElementById('body-'+lid);
+    if(body&&typeof _renderLeadTabs==='function') _renderLeadTabs(lead,body);
+  }
 };
 
 window._editLeadSave = function(lid){
