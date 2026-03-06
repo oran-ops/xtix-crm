@@ -7803,7 +7803,31 @@ addSalesPlaybookPanel();
       srcBadge.textContent=(icons[lead.source]||'📌')+' '+dateStr;
       meta.appendChild(srcBadge);
     }
-  }
+  
+
+    // Update AI chip
+    var _aiDone = card.querySelector('._lbar-ai-done, ._lbar-ai-run, ._lbar-ai-btn');
+    var _aiBadgeParent = _aiDone ? _aiDone.parentElement : null;
+    var _aiSt = (lead.ai_analysis && lead.ai_analysis.status) || 'none';
+    var _newChip = _aiSt === 'done'
+      ? '<span class="_lbar-ai-done">Analyzed</span>'
+      : _aiSt === 'running'
+      ? '<span class="_lbar-ai-run" id="ai-badge-'+lead.id+'">Analyzing...</span>'
+      : '<button class="_lbar-ai-btn" onclick="event.stopPropagation();window.showAnalysisChoice('+lead.id+')" title="הפעל ניתוח AI">Analyze</button>';
+    if (_aiDone) { _aiDone.outerHTML = _newChip; }
+
+    // Update segment badge
+    var _segEl = card.querySelector('._lbar-seg');
+    var _segVal = lead.segment || lead.type || '';
+    if (_segVal && typeof window._segBadge === 'function') {
+      var _newSeg = window._segBadge(_segVal);
+      if (_segEl) {
+        var _tmp = document.createElement('span');
+        _tmp.innerHTML = _newSeg;
+        _segEl.replaceWith(_tmp.firstChild);
+      }
+    }
+}
 
   // ===== FILTER + SORT =====
   window.filterV3 = function() {
