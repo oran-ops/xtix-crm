@@ -3369,7 +3369,7 @@ BP18: Nurture existing customers — repeat customers spend 67% more
     return _methodologyCache;
   }
 
-  const SERVER       = 'https://xtix-crm-production.up.railway.app';
+  const SERVER = window.SERVER = 'https://xtix-crm-production.up.railway.app';
 
   // ── Authenticated fetch — adds Firebase ID Token to every server request ──
   window._authFetch = async function(url, options) {
@@ -3825,7 +3825,9 @@ BP18: Nurture existing customers — repeat customers spend 67% more
     var list = document.getElementById('leads-list');
     if (!list) return;
     var existing = document.getElementById('lead-' + lead.id);
-    if (existing) existing.remove();
+    var wasOpen  = existing && document.getElementById('body-'+lead.id) && document.getElementById('body-'+lead.id).classList.contains('open');
+    var wasTab   = wasOpen ? (function(){ var t=existing.querySelector('.lead-tab.active'); return t?t.getAttribute('onclick')||'':''; })() : '';
+    if (existing && existing.parentNode) existing.parentNode.removeChild(existing);
     var score    = lead.score || 0;
     var tier     = lead.tier  || (score>=80?'A':score>=60?'B':'C');
     var initials = (lead.name||'??').substring(0,2);
@@ -3857,16 +3859,32 @@ BP18: Nurture existing customers — repeat customers spend 67% more
       +'<div class="lead-body" id="body-'+lead.id+'">'
       +'<div class="lead-tabs">'
       +'<button class="lead-tab active" onclick="switchLeadTab('+lead.id+',\'profile\',this)">👤 פרופיל</button>'
-      +'<button class="lead-tab" onclick="switchLeadTab('+lead.id+',\'analysis\',this)">🧠 AI Analysis</button>'
+      +'<button class="lead-tab" onclick="switchLeadTab('+lead.id+',\'analysis\',this)">🧠 Meta-Judge</button>'
       +'<button class="lead-tab" onclick="switchLeadTab('+lead.id+',\'emails\',this)">✉️ מיילים</button>'
-      +'<button class="lead-tab" onclick="switchLeadTab('+lead.id+',\'summary\',this)">📋 סיכום</button>'
       +'</div>'
       +'<div class="lead-tab-panel active" id="l'+lead.id+'-profile">'+_ltab_profile(lead,enr,ai)+'</div>'
-      +'<div class="lead-tab-panel" id="l'+lead.id+'-analysis">'+_ltab_analysis(lead,ai,enr)+'</div>'
+      +'<div class="lead-tab-panel" id="l'+lead.id+'-analysis">'+_ltab_metajudge(lead,ai,enr)+'</div>'
       +'<div class="lead-tab-panel" id="l'+lead.id+'-emails">'+_ltab_emails(lead,ai,enr)+'</div>'
-      +'<div class="lead-tab-panel" id="l'+lead.id+'-summary">'+_ltab_summary(lead,ai,enr)+'</div>'
       +'</div></div>';
     list.insertAdjacentHTML('beforeend', html);
+    // ── שחזר מצב פתוח אם היה פתוח לפני re-render ──
+    if (wasOpen) {
+      var bdy = document.getElementById('body-'+lead.id);
+      var crd = document.getElementById('lead-'+lead.id);
+      var arr = document.getElementById('arrow-'+lead.id);
+      if (bdy) bdy.classList.add('open');
+      if (crd) crd.classList.add('expanded');
+      if (arr) arr.textContent = '▲';
+      // שחזר טאב פעיל
+      if (wasTab) {
+        var tabMatch = wasTab.match(/'([^']+)'/g);
+        if (tabMatch && tabMatch[1]) {
+          var tabName = tabMatch[1].replace(/'/g,'');
+          var tabs = document.querySelectorAll('#lead-'+lead.id+' .lead-tab');
+          tabs.forEach(function(t){ if(t.getAttribute('onclick')&&t.getAttribute('onclick').includes(tabName)) switchLeadTab(lead.id,tabName,t); });
+        }
+      }
+    }
     var sel=document.querySelector('.status-select[data-lead-id="'+lead.id+'"]');
     if(sel) sel.addEventListener('change',function(){var l=leads.find(function(x){return x.id===lead.id;});if(l){l.status=this.value;l.updated_at=new Date().toISOString();if(typeof db!=='undefined'&&db)db.collection('leads').doc(String(lead.id)).update({status:l.status,updated_at:l.updated_at}).catch(function(){});updateStats();}});
     if(aiSt==='none'&&(lead.domain||lead.name)) setTimeout(function(){window.triggerFullAnalysis(lead.id,true);},900);
@@ -4168,6 +4186,137 @@ BP18: Nurture existing customers — repeat customers spend 67% more
 
     return '<div style="padding:2px">'+scoreBar+takhlisHtml+attackHtml+painHtml+sbHtml+ffHtml+bpHtml+riskHtml+repSummaryHtml+phoneHtml+'</div>';
   }
+
+  // ── _ltab_metajudge — דוח Meta-Judge המלא ─────────────────────
+  function _ltab_metajudge(lead, ai, enr) {
+    var a = ai||{}, e = enr||{};
+    if (!a.status || a.status === 'none') {
+      return '<div style="padding:40px;text-align:center">'+
+        '<div style="font-size:48px;margin-bottom:14px">🧠</div>'+
+        '<div style="font-size:14px;color:var(--text);font-weight:700;margin-bottom:6px">המוח לא הופעל עדיין</div>'+
+        '<div style="font-size:12px;color:var(--muted);margin-bottom:20px">הפעל ניתוח כדי לראות את דוח Meta-Judge</div>'+
+        '<button onclick="window.showAnalysisChoice('+lead.id+')" style="background:var(--accent);border:none;border-radius:10px;padding:11px 28px;font-size:13px;color:#fff;cursor:pointer;font-family:Heebo,sans-serif;font-weight:700">🚀 הפעל Triple Engine</button>'+
+      '</div>';
+    }
+    if (a.status === 'running') {
+      var engineBadge = (typeof _brainKeys!=='undefined' && _brainKeys.gpt && _brainKeys.gemini)
+        ? '⚡ TRIPLE ENGINE' : '🧠 CLAUDE';
+      return '<div style="padding:36px;text-align:center">'+
+        '<div style="font-size:38px;margin-bottom:14px;animation:_aip 1.2s ease-in-out infinite">🧠</div>'+
+        '<div style="display:inline-flex;align-items:center;gap:6px;background:rgba(124,58,237,0.1);border:1px solid rgba(124,58,237,0.25);border-radius:20px;padding:4px 14px;font-size:10px;font-weight:700;color:#a78bfa;margin-bottom:12px">'+engineBadge+'</div>'+
+        '<div id="analysis-progress-'+lead.id+'" style="font-size:13px;color:var(--text);margin-bottom:8px">מנתח...</div>'+
+        '<div style="font-size:11px;color:var(--muted);margin-bottom:16px">Claude → GPT → Gemini → Meta-Judge → Firebase</div>'+
+        '<div style="height:4px;background:var(--surface2);border-radius:2px;overflow:hidden;max-width:280px;margin:0 auto">'+
+          '<div id="analysis-bar-'+lead.id+'" style="height:100%;width:5%;background:linear-gradient(90deg,#7c3aed,#a78bfa);border-radius:2px;transition:width 2s ease"></div>'+
+        '</div>'+
+      '</div>';
+    }
+    var score     = a.meta_score || a.score || 0;
+    var tier      = a.final_tier || a.tier || 'B';
+    var cadence   = a.recommended_cadence || 'warm';
+    var confidence= a.confidence || 'mid';
+    var isTriple  = !!(a.triple_engine);
+    var es        = a.engine_statuses || {};
+    var tierColor    = tier==='A'?'#10b981':tier==='B'?'#F59E0B':'#6b7280';
+    var scoreColor   = score>=80?'#10b981':score>=60?'#F59E0B':'#ef4444';
+    var cadenceColor = {hot:'#ef4444',warm:'#F59E0B',cool:'#3b82f6'}[cadence]||'#a78bfa';
+    var confColor    = {high:'#10b981',mid:'#F59E0B',low:'#ef4444'}[confidence]||'#a78bfa';
+    var confLabel    = {high:'גבוה ✓',mid:'בינוני',low:'נמוך ⚠️'}[confidence]||confidence;
+    function _engDot(s){ return s==='ok'?'<span style="color:#10b981">●</span>':s==='skipped'?'<span style="color:rgba(255,255,255,0.2)">●</span>':'<span style="color:#ef4444">●</span>'; }
+    var killerBadge = a.killer_combo ? '<div style="display:inline-flex;align-items:center;gap:5px;background:rgba(245,158,11,0.15);border:1px solid rgba(245,158,11,0.4);border-radius:20px;padding:3px 10px;font-size:10px;font-weight:800;color:#F59E0B;margin-top:8px">⚡ KILLER COMBO — '+(a.killer_combo_explanation||'')+'</div>' : '';
+    var headerHtml =
+      '<div style="background:linear-gradient(135deg,rgba(124,58,237,0.12),rgba(139,92,246,0.06));border:1px solid rgba(124,58,237,0.3);border-radius:14px;padding:16px;margin-bottom:12px">'+
+        '<div style="display:grid;grid-template-columns:80px 1fr;gap:14px;align-items:center">'+
+          '<div style="text-align:center;background:rgba(0,0,0,0.2);border-radius:12px;padding:12px 8px;border:1px solid rgba(124,58,237,0.2)">'+
+            '<div style="font-size:36px;font-weight:900;color:'+scoreColor+';line-height:1">'+score+'</div>'+
+            '<div style="font-size:9px;color:rgba(255,255,255,0.35);margin-top:3px;letter-spacing:1px">META-JUDGE</div>'+
+          '</div>'+
+          '<div>'+
+            '<div style="display:flex;align-items:center;gap:8px;margin-bottom:8px;flex-wrap:wrap">'+
+              '<span style="font-size:22px;font-weight:800;color:'+tierColor+'">Tier '+tier+'</span>'+
+              '<span style="background:rgba(255,255,255,0.08);border-radius:6px;padding:2px 9px;font-size:10px;font-weight:700;color:'+cadenceColor+'">'+cadence.toUpperCase()+'</span>'+
+              '<span style="background:rgba(255,255,255,0.05);border-radius:6px;padding:2px 9px;font-size:10px;font-weight:600;color:'+confColor+'">ביטחון: '+confLabel+'</span>'+
+            '</div>'+
+            '<div style="font-size:11px;color:rgba(255,255,255,0.35);display:flex;align-items:center;gap:10px;flex-wrap:wrap">'+
+              (isTriple ? _engDot(es.claude)+' Claude '+_engDot(es.gpt)+' GPT '+_engDot(es.gemini)+' Gemini <span style="color:rgba(245,158,11,0.6)">● Judge</span>' : _engDot('ok')+' Claude')+
+            '</div>'+
+            killerBadge+
+          '</div>'+
+        '</div>'+
+      '</div>';
+    var painSrc = (a.pain_verdict&&a.pain_verdict.length)?a.pain_verdict:(a.pain_points||e.pain_points||[]);
+    var painHtml = painSrc.length ?
+      '<div style="background:rgba(245,158,11,0.04);border:1px solid rgba(245,158,11,0.2);border-radius:11px;padding:13px 14px;margin-bottom:10px">'+
+        '<div style="font-size:11px;font-weight:800;color:#F59E0B;margin-bottom:8px">🎯 כאבים — מאושרים בראיות בלבד</div>'+
+        painSrc.map(function(p){ return '<div style="display:flex;gap:8px;padding:5px 0;border-bottom:1px solid rgba(245,158,11,0.08)"><span style="color:#F59E0B">▸</span><span style="font-size:12px;color:var(--text)">'+p+'</span></div>'; }).join('')+
+      '</div>' : '';
+    var roi=a.roi_pitch||'', opening=a.opening_line||'', urgency=a.next_event_urgency||'';
+    var oppHtml = (roi||opening||urgency) ?
+      '<div style="background:rgba(16,185,129,0.04);border:1px solid rgba(16,185,129,0.2);border-radius:11px;padding:13px 14px;margin-bottom:10px">'+
+        '<div style="font-size:11px;font-weight:800;color:#10b981;margin-bottom:10px">💰 הזדמנויות</div>'+
+        (roi?'<div style="background:rgba(16,185,129,0.12);border-radius:6px;padding:6px 12px;font-size:13px;font-weight:800;color:#10b981;margin-bottom:8px;display:inline-block">'+roi+'</div><br>':'')+
+        (urgency?'<div style="display:flex;align-items:center;gap:6px;padding:6px 10px;background:rgba(239,68,68,0.08);border:1px solid rgba(239,68,68,0.2);border-radius:7px;margin-bottom:8px"><span>🔴</span><span style="font-size:11px;color:#ef4444;font-weight:700">דחיפות: '+urgency+'</span></div>':'')+
+        (opening?'<div style="background:rgba(0,0,0,0.25);border-right:3px solid #10b981;border-radius:0 7px 7px 0;padding:8px 12px"><div style="font-size:10px;color:#10b981;font-weight:700;margin-bottom:3px">✍️ פתיחה מומלצת:</div><div style="font-size:12px;color:var(--text);font-style:italic">"'+opening+'"</div></div>':'')+
+      '</div>' : '';
+    var reasoning=a.meta_reasoning||a.executive_summary||'';
+    var reasonHtml = reasoning ?
+      '<div style="background:rgba(124,58,237,0.06);border:1px solid rgba(124,58,237,0.22);border-radius:11px;padding:13px 14px;margin-bottom:10px">'+
+        '<div style="font-size:11px;font-weight:800;color:#a78bfa;margin-bottom:10px">⚖️ Meta-Judge — נימוק</div>'+
+        '<div style="font-size:12px;color:var(--text);line-height:1.8;margin-bottom:8px">'+reasoning+'</div>'+
+        (a.meta_action?'<div style="background:rgba(16,185,129,0.1);border:1px solid rgba(16,185,129,0.25);border-radius:6px;padding:8px 12px;font-size:12px"><span style="color:var(--muted)">🎯 הצעד הבא: </span><span style="color:#10b981;font-weight:700">'+a.meta_action+'</span></div>':'')+
+        ((a.disagreements&&a.disagreements.length)?'<div style="margin-top:8px;padding-top:8px;border-top:1px solid rgba(124,58,237,0.15)"><div style="font-size:10px;color:#F59E0B;font-weight:700;margin-bottom:5px">⚡ מחלוקות:</div>'+a.disagreements.map(function(d){return '<div style="font-size:11px;color:rgba(255,255,255,0.45);margin-bottom:3px">▸ '+d+'</div>';}).join('')+'</div>':'')+
+      '</div>' : '';
+    var dqs=a.discovery_questions||e.discovery_questions||[], obj=a.objection_handler||'', risks=a.risk_factors||[];
+    var prepHtml = (dqs.length||obj||risks.length) ?
+      '<div style="background:rgba(255,255,255,0.02);border:1px solid rgba(255,255,255,0.08);border-radius:11px;padding:13px 14px;margin-bottom:10px">'+
+        '<div style="font-size:11px;font-weight:800;color:var(--text);margin-bottom:10px">🤝 הכנה לשיחה</div>'+
+        (dqs.length?'<div style="margin-bottom:10px"><div style="font-size:10px;color:var(--muted);font-weight:700;margin-bottom:5px">שאלות discovery:</div>'+dqs.slice(0,5).map(function(q,i){return '<div style="font-size:11px;color:var(--text);padding:4px 0;border-bottom:1px solid rgba(255,255,255,0.04)"><span style="color:var(--accent);font-weight:700;margin-left:6px">'+(i+1)+'.</span>'+q+'</div>';}).join('')+'</div>':'')+
+        (obj?'<div style="background:rgba(245,158,11,0.07);border:1px solid rgba(245,158,11,0.18);border-radius:7px;padding:8px 10px;margin-bottom:8px"><div style="font-size:10px;color:#F59E0B;font-weight:700;margin-bottom:3px">💬 "מרוצים מהפלטפורמה":</div><div style="font-size:11px;color:var(--text);line-height:1.6">'+obj+'</div></div>':'')+
+        (risks.length?'<div style="padding-top:8px;border-top:1px solid rgba(255,255,255,0.05)"><div style="font-size:10px;color:#ef4444;font-weight:700;margin-bottom:4px">⚠️ סיכונים:</div>'+risks.map(function(r){return '<div style="font-size:11px;color:rgba(255,255,255,0.4)">▸ '+r+'</div>';}).join('')+'</div>':'')+
+      '</div>' : '';
+    var repText=a.rep_summary||a.summary_for_rep||a.internal_summary||e.summary_for_rep||'';
+    var phone=lead.phone||'';
+    var repHtml =
+      '<div style="background:rgba(16,185,129,0.05);border:1px solid rgba(16,185,129,0.2);border-radius:11px;padding:13px 14px;margin-bottom:10px">'+
+        '<div style="font-size:11px;font-weight:800;color:#10b981;margin-bottom:8px">📋 סיכום לנציג</div>'+
+        '<textarea id="summary-text-'+lead.id+'" style="width:100%;background:rgba(0,0,0,0.2);border:1px solid rgba(255,255,255,0.07);border-radius:8px;padding:10px;color:var(--text);font-family:Heebo,sans-serif;font-size:12px;line-height:1.75;min-height:80px;resize:vertical;box-sizing:border-box">'+repText+'</textarea>'+
+        '<div style="margin-top:8px;display:flex;gap:8px;flex-wrap:wrap;align-items:center">'+
+          '<button onclick="window.saveSummary('+lead.id+')" style="background:rgba(16,185,129,0.15);border:1px solid rgba(16,185,129,0.3);border-radius:6px;padding:5px 14px;font-size:11px;color:#10b981;cursor:pointer;font-family:Heebo,sans-serif;font-weight:700">💾 שמור</button>'+
+          '<button onclick="window.pushSummaryToHubspot('+lead.id+')" style="background:rgba(245,158,11,0.12);border:1px solid rgba(245,158,11,0.3);border-radius:6px;padding:5px 14px;font-size:11px;color:#F59E0B;cursor:pointer;font-family:Heebo,sans-serif;font-weight:700">🔗 HubSpot</button>'+
+          '<button onclick="window.showAnalysisChoice('+lead.id+')" style="background:rgba(124,58,237,0.12);border:1px solid rgba(124,58,237,0.25);border-radius:6px;padding:5px 14px;font-size:11px;color:#a78bfa;cursor:pointer;font-family:Heebo,sans-serif;font-weight:700">🔄 ניתוח חדש</button>'+
+          (phone?'<a href="tel:'+phone+'" style="margin-right:auto;background:rgba(16,185,129,0.1);border:1px solid rgba(16,185,129,0.25);border-radius:6px;padding:5px 14px;font-size:11px;color:#10b981;text-decoration:none;font-family:Heebo,sans-serif;font-weight:700">📞 '+phone+'</a>':'')+
+        '</div>'+
+      '</div>';
+    var outcomeBtns=[{v:'בתהליך',c:'59,130,246',i:'🔵'},{v:'נסגר',c:'16,185,129',i:'✅'},{v:'לא נסגר',c:'239,68,68',i:'❌'},{v:'אין מענה',c:'156,163,175',i:'📭'},{v:'לא רלוונטי',c:'107,114,128',i:'🚫'}];
+    var currentOutcome=lead.outcome||'';
+    var outcomeHtml=
+      '<div style="background:rgba(255,255,255,0.02);border:1px solid rgba(255,255,255,0.06);border-radius:11px;padding:13px 14px;margin-bottom:10px">'+
+        '<div style="font-size:11px;font-weight:800;color:var(--muted);margin-bottom:10px">📊 עדכון תוצאה</div>'+
+        '<div style="display:flex;gap:6px;flex-wrap:wrap">'+
+          outcomeBtns.map(function(b){
+            var active=currentOutcome===b.v;
+            return '<button onclick="window._setLeadOutcome('+lead.id+',\''+b.v+'\')" style="background:rgba('+b.c+','+(active?'0.2':'0.06')+');border:1px solid rgba('+b.c+','+(active?'0.5':'0.2')+');border-radius:7px;padding:6px 12px;font-size:11px;font-weight:'+(active?'800':'600')+';color:'+(active?'var(--text)':'rgba(255,255,255,0.45)')+';cursor:pointer;font-family:Heebo,sans-serif">'+b.i+' '+b.v+'</button>';
+          }).join('')+
+        '</div>'+
+      '</div>';
+    var footerHtml=a.enriched_at?'<div style="font-size:10px;color:rgba(255,255,255,0.18);text-align:center;padding-bottom:4px">⚙️ Meta-Judge · '+new Date(a.enriched_at).toLocaleString('he-IL')+(a.engines_ok!==undefined?' · '+a.engines_ok+'/3 מנועים':'')+'</div>':'';
+    return '<div style="padding:2px">'+headerHtml+painHtml+oppHtml+reasonHtml+prepHtml+repHtml+outcomeHtml+footerHtml+'</div>';
+  }
+
+  window._setLeadOutcome = async function(leadId, outcome) {
+    var lead=leads&&leads.find(function(l){return l.id===leadId;});
+    if(!lead)return;
+    lead.outcome=outcome; lead.outcome_date=new Date().toISOString(); lead.updated_at=lead.outcome_date;
+    try{ if(typeof db!=='undefined'&&db) await db.collection('leads').doc(String(leadId)).update({outcome:outcome,outcome_date:lead.outcome_date,updated_at:lead.updated_at}); }catch(e){console.warn('[Outcome] leads:',e.message);}
+    try{ if(typeof db!=='undefined'&&db&&lead.ai_analysis&&lead.ai_analysis.log_doc_id) await db.collection('analysis_log').doc(lead.ai_analysis.log_doc_id).update({outcome:outcome,outcome_date:lead.outcome_date}); }catch(e){console.warn('[Outcome] log:',e.message);}
+    try{
+      if(typeof db!=='undefined'&&db){
+        var snap=await db.collection('ai_decisions').orderBy('timestamp','desc').limit(20).get();
+        snap.forEach(async function(doc){if(doc.data().lead_id===leadId&&doc.data().outcome===null) await db.collection('ai_decisions').doc(doc.id).update({outcome:outcome,outcome_date:lead.outcome_date}).catch(function(){});});
+      }
+    }catch(e){console.warn('[Outcome] decisions:',e.message);}
+    renderSimpleLead(lead);
+  };
 
   // ── Email / summary helpers ────────────────────────────────────
   window.copyLeadEmail = function(leadId,idx){var l=leads.find(function(x){return x.id===leadId;});if(!l)return;var emails=(l.ai_analysis&&l.ai_analysis.email_sequence)||(l.enrichment&&l.enrichment.email_sequence)||[];var em=emails[idx];if(!em)return;navigator.clipboard.writeText('נושא: '+(em.subject||'')+'\n\n'+(em.body||'')).then(function(){alert('✅ הועתק!');}).catch(function(){alert(em.subject+'\n\n'+em.body);});};
@@ -4804,9 +4953,11 @@ BP18: Nurture existing customers — repeat customers spend 67% more
 ${competitorInfo}
 
 ====== פרטי הליד לניתוח ======
-שם: ${leadName || domain}
+שם: ${lead.name}
 דומיין: ${domain}
-${proxyContext}
+טלפון: ${lead.phone || 'לא ידוע'}
+סוג: ${lead.type || 'לא ידוע'}
+${proxyCtx}
 
 ====== המשימה שלך ======
 1. חקור את הליד לעומק על פי הנתונים שיש לך
