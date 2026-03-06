@@ -1,0 +1,642 @@
+<!DOCTYPE html>
+<html lang="he" dir="rtl">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>XTIX Brain — Architecture</title>
+<link href="https://fonts.googleapis.com/css2?family=Heebo:wght@300;400;700;900&family=IBM+Plex+Mono:wght@400;600&display=swap" rel="stylesheet">
+<style>
+* { box-sizing: border-box; margin: 0; padding: 0; }
+
+body {
+  background: #05070f;
+  color: #e2e8f0;
+  font-family: 'Heebo', sans-serif;
+  min-height: 100vh;
+  padding: 40px 24px 60px;
+  overflow-x: hidden;
+}
+
+/* grid noise texture */
+body::before {
+  content: '';
+  position: fixed;
+  inset: 0;
+  background-image:
+    linear-gradient(rgba(255,255,255,0.015) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(255,255,255,0.015) 1px, transparent 1px);
+  background-size: 40px 40px;
+  pointer-events: none;
+  z-index: 0;
+}
+
+.page { max-width: 980px; margin: 0 auto; position: relative; z-index: 1; }
+
+/* ── TITLE ── */
+.title-block {
+  text-align: center;
+  margin-bottom: 52px;
+  animation: fadeDown 0.6s ease both;
+}
+.title-block .badge {
+  display: inline-block;
+  font-family: 'IBM Plex Mono', monospace;
+  font-size: 10px;
+  letter-spacing: 3px;
+  color: #f59e0b;
+  border: 1px solid rgba(245,158,11,0.3);
+  border-radius: 4px;
+  padding: 4px 12px;
+  margin-bottom: 14px;
+}
+.title-block h1 {
+  font-size: 38px;
+  font-weight: 900;
+  letter-spacing: -1px;
+  line-height: 1.1;
+  background: linear-gradient(135deg, #fff 30%, rgba(255,255,255,0.4));
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+}
+.title-block p {
+  font-size: 14px;
+  color: rgba(255,255,255,0.35);
+  margin-top: 8px;
+  font-family: 'IBM Plex Mono', monospace;
+}
+
+/* ── FLOW ── */
+.flow {
+  display: flex;
+  flex-direction: column;
+  gap: 0;
+  align-items: center;
+}
+
+/* ── ARROW ── */
+.arrow {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0;
+  margin: 0;
+  animation: fadeIn 0.4s ease both;
+}
+.arrow-line {
+  width: 2px;
+  height: 28px;
+  background: linear-gradient(to bottom, rgba(255,255,255,0.15), rgba(255,255,255,0.05));
+}
+.arrow-head {
+  width: 0; height: 0;
+  border-left: 6px solid transparent;
+  border-right: 6px solid transparent;
+  border-top: 8px solid rgba(255,255,255,0.15);
+}
+
+/* ── STAGE ── */
+.stage {
+  width: 100%;
+  animation: fadeUp 0.5s ease both;
+}
+
+/* INPUT STAGE */
+.stage-input {
+  background: linear-gradient(135deg, rgba(16,185,129,0.08), rgba(16,185,129,0.03));
+  border: 1px solid rgba(16,185,129,0.25);
+  border-radius: 16px;
+  padding: 20px 28px;
+  display: flex;
+  align-items: center;
+  gap: 20px;
+}
+.stage-input .icon { font-size: 32px; flex-shrink: 0; }
+.stage-input .title { font-size: 16px; font-weight: 800; color: #34d399; margin-bottom: 4px; }
+.stage-input .desc { font-size: 12px; color: rgba(255,255,255,0.4); line-height: 1.6; }
+.stage-input .tags { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 8px; }
+.tag-item {
+  font-family: 'IBM Plex Mono', monospace;
+  font-size: 10px;
+  background: rgba(52,211,153,0.08);
+  border: 1px solid rgba(52,211,153,0.2);
+  color: #34d399;
+  border-radius: 4px;
+  padding: 2px 8px;
+}
+
+/* ENGINES ROW */
+.engines-row {
+  display: grid;
+  grid-template-columns: 1fr 1fr 1fr;
+  gap: 12px;
+  width: 100%;
+}
+.engine-block {
+  border-radius: 14px;
+  padding: 20px 18px;
+  position: relative;
+  overflow: hidden;
+}
+.engine-block::after {
+  content: '';
+  position: absolute;
+  top: 0; left: 0; right: 0;
+  height: 3px;
+  border-radius: 14px 14px 0 0;
+}
+.engine-block.claude {
+  background: rgba(167,139,250,0.07);
+  border: 1px solid rgba(167,139,250,0.2);
+}
+.engine-block.claude::after { background: #a78bfa; }
+.engine-block.gpt {
+  background: rgba(52,211,153,0.07);
+  border: 1px solid rgba(52,211,153,0.2);
+}
+.engine-block.gpt::after { background: #34d399; }
+.engine-block.gemini {
+  background: rgba(96,165,250,0.07);
+  border: 1px solid rgba(96,165,250,0.2);
+}
+.engine-block.gemini::after { background: #60a5fa; }
+
+.engine-label {
+  font-family: 'IBM Plex Mono', monospace;
+  font-size: 10px;
+  letter-spacing: 2px;
+  text-transform: uppercase;
+  margin-bottom: 6px;
+}
+.engine-block.claude .engine-label { color: #a78bfa; }
+.engine-block.gpt    .engine-label { color: #34d399; }
+.engine-block.gemini .engine-label { color: #60a5fa; }
+
+.engine-role { font-size: 15px; font-weight: 800; margin-bottom: 10px; }
+.engine-timeout {
+  font-family: 'IBM Plex Mono', monospace;
+  font-size: 10px;
+  color: rgba(255,255,255,0.25);
+  margin-bottom: 10px;
+}
+.engine-tasks { list-style: none; }
+.engine-tasks li {
+  font-size: 12px;
+  color: rgba(255,255,255,0.55);
+  padding: 3px 0;
+  padding-right: 14px;
+  position: relative;
+  line-height: 1.5;
+}
+.engine-tasks li::before {
+  content: '→';
+  position: absolute;
+  right: 0;
+  color: rgba(255,255,255,0.2);
+}
+
+/* NEUTRAL BADGE */
+.neutral-badge {
+  text-align: center;
+  margin-top: 10px;
+  font-family: 'IBM Plex Mono', monospace;
+  font-size: 10px;
+  color: rgba(255,255,255,0.2);
+  letter-spacing: 1px;
+  border-top: 1px solid rgba(255,255,255,0.06);
+  padding-top: 8px;
+}
+
+/* META JUDGE */
+.meta-block {
+  width: 100%;
+  background: linear-gradient(135deg, rgba(245,158,11,0.08), rgba(245,158,11,0.03));
+  border: 1.5px solid rgba(245,158,11,0.3);
+  border-radius: 16px;
+  padding: 24px 28px;
+  position: relative;
+  overflow: hidden;
+}
+.meta-block::before {
+  content: 'META-JUDGE';
+  position: absolute;
+  top: -1px; left: 50%; transform: translateX(-50%);
+  font-family: 'IBM Plex Mono', monospace;
+  font-size: 9px;
+  letter-spacing: 3px;
+  color: #f59e0b;
+  background: #05070f;
+  padding: 0 12px;
+}
+.meta-inner {
+  display: grid;
+  grid-template-columns: 1fr auto 1fr;
+  gap: 24px;
+  align-items: start;
+}
+.meta-col-title {
+  font-family: 'IBM Plex Mono', monospace;
+  font-size: 10px;
+  letter-spacing: 1.5px;
+  color: rgba(245,158,11,0.7);
+  text-transform: uppercase;
+  margin-bottom: 10px;
+}
+.meta-list li {
+  font-size: 12px;
+  color: rgba(255,255,255,0.5);
+  padding: 3px 0;
+  padding-right: 14px;
+  position: relative;
+  line-height: 1.5;
+  list-style: none;
+}
+.meta-list li::before {
+  content: '·';
+  position: absolute;
+  right: 0;
+  color: #f59e0b;
+  font-size: 16px;
+  top: 0px;
+}
+.meta-divider {
+  width: 1px;
+  background: rgba(245,158,11,0.15);
+  align-self: stretch;
+  margin-top: 24px;
+}
+.meta-verdict {
+  background: rgba(245,158,11,0.06);
+  border: 1px solid rgba(245,158,11,0.15);
+  border-radius: 8px;
+  padding: 10px 14px;
+  font-size: 12px;
+  color: rgba(255,255,255,0.5);
+  line-height: 1.6;
+  margin-top: 6px;
+}
+.meta-verdict strong { color: #f59e0b; font-weight: 700; }
+
+/* DB BLOCK */
+.db-row {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 12px;
+  width: 100%;
+}
+.db-block {
+  background: rgba(99,102,241,0.07);
+  border: 1px solid rgba(99,102,241,0.2);
+  border-radius: 14px;
+  padding: 18px 20px;
+}
+.db-block .db-label {
+  font-family: 'IBM Plex Mono', monospace;
+  font-size: 10px;
+  letter-spacing: 2px;
+  color: #818cf8;
+  text-transform: uppercase;
+  margin-bottom: 8px;
+}
+.db-block .db-title { font-size: 14px; font-weight: 800; margin-bottom: 8px; }
+.db-block .db-fields { display: flex; flex-wrap: wrap; gap: 5px; }
+.db-field {
+  font-family: 'IBM Plex Mono', monospace;
+  font-size: 10px;
+  background: rgba(99,102,241,0.1);
+  border: 1px solid rgba(99,102,241,0.2);
+  color: #a5b4fc;
+  border-radius: 4px;
+  padding: 2px 8px;
+}
+
+/* OUTPUT BLOCK */
+.output-block {
+  width: 100%;
+  background: rgba(14,20,32,0.8);
+  border: 1px solid rgba(255,255,255,0.08);
+  border-radius: 16px;
+  padding: 22px 28px;
+}
+.output-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 16px;
+  margin-top: 14px;
+}
+.output-item {
+  background: rgba(255,255,255,0.03);
+  border: 1px solid rgba(255,255,255,0.06);
+  border-radius: 10px;
+  padding: 14px 16px;
+}
+.output-item .o-icon { font-size: 20px; margin-bottom: 6px; }
+.output-item .o-title { font-size: 13px; font-weight: 700; margin-bottom: 4px; }
+.output-item .o-desc { font-size: 11px; color: rgba(255,255,255,0.35); line-height: 1.5; }
+
+/* HUMAN LOOP */
+.human-block {
+  width: 100%;
+  background: linear-gradient(135deg, rgba(236,72,153,0.07), rgba(236,72,153,0.02));
+  border: 1px solid rgba(236,72,153,0.2);
+  border-radius: 16px;
+  padding: 20px 28px;
+  display: flex;
+  align-items: center;
+  gap: 20px;
+}
+.human-statuses {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+  margin-top: 8px;
+}
+.status-pill {
+  font-family: 'IBM Plex Mono', monospace;
+  font-size: 11px;
+  border-radius: 20px;
+  padding: 3px 12px;
+}
+.s-process  { background: rgba(59,130,246,0.15);  border: 1px solid rgba(59,130,246,0.3);  color: #60a5fa; }
+.s-closed   { background: rgba(16,185,129,0.15);  border: 1px solid rgba(16,185,129,0.3);  color: #34d399; }
+.s-lost     { background: rgba(248,113,113,0.15); border: 1px solid rgba(248,113,113,0.3); color: #f87171; }
+.s-none     { background: rgba(251,191,36,0.15);  border: 1px solid rgba(251,191,36,0.3);  color: #fbbf24; }
+.s-irrel    { background: rgba(148,163,184,0.1);  border: 1px solid rgba(148,163,184,0.2); color: #94a3b8; }
+
+/* LEARN ARROW — special */
+.learn-arrow {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  padding: 10px 0;
+  font-family: 'IBM Plex Mono', monospace;
+  font-size: 10px;
+  color: rgba(236,72,153,0.5);
+  letter-spacing: 2px;
+}
+.learn-arrow::before, .learn-arrow::after {
+  content: '';
+  flex: 1;
+  height: 1px;
+  background: linear-gradient(to right, transparent, rgba(236,72,153,0.3), transparent);
+}
+
+/* ANIMATIONS */
+@keyframes fadeDown {
+  from { opacity: 0; transform: translateY(-16px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+@keyframes fadeUp {
+  from { opacity: 0; transform: translateY(16px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+@keyframes fadeIn {
+  from { opacity: 0; }
+  to   { opacity: 1; }
+}
+
+.stage:nth-child(1)  { animation-delay: 0.1s; }
+.stage:nth-child(3)  { animation-delay: 0.2s; }
+.stage:nth-child(5)  { animation-delay: 0.3s; }
+.stage:nth-child(7)  { animation-delay: 0.4s; }
+.stage:nth-child(9)  { animation-delay: 0.5s; }
+.stage:nth-child(11) { animation-delay: 0.6s; }
+.stage:nth-child(13) { animation-delay: 0.7s; }
+</style>
+</head>
+<body>
+<div class="page">
+
+  <!-- TITLE -->
+  <div class="title-block">
+    <div class="badge">XTIX BRAIN v3.0 — ARCHITECTURE</div>
+    <h1>ארכיטקטורת המוח</h1>
+    <p>Triple Engine · Meta-Judge · Firebase Memory · Human Loop</p>
+  </div>
+
+  <div class="flow">
+
+    <!-- STAGE 1: INPUT -->
+    <div class="stage">
+      <div class="stage-input">
+        <div class="icon">📥</div>
+        <div style="flex:1">
+          <div class="title">ליד נכנס + PROXY DATA</div>
+          <div class="desc">כל המידע הגולמי נאסף פעם אחת ומשותף לכל המנועים — אין כפל בקשות</div>
+          <div class="tags">
+            <span class="tag-item">פלטפורמת מכירה</span>
+            <span class="tag-item">מחירי כרטיסים</span>
+            <span class="tag-item">domain חיצוני?</span>
+            <span class="tag-item">רשתות חברתיות</span>
+            <span class="tag-item">גודל קהל</span>
+            <span class="tag-item">אירועים פעילים</span>
+            <span class="tag-item">מחזור כספי</span>
+            <span class="tag-item">איש קשר</span>
+            <span class="tag-item">מתחרים</span>
+            <span class="tag-item">UX / עיצוב</span>
+            <span class="tag-item">ועוד...</span>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="arrow"><div class="arrow-line"></div><div class="arrow-head"></div></div>
+
+    <!-- STAGE 2: 3 ENGINES -->
+    <div class="stage">
+      <div class="engines-row">
+
+        <div class="engine-block claude">
+          <div class="engine-label">Claude — Anthropic</div>
+          <div class="engine-role">🔍 בלש הכאבים</div>
+          <div class="engine-timeout">timeout: 120s</div>
+          <ul class="engine-tasks">
+            <li>האם הקונים שייכים לליד?</li>
+            <li>האם יש הפנייה לאתר חיצוני?</li>
+            <li>האם תהליך הרכישה נגיש?</li>
+            <li>האם העמלה מוצדקת לעומת המענה?</li>
+            <li>האם יש כלי AI / אוטומציה?</li>
+            <li>כאב כפול: עמלה גבוהה + UX גרוע</li>
+          </ul>
+          <div class="neutral-badge">⚪ חיישן טהור — לא ניגש ל-DB</div>
+        </div>
+
+        <div class="engine-block gpt">
+          <div class="engine-label">GPT-4o — OpenAI</div>
+          <div class="engine-role">💰 אנליסט הכסף</div>
+          <div class="engine-timeout">timeout: 90s</div>
+          <ul class="engine-tasks">
+            <li>מחירי כרטיסים לפי סוג ואירוע</li>
+            <li>היקף מכירות ומחזור שנתי</li>
+            <li>כמות אירועים משוערת</li>
+            <li>אירוע קרוב — מתי?</li>
+            <li>גודל קהילה להפצה</li>
+            <li>ROI מעבר ל-XTIX</li>
+          </ul>
+          <div class="neutral-badge">⚪ חיישן טהור — לא ניגש ל-DB</div>
+        </div>
+
+        <div class="engine-block gemini">
+          <div class="engine-label">Gemini — Google</div>
+          <div class="engine-role">🌐 סורק המודיעין</div>
+          <div class="engine-timeout">timeout: 60s</div>
+          <ul class="engine-tasks">
+            <li>דומיינים של מתחרים בשימוש</li>
+            <li>ערוצי שיווק — paid / organic</li>
+            <li>מכירה ברשתות או רק פרסום?</li>
+            <li>ניתוח עמוד + טראפיק</li>
+            <li>מי מתחרה בליד בשוק שלו?</li>
+            <li>היקף פעילות לפי domain</li>
+          </ul>
+          <div class="neutral-badge">⚪ חיישן טהור — לא ניגש ל-DB</div>
+        </div>
+
+      </div>
+    </div>
+
+    <div class="arrow"><div class="arrow-line"></div><div class="arrow-head"></div></div>
+
+    <!-- STAGE 3: META JUDGE -->
+    <div class="stage">
+      <div class="meta-block">
+        <div class="meta-inner">
+
+          <div>
+            <div class="meta-col-title">שליפה מ-Firebase</div>
+            <ul class="meta-list">
+              <li>ציון ממוצע בסגמנט זה — נסגר/אבד</li>
+              <li>כאב שהכי הוביל לסגירה בסגמנט</li>
+              <li>ביצועי פלטפורמה זו היסטורית</li>
+              <li>pitch שעבד מול פלטפורמה זו</li>
+              <li>ציון דומה (±10) — מה קרה?</li>
+              <li>מתי Meta-Judge טעה — למה?</li>
+              <li>cadence שעבד בסגמנט זה</li>
+              <li>ROI ממוצע ללידים שנסגרו</li>
+              <li>timing — יום/שעה של סגירות</li>
+              <li>איזה מנוע טעה הכי הרבה?</li>
+              <li>+15 שאלות נוספות...</li>
+            </ul>
+          </div>
+
+          <div class="meta-divider"></div>
+
+          <div>
+            <div class="meta-col-title">החלטה סופית</div>
+            <ul class="meta-list">
+              <li>ציון 0–100 עם שקלול מלא</li>
+              <li>Tier A / B / C</li>
+              <li>אישור / דחיית כאבים לפי ראיות</li>
+              <li>platform_verdict מבוסס ראיות</li>
+              <li>מחלוקות בין מנועים + הכרעה</li>
+              <li>רמת ביטחון + נימוק</li>
+              <li>פעולה ספציפית + נוסח פתיחה</li>
+              <li>cadence מומלץ</li>
+            </ul>
+            <div class="meta-verdict">
+              <strong>לומד מהעבר:</strong> "בסגמנט מוזיקה חיה — לידים עם כאב כפול נסגרו ב-68%. ליד זה מציג את הפרופיל הזה."
+            </div>
+          </div>
+
+        </div>
+      </div>
+    </div>
+
+    <div class="arrow"><div class="arrow-line"></div><div class="arrow-head"></div></div>
+
+    <!-- STAGE 4: FIREBASE -->
+    <div class="stage">
+      <div class="db-row">
+        <div class="db-block">
+          <div class="db-label">Firebase — שמירה</div>
+          <div class="db-title">📊 analysis_log</div>
+          <div class="db-fields">
+            <span class="db-field">engines_raw</span>
+            <span class="db-field">meta_verdict</span>
+            <span class="db-field">score_breakdown</span>
+            <span class="db-field">pain_verdict</span>
+            <span class="db-field">platform_verdict</span>
+            <span class="db-field">confidence</span>
+            <span class="db-field">disagreements</span>
+            <span class="db-field">quality_flags</span>
+            <span class="db-field">timestamp</span>
+          </div>
+        </div>
+        <div class="db-block">
+          <div class="db-label">Firebase — למידה</div>
+          <div class="db-title">🧠 brain_decisions</div>
+          <div class="db-fields">
+            <span class="db-field">segment</span>
+            <span class="db-field">platform</span>
+            <span class="db-field">score</span>
+            <span class="db-field">outcome</span>
+            <span class="db-field">pain_patterns</span>
+            <span class="db-field">what_worked</span>
+            <span class="db-field">what_failed</span>
+            <span class="db-field">cadence_result</span>
+            <span class="db-field">close_time_days</span>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="arrow"><div class="arrow-line"></div><div class="arrow-head"></div></div>
+
+    <!-- STAGE 5: OUTPUT -->
+    <div class="stage">
+      <div class="output-block">
+        <div class="meta-col-title" style="color:rgba(255,255,255,0.3)">פלטים — מה הנציג רואה</div>
+        <div class="output-grid">
+          <div class="output-item">
+            <div class="o-icon">👤</div>
+            <div class="o-title">פרופיל</div>
+            <div class="o-desc">נתונים גולמיים, פרטי קשר, היסטוריית ניתוחים</div>
+          </div>
+          <div class="output-item">
+            <div class="o-icon">🧠</div>
+            <div class="o-title">דוח Meta-Judge</div>
+            <div class="o-desc">ציון + שקלול + כאבים + כסף + מודיעין + פעולה</div>
+          </div>
+          <div class="output-item">
+            <div class="o-icon">✉️</div>
+            <div class="o-title">מיילים</div>
+            <div class="o-desc">רצף 4 מיילים מותאם אישית לפי cadence וכאב</div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="arrow"><div class="arrow-line"></div><div class="arrow-head"></div></div>
+
+    <!-- STAGE 6: HUMAN LOOP -->
+    <div class="stage">
+      <div class="human-block">
+        <div style="font-size:36px; flex-shrink:0;">🧑‍💼</div>
+        <div style="flex:1">
+          <div style="font-size:16px; font-weight:800; color:#f472b6; margin-bottom:4px;">Human Loop — איש המכירות</div>
+          <div style="font-size:12px; color:rgba(255,255,255,0.4); margin-bottom:10px;">
+            הליד משיב → בן האנוש מנהל שיחה/פגישה → מעדכן סטטוס → המוח לומד
+          </div>
+          <div class="human-statuses">
+            <span class="status-pill s-process">בתהליך</span>
+            <span class="status-pill s-closed">נסגר ✓</span>
+            <span class="status-pill s-lost">לא נסגר</span>
+            <span class="status-pill s-none">אין מענה</span>
+            <span class="status-pill s-irrel">לא רלוונטי</span>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- LEARN LOOP -->
+    <div class="learn-arrow">OUTCOME → FIREBASE → META-JUDGE LEARNS</div>
+
+  </div>
+
+  <!-- FOOTER -->
+  <div style="text-align:center; margin-top:48px; font-family:'IBM Plex Mono',monospace; font-size:10px; color:rgba(255,255,255,0.12); letter-spacing:2px;">
+    XTIX CRM · BRAIN v3.0 · 06.03.2026
+  </div>
+
+</div>
+</body>
+</html>
