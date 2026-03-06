@@ -6087,7 +6087,7 @@ BP6-10: תעדף (פלטפורמה ישנה+דומיין+6+ אירועים), Dis
         if (typeof sel3 !== 'undefined') {
           if (this.checked) sel3.add(lead.id); else sel3.delete(lead.id);
         }
-        if (typeof updBulk === 'function') updBulk();
+        if (typeof window.updBulk === 'function') window.updBulk();
       };
       // Insert right before lead-info
       header.insertBefore(chk, leadInfo);
@@ -6904,12 +6904,12 @@ addSalesPlaybookPanel();
       '<div id="v3-bulk" style="display:flex;background:rgba(108,99,255,0.07);border:1px solid rgba(108,99,255,0.18);border-radius:8px;padding:8px 12px;align-items:center;gap:6px;flex-wrap:wrap">' +
         '<span id="v3-bulk-cnt" style="font-size:12px;font-weight:700;color:var(--accent)">0 נבחרו</span>' +
         '<div style="flex:1"></div>' +
-        '<button id="v3-bulk-btn-contacted" onclick="bulkV3(\'contacted\')" style="background:rgba(0,212,255,0.1);border:1px solid rgba(0,212,255,0.3);border-radius:5px;padding:4px 10px;font-size:11px;color:#00d4ff;cursor:not-allowed;font-family:Heebo,sans-serif;opacity:0.38;pointer-events:none">📧 נשלח מייל</button>' +
-        '<button id="v3-bulk-btn-followup" onclick="bulkV3(\'followup\')" style="background:rgba(255,214,0,0.1);border:1px solid rgba(255,214,0,0.3);border-radius:5px;padding:4px 10px;font-size:11px;color:var(--yellow);cursor:not-allowed;font-family:Heebo,sans-serif;opacity:0.38;pointer-events:none">🔁 Follow-up</button>' +
-        '<button id="v3-bulk-btn-meeting" onclick="bulkV3(\'meeting\')" style="background:rgba(0,230,118,0.1);border:1px solid rgba(0,230,118,0.3);border-radius:5px;padding:4px 10px;font-size:11px;color:var(--green);cursor:not-allowed;font-family:Heebo,sans-serif;opacity:0.38;pointer-events:none">📅 פגישה</button>' +
-        '<button id="v3-bulk-btn-enrich" onclick="bulkV3(\'enrich\')" style="background:rgba(167,139,250,0.1);border:1px solid rgba(167,139,250,0.3);border-radius:5px;padding:4px 10px;font-size:11px;color:#a78bfa;cursor:not-allowed;font-family:Heebo,sans-serif;opacity:0.38;pointer-events:none">🤖 נתח AI</button>' +
-        '<button id="v3-bulk-btn-delete" onclick="bulkV3(\'delete\')" style="background:rgba(255,71,87,0.1);border:1px solid rgba(255,71,87,0.3);border-radius:5px;padding:4px 10px;font-size:11px;color:var(--red);cursor:not-allowed;font-family:Heebo,sans-serif;opacity:0.38;pointer-events:none">🗑 מחק</button>' +
-        '<button id="v3-bulk-btn-clear" onclick="clearSelV3()" style="background:none;border:1px solid var(--border);border-radius:5px;padding:4px 8px;font-size:11px;color:var(--muted);cursor:not-allowed;opacity:0.38;pointer-events:none">✕</button>' +
+        '<button onclick="window.bulkV3(\'contacted\')" style="background:rgba(0,212,255,0.1);border:1px solid rgba(0,212,255,0.3);border-radius:5px;padding:4px 10px;font-size:11px;color:#00d4ff;cursor:pointer;font-family:Heebo,sans-serif">📧 נשלח מייל</button>' +
+        '<button onclick="window.bulkV3(\'followup\')" style="background:rgba(255,214,0,0.1);border:1px solid rgba(255,214,0,0.3);border-radius:5px;padding:4px 10px;font-size:11px;color:var(--yellow);cursor:pointer;font-family:Heebo,sans-serif">🔁 Follow-up</button>' +
+        '<button onclick="window.bulkV3(\'meeting\')" style="background:rgba(0,230,118,0.1);border:1px solid rgba(0,230,118,0.3);border-radius:5px;padding:4px 10px;font-size:11px;color:var(--green);cursor:pointer;font-family:Heebo,sans-serif">📅 פגישה</button>' +
+        '<button onclick="window.bulkV3(\'enrich\')" style="background:rgba(167,139,250,0.1);border:1px solid rgba(167,139,250,0.3);border-radius:5px;padding:4px 10px;font-size:11px;color:#a78bfa;cursor:pointer;font-family:Heebo,sans-serif">🤖 נתח AI</button>' +
+        '<button onclick="window.bulkV3(\'delete\')" style="background:rgba(255,71,87,0.1);border:1px solid rgba(255,71,87,0.3);border-radius:5px;padding:4px 10px;font-size:11px;color:var(--red);cursor:pointer;font-family:Heebo,sans-serif">🗑 מחק</button>' +
+        '<button onclick="window.clearSelV3&&window.clearSelV3()" style="background:none;border:1px solid var(--border);border-radius:5px;padding:4px 8px;font-size:11px;color:var(--muted);cursor:pointer">✕</button>' +
       '</div>';
 
     var existing = leadsPanel.querySelector('.leads-toolbar');
@@ -7410,18 +7410,9 @@ addSalesPlaybookPanel();
     updBulk();
   };
   function updBulk(){
-    var bar=document.getElementById('v3-bulk'),cnt=document.getElementById('v3-bulk-cnt');
-    if(!bar)return;
+    var cnt=document.getElementById('v3-bulk-cnt');
     var count=sel3.size>0?sel3.size:document.querySelectorAll('.v3chk:checked').length;
-    var hasSelection=count>0;
     if(cnt)cnt.textContent=count+' נבחרו';
-    var btnIds=['v3-bulk-btn-contacted','v3-bulk-btn-followup','v3-bulk-btn-meeting','v3-bulk-btn-enrich','v3-bulk-btn-delete','v3-bulk-btn-clear'];
-    btnIds.forEach(function(id){
-      var b=document.getElementById(id);
-      if(!b)return;
-      if(hasSelection){b.style.opacity='1';b.style.pointerEvents='auto';b.style.cursor='pointer';}
-      else{b.style.opacity='0.38';b.style.pointerEvents='none';b.style.cursor='not-allowed';}
-    });
   }
   window.updBulk=updBulk;
   window.deleteLead = async function(id) {
@@ -7453,7 +7444,12 @@ addSalesPlaybookPanel();
   };
 
   window.bulkV3=async function(action){
-    var ids=Array.from(sel3);if(!ids.length)return;
+    var ids=Array.from(sel3);
+    if(!ids.length){
+      var cnt=document.getElementById('v3-bulk-cnt');
+      if(cnt){cnt.textContent='⚠ בחר לידים תחילה';cnt.style.color='#ef4444';setTimeout(function(){cnt.textContent='0 נבחרו';cnt.style.color='';},1800);}
+      return;
+    }
     if(action==='delete'){if(!confirm('למחוק '+ids.length+'?'))return;for(var i=0;i<ids.length;i++)if(window.deleteLead)await window.deleteLead(ids[i]);clearSelV3();}
     else if(action==='enrich'){ids.forEach(function(id){var l=leads.find(function(x){return x.id===id;});if(l&&window.enrichmentQueue)enrichmentQueue.push(l);});if(window.processEnrichmentQueue)processEnrichmentQueue();clearSelV3();}
     else{var now=new Date().toISOString();ids.forEach(function(id){var l=leads.find(function(x){return x.id===id;});if(l){l.status=action;l.updated_at=now;}var card=document.getElementById('lead-'+id);if(card){card.dataset.status=action;card.dataset.updated=now;}var s=document.querySelector('.status-select[data-lead-id="'+id+'"]');if(s)s.value=action;if(typeof db!=='undefined'&&db)db.collection('leads').doc(String(id)).update({status:action,updated_at:now}).catch(function(){});});if(window.logActivity)logActivity('bulk_status',{count:ids.length,status:action});clearSelV3();if(window.updateStats)updateStats();}
@@ -8733,18 +8729,9 @@ window._cleanForFirebase = function _cleanForFirebase(obj) {
     updBulk();
   };
   function updBulk(){
-    var bar=document.getElementById('v3-bulk'),cnt=document.getElementById('v3-bulk-cnt');
-    if(!bar)return;
+    var cnt=document.getElementById('v3-bulk-cnt');
     var count=sel3.size>0?sel3.size:document.querySelectorAll('.v3chk:checked').length;
-    var hasSelection=count>0;
     if(cnt)cnt.textContent=count+' נבחרו';
-    var btnIds=['v3-bulk-btn-contacted','v3-bulk-btn-followup','v3-bulk-btn-meeting','v3-bulk-btn-enrich','v3-bulk-btn-delete','v3-bulk-btn-clear'];
-    btnIds.forEach(function(id){
-      var b=document.getElementById(id);
-      if(!b)return;
-      if(hasSelection){b.style.opacity='1';b.style.pointerEvents='auto';b.style.cursor='pointer';}
-      else{b.style.opacity='0.38';b.style.pointerEvents='none';b.style.cursor='not-allowed';}
-    });
   }
   window.updBulk=updBulk;
   window.deleteLead = async function(id) {
@@ -8776,7 +8763,12 @@ window._cleanForFirebase = function _cleanForFirebase(obj) {
   };
 
   window.bulkV3=async function(action){
-    var ids=Array.from(sel3);if(!ids.length)return;
+    var ids=Array.from(sel3);
+    if(!ids.length){
+      var cnt=document.getElementById('v3-bulk-cnt');
+      if(cnt){cnt.textContent='⚠ בחר לידים תחילה';cnt.style.color='#ef4444';setTimeout(function(){cnt.textContent='0 נבחרו';cnt.style.color='';},1800);}
+      return;
+    }
     if(action==='delete'){if(!confirm('למחוק '+ids.length+'?'))return;for(var i=0;i<ids.length;i++)if(window.deleteLead)await window.deleteLead(ids[i]);clearSelV3();}
     else if(action==='enrich'){ids.forEach(function(id){var l=leads.find(function(x){return x.id===id;});if(l&&window.enrichmentQueue)enrichmentQueue.push(l);});if(window.processEnrichmentQueue)processEnrichmentQueue();clearSelV3();}
     else{var now=new Date().toISOString();ids.forEach(function(id){var l=leads.find(function(x){return x.id===id;});if(l){l.status=action;l.updated_at=now;}var card=document.getElementById('lead-'+id);if(card){card.dataset.status=action;card.dataset.updated=now;}var s=document.querySelector('.status-select[data-lead-id="'+id+'"]');if(s)s.value=action;if(typeof db!=='undefined'&&db)db.collection('leads').doc(String(id)).update({status:action,updated_at:now}).catch(function(){});});if(window.logActivity)logActivity('bulk_status',{count:ids.length,status:action});clearSelV3();if(window.updateStats)updateStats();}
