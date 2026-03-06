@@ -3312,6 +3312,39 @@ document.addEventListener("DOMContentLoaded",function(){
     setTimeout(function(){ var n=document.getElementById('new-name'); if(n) n.focus(); }, 100);
   };
 
+  
+  /* ══ Segment badge renderer ══ */
+  var _segMeta = {
+    // ───── קטגוריות עסקיות ─────
+    'Enterprise':       { i:'🏢', bg:'rgba(59,130,246,0.15)',  border:'rgba(59,130,246,0.3)',  color:'#93c5fd' },
+    'SMB':              { i:'🏪', bg:'rgba(16,185,129,0.13)',  border:'rgba(16,185,129,0.28)', color:'#6ee7b7' },
+    'עסקים קטנים':      { i:'🏪', bg:'rgba(16,185,129,0.13)',  border:'rgba(16,185,129,0.28)', color:'#6ee7b7' },
+    'עסקי':             { i:'💼', bg:'rgba(99,102,241,0.13)',  border:'rgba(99,102,241,0.28)', color:'#a5b4fc' },
+    // ───── קטגוריות אירועים ─────
+    'כנסים':            { i:'🎤', bg:'rgba(245,158,11,0.13)',  border:'rgba(245,158,11,0.28)', color:'#fcd34d' },
+    'גילוי אירועים':    { i:'🔍', bg:'rgba(139,92,246,0.13)',  border:'rgba(139,92,246,0.28)', color:'#c4b5fd' },
+    'הפצה':             { i:'📡', bg:'rgba(20,184,166,0.13)',  border:'rgba(20,184,166,0.28)', color:'#5eead4' },
+    // ───── ערוצים דיגיטליים ─────
+    'סושיאל':           { i:'📱', bg:'rgba(236,72,153,0.13)',  border:'rgba(236,72,153,0.28)', color:'#f9a8d4' },
+    'בוטים':            { i:'🤖', bg:'rgba(234,179,8,0.13)',   border:'rgba(234,179,8,0.28)',  color:'#fde047' },
+    // ───── כללי ─────
+    'ידני':             { i:'✍️', bg:'rgba(255,255,255,0.06)',  border:'rgba(255,255,255,0.14)', color:'rgba(255,255,255,0.6)' },
+    'כללי':             { i:'◈',  bg:'rgba(255,255,255,0.05)',  border:'rgba(255,255,255,0.1)',  color:'rgba(255,255,255,0.45)' },
+  };
+
+  window._segBadge = function(seg) {
+    if (!seg) return '';
+    var m = _segMeta[seg];
+    var icon = m ? m.i : '◈';
+    var bg   = m ? m.bg : 'rgba(255,255,255,0.06)';
+    var bdr  = m ? m.border : 'rgba(255,255,255,0.12)';
+    var col  = m ? m.color  : 'rgba(255,255,255,0.5)';
+    return '<span class="_lbar-seg" style="background:' + bg + ';border-color:' + bdr + ';color:' + col + '">'
+         + '<span style="font-size:9px;line-height:1">' + icon + '</span>'
+         + '<span>' + seg + '</span>'
+         + '</span>';
+  };
+
   window.addLead = function() {
     var name = (document.getElementById('new-name')||{}).value||'';
     var err  = document.getElementById('add-lead-error');
@@ -3987,7 +4020,7 @@ BP18: Nurture existing customers — repeat customers spend 67% more
       +(lead.email?'<span class="_lbar-meta-item _lbar-mi-email">'+lead.email+'</span>':'')
       +(lead.phone?'<span class="_lbar-meta-item _lbar-mi-phone">'+lead.phone+'</span>':'')
       +(lead.address?'<span class="_lbar-meta-item _lbar-mi-addr">'+lead.address+'</span>':'')
-      +(lead.type||lead.segment?'<span class="_lbar-seg">'+(lead.type||lead.segment)+'</span>':'')
+      +(lead.type||lead.segment?window._segBadge(lead.type||lead.segment):'')
       +'</div>'
       +'</div></div>'
       +'<div class="lead-badges">'
@@ -4211,14 +4244,14 @@ window._editLeadSave = function(lid){
   }
 };
 
-  function _ltab_analysis(lead,ai,enr){var a=ai||{},e=enr||{};if(!a.status||a.status==='none')return '<div style="padding:32px;text-align:center"><div style="font-size:40px;margin-bottom:12px">🧠</div><div style="font-size:13px;color:var(--text2);margin-bottom:16px">לחץ להפעלת ניתוח AI</div><button onclick="window.showAnalysisChoice('+lead.id+')" style="background:var(--accent);border:none;border-radius:8px;padding:10px 24px;font-size:13px;color:#fff;cursor:pointer;font-family:Heebo,sans-serif;font-weight:700">🚀 הפעל</button></div>';if(a.status==='running')return '<div style="padding:32px;text-align:center"><div style="font-size:36px;margin-bottom:12px;animation:_aip 1.2s ease-in-out infinite">'+
-    (typeof _brainKeys!=='undefined'&&(_brainKeys.gpt||_brainKeys.gemini)?'🧠':'⏳')+'</div>'+
+  function _ltab_analysis(lead,ai,enr){var a=ai||{},e=enr||{};if(!a.status||a.status==='none')return '<div style="padding:32px;text-align:center"><div style="font-size:40px;margin-bottom:12px">🧠</div><div style="font-size:13px;color:var(--text2);margin-bottom:16px">אין ניתוח עדיין</div><div style=\"font-size:11px;color:rgba(196,196,204,0.5);margin-top:4px\">לחץ Analyze בשורת הליד</div></div>';if(a.status==='running')return '<div style="padding:32px;text-align:center"><div style="font-size:36px;margin-bottom:12px;animation:_aip 1.2s ease-in-out infinite">'+
+
     '<div style="display:inline-flex;align-items:center;gap:6px;background:rgba(124,58,237,0.1);border:1px solid rgba(124,58,237,0.25);border-radius:20px;padding:3px 12px;font-size:10px;font-weight:700;color:#a78bfa;margin-bottom:10px">'+
     (typeof _brainKeys!=='undefined'&&_brainKeys.gpt&&_brainKeys.gemini ? '⚡ TRIPLE ENGINE — Claude + GPT-4o + Gemini' :
      typeof _brainKeys!=='undefined'&&(_brainKeys.gpt||_brainKeys.gemini) ? '⚡ DUAL ENGINE — Claude + '+((_brainKeys&&_brainKeys.gpt)?'GPT-4o':'Gemini') :
      '🧠 Claude') +
     '</div>'+
-    '<div id="analysis-progress-'+lead.id+'" style="font-size:13px;color:var(--text);margin-bottom:8px">מנתח...</div><div style="font-size:11px;color:rgba(196,196,204,0.75);margin-bottom:16px">שלב 1/3: פרופיל → 2/3: אסטרטגיה → 3/3: מיילים</div><div style="height:4px;background:var(--surface2);border-radius:2px;overflow:hidden"><div id="analysis-bar-'+lead.id+'" style="height:100%;width:5%;background:var(--accent);border-radius:2px;transition:width 2s ease"></div></div></div>';var blocks=[{k:'executive_summary',i:'📊',t:'סיכום מנהלים',c:'rgba(108,99,255,0.08)',b:'rgba(108,99,255,0.25)'},{k:'sales_attack',i:'⚡',t:'אסטרטגיית תקיפה',c:'rgba(239,68,68,0.06)',b:'rgba(239,68,68,0.22)'},{k:'pain_points',i:'🎯',t:'כאבים ונקודות חולשה',c:'rgba(245,158,11,0.06)',b:'rgba(245,158,11,0.22)'},{k:'pricing_intel',i:'💰',t:'מודיעין תמחור',c:'rgba(16,185,129,0.06)',b:'rgba(16,185,129,0.22)'},{k:'social_intel',i:'📱',t:'רשתות חברתיות',c:'rgba(255,255,255,0.03)',b:'var(--border)'},{k:'meeting_prep',i:'🤝',t:'הכנה לשיחה',c:'rgba(139,92,246,0.06)',b:'rgba(139,92,246,0.22)'},{k:'discovery_questions',i:'❓',t:'שאלות Discovery',c:'rgba(255,255,255,0.02)',b:'var(--border)'},{k:'competitors_used',i:'🏁',t:'מתחרים בשימוש',c:'rgba(239,68,68,0.04)',b:'rgba(239,68,68,0.14)'}];var html='';blocks.forEach(function(b){var val=a[b.k]||(e&&e[b.k]);if(!val)return;var inner=Array.isArray(val)?val.map(function(v){return '<div style="padding:5px 0;border-bottom:1px solid rgba(255,255,255,0.04);font-size:12px;color:var(--text)">▸ '+v+'</div>';}).join(''):'<div style="color:var(--text);line-height:1.75;font-size:12px">'+val+'</div>';html+='<div style="background:'+b.c+';border:1px solid '+b.b+';border-radius:10px;padding:12px 14px;margin-bottom:10px"><div style="font-weight:700;color:var(--accent);margin-bottom:8px;font-size:11px;letter-spacing:.4px">'+b.i+' '+b.t.toUpperCase()+'</div>'+inner+'</div>';});if(a.next_action)html+='<div style="background:rgba(16,185,129,0.08);border:1px solid rgba(16,185,129,0.25);border-radius:10px;padding:10px 14px;margin-top:4px"><div style="font-weight:700;color:#10b981;margin-bottom:4px;font-size:11px">🎯 הצעד הבא</div><div style="color:var(--text);font-size:12px">'+a.next_action+'</div></div>';if(a.raw_research)html+='<details style="margin-top:10px"><summary style="cursor:pointer;color:var(--text2);font-size:11px;padding:4px 0">🔍 מחקר גולמי</summary><div style="padding:10px;font-size:11px;color:rgba(196,196,204,0.75);line-height:1.6;white-space:pre-wrap;max-height:260px;overflow-y:auto;background:rgba(0,0,0,0.2);border-radius:8px;margin-top:6px">'+a.raw_research+'</div></details>';if(a.enriched_at)html+='<div style="margin-top:8px;font-size:10px;color:var(--text2);text-align:left">עודכן: '+new Date(a.enriched_at).toLocaleString('he-IL')+'</div>';html += '<div style="margin-top:16px;display:flex;gap:10px;justify-content:space-between;align-items:center">'+'<button onclick="window.showAnalysisChoice(\'+lead.id+\')" style="background:rgba(124,58,237,0.12);border:1px solid rgba(124,58,237,0.3);border-radius:8px;padding:7px 16px;font-size:11px;font-weight:700;color:#a78bfa;cursor:pointer;font-family:Heebo,sans-serif">&#x1F504; הפעל ניתוח חדש</button>'+'<div style="display:flex;gap:8px;align-items:center">'+'<button onclick="event.stopPropagation();window._confirmDealClose('+lead.id+',true)" style="background:rgba(16,185,129,0.12);border:1px solid rgba(16,185,129,0.3);border-radius:8px;padding:7px 14px;font-size:11px;font-weight:700;color:#10b981;cursor:pointer;font-family:Heebo,sans-serif">🎉 עסקה נסגרה</button>'+'<button onclick="event.stopPropagation();window._confirmDealClose('+lead.id+',false)" style="background:rgba(239,68,68,0.08);border:1px solid rgba(239,68,68,0.25);border-radius:8px;padding:7px 14px;font-size:11px;font-weight:700;color:#ef4444;cursor:pointer;font-family:Heebo,sans-serif">❌ לא נסגר</button>'+(a.triple_engine ? '<span style="font-size:10px;color:#a78bfa;display:flex;align-items:center;gap:5px"><span style="width:6px;height:6px;border-radius:50%;background:#a78bfa;display:inline-block"></span>&#x2696;&#xFE0F; Meta-Judge</span>' : '<span style="font-size:10px;color:#F59E0B;display:flex;align-items:center;gap:5px"><span style="width:6px;height:6px;border-radius:50%;background:#F59E0B;display:inline-block"></span>&#x1F9E0; Claude</span>')+'</div>'+'</div>';
+    '<div id="analysis-progress-'+lead.id+'" style="font-size:13px;color:var(--text);margin-bottom:8px">מנתח...</div><div style="font-size:11px;color:rgba(196,196,204,0.75);margin-bottom:16px">שלב 1/3: פרופיל → 2/3: אסטרטגיה → 3/3: מיילים</div><div style="height:4px;background:var(--surface2);border-radius:2px;overflow:hidden"><div id="analysis-bar-'+lead.id+'" style="height:100%;width:5%;background:var(--accent);border-radius:2px;transition:width 2s ease"></div></div></div>';var blocks=[{k:'executive_summary',i:'📊',t:'סיכום מנהלים',c:'rgba(108,99,255,0.08)',b:'rgba(108,99,255,0.25)'},{k:'sales_attack',i:'⚡',t:'אסטרטגיית תקיפה',c:'rgba(239,68,68,0.06)',b:'rgba(239,68,68,0.22)'},{k:'pain_points',i:'🎯',t:'כאבים ונקודות חולשה',c:'rgba(245,158,11,0.06)',b:'rgba(245,158,11,0.22)'},{k:'pricing_intel',i:'💰',t:'מודיעין תמחור',c:'rgba(16,185,129,0.06)',b:'rgba(16,185,129,0.22)'},{k:'social_intel',i:'📱',t:'רשתות חברתיות',c:'rgba(255,255,255,0.03)',b:'var(--border)'},{k:'meeting_prep',i:'🤝',t:'הכנה לשיחה',c:'rgba(139,92,246,0.06)',b:'rgba(139,92,246,0.22)'},{k:'discovery_questions',i:'❓',t:'שאלות Discovery',c:'rgba(255,255,255,0.02)',b:'var(--border)'},{k:'competitors_used',i:'🏁',t:'מתחרים בשימוש',c:'rgba(239,68,68,0.04)',b:'rgba(239,68,68,0.14)'}];var html='';blocks.forEach(function(b){var val=a[b.k]||(e&&e[b.k]);if(!val)return;var inner=Array.isArray(val)?val.map(function(v){return '<div style="padding:5px 0;border-bottom:1px solid rgba(255,255,255,0.04);font-size:12px;color:var(--text)">▸ '+v+'</div>';}).join(''):'<div style="color:var(--text);line-height:1.75;font-size:12px">'+val+'</div>';html+='<div style="background:'+b.c+';border:1px solid '+b.b+';border-radius:10px;padding:12px 14px;margin-bottom:10px"><div style="font-weight:700;color:var(--accent);margin-bottom:8px;font-size:11px;letter-spacing:.4px">'+b.i+' '+b.t.toUpperCase()+'</div>'+inner+'</div>';});if(a.next_action)html+='<div style="background:rgba(16,185,129,0.08);border:1px solid rgba(16,185,129,0.25);border-radius:10px;padding:10px 14px;margin-top:4px"><div style="font-weight:700;color:#10b981;margin-bottom:4px;font-size:11px">🎯 הצעד הבא</div><div style="color:var(--text);font-size:12px">'+a.next_action+'</div></div>';if(a.raw_research)html+='<details style="margin-top:10px"><summary style="cursor:pointer;color:var(--text2);font-size:11px;padding:4px 0">🔍 מחקר גולמי</summary><div style="padding:10px;font-size:11px;color:rgba(196,196,204,0.75);line-height:1.6;white-space:pre-wrap;max-height:260px;overflow-y:auto;background:rgba(0,0,0,0.2);border-radius:8px;margin-top:6px">'+a.raw_research+'</div></details>';if(a.enriched_at)html+='<div style="margin-top:8px;font-size:10px;color:var(--text2);text-align:left">עודכן: '+new Date(a.enriched_at).toLocaleString('he-IL')+'</div>';html += '<div style="margin-top:16px;display:flex;gap:10px;justify-content:space-between;align-items:center">'+''+'<div style="display:flex;gap:8px;align-items:center">'+'<button onclick="event.stopPropagation();window._confirmDealClose('+lead.id+',true)" style="background:rgba(16,185,129,0.12);border:1px solid rgba(16,185,129,0.3);border-radius:8px;padding:7px 14px;font-size:11px;font-weight:700;color:#10b981;cursor:pointer;font-family:Heebo,sans-serif">🎉 עסקה נסגרה</button>'+'<button onclick="event.stopPropagation();window._confirmDealClose('+lead.id+',false)" style="background:rgba(239,68,68,0.08);border:1px solid rgba(239,68,68,0.25);border-radius:8px;padding:7px 14px;font-size:11px;font-weight:700;color:#ef4444;cursor:pointer;font-family:Heebo,sans-serif">❌ לא נסגר</button>'+(a.triple_engine ? '<span style="font-size:10px;color:#a78bfa;display:flex;align-items:center;gap:5px"><span style="width:6px;height:6px;border-radius:50%;background:#a78bfa;display:inline-block"></span>&#x2696;&#xFE0F; Meta-Judge</span>' : '<span style="font-size:10px;color:#F59E0B;display:flex;align-items:center;gap:5px"><span style="width:6px;height:6px;border-radius:50%;background:#F59E0B;display:inline-block"></span>&#x1F9E0; Claude</span>')+'</div>'+'</div>';
     return html||'<div style="color:var(--text2);padding:12px">אין נתוני ניתוח</div>';}
 
   function _ltab_emails(lead,ai,enr){
@@ -4241,8 +4274,7 @@ window._editLeadSave = function(lid){
       }
       return('<div style="padding:32px;text-align:center">'+
         '<div style="font-size:40px;margin-bottom:12px">✉️</div>'+
-        '<div style="font-size:13px;color:var(--text2);margin-bottom:16px">המיילים ייווצרו אחרי ניתוח AI</div>'+
-        '<button onclick="window.showAnalysisChoice('+lead.id+')" style="background:var(--accent);border:none;border-radius:8px;padding:10px 24px;font-size:13px;color:#fff;cursor:pointer;font-family:Heebo,sans-serif;font-weight:700">🚀 צור מיילים</button>'+
+        '<div style="font-size:13px;color:var(--text2);margin-bottom:16px">המיילים ייווצרו לאחר ניתוח AI — לחץ Analyze בשורת הליד</div>'+
       '</div>');
     }
 
@@ -4300,7 +4332,7 @@ window._editLeadSave = function(lid){
       return '<div style="padding:48px 24px;text-align:center">'
         +'<div style="font-size:48px;margin-bottom:16px;opacity:0.7">🧠</div>'
         +'<div style="font-size:13px;color:'+C.muted+';margin-bottom:20px">אין ניתוח AI עדיין לליד זה</div>'
-        +'<button onclick="window.showAnalysisChoice('+lead.id+')" style="background:linear-gradient(135deg,rgba(99,102,241,0.25),rgba(139,92,246,0.2));border:1px solid rgba(99,102,241,0.4);border-radius:10px;padding:12px 28px;font-size:13px;font-weight:700;color:#a5b4fc;cursor:pointer;font-family:Heebo,sans-serif">🚀 הפעל ניתוח AI</button>'
+        +''
         +'</div>';
 
     if(a.status==='running')
@@ -6114,13 +6146,15 @@ BP6-10: תעדף (פלטפורמה ישנה+דומיין+6+ אירועים), Dis
   letter-spacing: -.01em;
 }
 ._lbar-seg {
+  display: inline-flex; align-items: center; gap: 4px;
   font-size: 10px; font-weight: 600;
   color: rgba(167,139,250,.8);
   font-family: 'Outfit', sans-serif !important;
   background: rgba(99,102,241,.12);
   border: 1px solid rgba(99,102,241,.22);
-  border-radius: 5px; padding: 1px 8px;
+  border-radius: 5px; padding: 2px 8px 2px 6px;
   white-space: nowrap;
+  transition: background 0.15s, border-color 0.15s;
 }
 
 /* ─── Right badges cluster ───────────────────────────── */
