@@ -980,5 +980,6 @@ Social: ${pA.social_intel||'?'}
       email_sequence:           pB2.email_sequence||[],
       internal_summary: (pB1.summary_for_rep||pA.executive_summary||'')+(pA.next_action?'\n\nהצעד הבא: '+pA.next_action:'')
     };
+  };
 
 })();
