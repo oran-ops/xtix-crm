@@ -23,8 +23,10 @@ if (typeof _callAI === 'undefined' && typeof window._callAI === 'undefined') {
 // ── fallback: _callAIFast — אם index.html עדיין לא הגדיר אותו ──
 if (typeof window._callAIFast !== 'function') {
   window._callAIFast = async function(sys, usr, maxTok, timeoutMs) {
+    var srv = window.SERVER || '';
+    if (!srv) { console.warn('[AI Fast fallback] SERVER לא מוגדר'); return null; }
     try {
-      var res = await window._authFetch(window.SERVER + '/ai', {
+      var res = await window._authFetch(srv + '/ai', {
         method: 'POST', headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           model: 'claude-haiku-4-5-20251001',
@@ -1000,15 +1002,16 @@ window._deepAIPipeline = async function(lead) {
   setP(80,'🧠 Claude — מיילים...');
   var cadence=pB1.recommended_cadence||'warm';
   var days=cadenceDays[cadence]||cadenceDays['warm'];
-  var pB2={email_sequence:[]};
-  try{
-    pB2=await window._callAIFast(
+  var pB2 = { email_sequence: [] };
+  try {
+    var pB2raw = await window._callAIFast(
       'מומחה מכירות XTIX. 4 מיילים ספציפיים. JSON בלבד. עברית.',
       '4 מיילים ל-'+lead.name+' | ימים: '+days.join('→')+' | Cadence: '+cadence+
       '\nכאבים: '+(pA.pain_points||[]).join(', ')+'\nROI: '+(pA.estimated_xtix_savings||'?')+
       '\n\n{"email_sequence":[{"email_num":1,"day":'+days[0]+',"type":"curiosity","subject":"","body":"","cta":""},{"email_num":2,"day":'+days[1]+',"type":"roi","subject":"","body":"","cta":""},{"email_num":3,"day":'+days[2]+',"type":"social_proof","subject":"","body":"","cta":""},{"email_num":4,"day":'+days[3]+',"type":"breakup","subject":"","body":"","cta":""}]}',
-      1400,40000);
-  }catch(e){console.warn('[Brain] Email failed:',e.message);}
+      1400, 40000);
+    if (pB2raw && pB2raw.email_sequence) pB2 = pB2raw;
+  } catch(e) { console.warn('[Brain] Email failed:', e.message); }
 
   setP(97,'💾 שומר...');
   var sc=parseInt(pB1.score)||55;
