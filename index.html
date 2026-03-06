@@ -3863,12 +3863,10 @@ BP18: Nurture existing customers — repeat customers spend 67% more
       +'<div class="lead-body" id="body-'+lead.id+'">'
       +'<div class="lead-tabs">'
       +'<button class="lead-tab active" onclick="switchLeadTab('+lead.id+',\'profile\',this)">👤 פרופיל</button>'
-      +'<button class="lead-tab" onclick="switchLeadTab('+lead.id+',\'analysis\',this)">🔍 ניתוח</button>'
       +'<button class="lead-tab" onclick="switchLeadTab('+lead.id+',\'metajudge\',this)">🧠 Meta-Judge</button>'
       +'<button class="lead-tab" onclick="switchLeadTab('+lead.id+',\'emails\',this)">✉️ מיילים</button>'
       +'</div>'
       +'<div class="lead-tab-panel active" id="l'+lead.id+'-profile">'+_ltab_profile(lead,enr,ai)+'</div>'
-      +'<div class="lead-tab-panel" id="l'+lead.id+'-analysis">'+_ltab_analysis(lead,ai,enr)+'</div>'
       +'<div class="lead-tab-panel" id="l'+lead.id+'-metajudge">'+_ltab_metajudge(lead,ai,enr)+'</div>'
       +'<div class="lead-tab-panel" id="l'+lead.id+'-emails">'+_ltab_emails(lead,ai,enr)+'</div>'
       +'</div></div>';
@@ -3957,222 +3955,259 @@ BP18: Nurture existing customers — repeat customers spend 67% more
   }
 
   function _ltab_metajudge(lead,ai,enr){
-    var a=ai||{},e=enr||{};
-    var isMetaJudge = !!(a.meta_score && a.meta_reasoning && !a.meta_reasoning.includes('לא זמין'));
-    var deepReady   = !!(a.scoring_breakdown || a.four_fs || a.summary_for_rep);
-    var cadenceLabel={'hot':'🔴 Hot','warm':'🟡 Warm','cool':'🔵 Cool'};
-    var cadenceColor={'hot':'#ef4444','warm':'#F59E0B','cool':'#3b82f6'};
-    var tier=a.tier||'B';
-    var score=a.score||a.meta_score||0;
-    var cadence=a.recommended_cadence||'warm';
-    var confidence=a.confidence||'';
-    var confLabel={'high':'🟢 גבוה','mid':'🟡 בינוני','low':'🔴 נמוך'};
+    var a=ai||{}, e=enr||{};
 
-    // ── 1. Score bar ──────────────────────────────────────────────
-    var tierColor=tier==='A'?'#10b981':tier==='B'?'#F59E0B':'#6b7280';
-    var scoreBar=
-      '<div style="display:grid;grid-template-columns:1fr 1fr 1fr'+(confidence?(' 1fr'):'')+';gap:8px;margin-bottom:14px">'+
-      '<div style="background:rgba(108,99,255,0.1);border:1px solid rgba(108,99,255,0.25);border-radius:8px;padding:10px;text-align:center">'+
-        '<div style="font-size:28px;font-weight:800;color:var(--accent)">'+score+'</div>'+
-        '<div style="font-size:10px;color:var(--muted)">SCORE'+(isMetaJudge?' · Meta-Judge':''+(a.triple_engine?' · Claude':''))+'</div></div>'+
-      '<div style="background:rgba(255,255,255,0.04);border:1px solid var(--border);border-radius:8px;padding:10px;text-align:center">'+
-        '<div style="font-size:28px;font-weight:800;color:'+tierColor+'">'+tier+'</div>'+
-        '<div style="font-size:10px;color:var(--muted)">TIER</div></div>'+
-      '<div style="background:rgba(255,255,255,0.04);border:1px solid var(--border);border-radius:8px;padding:10px;text-align:center">'+
-        '<div style="font-size:13px;font-weight:700;color:'+(cadenceColor[cadence]||'var(--text)')+'">'+cadence.toUpperCase()+'</div>'+
-        '<div style="font-size:10px;color:var(--muted)">CADENCE</div></div>'+
-      (confidence?
-        '<div style="background:rgba(255,255,255,0.04);border:1px solid var(--border);border-radius:8px;padding:10px;text-align:center">'+
-          '<div style="font-size:12px;font-weight:700;color:var(--text)">'+(confLabel[confidence]||confidence)+'</div>'+
-          '<div style="font-size:10px;color:var(--muted)">ביטחון</div></div>':'')+
+    // ── helpers ──────────────────────────────────────────────────────
+    var C={claude:'#a78bfa',gpt:'#34d399',gemini:'#60a5fa',judge:'#f59e0b',danger:'#f87171',muted:'rgba(226,232,240,0.45)',text:'#e2e8f0',surface:'#0e1420',border:'rgba(255,255,255,0.07)'};
+    var score      = a.meta_score || a.score || 0;
+    var cadence    = (a.recommended_cadence||'warm').toLowerCase();
+    var cadColor   = {hot:'#ef4444',warm:'#f59e0b',cool:'#60a5fa'}[cadence]||'#f59e0b';
+    var cadEmoji   = {hot:'🔥',warm:'🌡️',cool:'🔵'}[cadence]||'';
+    var tier       = score>=80?'A':score>=60?'B':'C';
+    var tierLabel  = {A:'Tier A — ליד חם',B:'Tier B — ליד חמים',C:'Tier C — ליד קר'}[tier];
+    var tierColor  = {A:'#10b981',B:'#f59e0b',C:'#6b7280'}[tier];
+    var confidence = a.confidence||'';
+    var confLabel  = {high:'HIGH — ביטחון גבוה',mid:'MID — ביטחון בינוני',low:'LOW — ביטחון נמוך'}[confidence]||confidence;
+    var confColor  = {high:'#10b981',mid:'#f59e0b',low:'#ef4444'}[confidence]||C.muted;
+
+    // ── not ready ─────────────────────────────────────────────────────
+    if(!a.status||a.status==='none')
+      return '<div style="padding:40px;text-align:center"><div style="font-size:44px;margin-bottom:14px">🧠</div>'+
+        '<div style="font-size:13px;color:'+C.muted+';margin-bottom:18px">לחץ להפעלת ניתוח Triple Engine</div>'+
+        '<button onclick="window.showAnalysisChoice('+lead.id+')" style="background:linear-gradient(135deg,#6c63ff,#8b5cf6);border:none;border-radius:8px;padding:10px 26px;font-size:13px;color:#fff;cursor:pointer;font-family:Heebo,sans-serif;font-weight:700">🚀 הפעל</button></div>';
+    if(a.status==='running')
+      return '<div style="padding:40px;text-align:center">'+
+        '<div style="font-size:38px;margin-bottom:12px">⚡</div>'+
+        '<div style="display:inline-flex;align-items:center;gap:6px;background:rgba(124,58,237,0.12);border:1px solid rgba(124,58,237,0.3);border-radius:20px;padding:4px 14px;font-size:10px;font-weight:700;color:#a78bfa;margin-bottom:12px">TRIPLE ENGINE — Claude + GPT-4o + Gemini</div>'+
+        '<div id="analysis-progress-'+lead.id+'" style="font-size:13px;color:'+C.text+';margin-bottom:8px">מנתח...</div>'+
+        '<div style="height:3px;background:rgba(255,255,255,0.05);border-radius:2px;overflow:hidden;max-width:220px;margin:0 auto">'+
+          '<div style="height:100%;width:60%;background:linear-gradient(90deg,#6c63ff,#a78bfa);border-radius:2px;animation:_aip 1.5s ease-in-out infinite"></div></div></div>';
+
+    // ── 1. HEADER: score badge + engine mini cards ────────────────────
+    var es = a.engine_statuses||{};
+    var eScores = a.engine_scores||{};
+    var clScore  = eScores.claude  || (a.claude_result  && a.claude_result.score)  || (es.claude==='ok'  ? score : '–');
+    var gptScore = eScores.gpt    || (a.gpt_result    && a.gpt_result.score)    || (es.gpt==='ok'    ? score : '–');
+    var gemScore = eScores.gemini || (a.gemini_result && a.gemini_result.score) || (es.gemini==='ok' ? score : '–');
+    var clVerdict  = (a.claude_result  && a.claude_result.reasoning)  || (es.claude==='ok'  ? 'ניתוח הושלם' : es.claude==='error' ? 'שגיאה' : 'לא הופעל');
+    var gptVerdict = (a.gpt_result    && a.gpt_result.reasoning)    || (es.gpt==='ok'    ? 'ניתוח הושלם' : es.gpt==='error'    ? 'שגיאה' : 'לא הופעל');
+    var gemVerdict = (a.gemini_result && a.gemini_result.reasoning) || (es.gemini==='ok' ? 'ניתוח הושלם' : es.gemini==='error' ? 'שגיאה' : 'לא הופעל');
+
+    function engineCard(cls, color, name, sc, verdict, status){
+      var opacity = (!status||status==='error'||status==='skipped') ? '0.45' : '1';
+      return '<div style="background:'+C.surface+';border:1px solid '+C.border+';border-radius:10px;padding:12px 14px;position:relative;overflow:hidden;opacity:'+opacity+'">'+
+        '<div style="position:absolute;top:0;right:0;left:0;height:2px;background:'+color+'"></div>'+
+        '<div style="font-size:9px;font-family:monospace;letter-spacing:1px;text-transform:uppercase;color:'+color+';margin-bottom:5px">'+name+'</div>'+
+        '<div style="font-size:26px;font-weight:900;color:'+color+';line-height:1">'+sc+'</div>'+
+        '<div style="font-size:10px;color:'+C.muted+';margin-top:4px;line-height:1.4;max-height:32px;overflow:hidden">'+verdict+'</div>'+
+      '</div>';
+    }
+
+    var headerHtml =
+      '<div style="display:flex;align-items:flex-start;justify-content:space-between;margin-bottom:16px;padding-bottom:14px;border-bottom:1px solid '+C.border+'">' +
+        '<div>' +
+          '<div style="font-size:20px;font-weight:900;line-height:1.1;color:'+C.text+'">'+(lead.name||'ליד')+'</div>'+
+          '<div style="font-size:11px;color:'+C.muted+';margin-top:4px;font-family:monospace;display:flex;gap:12px;flex-wrap:wrap">'+
+            (lead.domain?'<span>🌐 '+lead.domain+'</span>':'')+
+            (lead.type?'<span>🎭 '+lead.type+'</span>':'')+
+            '<span>ניתוח: '+new Date(a.enriched_at||a.analyzed_at||Date.now()).toLocaleString('he-IL',{day:'2-digit',month:'2-digit',hour:'2-digit',minute:'2-digit'})+'</span>'+
+          '</div>'+
+        '</div>'+
+        '<div style="text-align:center;background:rgba(245,158,11,0.08);border:1.5px solid rgba(245,158,11,0.35);border-radius:14px;padding:10px 18px;min-width:100px;flex-shrink:0">'+
+          '<div style="font-size:9px;color:'+C.judge+';font-family:monospace;letter-spacing:1.5px;text-transform:uppercase">Meta Score</div>'+
+          '<div style="font-size:44px;font-weight:900;color:'+C.judge+';line-height:1">'+score+'</div>'+
+          '<div style="font-size:10px;color:'+tierColor+';margin-top:2px">'+tierLabel+' '+cadEmoji+'</div>'+
+        '</div>'+
+      '</div>'+
+      '<div style="display:grid;grid-template-columns:1fr 1fr 1fr 1fr;gap:8px;margin-bottom:16px">'+
+        engineCard('claude',  C.claude,  'Claude',     clScore,  clVerdict,  es.claude)+
+        engineCard('gpt',     C.gpt,     'GPT-4o',     gptScore, gptVerdict, es.gpt)+
+        engineCard('gemini',  C.gemini,  'Gemini',     gemScore, gemVerdict, es.gemini)+
+        engineCard('judge',   C.judge,   'Meta-Judge', score,    a.meta_reasoning ? (a.meta_reasoning+'').substring(0,60)+'…' : 'שיפוט סופי', 'ok')+
       '</div>';
 
-    // ── 2. התכלס — Meta-Judge verdict ────────────────────────────
-    var takhlisHtml='';
-    var metaText = isMetaJudge ? (a.meta_reasoning||'') : (a.executive_summary||a.summary||'');
-    var metaAction = a.meta_action||a.next_action||'';
-    if(metaText){
-      var engineLine='';
-      if(a.engine_statuses){
-        var es=a.engine_statuses;
-        var parts=[];
-        if(es.claude==='ok') parts.push('<span style="color:#10b981">Claude ✓</span>');
-        else parts.push('<span style="color:rgba(255,255,255,0.3)">Claude –</span>');
-        if(es.gpt==='ok') parts.push('<span style="color:#10b981">GPT ✓</span>');
-        else if(es.gpt==='skipped') parts.push('<span style="color:rgba(255,255,255,0.2)">GPT ○</span>');
-        else parts.push('<span style="color:#ef4444">GPT ✗</span>');
-        if(es.gemini==='ok') parts.push('<span style="color:#10b981">Gemini ✓</span>');
-        else if(es.gemini==='skipped') parts.push('<span style="color:rgba(255,255,255,0.2)">Gemini ○</span>');
-        else parts.push('<span style="color:#ef4444">Gemini ✗</span>');
-        engineLine='<div style="font-size:10px;color:var(--muted);margin-bottom:8px;display:flex;gap:10px">'+parts.join('')+'</div>';
-      }
-      var disagreements=a.disagreements||[];
-      var disHtml=disagreements.length?
-        '<div style="margin-top:8px;padding-top:8px;border-top:1px solid rgba(245,158,11,0.2)">'+
-          '<div style="font-size:10px;color:#F59E0B;font-weight:700;margin-bottom:4px">⚡ מחלוקות בין המנועים:</div>'+
-          disagreements.map(function(d){return '<div style="font-size:11px;color:var(--muted)">▸ '+d+'</div>';}).join('')+
-        '</div>':'';
-      takhlisHtml=
-        '<div style="background:linear-gradient(135deg,rgba(108,99,255,0.08),rgba(139,92,246,0.04));border:1px solid rgba(108,99,255,0.3);border-radius:10px;padding:14px;margin-bottom:12px">'+
-          '<div style="font-weight:800;color:var(--accent);font-size:12px;margin-bottom:10px">🧠 '+(isMetaJudge?'Meta-Judge — ההחלטה הסופית':'AI Analysis — הניתוח')+'</div>'+
-          engineLine+
-          '<div style="font-size:13px;color:var(--text);line-height:1.8;margin-bottom:10px">'+metaText+'</div>'+
-          (metaAction?
-            '<div style="background:rgba(16,185,129,0.1);border:1px solid rgba(16,185,129,0.25);border-radius:6px;padding:8px 12px;font-size:12px">'+
-              '<span style="color:var(--muted)">🎯 הצעד הבא: </span>'+
-              '<span style="color:#10b981;font-weight:700">'+metaAction+'</span>'+
+    // ── 2. SCORING BREAKDOWN bars ─────────────────────────────────────
+    var sb = a.scoring_breakdown||{};
+    var sbHtml = '';
+    if(Object.keys(sb).length){
+      var sbRows = Object.entries(sb).map(function(kv){
+        var k=kv[0], v=kv[1]||{};
+        var sc2=parseInt(v.score||0);
+        var maxPts=k==='platform'?30:k==='audience_size'?25:k==='digital_presence'?20:k==='economic_pain'?15:10;
+        var bar=Math.min(100,Math.round((sc2/maxPts)*100));
+        var barColor=sc2>=maxPts*0.7?C.gpt:sc2>=maxPts*0.4?C.judge:C.danger;
+        return '<div style="display:flex;align-items:center;gap:10px;margin-bottom:8px">'+
+          '<div style="font-size:11px;color:'+C.text+';min-width:130px">'+k.replace(/_/g,' ')+'</div>'+
+          '<div style="flex:1;height:5px;background:rgba(255,255,255,0.05);border-radius:3px;overflow:hidden">'+
+            '<div style="height:100%;width:'+bar+'%;background:'+barColor+';border-radius:3px;transition:width .6s ease"></div></div>'+
+          '<div style="font-size:11px;font-weight:700;color:'+barColor+';min-width:28px;text-align:right">'+sc2+'</div>'+
+          '<div style="font-size:10px;color:'+C.muted+';flex:2;overflow:hidden;max-height:14px">'+(v.reason||'')+'</div>'+
+        '</div>';
+      }).join('');
+      var total = Object.values(sb).reduce(function(s,v){return s+parseInt((v&&v.score)||0);},0);
+      sbHtml = '<div style="background:'+C.surface+';border:1px solid '+C.border+';border-radius:10px;padding:14px 16px;margin-bottom:14px">'+
+        '<div style="font-size:10px;font-family:monospace;letter-spacing:1.5px;color:'+C.muted+';margin-bottom:12px;text-transform:uppercase;display:flex;align-items:center;gap:8px">שקלול ציון<span style="flex:1;height:1px;background:'+C.border+';display:inline-block"></span></div>'+
+        sbRows+
+        '<div style="border-top:1px solid '+C.border+';margin-top:10px;padding-top:8px;display:flex;justify-content:flex-end;align-items:center;gap:8px">'+
+          '<span style="font-size:11px;color:'+C.muted+'">סך הכל (עוגן)</span>'+
+          '<span style="font-size:20px;font-weight:900;color:'+C.judge+';font-family:monospace">'+total+'</span>'+
+        '</div>'+
+      '</div>';
+    }
+
+    // ── 3. BULLETS GRID: pains + opportunities + money + market ──────
+    var pains   = a.pain_points||e.pain_points||[];
+    var opps    = a.opportunities||e.opportunities||[];
+    var fees    = a.estimated_annual_fees||e.estimated_annual_fees||'';
+    var savings = a.estimated_xtix_savings||e.estimated_xtix_savings||'';
+    var revenue = e.estimated_annual_revenue||a.estimated_annual_revenue||'';
+    var social  = a.social_intel||e.social_intel||'';
+    var market  = a.market_intel||e.market_intel||'';
+
+    function bulletList(items, dotColor){
+      if(!items||!items.length) return '<div style="font-size:11px;color:'+C.muted+'">אין נתונים</div>';
+      return items.slice(0,5).map(function(item){
+        return '<div style="display:flex;gap:8px;margin-bottom:8px;align-items:flex-start;font-size:12px;line-height:1.5;color:'+C.text+'">'+
+          '<div style="width:6px;height:6px;border-radius:50%;background:'+dotColor+';margin-top:5px;flex-shrink:0"></div>'+
+          '<div>'+item+'</div>'+
+        '</div>';
+      }).join('');
+    }
+
+    var bulletsHtml = '';
+    if(pains.length||opps.length||fees||revenue){
+      bulletsHtml =
+      '<div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:14px">'+
+        (pains.length?
+          '<div style="background:'+C.surface+';border:1px solid '+C.border+';border-radius:10px;padding:14px 16px">'+
+            '<div style="font-size:10px;font-family:monospace;letter-spacing:1.2px;color:'+C.muted+';margin-bottom:10px;text-transform:uppercase">כאבים שזוהו</div>'+
+            bulletList(pains,'#ef4444')+
+          '</div>':'')+
+        (opps.length?
+          '<div style="background:'+C.surface+';border:1px solid '+C.border+';border-radius:10px;padding:14px 16px">'+
+            '<div style="font-size:10px;font-family:monospace;letter-spacing:1.2px;color:'+C.muted+';margin-bottom:10px;text-transform:uppercase">הזדמנויות</div>'+
+            bulletList(opps,'#34d399')+
+          '</div>':'')+
+        ((fees||savings||revenue)?
+          '<div style="background:'+C.surface+';border:1px solid '+C.border+';border-radius:10px;padding:14px 16px">'+
+            '<div style="font-size:10px;font-family:monospace;letter-spacing:1.2px;color:'+C.muted+';margin-bottom:10px;text-transform:uppercase">תמונת כסף</div>'+
+            (revenue?'<div style="margin-bottom:8px"><div style="font-size:10px;color:'+C.muted+'">הכנסה שנתית משוערת</div><div style="font-size:14px;font-weight:700;color:#34d399">'+revenue+'</div></div>':'')+
+            (fees?'<div style="margin-bottom:8px"><div style="font-size:10px;color:'+C.muted+'">עמלות נוכחיות</div><div style="font-size:14px;font-weight:700;color:#ef4444">'+fees+'</div></div>':'')+
+            (savings?'<div><div style="font-size:10px;color:'+C.muted+'">חיסכון עם XTIX</div><div style="font-size:14px;font-weight:700;color:#34d399">'+savings+'</div></div>':'')+
+          '</div>':'')+
+        ((social||market)?
+          '<div style="background:'+C.surface+';border:1px solid '+C.border+';border-radius:10px;padding:14px 16px">'+
+            '<div style="font-size:10px;font-family:monospace;letter-spacing:1.2px;color:'+C.muted+';margin-bottom:10px;text-transform:uppercase">מודיעין שוק</div>'+
+            (social?'<div style="font-size:11px;color:'+C.text+';margin-bottom:6px;line-height:1.5">'+social+'</div>':'')+
+            (market?'<div style="font-size:11px;color:'+C.text+';line-height:1.5">'+market+'</div>':'')+
+          '</div>':'')+
+      '</div>';
+    }
+
+    // ── 4. NEXT ACTION block ──────────────────────────────────────────
+    var attackSrc  = a.attack_angle||a.sales_attack||'';
+    var openingSrc = a.best_opening||a.pitch||'';
+    var nextAction = a.meta_action||a.next_action||'';
+    var actionHtml = '';
+    if(nextAction||attackSrc||openingSrc){
+      actionHtml =
+        '<div style="background:linear-gradient(135deg,rgba(167,139,250,0.08),rgba(96,165,250,0.06));border:1px solid rgba(167,139,250,0.25);border-radius:10px;padding:14px 16px;margin-bottom:14px;display:flex;align-items:flex-start;gap:14px">'+
+          '<div style="font-size:26px;flex-shrink:0">🎯</div>'+
+          '<div style="flex:1">'+
+            '<div style="font-size:10px;font-family:monospace;letter-spacing:1px;color:'+C.muted+';text-transform:uppercase;margin-bottom:6px">פעולה מומלצת — Meta-Judge</div>'+
+            (nextAction?'<div style="font-size:13px;color:'+C.text+';line-height:1.7;margin-bottom:8px">'+nextAction+'</div>':'')+
+            (attackSrc?'<div style="font-size:12px;color:'+C.text+';margin-bottom:8px"><span style="color:#ef4444;font-weight:700">⚡ זווית: </span>'+attackSrc+'</div>':'')+
+            (openingSrc?'<div style="background:rgba(245,158,11,0.08);border-right:2px solid #f59e0b;padding:6px 10px;border-radius:4px">'+
+              '<div style="font-size:9px;color:#f59e0b;font-weight:700;margin-bottom:2px;font-family:monospace">OPENING LINE</div>'+
+              '<div style="font-size:12px;color:'+C.text+';font-style:italic">"'+openingSrc+'"</div>'+
             '</div>':'')+
+          '</div>'+
+        '</div>';
+    }
+
+    // ── 5. META REASONING + disagreements ────────────────────────────
+    var metaText   = a.meta_reasoning||'';
+    var disagree   = a.disagreements||[];
+    var summaryRep = a.summary_for_rep||a.internal_summary||'';
+    var reasonHtml = '';
+    if(metaText){
+      var disHtml = disagree.length?
+        '<div style="margin-top:10px;padding-top:10px;border-top:1px solid rgba(245,158,11,0.2)">'+
+          '<div style="font-size:10px;color:#f59e0b;font-weight:700;margin-bottom:6px;font-family:monospace">⚡ מחלוקות בין מנועים</div>'+
+          disagree.map(function(d){
+            return '<div style="background:rgba(245,158,11,0.05);border:1px solid rgba(245,158,11,0.18);border-radius:6px;padding:8px 10px;margin-bottom:6px;font-size:11px;color:'+C.text+';line-height:1.6">'+d+'</div>';
+          }).join('')+
+        '</div>':'';
+      reasonHtml =
+        '<div style="background:'+C.surface+';border:1px solid '+C.border+';border-radius:10px;padding:14px 16px;margin-bottom:14px">'+
+          '<div style="font-size:10px;font-family:monospace;letter-spacing:1.5px;color:'+C.muted+';margin-bottom:10px;text-transform:uppercase;display:flex;align-items:center;gap:8px">נימוק Meta-Judge<span style="flex:1;height:1px;background:'+C.border+';display:inline-block"></span>'+
+            (confidence?'<span style="font-size:9px;font-family:monospace;font-weight:700;color:'+confColor+'">'+confLabel+'</span>':'')+
+          '</div>'+
+          '<div style="font-size:12px;color:'+C.text+';line-height:1.75">'+metaText+'</div>'+
           disHtml+
         '</div>';
     }
 
-    // ── 3. Attack Angle ──────────────────────────────────────────
-    var attackSrc = a.attack_angle||a.sales_attack||'';
-    var openingSrc = a.best_opening||a.pitch||'';
-    var attackHtml='';
-    if(attackSrc||openingSrc){
-      attackHtml=
-        '<div style="background:rgba(239,68,68,0.05);border:1px solid rgba(239,68,68,0.2);border-radius:10px;padding:12px 14px;margin-bottom:10px">'+
-          '<div style="font-weight:800;color:#ef4444;font-size:11px;margin-bottom:8px">⚡ זווית תקיפה</div>'+
-          (attackSrc?'<div style="font-size:12px;color:var(--text);margin-bottom:8px">'+attackSrc+'</div>':'')+
-          (openingSrc?
-            '<div style="background:rgba(245,158,11,0.08);border-right:2px solid #F59E0B;padding:6px 10px;border-radius:4px">'+
-              '<div style="font-size:10px;color:#F59E0B;font-weight:700;margin-bottom:2px">פתיחה:</div>'+
-              '<div style="font-size:12px;color:var(--text);font-style:italic">"'+openingSrc+'"</div>'+
-            '</div>':'')+
-        '</div>';
-    }
-
-    // ── 4. Pain Points + Economics ───────────────────────────────
-    var pains=a.pain_points||e.pain_points||[];
-    var fees=a.estimated_annual_fees||e.estimated_annual_fees||'';
-    var savings=a.estimated_xtix_savings||e.estimated_xtix_savings||'';
-    var painHtml='';
-    if(pains.length||fees||savings){
-      painHtml=
-        '<div style="background:rgba(245,158,11,0.04);border:1px solid rgba(245,158,11,0.18);border-radius:10px;padding:12px 14px;margin-bottom:10px">'+
-          '<div style="font-weight:800;color:#F59E0B;font-size:11px;margin-bottom:8px">💥 כאבים ומשמעות כלכלית</div>'+
-          (pains.length?
-            '<div style="margin-bottom:8px">'+pains.map(function(p){
-              return '<div style="font-size:11px;color:var(--text);margin-bottom:3px">▸ '+p+'</div>';
-            }).join('')+'</div>':'')+
-          ((fees||savings)?
-            '<div style="display:flex;gap:16px;padding-top:8px;border-top:1px solid rgba(245,158,11,0.15)">'+
-              (fees?'<div><div style="font-size:10px;color:var(--muted)">עמלות נוכחיות</div><div style="font-size:13px;font-weight:700;color:#ef4444">'+fees+'</div></div>':'')+
-              (savings?'<div><div style="font-size:10px;color:var(--muted)">חיסכון עם XTIX</div><div style="font-size:13px;font-weight:700;color:#10b981">'+savings+'</div></div>':'')+
-            '</div>':'')+
-        '</div>';
-    }
-
-    // ── 5. Scoring Breakdown (Phase 3) ──────────────────────────
-    var sb=a.scoring_breakdown||{};
-    var sbHtml='';
-    if(Object.keys(sb).length){
-      sbHtml=
-        '<div style="background:rgba(108,99,255,0.05);border:1px solid rgba(108,99,255,0.15);border-radius:10px;padding:12px 14px;margin-bottom:10px">'+
-          '<div style="font-weight:800;color:var(--accent);font-size:11px;margin-bottom:8px">📊 Scoring Breakdown</div>'+
-          Object.entries(sb).map(function(kv){
-            var k=kv[0],v=kv[1];
-            var sc2=parseInt((v&&v.score)||0);
-            var maxPts=k==='platform'?30:k==='audience_size'?25:k==='digital_presence'?20:k==='economic_pain'?15:10;
-            var bar=Math.round((sc2/maxPts)*100);
-            return '<div style="display:flex;align-items:center;gap:8px;margin-bottom:6px">'+
-              '<div style="font-size:10px;color:var(--muted);width:100px;flex-shrink:0">'+k.replace(/_/g,' ')+'</div>'+
-              '<div style="flex:1;height:5px;background:rgba(255,255,255,0.06);border-radius:3px;overflow:hidden">'+
-                '<div style="height:100%;width:'+bar+'%;background:linear-gradient(90deg,var(--accent),#8b5cf6);border-radius:3px"></div></div>'+
-              '<div style="font-size:11px;font-weight:700;color:var(--text);width:24px;text-align:right">'+sc2+'</div>'+
-              '<div style="font-size:10px;color:var(--muted);flex:2">'+(v&&v.reason||'')+'</div>'+
-            '</div>';
-          }).join('')+
-        '</div>';
-    } else if(!deepReady && a.status==='done'){
-      sbHtml='<div style="background:rgba(108,99,255,0.03);border:1px solid rgba(108,99,255,0.1);border-radius:8px;padding:10px 14px;margin-bottom:10px;display:flex;align-items:center;gap:10px">'+
-        '<div style="width:16px;height:16px;border:2px solid var(--accent);border-top-color:transparent;border-radius:50%;animation:spin 1s linear infinite;flex-shrink:0"></div>'+
-        '<div style="font-size:11px;color:var(--muted)">מחשב Scoring Breakdown... (Phase 3)</div></div>';
-    }
-
-    // ── 6. Four Fs ───────────────────────────────────────────────
-    var ff=a.four_fs||{};
-    var ffHtml='';
+    // ── 6. Four Fs ────────────────────────────────────────────────────
+    var ff = a.four_fs||{};
+    var ffHtml = '';
     if(ff.f1_current||ff.f3_pain){
-      ffHtml=
-        '<div style="background:rgba(245,158,11,0.04);border:1px solid rgba(245,158,11,0.15);border-radius:10px;padding:12px 14px;margin-bottom:10px">'+
-          '<div style="font-weight:800;color:#F59E0B;font-size:11px;margin-bottom:8px">🎯 Four Fs</div>'+
+      ffHtml =
+        '<div style="background:'+C.surface+';border:1px solid '+C.border+';border-radius:10px;padding:14px 16px;margin-bottom:14px">'+
+          '<div style="font-size:10px;font-family:monospace;letter-spacing:1.2px;color:'+C.muted+';margin-bottom:10px;text-transform:uppercase">🎯 Four Fs Framework</div>'+
           '<div style="display:grid;grid-template-columns:1fr 1fr;gap:8px">'+
-          [['F1 עכשיו',ff.f1_current,'rgba(59,130,246,0.1)'],
-           ['F2 עובד',ff.f2_working,'rgba(16,185,129,0.1)'],
-           ['F3 כואב',ff.f3_pain,'rgba(239,68,68,0.1)'],
-           ['F4 חזון',ff.f4_future,'rgba(139,92,246,0.1)']]
+          [['F1 — עכשיו',ff.f1_current,'rgba(59,130,246,0.1)','#60a5fa'],
+           ['F2 — עובד',ff.f2_working,'rgba(16,185,129,0.1)','#34d399'],
+           ['F3 — כואב',ff.f3_pain,'rgba(239,68,68,0.1)','#f87171'],
+           ['F4 — חזון',ff.f4_future,'rgba(139,92,246,0.1)','#a78bfa']]
           .filter(function(r){return r[1];})
           .map(function(r){
-            return '<div style="background:'+r[2]+';border-radius:6px;padding:8px">'+
-              '<div style="font-size:10px;font-weight:700;color:#F59E0B;margin-bottom:3px">'+r[0]+'</div>'+
-              '<div style="font-size:11px;color:var(--text)">'+r[1]+'</div></div>';
+            return '<div style="background:'+r[2]+';border-radius:8px;padding:10px">'+
+              '<div style="font-size:9px;font-weight:700;color:'+r[3]+';margin-bottom:4px;font-family:monospace">'+r[0]+'</div>'+
+              '<div style="font-size:11px;color:'+C.text+';line-height:1.5">'+r[1]+'</div></div>';
           }).join('')+
           '</div></div>';
     }
 
-    // ── 7. Salesforce BPs ────────────────────────────────────────
-    var bps=a.salesforce_bps||{};
-    var bpHtml='';
+    // ── 7. Summary for rep (editable) ────────────────────────────────
+    var repHtml =
+      '<div style="background:rgba(255,255,255,0.02);border:1px solid '+C.border+';border-radius:10px;padding:14px 16px;margin-bottom:14px">'+
+        '<div style="font-size:10px;font-family:monospace;letter-spacing:1.2px;color:'+C.muted+';margin-bottom:10px;text-transform:uppercase">📋 סיכום לנציג — לפני הטלפון</div>'+
+        '<textarea id="summary-text-'+lead.id+'" style="width:100%;background:rgba(0,0,0,0.2);border:1px solid rgba(255,255,255,0.1);border-radius:8px;padding:10px;color:'+C.text+';font-family:Heebo,sans-serif;font-size:12px;line-height:1.75;min-height:80px;resize:vertical;box-sizing:border-box">'+summaryRep+'</textarea>'+
+        '<div style="margin-top:8px;display:flex;gap:8px;flex-wrap:wrap;align-items:center">'+
+          '<button onclick="window.saveSummary('+lead.id+')" style="background:rgba(16,185,129,0.15);border:1px solid rgba(16,185,129,0.3);border-radius:6px;padding:5px 12px;font-size:11px;color:#10b981;cursor:pointer;font-family:Heebo,sans-serif;font-weight:700">💾 שמור</button>'+
+          '<button onclick="window.showAnalysisChoice('+lead.id+')" style="background:rgba(108,99,255,0.1);border:1px solid rgba(108,99,255,0.2);border-radius:6px;padding:5px 12px;font-size:11px;color:#a78bfa;cursor:pointer;font-family:Heebo,sans-serif;font-weight:700">🔄 ניתוח מחדש</button>'+
+          '<button onclick="event.stopPropagation();window._confirmDealClose('+lead.id+',true)" style="background:rgba(16,185,129,0.12);border:1px solid rgba(16,185,129,0.3);border-radius:6px;padding:5px 12px;font-size:11px;color:#10b981;cursor:pointer;font-family:Heebo,sans-serif;font-weight:700">🎉 נסגר</button>'+
+          '<button onclick="event.stopPropagation();window._confirmDealClose('+lead.id+',false)" style="background:rgba(239,68,68,0.08);border:1px solid rgba(239,68,68,0.25);border-radius:6px;padding:5px 12px;font-size:11px;color:#ef4444;cursor:pointer;font-family:Heebo,sans-serif;font-weight:700">❌ לא נסגר</button>'+
+          (lead.phone?'<a href="tel:'+lead.phone+'" style="margin-right:auto;background:rgba(16,185,129,0.08);border:1px solid rgba(16,185,129,0.2);border-radius:6px;padding:5px 12px;font-size:11px;color:#10b981;text-decoration:none;font-family:Heebo,sans-serif;font-weight:700">📞 '+lead.phone+'</a>':'')+
+        '</div>'+
+      '</div>';
+
+    // ── 8. Footer: Salesforce BPs ─────────────────────────────────────
+    var bps = a.salesforce_bps||{};
+    var bpHtml = '';
     if(Object.keys(bps).length){
-      var bpMap={
-        bp2_persona_fit:'BP#2 Persona Fit',bp6_priority:'BP#6 Priority',
-        bp7_prep_notes:'BP#7 Call Prep',bp8_decision_maker:'BP#8 Decision Maker',
-        bp11_social_proof:'BP#11 Social Proof',bp17_value_angle:'BP#17 Value Angle'
-      };
-      bpHtml=
-        '<div style="background:rgba(16,185,129,0.03);border:1px solid rgba(16,185,129,0.15);border-radius:10px;padding:12px 14px;margin-bottom:10px">'+
-          '<div style="font-weight:800;color:#10b981;font-size:11px;margin-bottom:8px">✅ Salesforce BPs</div>'+
-          '<div style="display:grid;grid-template-columns:1fr 1fr;gap:6px">'+
+      var bpMap={bp2_persona_fit:'Persona Fit',bp6_priority:'Priority',bp7_prep_notes:'Call Prep',bp8_decision_maker:'Decision Maker',bp11_social_proof:'Social Proof',bp17_value_angle:'Value Angle'};
+      bpHtml =
+        '<div style="background:rgba(16,185,129,0.03);border:1px solid rgba(16,185,129,0.15);border-radius:10px;padding:12px 16px;margin-bottom:14px">'+
+          '<div style="font-size:10px;font-family:monospace;letter-spacing:1.2px;color:'+C.muted+';margin-bottom:8px;text-transform:uppercase">✅ Salesforce BPs</div>'+
+          '<div style="display:flex;flex-wrap:wrap;gap:6px">'+
           Object.entries(bps).filter(function(kv){return bpMap[kv[0]]&&kv[1];}).map(function(kv){
-            var v=kv[1];
-            var dot=v==='high'?'🟢':v==='medium'?'🟡':v==='low'?'🔴':'▸';
-            return '<div style="font-size:11px;padding:4px 0;border-bottom:1px solid rgba(255,255,255,0.04)">'+
-              '<span style="color:#10b981;font-weight:700;font-size:10px">'+(bpMap[kv[0]]||kv[0])+': </span>'+
-              dot+' <span style="color:var(--text)">'+v+'</span></div>';
+            var v=kv[1]; var dot=v==='high'?'🟢':v==='medium'?'🟡':v==='low'?'🔴':'▸';
+            return '<span style="background:rgba(16,185,129,0.08);border:1px solid rgba(16,185,129,0.2);border-radius:4px;padding:3px 8px;font-size:10px">'+
+              '<span style="color:#10b981;font-weight:700">'+(bpMap[kv[0]]||kv[0])+':</span> '+dot+' '+v+'</span>';
           }).join('')+
           '</div></div>';
     }
 
-    // ── 8. Risk Factors ─────────────────────────────────────────
-    var riskHtml='';
-    if(a.risk_factors&&a.risk_factors.length){
-      riskHtml=
-        '<div style="background:rgba(239,68,68,0.03);border:1px solid rgba(239,68,68,0.12);border-radius:8px;padding:10px 12px;margin-bottom:10px">'+
-          '<div style="font-size:10px;font-weight:700;color:#ef4444;margin-bottom:5px">⚠️ גורמי סיכון</div>'+
-          a.risk_factors.map(function(r){return '<div style="font-size:11px;color:var(--muted)">▸ '+r+'</div>';}).join('')+
-        '</div>';
-    }
+    // ── 9. Footer line ─────────────────────────────────────────────────
+    var footerHtml =
+      '<div style="font-size:10px;color:'+C.muted+';text-align:center;padding:6px 0;font-family:monospace">'+
+        'XTIX CRM · Triple Engine · Claude + GPT-4o + Gemini · Meta-Judge v2.2 · '+
+        new Date(a.enriched_at||a.analyzed_at||Date.now()).toLocaleString('he-IL',{day:'2-digit',month:'2-digit',year:'numeric',hour:'2-digit',minute:'2-digit'})+
+      '</div>';
 
-    // ── 9. Summary for Rep (editable) ───────────────────────────
-    var summaryText=a.summary_for_rep||a.internal_summary||
-      (isMetaJudge?'':(a.executive_summary||a.summary||''));
-    var repSummaryHtml=
-      '<div style="background:rgba(255,255,255,0.03);border:1px solid var(--border);border-radius:10px;padding:14px;margin-bottom:12px">'+
-        '<div style="font-weight:800;color:var(--accent);margin-bottom:8px;font-size:11px">📋 סיכום לנציג — מה לדעת לפני שמרים טלפון</div>'+
-        '<textarea id="summary-text-'+lead.id+'" style="width:100%;background:transparent;border:1px solid var(--border);border-radius:8px;padding:10px;color:var(--text);font-family:Heebo,sans-serif;font-size:12px;line-height:1.75;min-height:90px;resize:vertical;box-sizing:border-box">'+summaryText+'</textarea>'+
-        '<div style="margin-top:8px;display:flex;gap:8px;flex-wrap:wrap">'+
-          '<button onclick="window.saveSummary('+lead.id+')" style="background:rgba(16,185,129,0.15);border:1px solid rgba(16,185,129,0.3);border-radius:6px;padding:5px 14px;font-size:11px;color:#10b981;cursor:pointer;font-family:Heebo,sans-serif;font-weight:700">💾 שמור</button>'+
-          '<button onclick="window.pushSummaryToHubspot('+lead.id+')" style="background:rgba(245,158,11,0.12);border:1px solid rgba(245,158,11,0.3);border-radius:6px;padding:5px 14px;font-size:11px;color:#F59E0B;cursor:pointer;font-family:Heebo,sans-serif;font-weight:700">🔗 שלח ל-HubSpot</button>'+
-          '<button onclick="window.showAnalysisChoice('+lead.id+')" style="background:rgba(108,99,255,0.1);border:1px solid rgba(108,99,255,0.2);border-radius:6px;padding:5px 14px;font-size:11px;color:var(--accent);cursor:pointer;font-family:Heebo,sans-serif;font-weight:700">🔄 נתח מחדש</button>'+
-        '</div></div>';
-
-    // ── 10. Phone reminder ───────────────────────────────────────
-    var phone=lead.phone||'';
-    var phoneHtml=phone?
-      '<div style="background:rgba(16,185,129,0.05);border:1px solid rgba(16,185,129,0.15);border-radius:8px;padding:10px 12px;font-size:12px">'+
-        '📞 <span style="color:var(--muted)">הגיע הרגע לאיסוף מידע לפני שמרים טלפון ובדיקה התאמה: </span>'+
-        '<a href="tel:'+phone+'" style="color:#10b981;font-weight:700;text-decoration:none">'+phone+'</a>'+
-      '</div>':'';
-
-    if(a.status!=='done') return (
-      '<div style="padding:32px;text-align:center">'+
-        '<div style="font-size:40px;margin-bottom:12px">⏳</div>'+
-        '<div style="font-size:13px;color:var(--muted)">הניתוח בתהליך — ייפתח אוטומטית</div>'+
-      '</div>');
-
-    return '<div style="padding:2px">'+scoreBar+takhlisHtml+attackHtml+painHtml+sbHtml+ffHtml+bpHtml+riskHtml+repSummaryHtml+phoneHtml+'</div>';
+    return '<div style="padding:4px">'+headerHtml+sbHtml+bulletsHtml+actionHtml+reasonHtml+ffHtml+repHtml+bpHtml+footerHtml+'</div>';
   }
 
   // ── Email / summary helpers ────────────────────────────────────
@@ -5318,7 +5353,7 @@ BP6-10: תעדף (פלטפורמה ישנה+דומיין+6+ אירועים), Dis
       if(crd) crd.classList.add('expanded');
       if(arr) arr.textContent='▲';
       var tabs=document.querySelectorAll('#lead-'+leadId+' .lead-tab');
-      if(tabs[1]) switchLeadTab(leadId,'analysis',tabs[1]);
+      if(tabs[1]) switchLeadTab(leadId,'metajudge',tabs[1]);
     }
 
     try {
@@ -5352,7 +5387,7 @@ BP6-10: תעדף (פלטפורמה ישנה+דומיין+6+ אירועים), Dis
         // Switch to Meta-Judge tab (tab index 2)
         var tabs2=document.querySelectorAll('#lead-'+leadId+' .lead-tab');
         if(tabs2[2]) switchLeadTab(leadId,'metajudge',tabs2[2]);
-        else if(tabs2[1]) switchLeadTab(leadId,'analysis',tabs2[1]);
+        else if(tabs2[1]) switchLeadTab(leadId,'metajudge',tabs2[1]);
       }
       setTimeout(function(){
         var c=document.getElementById('lead-'+leadId);
