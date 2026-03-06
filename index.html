@@ -7377,7 +7377,7 @@ addSalesPlaybookPanel();
   };
 
   // ===== SELECTION =====
-  var sel3=new Set();
+  var sel3=window._bulkSel||(window._bulkSel=new Set());
   function chkCh(id,checked){if(checked)sel3.add(id);else sel3.delete(id);updBulk();}
   window.toggleSelAll=function(){
     var all=document.querySelectorAll('.v3chk');
@@ -8696,7 +8696,7 @@ window._cleanForFirebase = function _cleanForFirebase(obj) {
   };
 
   // ===== SELECTION =====
-  var sel3=new Set();
+  var sel3=window._bulkSel||(window._bulkSel=new Set());
   function chkCh(id,checked){if(checked)sel3.add(id);else sel3.delete(id);updBulk();}
   window.toggleSelAll=function(){
     var all=document.querySelectorAll('.v3chk');
