@@ -3997,7 +3997,7 @@ BP18: Nurture existing customers — repeat customers spend 67% more
       ? '<span class="_lbar-tag">'+(lead.platform||enr.platform_current).replace(/[<>]/g,'')+'</span>' : '';
 
     var aiChip = aiSt==='done'
-      ? '<span class="_lbar-ai-done">Analyzed</span>'
+      ? '<button class="_lbar-ai-done" onclick="event.stopPropagation();window.showAnalysisChoice('+lead.id+')" title="נתח מחדש">Analyzed</button>'
       : aiSt==='running'
         ? '<span class="_lbar-ai-run" id="ai-badge-'+lead.id+'">Analyzing...</span>'
         : '<button class="_lbar-ai-btn" onclick="event.stopPropagation();window.showAnalysisChoice('+lead.id+')" title="הפעל ניתוח AI">Analyze</button>';
@@ -6182,6 +6182,7 @@ BP6-10: תעדף (פלטפורמה ישנה+דומיין+6+ אירועים), Dis
   font-family: 'JetBrains Mono', monospace;
   background: rgba(52,211,153,.08);
   border: 1px solid rgba(52,211,153,.22);
+  cursor: pointer;
   border-radius: 6px; padding: 4px 10px;
   white-space: nowrap;
 }
@@ -7810,11 +7811,20 @@ addSalesPlaybookPanel();
     var _aiBadgeParent = _aiDone ? _aiDone.parentElement : null;
     var _aiSt = (lead.ai_analysis && lead.ai_analysis.status) || 'none';
     var _newChip = _aiSt === 'done'
-      ? '<span class="_lbar-ai-done">Analyzed</span>'
+      ? '<button class="_lbar-ai-done" onclick="event.stopPropagation();window.showAnalysisChoice('+lead.id+')" title="נתח מחדש">Analyzed</button>'
       : _aiSt === 'running'
       ? '<span class="_lbar-ai-run" id="ai-badge-'+lead.id+'">Analyzing...</span>'
       : '<button class="_lbar-ai-btn" onclick="event.stopPropagation();window.showAnalysisChoice('+lead.id+')" title="הפעל ניתוח AI">Analyze</button>';
     if (_aiDone) { _aiDone.outerHTML = _newChip; }
+    else {
+      var _badges = card.querySelector('.lead-badges');
+      var _statusDiv = _badges && _badges.querySelector('._lbar-status');
+      if (_badges && _statusDiv) {
+        var _chipEl = document.createElement('span');
+        _chipEl.innerHTML = _newChip;
+        _badges.insertBefore(_chipEl.firstChild, _statusDiv);
+      }
+    }
 
     // Update segment badge
     var _segEl = card.querySelector('._lbar-seg');
@@ -7825,6 +7835,13 @@ addSalesPlaybookPanel();
         var _tmp = document.createElement('span');
         _tmp.innerHTML = _newSeg;
         _segEl.replaceWith(_tmp.firstChild);
+      } else {
+        var _metaRow = card.querySelector('._lbar-meta');
+        if (_metaRow) {
+          var _tmp2 = document.createElement('span');
+          _tmp2.innerHTML = _newSeg;
+          _metaRow.insertBefore(_tmp2.firstChild, _metaRow.firstChild);
+        }
       }
     }
 }
@@ -9146,7 +9163,48 @@ window._cleanForFirebase = function _cleanForFirebase(obj) {
       srcBadge.textContent=(icons[lead.source]||'📌')+' '+dateStr;
       meta.appendChild(srcBadge);
     }
-  }
+  
+
+    // Update AI chip
+    var _aiDone = card.querySelector('._lbar-ai-done, ._lbar-ai-run, ._lbar-ai-btn');
+    var _aiSt = (lead.ai_analysis && lead.ai_analysis.status) || 'none';
+    var _newChip = _aiSt === 'done'
+      ? '<button class="_lbar-ai-done" onclick="event.stopPropagation();window.showAnalysisChoice('+lead.id+')" title="נתח מחדש">Analyzed</button>'
+      : _aiSt === 'running'
+      ? '<span class="_lbar-ai-run" id="ai-badge-'+lead.id+'">Analyzing...</span>'
+      : '<button class="_lbar-ai-btn" onclick="event.stopPropagation();window.showAnalysisChoice('+lead.id+')" title="הפעל ניתוח AI">Analyze</button>';
+    if (_aiDone) { _aiDone.outerHTML = _newChip; }
+    else {
+      // no chip yet — insert before status div
+      var _badges = card.querySelector('.lead-badges');
+      var _statusDiv = _badges && _badges.querySelector('._lbar-status');
+      if (_badges && _statusDiv) {
+        var _chipEl = document.createElement('span');
+        _chipEl.innerHTML = _newChip;
+        _badges.insertBefore(_chipEl.firstChild, _statusDiv);
+      }
+    }
+
+    // Update segment badge
+    var _segEl = card.querySelector('._lbar-seg');
+    var _segVal = lead.segment || lead.type || '';
+    if (_segVal && typeof window._segBadge === 'function') {
+      var _newSeg = window._segBadge(_segVal);
+      if (_segEl) {
+        var _tmp = document.createElement('span');
+        _tmp.innerHTML = _newSeg;
+        _segEl.replaceWith(_tmp.firstChild);
+      } else {
+        // no seg yet — insert at start of meta row
+        var _metaRow = card.querySelector('._lbar-meta');
+        if (_metaRow) {
+          var _tmp2 = document.createElement('span');
+          _tmp2.innerHTML = _newSeg;
+          _metaRow.insertBefore(_tmp2.firstChild, _metaRow.firstChild);
+        }
+      }
+    }
+}
 
   // ===== FILTER + SORT =====
   window.filterV3 = function() {
