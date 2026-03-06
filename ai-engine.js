@@ -220,10 +220,19 @@ window.updateAnalysisOutcome = async function(logDocId, outcome, notes) {
 window.getBrainMemory = async function(lead) {
   var segment  = lead.segment || lead.type || '';
   var platform = lead.platform || '';
-  var memory   = { segment_stats:null, platform_stats:null, score_correlations:null, mistake_patterns:null, timing_patterns:null, recent_wins:null, recent_losses:null, raw_decisions:[] };
+  var memory   = { segment_stats:null, platform_stats:null, score_correlations:null, mistake_patterns:null, timing_patterns:null, recent_wins:null, recent_losses:null, raw_decisions:[], brain_insights:null };
 
   try {
     if (typeof db==='undefined'||!db) return memory;
+
+    // ── Load brain_insights (KB learning output) ──
+    try {
+      var insightDoc = await db.collection('brain_insights').doc('latest').get();
+      if (insightDoc.exists) {
+        memory.brain_insights = insightDoc.data();
+        console.log('[Brain] brain_insights loaded:', memory.brain_insights.generated_at||'?');
+      }
+    } catch(e) { console.warn('[Brain] brain_insights load failed:', e.message); }
 
     var snap = await db.collection(AI_DECISIONS_COL).orderBy('timestamp','desc').limit(100).get();
     var all = [];
@@ -552,12 +561,32 @@ async function _metaJudge(lead, claudeResult, gptResult, geminiResult, memory, c
 
   var system = [
     'אתה Meta-Judge של XTIX CRM — השופט הסופי.',
-    'יש לך: (1) תוצאות 3 מנועים (2) זיכרון Firebase (3) מדריך ציון.',
+    'יש לך: (1) תוצאות 3 מנועים (2) זיכרון Firebase (3) מדריך ציון (4) מתודולוגיית מכירות מה-Knowledge Base.',
     'אתה לא ממצע — אתה מחליט ומסביר בנקודות.',
     'כאב ללא ראיה = לא קיים. Firebase pattern = משקל גבוה.',
+    'מתודולוגיית המכירות מה-KB = הנחיות לטון, cadence, ופיצ\'.',
     SHARED_SCORING_GUIDE,
     'החזר JSON נקי בלבד. עברית.'
   ].join('\n');
+
+  // Build brain_insights context
+  var insightsStr = '';
+  if (memory.brain_insights) {
+    var bi = memory.brain_insights;
+    insightsStr = [
+      '=== KNOWLEDGE BASE INSIGHTS (נוצר: '+(bi.generated_at||'?')+') ===',
+      bi.sales_methodology_summary ? 'מתודולוגיה: '+bi.sales_methodology_summary : '',
+      bi.tone_guidelines           ? 'טון: '+bi.tone_guidelines : '',
+      bi.score_calibration         ? 'כיול ציון: '+bi.score_calibration : '',
+      (bi.winning_patterns&&bi.winning_patterns.length) ? 'דפוסי ניצחון: '+bi.winning_patterns.join(' | ') : '',
+      (bi.losing_patterns&&bi.losing_patterns.length)   ? 'דפוסי כישלון: '+bi.losing_patterns.join(' | ')   : '',
+      bi.cadence_rules ? 'חוקי cadence: hot='+((bi.cadence_rules||{}).hot||'')+' warm='+((bi.cadence_rules||{}).warm||'')+' cool='+((bi.cadence_rules||{}).cool||'') : '',
+      (bi.key_objections&&bi.key_objections.length) ? 'התנגדויות: '+bi.key_objections.slice(0,3).join(' | ') : '',
+      bi.meta_judge_instructions ? '⭐ הנחיות ישירות ל-Meta-Judge: '+bi.meta_judge_instructions : '',
+      bi.platform_intelligence && bi.platform_intelligence[lead.platform] ? 'intelligence על '+lead.platform+': '+bi.platform_intelligence[lead.platform] : '',
+      '('+( bi.kb_sources_count||0)+' מקורות KB, '+(bi.decisions_analyzed||0)+' ניתוחי עבר)'
+    ].filter(Boolean).join('\n');
+  }
 
   var user = [
     'ליד: '+(lead.name||'')+' | סגמנט: '+(lead.segment||lead.type||'')+' | פלטפורמה: '+(lead.platform||''),
@@ -569,6 +598,7 @@ async function _metaJudge(lead, claudeResult, gptResult, geminiResult, memory, c
     '=== זיכרון Firebase ===',
     memStr,
     '',
+    insightsStr ? insightsStr+'\n' : '',
     'החזר JSON מדויק עם כל השדות הבאים — ענה על 25 נקודות בתוך השדות עצמם:',
     '{',
     '  "meta_score": <0-100>,',
@@ -761,6 +791,9 @@ window._tripleEnginePipeline = async function(lead) {
   setP(12,'🧠 טוען זיכרון היסטורי...');
   var memory={};
   try{memory=await window.getBrainMemory(lead);}catch(e){console.warn('[Brain] Memory failed:',e.message);}
+
+  // שלב 2b: Knowledge Base context
+  // brain_insights נטענים ב-getBrainMemory מ-Firebase — לא ישירות מה-KB
 
   // שלב 3: 3 מנועים במקביל
   setP(18,'🚀 '+activeEngines+' מנועים רצים במקביל...');

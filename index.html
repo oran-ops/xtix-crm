@@ -1723,6 +1723,11 @@ document.addEventListener("DOMContentLoaded",function(){
     <button class="nav-btn" data-panel="users" onclick="switchMainTab('users',this);setTimeout(window.loadUsers,50);" id="nav-users" style="display:none" data-role="admin">
       <span class="nav-icon"><svg width="14" height="14" viewBox="0 0 14 14" fill="none"><circle cx="5" cy="4.5" r="2" stroke="currentColor" stroke-width="1.3"/><path d="M1 12c0-2.2 1.8-4 4-4s4 1.8 4 4" stroke="currentColor" stroke-width="1.3" stroke-linecap="round"/><circle cx="10.5" cy="4.5" r="1.5" stroke="currentColor" stroke-width="1.2" opacity=".6"/><path d="M12 10.5c0-1.1-.5-2-1.5-2.5" stroke="currentColor" stroke-width="1.2" stroke-linecap="round" opacity=".6"/></svg></span><span class="nav-label">משתמשים</span>
     </button>
+    <button class="nav-btn" data-panel="kb" onclick="switchMainTab('kb',this);setTimeout(window._kbInit,50)">
+      <span class="nav-icon"><svg width="14" height="14" viewBox="0 0 14 14" fill="none"><rect x="2" y="1.5" width="8" height="10" rx="1.5" stroke="currentColor" stroke-width="1.3"/><path d="M4.5 4.5h5M4.5 7h5M4.5 9.5h3" stroke="currentColor" stroke-width="1.2" stroke-linecap="round" opacity=".6"/><circle cx="11" cy="11" r="2.5" fill="var(--accent)" opacity=".9"/><path d="M10 11h2M11 10v2" stroke="#fff" stroke-width="1.2" stroke-linecap="round"/></svg></span>
+      <span class="nav-label">Knowledge Base</span>
+      <span id="kb-badge" style="display:none;background:linear-gradient(135deg,#0ea5e9,#6366f1);color:#fff;border-radius:10px;padding:1px 7px;font-size:9px;font-weight:700;margin-right:auto">0</span>
+    </button>
     <button class="nav-btn" data-panel="aichat" onclick="switchMainTab('aichat',this)">
       <span class="nav-icon"><svg width="14" height="14" viewBox="0 0 14 14" fill="none"><path d="M2 11c0-2.8 2.2-5 5-5s5 2.2 5 5" stroke="currentColor" stroke-width="1.3" stroke-linecap="round"/><circle cx="7" cy="4.5" r="2" stroke="currentColor" stroke-width="1.3"/></svg></span><span class="nav-label">AI Chat</span>
     </button>
@@ -1743,6 +1748,7 @@ document.addEventListener("DOMContentLoaded",function(){
     <div class="sb-indicators">
       <span id="server-status" onclick="checkServer()" style="cursor:pointer" title="בדוק חיבור שרת">⚪ Server</span>
       <span id="storage-indicator" title="סטטוס שמירה">💾</span>
+      <span id="kb-status-indicator" onclick="switchMainTab('kb',document.querySelector('[data-panel=kb]'));setTimeout(window._kbInit,50)" style="cursor:pointer;font-size:10px" title="Knowledge Base — לחץ לפרטים">📚 KB</span>
     </div>
 
     <!-- Tools -->
@@ -3825,9 +3831,7 @@ BP18: Nurture existing customers — repeat customers spend 67% more
     var list = document.getElementById('leads-list');
     if (!list) return;
     var existing = document.getElementById('lead-' + lead.id);
-    var wasOpen  = existing && document.getElementById('body-'+lead.id) && document.getElementById('body-'+lead.id).classList.contains('open');
-    var wasTab   = wasOpen ? (function(){ var t=existing.querySelector('.lead-tab.active'); return t?t.getAttribute('onclick')||'':''; })() : '';
-    if (existing && existing.parentNode) existing.parentNode.removeChild(existing);
+    if (existing) existing.remove();
     var score    = lead.score || 0;
     var tier     = lead.tier  || (score>=80?'A':score>=60?'B':'C');
     var initials = (lead.name||'??').substring(0,2);
@@ -3859,30 +3863,16 @@ BP18: Nurture existing customers — repeat customers spend 67% more
       +'<div class="lead-body" id="body-'+lead.id+'">'
       +'<div class="lead-tabs">'
       +'<button class="lead-tab active" onclick="switchLeadTab('+lead.id+',\'profile\',this)">👤 פרופיל</button>'
-      +'<button class="lead-tab" onclick="switchLeadTab('+lead.id+',\'analysis\',this)">🧠 Meta-Judge</button>'
+      +'<button class="lead-tab" onclick="switchLeadTab('+lead.id+',\'analysis\',this)">🔍 ניתוח</button>'
+      +'<button class="lead-tab" onclick="switchLeadTab('+lead.id+',\'metajudge\',this)">🧠 Meta-Judge</button>'
       +'<button class="lead-tab" onclick="switchLeadTab('+lead.id+',\'emails\',this)">✉️ מיילים</button>'
       +'</div>'
       +'<div class="lead-tab-panel active" id="l'+lead.id+'-profile">'+_ltab_profile(lead,enr,ai)+'</div>'
-      +'<div class="lead-tab-panel" id="l'+lead.id+'-analysis">'+_ltab_metajudge(lead,ai,enr)+'</div>'
+      +'<div class="lead-tab-panel" id="l'+lead.id+'-analysis">'+_ltab_analysis(lead,ai,enr)+'</div>'
+      +'<div class="lead-tab-panel" id="l'+lead.id+'-metajudge">'+_ltab_metajudge(lead,ai,enr)+'</div>'
       +'<div class="lead-tab-panel" id="l'+lead.id+'-emails">'+_ltab_emails(lead,ai,enr)+'</div>'
       +'</div></div>';
     list.insertAdjacentHTML('beforeend', html);
-    if (wasOpen) {
-      var bdy = document.getElementById('body-'+lead.id);
-      var crd = document.getElementById('lead-'+lead.id);
-      var arr = document.getElementById('arrow-'+lead.id);
-      if (bdy) bdy.classList.add('open');
-      if (crd) crd.classList.add('expanded');
-      if (arr) arr.textContent = '▲';
-      if (wasTab) {
-        var tabMatch = wasTab.match(/'([^']+)'/g);
-        if (tabMatch && tabMatch[1]) {
-          var tabName = tabMatch[1].replace(/'/g,'');
-          var tabs = document.querySelectorAll('#lead-'+lead.id+' .lead-tab');
-          tabs.forEach(function(t){ if(t.getAttribute('onclick')&&t.getAttribute('onclick').includes(tabName)) switchLeadTab(lead.id,tabName,t); });
-        }
-      }
-    }
     var sel=document.querySelector('.status-select[data-lead-id="'+lead.id+'"]');
     if(sel) sel.addEventListener('change',function(){var l=leads.find(function(x){return x.id===lead.id;});if(l){l.status=this.value;l.updated_at=new Date().toISOString();if(typeof db!=='undefined'&&db)db.collection('leads').doc(String(lead.id)).update({status:l.status,updated_at:l.updated_at}).catch(function(){});updateStats();}});
     if(aiSt==='none'&&(lead.domain||lead.name)) setTimeout(function(){window.triggerFullAnalysis(lead.id,true);},900);
@@ -3966,7 +3956,7 @@ BP18: Nurture existing customers — repeat customers spend 67% more
     return out;
   }
 
-  function _ltab_summary(lead,ai,enr){
+  function _ltab_metajudge(lead,ai,enr){
     var a=ai||{},e=enr||{};
     var isMetaJudge = !!(a.meta_score && a.meta_reasoning && !a.meta_reasoning.includes('לא זמין'));
     var deepReady   = !!(a.scoring_breakdown || a.four_fs || a.summary_for_rep);
@@ -4184,137 +4174,6 @@ BP18: Nurture existing customers — repeat customers spend 67% more
 
     return '<div style="padding:2px">'+scoreBar+takhlisHtml+attackHtml+painHtml+sbHtml+ffHtml+bpHtml+riskHtml+repSummaryHtml+phoneHtml+'</div>';
   }
-
-  // ── _ltab_metajudge — דוח Meta-Judge המלא ─────────────────────
-  function _ltab_metajudge(lead, ai, enr) {
-    var a = ai||{}, e = enr||{};
-    if (!a.status || a.status === 'none') {
-      return '<div style="padding:40px;text-align:center">'+
-        '<div style="font-size:48px;margin-bottom:14px">🧠</div>'+
-        '<div style="font-size:14px;color:var(--text);font-weight:700;margin-bottom:6px">המוח לא הופעל עדיין</div>'+
-        '<div style="font-size:12px;color:var(--muted);margin-bottom:20px">הפעל ניתוח כדי לראות את דוח Meta-Judge</div>'+
-        '<button onclick="window.showAnalysisChoice('+lead.id+')" style="background:var(--accent);border:none;border-radius:10px;padding:11px 28px;font-size:13px;color:#fff;cursor:pointer;font-family:Heebo,sans-serif;font-weight:700">🚀 הפעל Triple Engine</button>'+
-      '</div>';
-    }
-    if (a.status === 'running') {
-      var engineBadge = (typeof _brainKeys!=='undefined' && _brainKeys.gpt && _brainKeys.gemini)
-        ? '⚡ TRIPLE ENGINE' : '🧠 CLAUDE';
-      return '<div style="padding:36px;text-align:center">'+
-        '<div style="font-size:38px;margin-bottom:14px;animation:_aip 1.2s ease-in-out infinite">🧠</div>'+
-        '<div style="display:inline-flex;align-items:center;gap:6px;background:rgba(124,58,237,0.1);border:1px solid rgba(124,58,237,0.25);border-radius:20px;padding:4px 14px;font-size:10px;font-weight:700;color:#a78bfa;margin-bottom:12px">'+engineBadge+'</div>'+
-        '<div id="analysis-progress-'+lead.id+'" style="font-size:13px;color:var(--text);margin-bottom:8px">מנתח...</div>'+
-        '<div style="font-size:11px;color:var(--muted);margin-bottom:16px">Claude → GPT → Gemini → Meta-Judge → Firebase</div>'+
-        '<div style="height:4px;background:var(--surface2);border-radius:2px;overflow:hidden;max-width:280px;margin:0 auto">'+
-          '<div id="analysis-bar-'+lead.id+'" style="height:100%;width:5%;background:linear-gradient(90deg,#7c3aed,#a78bfa);border-radius:2px;transition:width 2s ease"></div>'+
-        '</div>'+
-      '</div>';
-    }
-    var score     = a.meta_score || a.score || 0;
-    var tier      = a.final_tier || a.tier || 'B';
-    var cadence   = a.recommended_cadence || 'warm';
-    var confidence= a.confidence || 'mid';
-    var isTriple  = !!(a.triple_engine);
-    var es        = a.engine_statuses || {};
-    var tierColor    = tier==='A'?'#10b981':tier==='B'?'#F59E0B':'#6b7280';
-    var scoreColor   = score>=80?'#10b981':score>=60?'#F59E0B':'#ef4444';
-    var cadenceColor = {hot:'#ef4444',warm:'#F59E0B',cool:'#3b82f6'}[cadence]||'#a78bfa';
-    var confColor    = {high:'#10b981',mid:'#F59E0B',low:'#ef4444'}[confidence]||'#a78bfa';
-    var confLabel    = {high:'גבוה ✓',mid:'בינוני',low:'נמוך ⚠️'}[confidence]||confidence;
-    function _engDot(s){ return s==='ok'?'<span style="color:#10b981">●</span>':s==='skipped'?'<span style="color:rgba(255,255,255,0.2)">●</span>':'<span style="color:#ef4444">●</span>'; }
-    var killerBadge = a.killer_combo ? '<div style="display:inline-flex;align-items:center;gap:5px;background:rgba(245,158,11,0.15);border:1px solid rgba(245,158,11,0.4);border-radius:20px;padding:3px 10px;font-size:10px;font-weight:800;color:#F59E0B;margin-top:8px">⚡ KILLER COMBO — '+(a.killer_combo_explanation||'')+'</div>' : '';
-    var headerHtml =
-      '<div style="background:linear-gradient(135deg,rgba(124,58,237,0.12),rgba(139,92,246,0.06));border:1px solid rgba(124,58,237,0.3);border-radius:14px;padding:16px;margin-bottom:12px">'+
-        '<div style="display:grid;grid-template-columns:80px 1fr;gap:14px;align-items:center">'+
-          '<div style="text-align:center;background:rgba(0,0,0,0.2);border-radius:12px;padding:12px 8px;border:1px solid rgba(124,58,237,0.2)">'+
-            '<div style="font-size:36px;font-weight:900;color:'+scoreColor+';line-height:1">'+score+'</div>'+
-            '<div style="font-size:9px;color:rgba(255,255,255,0.35);margin-top:3px;letter-spacing:1px">META-JUDGE</div>'+
-          '</div>'+
-          '<div>'+
-            '<div style="display:flex;align-items:center;gap:8px;margin-bottom:8px;flex-wrap:wrap">'+
-              '<span style="font-size:22px;font-weight:800;color:'+tierColor+'">Tier '+tier+'</span>'+
-              '<span style="background:rgba(255,255,255,0.08);border-radius:6px;padding:2px 9px;font-size:10px;font-weight:700;color:'+cadenceColor+'">'+cadence.toUpperCase()+'</span>'+
-              '<span style="background:rgba(255,255,255,0.05);border-radius:6px;padding:2px 9px;font-size:10px;font-weight:600;color:'+confColor+'">ביטחון: '+confLabel+'</span>'+
-            '</div>'+
-            '<div style="font-size:11px;color:rgba(255,255,255,0.35);display:flex;align-items:center;gap:10px;flex-wrap:wrap">'+
-              (isTriple ? _engDot(es.claude)+' Claude '+_engDot(es.gpt)+' GPT '+_engDot(es.gemini)+' Gemini <span style="color:rgba(245,158,11,0.6)">● Judge</span>' : _engDot('ok')+' Claude')+
-            '</div>'+
-            killerBadge+
-          '</div>'+
-        '</div>'+
-      '</div>';
-    var painSrc = (a.pain_verdict&&a.pain_verdict.length)?a.pain_verdict:(a.pain_points||e.pain_points||[]);
-    var painHtml = painSrc.length ?
-      '<div style="background:rgba(245,158,11,0.04);border:1px solid rgba(245,158,11,0.2);border-radius:11px;padding:13px 14px;margin-bottom:10px">'+
-        '<div style="font-size:11px;font-weight:800;color:#F59E0B;margin-bottom:8px">🎯 כאבים — מאושרים בראיות בלבד</div>'+
-        painSrc.map(function(p){ return '<div style="display:flex;gap:8px;padding:5px 0;border-bottom:1px solid rgba(245,158,11,0.08)"><span style="color:#F59E0B">▸</span><span style="font-size:12px;color:var(--text)">'+p+'</span></div>'; }).join('')+
-      '</div>' : '';
-    var roi=a.roi_pitch||'', opening=a.opening_line||'', urgency=a.next_event_urgency||'';
-    var oppHtml = (roi||opening||urgency) ?
-      '<div style="background:rgba(16,185,129,0.04);border:1px solid rgba(16,185,129,0.2);border-radius:11px;padding:13px 14px;margin-bottom:10px">'+
-        '<div style="font-size:11px;font-weight:800;color:#10b981;margin-bottom:10px">💰 הזדמנויות</div>'+
-        (roi?'<div style="background:rgba(16,185,129,0.12);border-radius:6px;padding:6px 12px;font-size:13px;font-weight:800;color:#10b981;margin-bottom:8px;display:inline-block">'+roi+'</div><br>':'')+
-        (urgency?'<div style="display:flex;align-items:center;gap:6px;padding:6px 10px;background:rgba(239,68,68,0.08);border:1px solid rgba(239,68,68,0.2);border-radius:7px;margin-bottom:8px"><span>🔴</span><span style="font-size:11px;color:#ef4444;font-weight:700">דחיפות: '+urgency+'</span></div>':'')+
-        (opening?'<div style="background:rgba(0,0,0,0.25);border-right:3px solid #10b981;border-radius:0 7px 7px 0;padding:8px 12px"><div style="font-size:10px;color:#10b981;font-weight:700;margin-bottom:3px">✍️ פתיחה מומלצת:</div><div style="font-size:12px;color:var(--text);font-style:italic">"'+opening+'"</div></div>':'')+
-      '</div>' : '';
-    var reasoning=a.meta_reasoning||a.executive_summary||'';
-    var reasonHtml = reasoning ?
-      '<div style="background:rgba(124,58,237,0.06);border:1px solid rgba(124,58,237,0.22);border-radius:11px;padding:13px 14px;margin-bottom:10px">'+
-        '<div style="font-size:11px;font-weight:800;color:#a78bfa;margin-bottom:10px">⚖️ Meta-Judge — נימוק</div>'+
-        '<div style="font-size:12px;color:var(--text);line-height:1.8;margin-bottom:8px">'+reasoning+'</div>'+
-        (a.meta_action?'<div style="background:rgba(16,185,129,0.1);border:1px solid rgba(16,185,129,0.25);border-radius:6px;padding:8px 12px;font-size:12px"><span style="color:var(--muted)">🎯 הצעד הבא: </span><span style="color:#10b981;font-weight:700">'+a.meta_action+'</span></div>':'')+
-        ((a.disagreements&&a.disagreements.length)?'<div style="margin-top:8px;padding-top:8px;border-top:1px solid rgba(124,58,237,0.15)"><div style="font-size:10px;color:#F59E0B;font-weight:700;margin-bottom:5px">⚡ מחלוקות:</div>'+a.disagreements.map(function(d){return '<div style="font-size:11px;color:rgba(255,255,255,0.45);margin-bottom:3px">▸ '+d+'</div>';}).join('')+'</div>':'')+
-      '</div>' : '';
-    var dqs=a.discovery_questions||e.discovery_questions||[], obj=a.objection_handler||'', risks=a.risk_factors||[];
-    var prepHtml = (dqs.length||obj||risks.length) ?
-      '<div style="background:rgba(255,255,255,0.02);border:1px solid rgba(255,255,255,0.08);border-radius:11px;padding:13px 14px;margin-bottom:10px">'+
-        '<div style="font-size:11px;font-weight:800;color:var(--text);margin-bottom:10px">🤝 הכנה לשיחה</div>'+
-        (dqs.length?'<div style="margin-bottom:10px"><div style="font-size:10px;color:var(--muted);font-weight:700;margin-bottom:5px">שאלות discovery:</div>'+dqs.slice(0,5).map(function(q,i){return '<div style="font-size:11px;color:var(--text);padding:4px 0;border-bottom:1px solid rgba(255,255,255,0.04)"><span style="color:var(--accent);font-weight:700;margin-left:6px">'+(i+1)+'.</span>'+q+'</div>';}).join('')+'</div>':'')+
-        (obj?'<div style="background:rgba(245,158,11,0.07);border:1px solid rgba(245,158,11,0.18);border-radius:7px;padding:8px 10px;margin-bottom:8px"><div style="font-size:10px;color:#F59E0B;font-weight:700;margin-bottom:3px">💬 "מרוצים מהפלטפורמה":</div><div style="font-size:11px;color:var(--text);line-height:1.6">'+obj+'</div></div>':'')+
-        (risks.length?'<div style="padding-top:8px;border-top:1px solid rgba(255,255,255,0.05)"><div style="font-size:10px;color:#ef4444;font-weight:700;margin-bottom:4px">⚠️ סיכונים:</div>'+risks.map(function(r){return '<div style="font-size:11px;color:rgba(255,255,255,0.4)">▸ '+r+'</div>';}).join('')+'</div>':'')+
-      '</div>' : '';
-    var repText=a.rep_summary||a.summary_for_rep||a.internal_summary||e.summary_for_rep||'';
-    var phone=lead.phone||'';
-    var repHtml =
-      '<div style="background:rgba(16,185,129,0.05);border:1px solid rgba(16,185,129,0.2);border-radius:11px;padding:13px 14px;margin-bottom:10px">'+
-        '<div style="font-size:11px;font-weight:800;color:#10b981;margin-bottom:8px">📋 סיכום לנציג</div>'+
-        '<textarea id="summary-text-'+lead.id+'" style="width:100%;background:rgba(0,0,0,0.2);border:1px solid rgba(255,255,255,0.07);border-radius:8px;padding:10px;color:var(--text);font-family:Heebo,sans-serif;font-size:12px;line-height:1.75;min-height:80px;resize:vertical;box-sizing:border-box">'+repText+'</textarea>'+
-        '<div style="margin-top:8px;display:flex;gap:8px;flex-wrap:wrap;align-items:center">'+
-          '<button onclick="window.saveSummary('+lead.id+')" style="background:rgba(16,185,129,0.15);border:1px solid rgba(16,185,129,0.3);border-radius:6px;padding:5px 14px;font-size:11px;color:#10b981;cursor:pointer;font-family:Heebo,sans-serif;font-weight:700">💾 שמור</button>'+
-          '<button onclick="window.pushSummaryToHubspot('+lead.id+')" style="background:rgba(245,158,11,0.12);border:1px solid rgba(245,158,11,0.3);border-radius:6px;padding:5px 14px;font-size:11px;color:#F59E0B;cursor:pointer;font-family:Heebo,sans-serif;font-weight:700">🔗 HubSpot</button>'+
-          '<button onclick="window.showAnalysisChoice('+lead.id+')" style="background:rgba(124,58,237,0.12);border:1px solid rgba(124,58,237,0.25);border-radius:6px;padding:5px 14px;font-size:11px;color:#a78bfa;cursor:pointer;font-family:Heebo,sans-serif;font-weight:700">🔄 ניתוח חדש</button>'+
-          (phone?'<a href="tel:'+phone+'" style="margin-right:auto;background:rgba(16,185,129,0.1);border:1px solid rgba(16,185,129,0.25);border-radius:6px;padding:5px 14px;font-size:11px;color:#10b981;text-decoration:none;font-family:Heebo,sans-serif;font-weight:700">📞 '+phone+'</a>':'')+
-        '</div>'+
-      '</div>';
-    var outcomeBtns=[{v:'בתהליך',c:'59,130,246',i:'🔵'},{v:'נסגר',c:'16,185,129',i:'✅'},{v:'לא נסגר',c:'239,68,68',i:'❌'},{v:'אין מענה',c:'156,163,175',i:'📭'},{v:'לא רלוונטי',c:'107,114,128',i:'🚫'}];
-    var currentOutcome=lead.outcome||'';
-    var outcomeHtml=
-      '<div style="background:rgba(255,255,255,0.02);border:1px solid rgba(255,255,255,0.06);border-radius:11px;padding:13px 14px;margin-bottom:10px">'+
-        '<div style="font-size:11px;font-weight:800;color:var(--muted);margin-bottom:10px">📊 עדכון תוצאה</div>'+
-        '<div style="display:flex;gap:6px;flex-wrap:wrap">'+
-          outcomeBtns.map(function(b){
-            var active=currentOutcome===b.v;
-            return '<button onclick="window._setLeadOutcome('+lead.id+',\''+b.v+'\')" style="background:rgba('+b.c+','+(active?'0.2':'0.06')+');border:1px solid rgba('+b.c+','+(active?'0.5':'0.2')+');border-radius:7px;padding:6px 12px;font-size:11px;font-weight:'+(active?'800':'600')+';color:'+(active?'var(--text)':'rgba(255,255,255,0.45)')+';cursor:pointer;font-family:Heebo,sans-serif">'+b.i+' '+b.v+'</button>';
-          }).join('')+
-        '</div>'+
-      '</div>';
-    var footerHtml=a.enriched_at?'<div style="font-size:10px;color:rgba(255,255,255,0.18);text-align:center;padding-bottom:4px">⚙️ Meta-Judge · '+new Date(a.enriched_at).toLocaleString('he-IL')+(a.engines_ok!==undefined?' · '+a.engines_ok+'/3 מנועים':'')+'</div>':'';
-    return '<div style="padding:2px">'+headerHtml+painHtml+oppHtml+reasonHtml+prepHtml+repHtml+outcomeHtml+footerHtml+'</div>';
-  }
-
-  window._setLeadOutcome = async function(leadId, outcome) {
-    var lead=leads&&leads.find(function(l){return l.id===leadId;});
-    if(!lead)return;
-    lead.outcome=outcome; lead.outcome_date=new Date().toISOString(); lead.updated_at=lead.outcome_date;
-    try{ if(typeof db!=='undefined'&&db) await db.collection('leads').doc(String(leadId)).update({outcome:outcome,outcome_date:lead.outcome_date,updated_at:lead.updated_at}); }catch(e){console.warn('[Outcome] leads:',e.message);}
-    try{ if(typeof db!=='undefined'&&db&&lead.ai_analysis&&lead.ai_analysis.log_doc_id) await db.collection('analysis_log').doc(lead.ai_analysis.log_doc_id).update({outcome:outcome,outcome_date:lead.outcome_date}); }catch(e){console.warn('[Outcome] log:',e.message);}
-    try{
-      if(typeof db!=='undefined'&&db){
-        var snap=await db.collection('ai_decisions').orderBy('timestamp','desc').limit(20).get();
-        snap.forEach(async function(doc){if(doc.data().lead_id===leadId&&doc.data().outcome===null) await db.collection('ai_decisions').doc(doc.id).update({outcome:outcome,outcome_date:lead.outcome_date}).catch(function(){});});
-      }
-    }catch(e){console.warn('[Outcome] decisions:',e.message);}
-    renderSimpleLead(lead);
-  };
 
   // ── Email / summary helpers ────────────────────────────────────
   window.copyLeadEmail = function(leadId,idx){var l=leads.find(function(x){return x.id===leadId;});if(!l)return;var emails=(l.ai_analysis&&l.ai_analysis.email_sequence)||(l.enrichment&&l.enrichment.email_sequence)||[];var em=emails[idx];if(!em)return;navigator.clipboard.writeText('נושא: '+(em.subject||'')+'\n\n'+(em.body||'')).then(function(){alert('✅ הועתק!');}).catch(function(){alert(em.subject+'\n\n'+em.body);});};
@@ -5478,6 +5337,11 @@ BP6-10: תעדף (פלטפורמה ישנה+דומיין+6+ אירועים), Dis
       if (typeof db!=='undefined'&&db)
         db.collection('leads').doc(String(leadId)).set(window._cleanForFirebase ? window._cleanForFirebase(lead) : lead).catch(function(e){console.warn('[AI]',e);});
       renderSimpleLead(lead);
+      // Show Meta-Judge completion toast
+      if (typeof window._showMetaJudgeToast === 'function') {
+        var sc = result.meta_score || result.score || null;
+        window._showMetaJudgeToast(lead.name||'', sc);
+      }
       var bdy2=document.getElementById('body-'+leadId);
       if (bdy2) {
         bdy2.classList.add('open');
@@ -5485,18 +5349,11 @@ BP6-10: תעדף (פלטפורמה ישנה+דומיין+6+ אירועים), Dis
         var arr2=document.getElementById('arrow-'+leadId);
         if(crd2) crd2.classList.add('expanded');
         if(arr2) arr2.textContent='▲';
+        // Switch to Meta-Judge tab (tab index 2)
         var tabs2=document.querySelectorAll('#lead-'+leadId+' .lead-tab');
-        if(tabs2[1]) switchLeadTab(leadId,'analysis',tabs2[1]);
+        if(tabs2[2]) switchLeadTab(leadId,'metajudge',tabs2[2]);
+        else if(tabs2[1]) switchLeadTab(leadId,'analysis',tabs2[1]);
       }
-      // ── Toast הצלחה ──
-      (function(){
-        var toast=document.createElement('div');
-        var sc=lead.ai_analysis&&lead.ai_analysis.meta_score||lead.ai_analysis&&lead.ai_analysis.score||'';
-        toast.style.cssText='position:fixed;bottom:80px;left:50%;transform:translateX(-50%);background:linear-gradient(135deg,rgba(16,185,129,0.95),rgba(5,150,105,0.95));color:#fff;padding:10px 24px;border-radius:30px;font-family:Heebo,sans-serif;font-size:13px;font-weight:700;z-index:9999;box-shadow:0 4px 20px rgba(16,185,129,0.4);pointer-events:none;display:flex;align-items:center;gap:8px';
-        toast.innerHTML='✅ Meta-Judge הושלם'+(sc?' — ציון <strong>'+sc+'</strong>':'')+'!';
-        document.body.appendChild(toast);
-        setTimeout(function(){ toast.style.transition='opacity .5s,transform .5s'; toast.style.opacity='0'; toast.style.transform='translateX(-50%) translateY(10px)'; setTimeout(function(){ if(toast.parentNode) toast.parentNode.removeChild(toast); },500); },3000);
-      })();
       setTimeout(function(){
         var c=document.getElementById('lead-'+leadId);
         if(c){c.style.transition='box-shadow .3s';c.style.boxShadow='0 0 0 2px #10b981';
@@ -6759,6 +6616,138 @@ addSalesPlaybookPanel();
   </div>
 
 
+
+  <!-- =================== KNOWLEDGE BASE PANEL =================== -->
+  <div class="panel" id="tab-kb">
+    <div style="max-width:960px;margin:0 auto;padding:16px 0;direction:rtl">
+
+      <!-- Header -->
+      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:20px">
+        <div>
+          <div style="font-size:20px;font-weight:800;color:var(--text)">📚 Knowledge Base</div>
+          <div style="font-size:11px;color:var(--muted);margin-top:2px">מקורות מידע ל-Meta-Judge — גלובליים ולפי ליד</div>
+        </div>
+        <div style="display:flex;gap:8px">
+          <button onclick="window._kbShowAdd()" style="background:var(--accent);border:none;border-radius:10px;padding:9px 20px;color:#fff;font-size:13px;font-weight:700;cursor:pointer;font-family:Heebo,sans-serif;display:flex;align-items:center;gap:6px">+ הוסף מקור</button>
+          <button onclick="window._kbTriggerJob()" id="kb-trigger-btn" style="background:rgba(124,58,237,0.12);border:1px solid rgba(124,58,237,0.3);border-radius:10px;padding:9px 16px;color:#a78bfa;font-size:12px;font-weight:700;cursor:pointer;font-family:Heebo,sans-serif" title="הרץ למידה עכשיו (Admin)">🧠 הרץ למידה</button>
+        </div>
+      </div>
+
+      <!-- Filter bar -->
+
+      <!-- brain_insights status bar -->
+      <div id="kb-insights-bar" style="background:rgba(124,58,237,0.06);border:1px solid rgba(124,58,237,0.2);border-radius:10px;padding:10px 14px;margin-bottom:16px;display:flex;align-items:center;gap:12px;flex-wrap:wrap">
+        <span style="font-size:11px;font-weight:800;color:#a78bfa">🧠 brain_insights</span>
+        <span id="kb-insights-status" style="font-size:11px;color:var(--muted)">בודק...</span>
+        <span id="kb-insights-details" style="font-size:10px;color:rgba(255,255,255,0.3)"></span>
+      </div>
+
+      <div style="display:flex;gap:8px;margin-bottom:16px;flex-wrap:wrap;align-items:center">
+        <button onclick="window._kbFilter('all')" class="kb-filter-btn active" data-kbf="all" style="background:rgba(108,99,255,0.15);border:1px solid rgba(108,99,255,0.35);border-radius:8px;padding:5px 14px;font-size:11px;color:var(--accent);cursor:pointer;font-family:Heebo,sans-serif;font-weight:700">הכל</button>
+        <button onclick="window._kbFilter('global')" class="kb-filter-btn" data-kbf="global" style="background:rgba(255,255,255,0.04);border:1px solid var(--border);border-radius:8px;padding:5px 14px;font-size:11px;color:var(--muted);cursor:pointer;font-family:Heebo,sans-serif;font-weight:600">🌐 גלובלי</button>
+        <button onclick="window._kbFilter('lead')" class="kb-filter-btn" data-kbf="lead" style="background:rgba(255,255,255,0.04);border:1px solid var(--border);border-radius:8px;padding:5px 14px;font-size:11px;color:var(--muted);cursor:pointer;font-family:Heebo,sans-serif;font-weight:600">👤 לפי ליד</button>
+        <button onclick="window._kbFilter('url')" class="kb-filter-btn" data-kbf="url" style="background:rgba(255,255,255,0.04);border:1px solid var(--border);border-radius:8px;padding:5px 14px;font-size:11px;color:var(--muted);cursor:pointer;font-family:Heebo,sans-serif;font-weight:600">🔗 URL</button>
+        <button onclick="window._kbFilter('github')" class="kb-filter-btn" data-kbf="github" style="background:rgba(255,255,255,0.04);border:1px solid var(--border);border-radius:8px;padding:5px 14px;font-size:11px;color:var(--muted);cursor:pointer;font-family:Heebo,sans-serif;font-weight:600">🐙 GitHub</button>
+        <button onclick="window._kbFilter('file')" class="kb-filter-btn" data-kbf="file" style="background:rgba(255,255,255,0.04);border:1px solid var(--border);border-radius:8px;padding:5px 14px;font-size:11px;color:var(--muted);cursor:pointer;font-family:Heebo,sans-serif;font-weight:600">📄 קובץ</button>
+        <input id="kb-search" onkeyup="window._kbRender()" placeholder="🔍 חיפוש..." style="margin-right:auto;background:var(--surface2);border:1px solid var(--border);border-radius:8px;padding:5px 12px;font-size:11px;color:var(--text);font-family:Heebo,sans-serif;outline:none;width:180px">
+      </div>
+
+      <!-- List -->
+      <div id="kb-list" style="display:flex;flex-direction:column;gap:10px"></div>
+      <div id="kb-empty" style="display:none;text-align:center;padding:60px 20px;color:var(--muted)">
+        <div style="font-size:40px;margin-bottom:12px">📭</div>
+        <div style="font-size:14px;font-weight:700;margin-bottom:6px">אין מקורות עדיין</div>
+        <div style="font-size:12px">לחץ "+ הוסף מקור" כדי להתחיל</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- KB Add Modal -->
+  <div id="kb-modal" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,0.7);z-index:9000;align-items:center;justify-content:center;backdrop-filter:blur(4px)">
+    <div style="background:var(--surface);border:1px solid var(--border);border-radius:16px;padding:24px;width:480px;max-width:95vw;direction:rtl;max-height:85vh;overflow-y:auto">
+      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:20px">
+        <div style="font-size:16px;font-weight:800;color:var(--text)">📚 הוסף מקור ידע</div>
+        <button onclick="window._kbCloseModal()" style="background:none;border:none;color:var(--muted);font-size:20px;cursor:pointer;padding:0 4px">✕</button>
+      </div>
+
+      <!-- Type selector -->
+      <div style="margin-bottom:16px">
+        <label style="font-size:11px;color:var(--muted);font-weight:700;display:block;margin-bottom:6px">סוג מקור</label>
+        <div style="display:flex;gap:8px;flex-wrap:wrap">
+          <button onclick="window._kbSetType('url')" data-kbtype="url" class="kb-type-btn active" style="background:rgba(108,99,255,0.15);border:1px solid rgba(108,99,255,0.4);border-radius:8px;padding:6px 14px;font-size:11px;font-weight:700;color:var(--accent);cursor:pointer;font-family:Heebo,sans-serif">🔗 URL / אתר</button>
+          <button onclick="window._kbSetType('github')" data-kbtype="github" class="kb-type-btn" style="background:rgba(255,255,255,0.04);border:1px solid var(--border);border-radius:8px;padding:6px 14px;font-size:11px;font-weight:600;color:var(--muted);cursor:pointer;font-family:Heebo,sans-serif">🐙 GitHub</button>
+          <button onclick="window._kbSetType('text')" data-kbtype="text" class="kb-type-btn" style="background:rgba(255,255,255,0.04);border:1px solid var(--border);border-radius:8px;padding:6px 14px;font-size:11px;font-weight:600;color:var(--muted);cursor:pointer;font-family:Heebo,sans-serif">📝 טקסט חופשי</button>
+          <button onclick="window._kbSetType('file')" data-kbtype="file" class="kb-type-btn" style="background:rgba(255,255,255,0.04);border:1px solid var(--border);border-radius:8px;padding:6px 14px;font-size:11px;font-weight:600;color:var(--muted);cursor:pointer;font-family:Heebo,sans-serif">📄 PDF/Word</button>
+        </div>
+      </div>
+
+      <!-- URL fields -->
+      <div id="kb-field-url">
+        <label style="font-size:11px;color:var(--muted);font-weight:700;display:block;margin-bottom:6px">כתובת URL</label>
+        <input id="kb-inp-url" placeholder="https://example.com/article" style="width:100%;background:var(--surface2);border:1px solid var(--border);border-radius:8px;padding:9px 12px;font-size:12px;color:var(--text);font-family:Heebo,sans-serif;outline:none;box-sizing:border-box;margin-bottom:12px">
+      </div>
+
+      <!-- GitHub fields -->
+      <div id="kb-field-github" style="display:none">
+        <label style="font-size:11px;color:var(--muted);font-weight:700;display:block;margin-bottom:6px">GitHub URL (repo או קובץ ספציפי)</label>
+        <input id="kb-inp-github" placeholder="https://github.com/user/repo או /blob/main/file.md" style="width:100%;background:var(--surface2);border:1px solid var(--border);border-radius:8px;padding:9px 12px;font-size:12px;color:var(--text);font-family:Heebo,sans-serif;outline:none;box-sizing:border-box;margin-bottom:6px">
+        <div style="font-size:10px;color:var(--muted);margin-bottom:12px">ניתן להדביק URL של repo, תיקייה, או קובץ בודד</div>
+      </div>
+
+      <!-- Text fields -->
+      <div id="kb-field-text" style="display:none">
+        <label style="font-size:11px;color:var(--muted);font-weight:700;display:block;margin-bottom:6px">תוכן (תכתובת / מאמר / הערות)</label>
+        <textarea id="kb-inp-text" placeholder="הדבק כאן טקסט, תכתובת, או כל מידע רלוונטי..." style="width:100%;background:var(--surface2);border:1px solid var(--border);border-radius:8px;padding:9px 12px;font-size:12px;color:var(--text);font-family:Heebo,sans-serif;outline:none;box-sizing:border-box;min-height:120px;resize:vertical;margin-bottom:12px"></textarea>
+      </div>
+
+      <!-- File upload -->
+      <div id="kb-field-file" style="display:none">
+        <label style="font-size:11px;color:var(--muted);font-weight:700;display:block;margin-bottom:6px">העלה קובץ (PDF / Word / TXT)</label>
+        <div id="kb-drop-zone" onclick="document.getElementById('kb-file-inp').click()" style="border:2px dashed var(--border);border-radius:10px;padding:24px;text-align:center;cursor:pointer;margin-bottom:12px;transition:border-color .2s" onmouseenter="this.style.borderColor='var(--accent)'" onmouseleave="this.style.borderColor='var(--border)'">
+          <div style="font-size:24px;margin-bottom:8px">📁</div>
+          <div style="font-size:12px;color:var(--muted)">לחץ לבחירת קובץ</div>
+          <div style="font-size:10px;color:var(--muted);margin-top:4px">PDF, DOCX, TXT — עד 5MB</div>
+          <div id="kb-file-name" style="font-size:11px;color:var(--accent);margin-top:6px;display:none"></div>
+        </div>
+        <input id="kb-file-inp" type="file" accept=".pdf,.docx,.txt,.md" style="display:none" onchange="window._kbFileSelected(this)">
+      </div>
+
+      <!-- Common fields -->
+      <div style="margin-bottom:12px">
+        <label style="font-size:11px;color:var(--muted);font-weight:700;display:block;margin-bottom:6px">כותרת / תיאור</label>
+        <input id="kb-inp-title" placeholder="תן שם למקור הזה..." style="width:100%;background:var(--surface2);border:1px solid var(--border);border-radius:8px;padding:9px 12px;font-size:12px;color:var(--text);font-family:Heebo,sans-serif;outline:none;box-sizing:border-box">
+      </div>
+
+      <div style="margin-bottom:12px">
+        <label style="font-size:11px;color:var(--muted);font-weight:700;display:block;margin-bottom:6px">תגיות (אופציונלי)</label>
+        <input id="kb-inp-tags" placeholder="מכירות, מתחרים, תמחור..." style="width:100%;background:var(--surface2);border:1px solid var(--border);border-radius:8px;padding:9px 12px;font-size:12px;color:var(--text);font-family:Heebo,sans-serif;outline:none;box-sizing:border-box">
+      </div>
+
+      <!-- Scope -->
+      <div style="margin-bottom:20px">
+        <label style="font-size:11px;color:var(--muted);font-weight:700;display:block;margin-bottom:8px">שימוש</label>
+        <div style="display:flex;gap:10px">
+          <label style="display:flex;align-items:center;gap:6px;cursor:pointer;font-size:12px;color:var(--text)">
+            <input type="radio" name="kb-scope" value="global" checked style="accent-color:var(--accent)"> 🌐 גלובלי — לכל הלידים
+          </label>
+          <label style="display:flex;align-items:center;gap:6px;cursor:pointer;font-size:12px;color:var(--text)">
+            <input type="radio" name="kb-scope" value="lead"> 👤 ליד ספציפי
+          </label>
+        </div>
+        <div id="kb-lead-select-wrap" style="display:none;margin-top:10px">
+          <select id="kb-lead-select" style="width:100%;background:var(--surface2);border:1px solid var(--border);border-radius:8px;padding:9px 12px;font-size:12px;color:var(--text);font-family:Heebo,sans-serif;outline:none">
+            <option value="">בחר ליד...</option>
+          </select>
+        </div>
+      </div>
+
+      <div style="display:flex;gap:10px">
+        <button onclick="window._kbSave()" style="flex:1;background:var(--accent);border:none;border-radius:10px;padding:11px;font-size:13px;font-weight:700;color:#fff;cursor:pointer;font-family:Heebo,sans-serif">💾 שמור</button>
+        <button onclick="window._kbCloseModal()" style="background:rgba(255,255,255,0.06);border:1px solid var(--border);border-radius:10px;padding:11px 20px;font-size:13px;color:var(--muted);cursor:pointer;font-family:Heebo,sans-serif">ביטול</button>
+      </div>
+      <div id="kb-save-status" style="margin-top:10px;font-size:11px;text-align:center;color:var(--muted)"></div>
+    </div>
+  </div>
 
   <!-- =================== USERS PANEL (Admin only) =================== -->
   <div class="panel" id="tab-users">
@@ -9591,7 +9580,43 @@ window.getBrainHistory = async function(segment, limit) {
   return results;
 };
 
-// ── _confirmDealClose — confirmation dialog before marking outcome ──
+// ── _setLeadOutcome — alias for outcome buttons in Meta-Judge tab ──
+window._setLeadOutcome = function(leadId, outcome) {
+  var outcomeMap = {
+    'בתהליך':     null,      // no deal close needed
+    'נסגר':       true,
+    'לא נסגר':    false,
+    'אין מענה':   false,
+    'לא רלוונטי': false
+  };
+  if (outcome === 'בתהליך') {
+    // Just update status, no brain decision needed
+    var lead = leads && leads.find(function(l){ return l.id === leadId; });
+    if (lead) {
+      lead.status = 'followup';
+      lead.updated_at = new Date().toISOString();
+      if (typeof db !== 'undefined' && db)
+        db.collection('leads').doc(String(leadId)).update({ status: 'followup', updated_at: lead.updated_at }).catch(function(){});
+      renderSimpleLead(lead);
+    }
+    return;
+  }
+  var didClose = outcomeMap[outcome];
+  if (didClose !== undefined) {
+    window._confirmDealClose(leadId, didClose);
+  }
+};
+
+// ── Meta-Judge completion toast ──
+window._showMetaJudgeToast = function(leadName, score) {
+  var t = document.createElement('div');
+  t.style.cssText = 'position:fixed;bottom:70px;left:50%;transform:translateX(-50%) translateY(0);background:linear-gradient(135deg,rgba(16,185,129,0.95),rgba(5,150,105,0.95));border:1px solid rgba(16,185,129,0.5);border-radius:12px;padding:12px 24px;font-size:13px;font-weight:700;color:#fff;font-family:Heebo,sans-serif;z-index:9999;box-shadow:0 4px 20px rgba(16,185,129,0.3);transition:opacity .5s,transform .5s';
+  t.innerHTML = '✅ Meta-Judge הושלם' + (score ? ' — ציון <strong>' + score + '</strong>' : '') + (leadName ? ' · ' + leadName : '') + '!';
+  document.body.appendChild(t);
+  setTimeout(function() { t.style.opacity = '0'; t.style.transform = 'translateX(-50%) translateY(10px)'; setTimeout(function(){ t.remove(); }, 500); }, 3000);
+};
+
+
 window._confirmDealClose = function(leadId, didClose) {
   var lead = leads && leads.find(function(l) { return l.id === leadId; });
   var leadName = lead ? (lead.name || 'ליד') : 'ליד';
@@ -9897,7 +9922,299 @@ setTimeout(function() {
   var navCount = document.getElementById('leads-nav-count');
   if (navCount && leads_arr.length > 0) navCount.textContent = leads_arr.length;
   
-}, 3000);
+  // ── Manual trigger (admin) ──
+  window._kbTriggerJob = async function() {
+    var btn = document.getElementById('kb-trigger-btn');
+    if (btn) { btn.textContent = '⏳ רץ...'; btn.disabled = true; }
+    try {
+      var srv = window.SERVER || 'https://xtix-crm-production.up.railway.app';
+      var res = await window._authFetch(srv + '/kb/trigger', { method: 'POST', headers: {'Content-Type':'application/json'}, body: '{}' });
+      var d   = await res.json();
+      if (d.ok) {
+        if (btn) btn.textContent = '✅ הופעל!';
+        setTimeout(function(){ if(btn){btn.textContent='🧠 הרץ למידה';btn.disabled=false;} window._kbLoadInsightsStatus(); }, 3000);
+      }
+    } catch(e) {
+      if (btn) { btn.textContent = '❌ שגיאה'; btn.disabled = false; }
+    }
+  };
+
+  // ── Load insights status from Firebase ──
+  window._kbLoadInsightsStatus = async function() {
+    var statusEl  = document.getElementById('kb-insights-status');
+    var detailsEl = document.getElementById('kb-insights-details');
+    var kbDotEl   = document.getElementById('kb-status-indicator');
+    if (!statusEl) return;
+    try {
+      if (typeof db === 'undefined' || !db) { statusEl.textContent = 'Firebase לא מחובר'; return; }
+      var doc = await db.collection('brain_insights').doc('latest').get();
+      if (!doc.exists) {
+        statusEl.textContent = '⚪ טרם נוצרו insights';
+        statusEl.style.color = 'var(--muted)';
+        if (kbDotEl) kbDotEl.title = 'KB — אין insights עדיין';
+        return;
+      }
+      var bi = doc.data();
+      var genAt = bi.generated_at ? new Date(bi.generated_at).toLocaleString('he-IL') : '?';
+      statusEl.textContent = '✅ עודכן: ' + genAt;
+      statusEl.style.color = '#10b981';
+      detailsEl.textContent = (bi.kb_sources_count||0)+' מקורות · '+(bi.decisions_analyzed||0)+' ניתוחי עבר';
+      if (kbDotEl) { kbDotEl.title = 'KB ✓ — ' + genAt; kbDotEl.style.color = '#10b981'; }
+    } catch(e) {
+      statusEl.textContent = '⚠️ ' + e.message;
+    }
+  };
+
+  // Auto-load insights status on init
+  var _origKbInit = window._kbInit;
+  window._kbInit = function() {
+    _origKbInit && _origKbInit();
+    window._kbLoadInsightsStatus();
+  };
+
+  // Load status on page load too
+  setTimeout(window._kbLoadInsightsStatus, 3000);
+
+
+(function() {
+  var KB_COL = 'knowledge_base';
+  var _kbDocs = [];
+  var _kbFilter_active = 'all';
+  var _kbType_active = 'url';
+  var _kbFileData = null;
+
+  // ── Init: load from Firebase ──
+  window._kbInit = function() {
+    if (typeof db === 'undefined' || !db) return;
+    db.collection(KB_COL).orderBy('created_at','desc').get()
+      .then(function(snap) {
+        _kbDocs = [];
+        snap.forEach(function(doc) { _kbDocs.push(Object.assign({id:doc.id}, doc.data())); });
+        window._kbRender();
+        var badge = document.getElementById('kb-badge');
+        if (badge) { badge.textContent = _kbDocs.length; badge.style.display = _kbDocs.length ? '' : 'none'; }
+      }).catch(function(e) { console.warn('[KB] load failed:', e.message); });
+  };
+
+  // ── Render list ──
+  window._kbRender = function() {
+    var list  = document.getElementById('kb-list');
+    var empty = document.getElementById('kb-empty');
+    if (!list) return;
+    var q = (document.getElementById('kb-search') ? document.getElementById('kb-search').value : '').toLowerCase();
+    var docs = _kbDocs.filter(function(d) {
+      if (_kbFilter_active !== 'all') {
+        if (_kbFilter_active === 'global' && d.scope !== 'global') return false;
+        if (_kbFilter_active === 'lead'   && d.scope !== 'lead')   return false;
+        if (_kbFilter_active === 'url'    && d.type  !== 'url')    return false;
+        if (_kbFilter_active === 'github' && d.type  !== 'github') return false;
+        if (_kbFilter_active === 'file'   && d.type  !== 'file' && d.type !== 'text') return false;
+      }
+      if (q) { var s=(d.title||'')+(d.url||'')+(d.content||'')+(d.tags||''); return s.toLowerCase().includes(q); }
+      return true;
+    });
+    if (!docs.length) { list.innerHTML=''; empty.style.display='block'; return; }
+    empty.style.display = 'none';
+    list.innerHTML = docs.map(function(d) {
+      var typeIcon = {url:'🔗',github:'🐙',text:'📝',file:'📄'}[d.type]||'📄';
+      var scopeBadge = d.scope==='global'
+        ? '<span style="background:rgba(16,185,129,0.12);border:1px solid rgba(16,185,129,0.3);border-radius:5px;padding:1px 7px;font-size:9px;color:#10b981;font-weight:700">🌐 גלובלי</span>'
+        : '<span style="background:rgba(108,99,255,0.12);border:1px solid rgba(108,99,255,0.3);border-radius:5px;padding:1px 7px;font-size:9px;color:var(--accent);font-weight:700">👤 '+(d.lead_name||'ליד')+'</span>';
+      var tagBadges = (d.tags||'').split(',').filter(Boolean).map(function(t){return '<span style="background:rgba(255,255,255,0.06);border-radius:5px;padding:1px 6px;font-size:9px;color:var(--muted)">'+t.trim()+'</span>';}).join(' ');
+      var preview = (d.content||d.url||'').substring(0,120);
+      var statusDot = d.status==='ready'?'<span style="color:#10b981;font-size:10px" title="נטען ✓">●</span>':d.status==='error'?'<span style="color:#ef4444;font-size:10px" title="שגיאה">●</span>':'<span style="color:#F59E0B;font-size:10px" title="ממתין">●</span>';
+      return '<div style="background:var(--surface);border:1px solid var(--border);border-radius:12px;padding:14px 16px;display:flex;gap:12px;align-items:flex-start">'+
+        '<div style="font-size:24px;flex-shrink:0;margin-top:2px">'+typeIcon+'</div>'+
+        '<div style="flex:1;min-width:0">'+
+          '<div style="display:flex;align-items:center;gap:8px;margin-bottom:5px;flex-wrap:wrap">'+
+            '<span style="font-size:13px;font-weight:700;color:var(--text)">'+statusDot+' '+(d.title||'ללא שם')+'</span>'+
+            scopeBadge+tagBadges+
+          '</div>'+
+          (preview?'<div style="font-size:11px;color:var(--muted);margin-bottom:6px;word-break:break-all">'+preview+'</div>':'')+
+          (d.url||d.github_url?'<a href="'+(d.url||d.github_url)+'" target="_blank" style="font-size:10px;color:var(--accent);text-decoration:none">'+(d.url||d.github_url)+'</a>':'')+
+          '<div style="font-size:10px;color:rgba(255,255,255,0.2);margin-top:5px">'+new Date(d.created_at||Date.now()).toLocaleString('he-IL')+'</div>'+
+        '</div>'+
+        '<div style="display:flex;flex-direction:column;gap:6px;flex-shrink:0">'+
+          '<button onclick="window._kbRefresh(\''+d.id+'\')" title="טען מחדש" style="background:rgba(245,158,11,0.1);border:1px solid rgba(245,158,11,0.25);border-radius:6px;padding:4px 10px;font-size:10px;color:#F59E0B;cursor:pointer;font-family:Heebo,sans-serif">🔄</button>'+
+          '<button onclick="window._kbDelete(\''+d.id+'\')" title="מחק" style="background:rgba(239,68,68,0.08);border:1px solid rgba(239,68,68,0.2);border-radius:6px;padding:4px 10px;font-size:10px;color:#ef4444;cursor:pointer;font-family:Heebo,sans-serif">🗑</button>'+
+        '</div>'+
+      '</div>';
+    }).join('');
+  };
+
+  // ── Filter ──
+  window._kbFilter = function(f) {
+    _kbFilter_active = f;
+    document.querySelectorAll('.kb-filter-btn').forEach(function(b) {
+      var active = b.dataset.kbf === f;
+      b.style.background = active ? 'rgba(108,99,255,0.15)' : 'rgba(255,255,255,0.04)';
+      b.style.borderColor = active ? 'rgba(108,99,255,0.35)' : 'var(--border)';
+      b.style.color       = active ? 'var(--accent)' : 'var(--muted)';
+      b.style.fontWeight  = active ? '700' : '600';
+    });
+    window._kbRender();
+  };
+
+  // ── Modal ──
+  window._kbShowAdd = function() {
+    // Populate lead select
+    var sel = document.getElementById('kb-lead-select');
+    if (sel && typeof leads !== 'undefined') {
+      sel.innerHTML = '<option value="">בחר ליד...</option>' +
+        leads.map(function(l){return '<option value="'+l.id+'">'+l.name+'</option>';}).join('');
+    }
+    // Radio listeners
+    document.querySelectorAll('input[name="kb-scope"]').forEach(function(r){
+      r.onchange = function(){ document.getElementById('kb-lead-select-wrap').style.display = this.value==='lead'?'block':'none'; };
+    });
+    document.getElementById('kb-modal').style.display = 'flex';
+    window._kbSetType('url');
+  };
+  window._kbCloseModal = function() {
+    document.getElementById('kb-modal').style.display = 'none';
+    _kbFileData = null;
+    document.getElementById('kb-file-name').style.display = 'none';
+    document.getElementById('kb-save-status').textContent = '';
+  };
+  window._kbSetType = function(type) {
+    _kbType_active = type;
+    ['url','github','text','file'].forEach(function(t){
+      document.getElementById('kb-field-'+t).style.display = t===type ? 'block' : 'none';
+    });
+    document.querySelectorAll('.kb-type-btn').forEach(function(b){
+      var active = b.dataset.kbtype === type;
+      b.style.background  = active ? 'rgba(108,99,255,0.15)' : 'rgba(255,255,255,0.04)';
+      b.style.borderColor = active ? 'rgba(108,99,255,0.4)'  : 'var(--border)';
+      b.style.color       = active ? 'var(--accent)' : 'var(--muted)';
+      b.style.fontWeight  = active ? '700' : '600';
+    });
+  };
+  window._kbFileSelected = function(input) {
+    var file = input.files[0];
+    if (!file) return;
+    var nameEl = document.getElementById('kb-file-name');
+    nameEl.textContent = '📎 ' + file.name;
+    nameEl.style.display = 'block';
+    var reader = new FileReader();
+    reader.onload = function(e) { _kbFileData = { name: file.name, content: e.target.result }; };
+    reader.readAsText(file);
+  };
+
+  // ── Save ──
+  window._kbSave = async function() {
+    var status = document.getElementById('kb-save-status');
+    status.textContent = '⏳ שומר...'; status.style.color = 'var(--muted)';
+    var type  = _kbType_active;
+    var title = (document.getElementById('kb-inp-title').value||'').trim();
+    var tags  = (document.getElementById('kb-inp-tags').value||'').trim();
+    var scopeEl = document.querySelector('input[name="kb-scope"]:checked');
+    var scope = scopeEl ? scopeEl.value : 'global';
+    var leadId   = scope==='lead' ? (document.getElementById('kb-lead-select').value||'') : '';
+    var leadName = leadId ? (document.getElementById('kb-lead-select').options[document.getElementById('kb-lead-select').selectedIndex]||{}).text||'' : '';
+    var doc = { type, title, tags, scope, lead_id: leadId, lead_name: leadName, created_at: new Date().toISOString(), status: 'pending', content: '' };
+
+    if (type === 'url') {
+      var url = (document.getElementById('kb-inp-url').value||'').trim();
+      if (!url) { status.textContent = '❌ הכנס URL'; status.style.color='#ef4444'; return; }
+      if (!url.startsWith('http')) url = 'https://' + url;
+      doc.url = url;
+      doc.content = await _kbFetchContent(url);
+      doc.status = doc.content ? 'ready' : 'error';
+    } else if (type === 'github') {
+      var ghUrl = (document.getElementById('kb-inp-github').value||'').trim();
+      if (!ghUrl) { status.textContent = '❌ הכנס GitHub URL'; status.style.color='#ef4444'; return; }
+      doc.github_url = ghUrl;
+      doc.content = await _kbFetchGithub(ghUrl);
+      doc.status = doc.content ? 'ready' : 'error';
+    } else if (type === 'text') {
+      doc.content = (document.getElementById('kb-inp-text').value||'').trim();
+      if (!doc.content) { status.textContent = '❌ הכנס טקסט'; status.style.color='#ef4444'; return; }
+      doc.status = 'ready';
+    } else if (type === 'file') {
+      if (!_kbFileData) { status.textContent = '❌ בחר קובץ'; status.style.color='#ef4444'; return; }
+      doc.content  = _kbFileData.content.substring(0, 50000);
+      doc.filename = _kbFileData.name;
+      doc.status   = 'ready';
+    }
+    if (!doc.title) doc.title = doc.url || doc.github_url || doc.filename || 'מקור '+new Date().toLocaleString('he-IL');
+
+    try {
+      if (typeof db === 'undefined' || !db) throw new Error('Firebase לא זמין');
+      var ref = await db.collection(KB_COL).add(doc);
+      doc.id = ref.id;
+      _kbDocs.unshift(doc);
+      window._kbRender();
+      var badge = document.getElementById('kb-badge');
+      if (badge) { badge.textContent = _kbDocs.length; badge.style.display = ''; }
+      status.textContent = '✅ נשמר בהצלחה!'; status.style.color = '#10b981';
+      setTimeout(window._kbCloseModal, 1200);
+    } catch(e) {
+      status.textContent = '❌ ' + e.message; status.style.color = '#ef4444';
+    }
+  };
+
+  // ── Fetch URL content via proxy ──
+  async function _kbFetchContent(url) {
+    try {
+      var srv = window.SERVER || 'https://xtix-crm-production.up.railway.app';
+      var res = await window._authFetch(srv + '/analyze?url=' + encodeURIComponent(url), { signal: AbortSignal.timeout(8000) });
+      if (!res.ok) throw new Error('HTTP ' + res.status);
+      var d = await res.json();
+      return [d.description||'', d.email||'', d.phone||'', (d.socialLinks||[]).join(', ')].filter(Boolean).join('\n').substring(0,8000);
+    } catch(e) {
+      console.warn('[KB] fetch failed:', e.message);
+      return '';
+    }
+  }
+
+  // ── Fetch GitHub ──
+  async function _kbFetchGithub(url) {
+    try {
+      // Convert github.com URL to raw.githubusercontent.com
+      var raw = url
+        .replace('https://github.com/', 'https://raw.githubusercontent.com/')
+        .replace('/blob/', '/');
+      if (raw.includes('raw.githubusercontent.com')) {
+        var res = await fetch(raw, { signal: AbortSignal.timeout(8000) });
+        if (!res.ok) throw new Error('HTTP ' + res.status);
+        return (await res.text()).substring(0, 50000);
+      }
+      // Repo: fetch README
+      var parts = url.replace('https://github.com/','').split('/');
+      var readmeUrl = 'https://raw.githubusercontent.com/'+parts[0]+'/'+parts[1]+'/main/README.md';
+      var res2 = await fetch(readmeUrl, { signal: AbortSignal.timeout(8000) });
+      if (res2.ok) return (await res2.text()).substring(0, 30000);
+      throw new Error('לא נמצא README');
+    } catch(e) {
+      console.warn('[KB] github fetch failed:', e.message);
+      return '';
+    }
+  }
+
+  // ── Refresh single doc ──
+  window._kbRefresh = async function(id) {
+    var doc = _kbDocs.find(function(d){return d.id===id;});
+    if (!doc) return;
+    var content = '';
+    if (doc.type==='url')    content = await _kbFetchContent(doc.url);
+    if (doc.type==='github') content = await _kbFetchGithub(doc.github_url);
+    if (!content) return;
+    doc.content = content; doc.status = 'ready'; doc.refreshed_at = new Date().toISOString();
+    if (typeof db !== 'undefined' && db) db.collection(KB_COL).doc(id).update({content, status:'ready', refreshed_at: doc.refreshed_at}).catch(function(){});
+    window._kbRender();
+  };
+
+  // ── Delete ──
+  window._kbDelete = async function(id) {
+    if (!confirm('למחוק מקור זה?')) return;
+    _kbDocs = _kbDocs.filter(function(d){return d.id!==id;});
+    if (typeof db !== 'undefined' && db) db.collection(KB_COL).doc(id).delete().catch(function(){});
+    window._kbRender();
+    var badge = document.getElementById('kb-badge');
+    if (badge) { badge.textContent = _kbDocs.length; badge.style.display = _kbDocs.length ? '' : 'none'; }
+  };
+
+})();
 </script>
 
 <script src="ai-engine.js"></script>
