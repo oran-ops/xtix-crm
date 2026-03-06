@@ -3867,7 +3867,6 @@ BP18: Nurture existing customers — repeat customers spend 67% more
       +'<div class="lead-tab-panel" id="l'+lead.id+'-emails">'+_ltab_emails(lead,ai,enr)+'</div>'
       +'</div></div>';
     list.insertAdjacentHTML('beforeend', html);
-    // ── שחזר מצב פתוח אם היה פתוח לפני re-render ──
     if (wasOpen) {
       var bdy = document.getElementById('body-'+lead.id);
       var crd = document.getElementById('lead-'+lead.id);
@@ -3875,7 +3874,6 @@ BP18: Nurture existing customers — repeat customers spend 67% more
       if (bdy) bdy.classList.add('open');
       if (crd) crd.classList.add('expanded');
       if (arr) arr.textContent = '▲';
-      // שחזר טאב פעיל
       if (wasTab) {
         var tabMatch = wasTab.match(/'([^']+)'/g);
         if (tabMatch && tabMatch[1]) {
@@ -5490,6 +5488,15 @@ BP6-10: תעדף (פלטפורמה ישנה+דומיין+6+ אירועים), Dis
         var tabs2=document.querySelectorAll('#lead-'+leadId+' .lead-tab');
         if(tabs2[1]) switchLeadTab(leadId,'analysis',tabs2[1]);
       }
+      // ── Toast הצלחה ──
+      (function(){
+        var toast=document.createElement('div');
+        var sc=lead.ai_analysis&&lead.ai_analysis.meta_score||lead.ai_analysis&&lead.ai_analysis.score||'';
+        toast.style.cssText='position:fixed;bottom:80px;left:50%;transform:translateX(-50%);background:linear-gradient(135deg,rgba(16,185,129,0.95),rgba(5,150,105,0.95));color:#fff;padding:10px 24px;border-radius:30px;font-family:Heebo,sans-serif;font-size:13px;font-weight:700;z-index:9999;box-shadow:0 4px 20px rgba(16,185,129,0.4);pointer-events:none;display:flex;align-items:center;gap:8px';
+        toast.innerHTML='✅ Meta-Judge הושלם'+(sc?' — ציון <strong>'+sc+'</strong>':'')+'!';
+        document.body.appendChild(toast);
+        setTimeout(function(){ toast.style.transition='opacity .5s,transform .5s'; toast.style.opacity='0'; toast.style.transform='translateX(-50%) translateY(10px)'; setTimeout(function(){ if(toast.parentNode) toast.parentNode.removeChild(toast); },500); },3000);
+      })();
       setTimeout(function(){
         var c=document.getElementById('lead-'+leadId);
         if(c){c.style.transition='box-shadow .3s';c.style.boxShadow='0 0 0 2px #10b981';

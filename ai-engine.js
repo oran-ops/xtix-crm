@@ -954,6 +954,7 @@ window._tripleEnginePipeline = async function(lead) {
         renderSimpleLead(lead);
         var bdy=document.getElementById('body-'+lead.id);
         if(bdy&&bdy.classList.contains('open')){var tabs=document.querySelectorAll('#lead-'+lead.id+' .lead-tab');if(tabs[1])switchLeadTab(lead.id,'analysis',tabs[1]);}
+        // progress bar כבר נמחק עם render — אין צורך לעדכן
       }catch(e){console.warn('[Brain] Deep enrich failed:',e.message);}
     },300);
   })();
