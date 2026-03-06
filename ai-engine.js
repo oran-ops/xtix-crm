@@ -151,7 +151,7 @@
   }
 
   // ── Build analysis prompt for a lead ───────────────────────────
-  function _buildAnalysisPrompt(lead, METH, compInfo) {
+  function _buildAnalysisPrompt(lead, METH, compInfo, proxyCtx) {
     var domain = (lead.domain||'').replace(/https?:\/\//,'').split('/')[0] || lead.name;
 
     var XTIX_CONTEXT = [
@@ -267,8 +267,11 @@
       '',
       'חוקי חובה:',
       '• pain_points חייב להכיל לפחות 2 כאבים ספציפיים — לא יכול להיות ריק',
-      '• platform_current חייב להתאים ל-competitors_used — אם ראית SmartTicket ב-URL, זה הפלטפורמה',
-      '• אם ראית URL של פלטפורמה חיצונית — ציין אותה ב-platform_current, לא "לא ידוע"',
+      '• platform_current = הפלטפורמה שהליד עובד איתה עכשיו (SmartTicket / Leaan / ידני / לא ידוע)',
+      '• competitors_used = רשימת מתחרי XTIX הקיימים בשוק (SmartTicket, Leaan, Eventbrite וכו\')',
+      '• אלה שני שדות שונים — platform_current זה מה שהליד משתמש בו, competitors_used זה מי קיים בשוק',
+      '• אם ראית SmartTicket ב-URL של הליד — platform_current = "SmartTicket", וגם competitors_used = ["SmartTicket"]',
+      '• אל תכתוב "לא ידוע" ב-platform_current אם ראית ראיה לפלטפורמה כלשהי',
       '',
       'טווחי ציון:',
       'A (70-100): מוכר כרטיסים + כאב ברור + פעילות קבועה',
@@ -297,6 +300,7 @@
         'שם: ' + (lead.name||''),
         'דומיין: ' + domain,
         'פלטפורמה נוכחית: ' + (lead.platform||'לא ידוע'),
+        (proxyCtx ? proxyCtx : ''),
         'סגמנט: ' + (lead.segment||lead.type||''),
         'טלפון: ' + (lead.phone||''),
         'מייל: ' + (lead.email||''),
@@ -497,7 +501,26 @@
     var compInfo = '';
     try { compInfo = Object.values(competitorData||{}).map(function(c){return c.name+': '+c.weakness;}).join('\n'); } catch(e){}
 
-    var prompt = _buildAnalysisPrompt(lead, METH, compInfo);
+    // ── Fetch proxy data to share across ALL engines ────────────────
+    var sharedProxyCtx = '';
+    try {
+      var domain = (lead.domain||'').replace(/https?:\/\//,'').split('/')[0];
+      var proxyRes = await window._authFetch(SERVER+'/analyze?url='+encodeURIComponent('https://'+domain),
+        { signal: AbortSignal.timeout(7000) });
+      if (proxyRes.ok) {
+        var proxyData = await proxyRes.json();
+        sharedProxyCtx = [
+          'מידע שנמצא באתר:',
+          '• פלטפורמת כרטיסים שזוהתה: ' + (proxyData.ticketPlatform || 'לא זוהתה'),
+          '• מייל: ' + (proxyData.email || 'לא נמצא'),
+          '• טלפון: ' + (proxyData.phone || 'לא נמצא'),
+          proxyData.externalTicketUrl ? '• קישור כרטיסים חיצוני: ' + proxyData.externalTicketUrl : '',
+          proxyData.socialLinks && proxyData.socialLinks.length ? '• רשתות חברתיות: ' + proxyData.socialLinks.join(', ') : ''
+        ].filter(Boolean).join('\n');
+      }
+    } catch(e) { console.warn('[Triple] Proxy fetch failed:', e.message); }
+
+    var prompt = _buildAnalysisPrompt(lead, METH, compInfo, sharedProxyCtx);
     var activeEngines = 1 + (_brainKeys&&_brainKeys.gpt?1:0) + (_brainKeys&&_brainKeys.gemini?1:0);
 
     // Progress update helper — updates both lead bar AND global bottom bar
