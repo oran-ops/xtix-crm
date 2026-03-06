@@ -3369,7 +3369,7 @@ BP18: Nurture existing customers — repeat customers spend 67% more
     return _methodologyCache;
   }
 
-  const SERVER       = 'https://xtix-crm-test.up.railway.app';
+  const SERVER       = 'https://xtix-crm-production.up.railway.app';
 
   // ── Authenticated fetch — adds Firebase ID Token to every server request ──
   window._authFetch = async function(url, options) {
@@ -4774,7 +4774,7 @@ BP18: Nurture existing customers — repeat customers spend 67% more
     // Step 1: Try local proxy for raw data
     let proxyData = null;
     try {
-      const res = await fetch(`https://xtix-crm-test.up.railway.app/analyze?url=${encodeURIComponent(fullUrl)}`, { signal: AbortSignal.timeout(5000) });
+      const res = await fetch(`https://xtix-crm-production.up.railway.app/analyze?url=${encodeURIComponent(fullUrl)}`, { signal: AbortSignal.timeout(5000) });
       if (res.ok) proxyData = await res.json();
     } catch(e) {}
 
@@ -7497,7 +7497,7 @@ window._cleanForFirebase = function _cleanForFirebase(obj) {
 // AI CHAT — Claude via Railway proxy
 // ═══════════════════════════════════════════════════════════
 (function() {
-  var AI_SERVER = 'https://xtix-crm-test.up.railway.app/ai';
+  var AI_SERVER = 'https://xtix-crm-production.up.railway.app/ai';
   var aiHistory = [];   // { role, content } — full conversation
   var aiThinking = false;
 
@@ -8127,7 +8127,7 @@ window._cleanForFirebase = function _cleanForFirebase(obj) {
     ].filter(Boolean).join('\n');
 
     try {
-      var res = await window._authFetch('https://xtix-crm-test.up.railway.app/ai', {
+      var res = await window._authFetch('https://xtix-crm-production.up.railway.app/ai', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
