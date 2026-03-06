@@ -6087,13 +6087,7 @@ BP6-10: תעדף (פלטפורמה ישנה+דומיין+6+ אירועים), Dis
         if (typeof sel3 !== 'undefined') {
           if (this.checked) sel3.add(lead.id); else sel3.delete(lead.id);
         }
-        var bar = document.getElementById('v3-bulk');
-        var cnt = document.getElementById('v3-bulk-cnt');
-        var allChks = document.querySelectorAll('.v3chk:checked');
-        if (bar) {
-          if (allChks.length > 0) { bar.style.display = 'flex'; if(cnt) cnt.textContent = allChks.length + ' נבחרו'; }
-          else bar.style.display = 'none';
-        }
+        if (typeof updBulk === 'function') updBulk();
       };
       // Insert right before lead-info
       header.insertBefore(chk, leadInfo);
@@ -7418,8 +7412,9 @@ addSalesPlaybookPanel();
   function updBulk(){
     var bar=document.getElementById('v3-bulk'),cnt=document.getElementById('v3-bulk-cnt');
     if(!bar)return;
-    var hasSelection=sel3.size>0;
-    if(cnt)cnt.textContent=sel3.size+' נבחרו';
+    var count=sel3.size>0?sel3.size:document.querySelectorAll('.v3chk:checked').length;
+    var hasSelection=count>0;
+    if(cnt)cnt.textContent=count+' נבחרו';
     var btnIds=['v3-bulk-btn-contacted','v3-bulk-btn-followup','v3-bulk-btn-meeting','v3-bulk-btn-enrich','v3-bulk-btn-delete','v3-bulk-btn-clear'];
     btnIds.forEach(function(id){
       var b=document.getElementById(id);
@@ -7428,6 +7423,7 @@ addSalesPlaybookPanel();
       else{b.style.opacity='0.38';b.style.pointerEvents='none';b.style.cursor='not-allowed';}
     });
   }
+  window.updBulk=updBulk;
   window.deleteLead = async function(id) {
     // Remove from leads array
     var idx = leads.findIndex(function(l){ return l.id === id; });
@@ -8739,8 +8735,9 @@ window._cleanForFirebase = function _cleanForFirebase(obj) {
   function updBulk(){
     var bar=document.getElementById('v3-bulk'),cnt=document.getElementById('v3-bulk-cnt');
     if(!bar)return;
-    var hasSelection=sel3.size>0;
-    if(cnt)cnt.textContent=sel3.size+' נבחרו';
+    var count=sel3.size>0?sel3.size:document.querySelectorAll('.v3chk:checked').length;
+    var hasSelection=count>0;
+    if(cnt)cnt.textContent=count+' נבחרו';
     var btnIds=['v3-bulk-btn-contacted','v3-bulk-btn-followup','v3-bulk-btn-meeting','v3-bulk-btn-enrich','v3-bulk-btn-delete','v3-bulk-btn-clear'];
     btnIds.forEach(function(id){
       var b=document.getElementById(id);
@@ -8749,6 +8746,7 @@ window._cleanForFirebase = function _cleanForFirebase(obj) {
       else{b.style.opacity='0.38';b.style.pointerEvents='none';b.style.cursor='not-allowed';}
     });
   }
+  window.updBulk=updBulk;
   window.deleteLead = async function(id) {
     // Remove from leads array
     var idx = leads.findIndex(function(l){ return l.id === id; });
