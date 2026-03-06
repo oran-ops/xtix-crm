@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 """
-XTIX CRM — Full Stack Server v2.0
+XTIX CRM — Full Stack Server v2.1 — KB /kb/run (no SA)
 הרצה:  python server.py
 פתח:   xtix-crm.html בדפדפן
 עצירה: Ctrl+C
