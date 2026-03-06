@@ -148,17 +148,31 @@ def _kb_learning_job():
         print('[KB] Claude returned empty — aborting.', flush=True)
         return None
 
-    # ── Step 5: Parse ──
+    # ── Step 5: Parse — strip markdown fences ──
+    import re as _re
+    def _clean_and_parse(text):
+        text = _re.sub(r'```json', '', text)
+        text = _re.sub(r'```', '', text)
+        text = text.strip()
+        s = text.find('{'); e = text.rfind('}')
+        if s == -1: raise ValueError('No JSON object found')
+        return json.loads(text[s:e+1])
+
     try:
-        s = raw.find('{'); e = raw.rfind('}')
-        if s == -1: raise ValueError('No JSON found')
-        insights = json.loads(raw[s:e+1])
+        insights = _clean_and_parse(raw)
     except Exception as ex:
-        print(f'[KB] JSON parse failed: {ex}', flush=True)
-        insights = {
-            'sales_methodology_summary': raw[:500],
-            'parse_error': str(ex)
-        }
+        print('[KB] JSON parse failed: ' + str(ex) + ' — retrying', flush=True)
+        retry_u = 'תקן את ה-JSON הבא ללא markdown:\n' + raw[:2000]
+        raw2 = _call_claude_background('ענה רק ב-JSON תקני. ללא backticks.', retry_u, max_tokens=3000)
+        try:
+            insights = _clean_and_parse(raw2 or '')
+            print('[KB] Retry parse succeeded', flush=True)
+        except Exception as ex2:
+            print('[KB] Retry also failed: ' + str(ex2), flush=True)
+            insights = {
+                'sales_methodology_summary': 'שגיאת parse — נסה שוב',
+                'parse_error': str(ex)
+            }
 
     # Stamp metadata
     insights['generated_at']       = datetime.datetime.now().isoformat()
