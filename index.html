@@ -9921,7 +9921,9 @@ setTimeout(function() {
   // Fix leads-nav-count
   var navCount = document.getElementById('leads-nav-count');
   if (navCount && leads_arr.length > 0) navCount.textContent = leads_arr.length;
-  
+
+}, 1000);
+
   // ── Manual trigger (admin) ──
   window._kbTriggerJob = async function() {
     var btn = document.getElementById('kb-trigger-btn');
