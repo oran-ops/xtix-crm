@@ -3224,24 +3224,126 @@ document.addEventListener("DOMContentLoaded",function(){
 </div><!-- /container -->
 
 <!-- ADD LEAD MODAL -->
-<div class="modal-overlay" id="addLeadModal">
-  <div class="modal">
-    <h3>➕ הוסף ליד חדש</h3>
-    <div class="form-group"><label>שם פרויקט / חברה</label><input type="text" id="new-name" placeholder="לדוג׳: להקת האלפים"></div>
-    <div class="form-group"><label>דומיין</label><input type="text" id="new-domain" placeholder="https://..."></div>
-    <div class="form-group"><label>סוג אירועים</label><select id="new-type"><option>מופע טריביוט</option><option>הפקה עצמאית</option><option>תיאטרון</option><option>סטנדאפ</option><option>מסיבה</option><option>פסטיבל</option><option>אחר</option></select></div>
-    <div class="form-group"><label>פלטפורמת מכירה נוכחית</label><input type="text" id="new-platform" placeholder="Smarticket, Mevalim..."></div>
-    <div class="form-group"><label>מייל / טופס קשר</label><input type="text" id="new-email" placeholder="email@..."></div>
-    <div class="form-group"><label>הערות</label><textarea id="new-notes" placeholder="מידע רלוונטי..."></textarea></div>
-    <div class="modal-actions">
-      <button class="btn btn-ghost" onclick="closeModal()">ביטול</button>
-      <button class="btn" onclick="addLead()">שמור ליד</button>
+<div class="modal-overlay" id="addLeadModal" onclick="if(event.target===this)window.closeModal()">
+  <div class="modal" style="max-width:560px;width:95vw;max-height:90vh;overflow-y:auto;padding:24px">
+    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:20px">
+      <h3 style="margin:0;font-size:16px;font-weight:800;color:var(--text)">➕ הוסף ליד ידני</h3>
+      <button onclick="window.closeModal()" style="background:none;border:none;color:var(--muted);font-size:18px;cursor:pointer;padding:0;line-height:1">✕</button>
+    </div>
+
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:12px">
+      <div class="form-group" style="margin:0">
+        <label style="font-size:11px;color:var(--muted);display:block;margin-bottom:5px">שם חברה / פרויקט *</label>
+        <input type="text" id="new-name" placeholder="לדוג׳: להקת האלפים" style="width:100%;background:var(--surface2);border:1px solid var(--border);border-radius:8px;padding:8px 12px;font-size:13px;color:var(--text);font-family:Heebo,sans-serif;outline:none;box-sizing:border-box">
+      </div>
+      <div class="form-group" style="margin:0">
+        <label style="font-size:11px;color:var(--muted);display:block;margin-bottom:5px">דומיין / אתר</label>
+        <input type="text" id="new-domain" placeholder="example.co.il" style="width:100%;background:var(--surface2);border:1px solid var(--border);border-radius:8px;padding:8px 12px;font-size:13px;color:var(--text);font-family:Heebo,sans-serif;outline:none;box-sizing:border-box">
+      </div>
+      <div class="form-group" style="margin:0">
+        <label style="font-size:11px;color:var(--muted);display:block;margin-bottom:5px">מייל</label>
+        <input type="text" id="new-email" placeholder="email@..." style="width:100%;background:var(--surface2);border:1px solid var(--border);border-radius:8px;padding:8px 12px;font-size:13px;color:var(--text);font-family:Heebo,sans-serif;outline:none;box-sizing:border-box">
+      </div>
+      <div class="form-group" style="margin:0">
+        <label style="font-size:11px;color:var(--muted);display:block;margin-bottom:5px">טלפון</label>
+        <input type="text" id="new-phone" placeholder="050-0000000" style="width:100%;background:var(--surface2);border:1px solid var(--border);border-radius:8px;padding:8px 12px;font-size:13px;color:var(--text);font-family:Heebo,sans-serif;outline:none;box-sizing:border-box">
+      </div>
+      <div class="form-group" style="margin:0">
+        <label style="font-size:11px;color:var(--muted);display:block;margin-bottom:5px">פלטפורמה נוכחית</label>
+        <input type="text" id="new-platform" placeholder="SmarTicket, Mevalim..." style="width:100%;background:var(--surface2);border:1px solid var(--border);border-radius:8px;padding:8px 12px;font-size:13px;color:var(--text);font-family:Heebo,sans-serif;outline:none;box-sizing:border-box">
+      </div>
+      <div class="form-group" style="margin:0">
+        <label style="font-size:11px;color:var(--muted);display:block;margin-bottom:5px">סגמנט</label>
+        <select id="new-type" style="width:100%;background:var(--surface2);border:1px solid var(--border);border-radius:8px;padding:8px 12px;font-size:13px;color:var(--text);font-family:Heebo,sans-serif;outline:none;box-sizing:border-box">
+          <option value="">-- בחר סגמנט --</option>
+          <option>תיאטרון</option><option>מוזיקה</option><option>סטנד-אפ</option>
+          <option>ספורט</option><option>פסטיבל</option><option>ילדים</option>
+          <option>אמנות</option><option>כנסים</option><option>הפקה עצמאית</option><option>אחר</option>
+        </select>
+      </div>
+      <div class="form-group" style="margin:0">
+        <label style="font-size:11px;color:var(--muted);display:block;margin-bottom:5px">כתובת</label>
+        <input type="text" id="new-address" placeholder="עיר / כתובת" style="width:100%;background:var(--surface2);border:1px solid var(--border);border-radius:8px;padding:8px 12px;font-size:13px;color:var(--text);font-family:Heebo,sans-serif;outline:none;box-sizing:border-box">
+      </div>
+      <div class="form-group" style="margin:0">
+        <label style="font-size:11px;color:var(--muted);display:block;margin-bottom:5px">סטטוס</label>
+        <select id="new-status" style="width:100%;background:var(--surface2);border:1px solid var(--border);border-radius:8px;padding:8px 12px;font-size:13px;color:var(--text);font-family:Heebo,sans-serif;outline:none;box-sizing:border-box">
+          <option value="new">🆕 ליד חדש</option>
+          <option value="contacted">📧 נוצר קשר</option>
+          <option value="followup">🔁 Follow-up</option>
+          <option value="meeting">📅 פגישה קבועה</option>
+          <option value="closed_won">✅ נסגר - הצלחה</option>
+          <option value="closed_lost">❌ נסגר - כישלון</option>
+        </select>
+      </div>
+    </div>
+
+    <div class="form-group" style="margin:0 0 16px 0">
+      <label style="font-size:11px;color:var(--muted);display:block;margin-bottom:5px">הערות</label>
+      <textarea id="new-notes" placeholder="מידע רלוונטי, trigger events, הקשר..." style="width:100%;background:var(--surface2);border:1px solid var(--border);border-radius:8px;padding:8px 12px;font-size:13px;color:var(--text);font-family:Heebo,sans-serif;outline:none;box-sizing:border-box;resize:vertical;min-height:70px"></textarea>
+    </div>
+
+    <div id="add-lead-error" style="display:none;background:rgba(239,68,68,0.1);border:1px solid rgba(239,68,68,0.3);border-radius:8px;padding:8px 12px;font-size:12px;color:#ef4444;margin-bottom:12px"></div>
+
+    <div style="display:flex;gap:10px;justify-content:flex-end">
+      <button onclick="window.closeModal()" style="background:none;border:1px solid var(--border);border-radius:8px;padding:9px 20px;font-size:13px;color:var(--muted);cursor:pointer;font-family:Heebo,sans-serif">ביטול</button>
+      <button onclick="window.addLead()" style="background:var(--accent);border:none;border-radius:8px;padding:9px 24px;font-size:13px;font-weight:700;color:#fff;cursor:pointer;font-family:Heebo,sans-serif">✅ שמור ליד</button>
     </div>
   </div>
 </div>
 
 <script>
+  // ── Modal open/close ──
+  window.closeModal = function() {
+    var m = document.getElementById('addLeadModal');
+    if (m) m.classList.remove('open');
+    // Clear fields
+    ['new-name','new-domain','new-email','new-phone','new-platform','new-address','new-notes'].forEach(function(id){
+      var el = document.getElementById(id); if(el) el.value = '';
+    });
+    var st = document.getElementById('new-status'); if(st) st.value = 'new';
+    var ty = document.getElementById('new-type'); if(ty) ty.value = '';
+    var err = document.getElementById('add-lead-error'); if(err) err.style.display='none';
+  };
+
+  window.openAddLeadModal = function() {
+    var m = document.getElementById('addLeadModal');
+    if (m) m.classList.add('open');
+    setTimeout(function(){ var n=document.getElementById('new-name'); if(n) n.focus(); }, 100);
+  };
+
+  window.addLead = function() {
+    var name = (document.getElementById('new-name')||{}).value||'';
+    var err  = document.getElementById('add-lead-error');
+    if (!name.trim()) {
+      if(err){ err.textContent='שם חברה / פרויקט הוא שדה חובה'; err.style.display='block'; }
+      document.getElementById('new-name').focus();
+      return;
+    }
+    var lead = {
+      name:     name.trim(),
+      domain:   (document.getElementById('new-domain')||{}).value||'',
+      email:    (document.getElementById('new-email')||{}).value||'',
+      phone:    (document.getElementById('new-phone')||{}).value||'',
+      platform: (document.getElementById('new-platform')||{}).value||'',
+      type:     (document.getElementById('new-type')||{}).value||'',
+      address:  (document.getElementById('new-address')||{}).value||'',
+      status:   (document.getElementById('new-status')||{}).value||'new',
+      notes:    (document.getElementById('new-notes')||{}).value||'',
+      source:   'manual'
+    };
+    if (window.addLeadToCRM) {
+      var result = window.addLeadToCRM(lead, {source:'manual'});
+      if (!result) {
+        if(err){ err.textContent='ליד עם דומיין או מייל זהה כבר קיים'; err.style.display='block'; }
+        return;
+      }
+    }
+    window.closeModal();
+  };
+
   // ── Brain config defaults (can be overridden by AI Brain block) ──
+ (can be overridden by AI Brain block) ──
   window._brainConfig = window._brainConfig || { conflictThreshold: 20 };
 
   // =================== FIREBASE — AUTH + CLOUD PERSISTENCE (compat) ===================
@@ -6863,6 +6965,7 @@ addSalesPlaybookPanel();
     toolbar.innerHTML =
       '<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px">' +
         '<span id="crm-badge" style="background:rgba(108,99,255,0.15);border:1px solid rgba(108,99,255,0.3);border-radius:20px;padding:2px 10px;font-size:11px;color:var(--accent)">0 לידים</span>' +
+        '<button onclick="window.openAddLeadModal&&window.openAddLeadModal()" style="background:rgba(16,185,129,0.12);border:1px solid rgba(16,185,129,0.3);border-radius:20px;padding:2px 12px;font-size:11px;color:#10b981;cursor:pointer;font-family:Heebo,sans-serif;font-weight:700">+ הוסף ליד</button>' +
         '<button onclick="toggleSelAll()" id="sel-all-v3" style="background:none;border:1px solid var(--border);border-radius:6px;padding:3px 10px;font-size:11px;color:var(--muted);cursor:pointer;font-family:Heebo,sans-serif">☐ בחר הכל</button>' +
       '</div>' +
       '<div style="position:relative;margin-bottom:8px">' +
