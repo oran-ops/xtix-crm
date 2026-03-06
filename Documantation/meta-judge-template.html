@@ -1,0 +1,524 @@
+<!DOCTYPE html>
+<html lang="he" dir="rtl">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>XTIX — Meta-Judge Report</title>
+<link href="https://fonts.googleapis.com/css2?family=Heebo:wght@300;400;500;700;800;900&family=IBM+Plex+Mono:wght@400;600&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg:        #080b12;
+    --surface:   #0e1420;
+    --border:    rgba(255,255,255,0.07);
+    --claude:    #a78bfa;
+    --gpt:       #34d399;
+    --gemini:    #60a5fa;
+    --judge:     #f59e0b;
+    --danger:    #f87171;
+    --text:      #e2e8f0;
+    --muted:     rgba(226,232,240,0.45);
+    --mono:      'IBM Plex Mono', monospace;
+  }
+
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+
+  body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: 'Heebo', sans-serif;
+    min-height: 100vh;
+    padding: 32px 24px;
+    background-image:
+      radial-gradient(ellipse 60% 40% at 80% 10%, rgba(167,139,250,0.06) 0%, transparent 60%),
+      radial-gradient(ellipse 40% 30% at 10% 80%, rgba(96,165,250,0.05) 0%, transparent 50%);
+  }
+
+  .page { max-width: 860px; margin: 0 auto; }
+
+  /* ── HEADER ── */
+  .header {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    margin-bottom: 28px;
+    padding-bottom: 20px;
+    border-bottom: 1px solid var(--border);
+  }
+  .lead-name {
+    font-size: 26px;
+    font-weight: 900;
+    letter-spacing: -0.5px;
+    line-height: 1.1;
+  }
+  .lead-meta {
+    font-size: 12px;
+    color: var(--muted);
+    margin-top: 5px;
+    font-family: var(--mono);
+    display: flex;
+    gap: 16px;
+  }
+  .lead-meta span { display: flex; align-items: center; gap: 4px; }
+
+  .score-badge {
+    text-align: center;
+    background: rgba(245,158,11,0.08);
+    border: 1.5px solid rgba(245,158,11,0.35);
+    border-radius: 16px;
+    padding: 12px 22px;
+    min-width: 120px;
+  }
+  .score-badge .label { font-size: 10px; color: var(--judge); font-family: var(--mono); letter-spacing: 1.5px; text-transform: uppercase; }
+  .score-badge .score { font-size: 48px; font-weight: 900; color: var(--judge); line-height: 1; }
+  .score-badge .tier { font-size: 11px; color: var(--muted); margin-top: 2px; }
+
+  /* ── ENGINE SCORES BAR ── */
+  .engines-row {
+    display: grid;
+    grid-template-columns: 1fr 1fr 1fr 1fr;
+    gap: 10px;
+    margin-bottom: 20px;
+  }
+  .engine-card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 14px 16px;
+    position: relative;
+    overflow: hidden;
+  }
+  .engine-card::before {
+    content: '';
+    position: absolute;
+    top: 0; right: 0; left: 0;
+    height: 2px;
+  }
+  .engine-card.claude::before { background: var(--claude); }
+  .engine-card.gpt::before   { background: var(--gpt); }
+  .engine-card.gemini::before { background: var(--gemini); }
+  .engine-card.judge::before  { background: var(--judge); }
+
+  .engine-name { font-size: 10px; font-family: var(--mono); letter-spacing: 1px; text-transform: uppercase; margin-bottom: 6px; }
+  .engine-card.claude .engine-name { color: var(--claude); }
+  .engine-card.gpt    .engine-name { color: var(--gpt); }
+  .engine-card.gemini .engine-name { color: var(--gemini); }
+  .engine-card.judge  .engine-name { color: var(--judge); }
+
+  .engine-score { font-size: 30px; font-weight: 900; line-height: 1; }
+  .engine-card.claude .engine-score { color: var(--claude); }
+  .engine-card.gpt    .engine-score { color: var(--gpt); }
+  .engine-card.gemini .engine-score { color: var(--gemini); }
+  .engine-card.judge  .engine-score { color: var(--judge); }
+
+  .engine-verdict { font-size: 11px; color: var(--muted); margin-top: 4px; line-height: 1.4; }
+
+  /* ── SCORE BREAKDOWN ── */
+  .breakdown-card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 18px 20px;
+    margin-bottom: 16px;
+  }
+  .card-title {
+    font-size: 11px;
+    font-family: var(--mono);
+    letter-spacing: 1.5px;
+    text-transform: uppercase;
+    color: var(--muted);
+    margin-bottom: 14px;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+  .card-title::after {
+    content: '';
+    flex: 1;
+    height: 1px;
+    background: var(--border);
+  }
+
+  .breakdown-row {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    margin-bottom: 10px;
+  }
+  .breakdown-label { font-size: 13px; color: var(--text); min-width: 200px; }
+  .breakdown-bar-wrap { flex: 1; height: 6px; background: rgba(255,255,255,0.06); border-radius: 3px; overflow: hidden; }
+  .breakdown-bar { height: 100%; border-radius: 3px; background: var(--judge); transition: width 0.6s ease; }
+  .breakdown-bar.green  { background: var(--gpt); }
+  .breakdown-bar.purple { background: var(--claude); }
+  .breakdown-bar.red    { background: var(--danger); }
+  .breakdown-val { font-size: 13px; font-family: var(--mono); font-weight: 600; color: var(--judge); min-width: 36px; text-align: left; }
+  .breakdown-val.green  { color: var(--gpt); }
+  .breakdown-val.red    { color: var(--danger); }
+
+  /* ── BULLETS SECTION ── */
+  .bullets-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 16px;
+    margin-bottom: 16px;
+  }
+  .bullets-card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 18px 20px;
+  }
+  .bullet-item {
+    display: flex;
+    gap: 10px;
+    margin-bottom: 10px;
+    align-items: flex-start;
+    font-size: 13px;
+    line-height: 1.5;
+    color: var(--text);
+  }
+  .bullet-item:last-child { margin-bottom: 0; }
+  .bullet-dot {
+    width: 6px; height: 6px;
+    border-radius: 50%;
+    margin-top: 6px;
+    flex-shrink: 0;
+  }
+  .dot-red    { background: var(--danger); }
+  .dot-green  { background: var(--gpt); }
+  .dot-yellow { background: var(--judge); }
+  .dot-blue   { background: var(--gemini); }
+  .dot-purple { background: var(--claude); }
+
+  /* ── FULL WIDTH CARDS ── */
+  .full-card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 18px 20px;
+    margin-bottom: 16px;
+  }
+
+  /* ── CONFLICT BLOCK ── */
+  .conflict-item {
+    background: rgba(245,158,11,0.05);
+    border: 1px solid rgba(245,158,11,0.2);
+    border-radius: 8px;
+    padding: 12px 14px;
+    margin-bottom: 8px;
+    font-size: 13px;
+    line-height: 1.6;
+  }
+  .conflict-item:last-child { margin-bottom: 0; }
+  .conflict-engine { font-family: var(--mono); font-size: 10px; color: var(--judge); letter-spacing: 1px; margin-bottom: 4px; }
+
+  /* ── ACTION BLOCK ── */
+  .action-block {
+    background: linear-gradient(135deg, rgba(167,139,250,0.08), rgba(96,165,250,0.06));
+    border: 1px solid rgba(167,139,250,0.25);
+    border-radius: 12px;
+    padding: 18px 20px;
+    margin-bottom: 16px;
+    display: flex;
+    align-items: center;
+    gap: 16px;
+  }
+  .action-icon { font-size: 28px; flex-shrink: 0; }
+  .action-label { font-size: 10px; font-family: var(--mono); letter-spacing: 1.5px; color: var(--claude); text-transform: uppercase; margin-bottom: 4px; }
+  .action-text { font-size: 15px; font-weight: 700; line-height: 1.4; }
+
+  /* ── CONFIDENCE ── */
+  .confidence-row {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    margin-top: 12px;
+  }
+  .conf-dot { width: 8px; height: 8px; border-radius: 50%; background: var(--gpt); }
+  .conf-text { font-size: 12px; color: var(--muted); font-family: var(--mono); }
+  .conf-reason { font-size: 12px; color: var(--text); }
+
+  /* ── PLATFORM TAG ── */
+  .platform-tag {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    background: rgba(248,113,113,0.1);
+    border: 1px solid rgba(248,113,113,0.3);
+    border-radius: 6px;
+    padding: 3px 10px;
+    font-size: 12px;
+    font-family: var(--mono);
+    color: var(--danger);
+    margin-right: 8px;
+  }
+
+  .tag {
+    display: inline-flex;
+    align-items: center;
+    background: rgba(255,255,255,0.05);
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    padding: 3px 10px;
+    font-size: 11px;
+    color: var(--muted);
+    margin-left: 6px;
+    margin-bottom: 6px;
+  }
+
+  /* ── TIMESTAMP ── */
+  .footer {
+    text-align: center;
+    font-size: 10px;
+    font-family: var(--mono);
+    color: rgba(255,255,255,0.15);
+    margin-top: 32px;
+    padding-top: 16px;
+    border-top: 1px solid var(--border);
+  }
+
+  /* ── ANIMATE IN ── */
+  @keyframes fadeUp {
+    from { opacity: 0; transform: translateY(12px); }
+    to   { opacity: 1; transform: translateY(0); }
+  }
+  .page > * {
+    animation: fadeUp 0.4s ease both;
+  }
+  .header          { animation-delay: 0.05s; }
+  .engines-row     { animation-delay: 0.12s; }
+  .breakdown-card  { animation-delay: 0.18s; }
+  .bullets-grid    { animation-delay: 0.24s; }
+  .action-block    { animation-delay: 0.30s; }
+  .full-card       { animation-delay: 0.34s; }
+</style>
+</head>
+<body>
+<div class="page">
+
+  <!-- HEADER -->
+  <div class="header">
+    <div>
+      <div class="lead-name">להקת הרוק ירושלים 🎸</div>
+      <div class="lead-meta">
+        <span>🌐 jerusalem-rock.co.il</span>
+        <span>📍 ירושלים</span>
+        <span>🏷️ מוזיקה חיה</span>
+        <span style="color:rgba(255,255,255,0.2)">•</span>
+        <span>ניתוח: לפני 2 דק׳</span>
+      </div>
+      <div style="margin-top:10px;">
+        <span class="platform-tag">⚠ SmartTicket</span>
+        <span class="tag">3+ אירועים/שנה</span>
+        <span class="tag">300–600 כרטיסים</span>
+        <span class="tag">₪80–₪180/כרטיס</span>
+      </div>
+    </div>
+    <div class="score-badge">
+      <div class="label">Meta Score</div>
+      <div class="score">82</div>
+      <div class="tier">Tier A — ליד חם 🔥</div>
+    </div>
+  </div>
+
+  <!-- ENGINE SCORES -->
+  <div class="engines-row">
+    <div class="engine-card claude">
+      <div class="engine-name">Claude</div>
+      <div class="engine-score">78</div>
+      <div class="engine-verdict">כאב כפול זוהה — עמלה גבוהה + UX מייאש</div>
+    </div>
+    <div class="engine-card gpt">
+      <div class="engine-name">GPT-4o</div>
+      <div class="engine-score">85</div>
+      <div class="engine-verdict">פוטנציאל הכנסה ₪48K/שנה — מצדיק מגע</div>
+    </div>
+    <div class="engine-card gemini">
+      <div class="engine-name">Gemini</div>
+      <div class="engine-score">80</div>
+      <div class="engine-verdict">תלות מלאה ב-SmartTicket — domain נעול</div>
+    </div>
+    <div class="engine-card judge">
+      <div class="engine-name">Meta-Judge</div>
+      <div class="engine-score">82</div>
+      <div class="engine-verdict">הסכמה גבוהה — GPT אופטימי מעט, Claude מדויק</div>
+    </div>
+  </div>
+
+  <!-- SCORE BREAKDOWN -->
+  <div class="breakdown-card">
+    <div class="card-title">שקלול ציון</div>
+
+    <div class="breakdown-row">
+      <div class="breakdown-label">מוכר כרטיסים (בסיס)</div>
+      <div class="breakdown-bar-wrap"><div class="breakdown-bar green" style="width:100%"></div></div>
+      <div class="breakdown-val green">+30</div>
+    </div>
+    <div class="breakdown-row">
+      <div class="breakdown-label">הפנייה לדומיין חיצוני (SmartTicket)</div>
+      <div class="breakdown-bar-wrap"><div class="breakdown-bar" style="width:100%"></div></div>
+      <div class="breakdown-val">+25</div>
+    </div>
+    <div class="breakdown-row">
+      <div class="breakdown-label">פעילות קבועה (4 אירועים/שנה)</div>
+      <div class="breakdown-bar-wrap"><div class="breakdown-bar purple" style="width:40%"></div></div>
+      <div class="breakdown-val" style="color:var(--claude)">+10</div>
+    </div>
+    <div class="breakdown-row">
+      <div class="breakdown-label">גודל אירוע (300+ כרטיסים)</div>
+      <div class="breakdown-bar-wrap"><div class="breakdown-bar purple" style="width:40%"></div></div>
+      <div class="breakdown-val" style="color:var(--claude)">+10</div>
+    </div>
+    <div class="breakdown-row">
+      <div class="breakdown-label">מחיר כרטיס (₪80–₪180)</div>
+      <div class="breakdown-bar-wrap"><div class="breakdown-bar green" style="width:20%"></div></div>
+      <div class="breakdown-val green">+5</div>
+    </div>
+    <div class="breakdown-row">
+      <div class="breakdown-label">פעילות חד-עונתית (ירידה בקיץ)</div>
+      <div class="breakdown-bar-wrap"><div class="breakdown-bar red" style="width:0%"></div></div>
+      <div class="breakdown-val red">−0</div>
+    </div>
+
+    <div style="border-top:1px solid var(--border);margin-top:12px;padding-top:10px;display:flex;justify-content:flex-end;align-items:center;gap:8px;">
+      <span style="font-size:12px;color:var(--muted)">סך הכל</span>
+      <span style="font-size:22px;font-weight:900;color:var(--judge);font-family:var(--mono)">80</span>
+      <span style="font-size:11px;color:var(--muted)">(עוגן — לפני Meta-Judge calibration)</span>
+    </div>
+  </div>
+
+  <!-- BULLETS GRID -->
+  <div class="bullets-grid">
+
+    <!-- PAINS -->
+    <div class="bullets-card">
+      <div class="card-title">כאבים שזוהו</div>
+      <div class="bullet-item">
+        <div class="bullet-dot dot-red"></div>
+        <div>קהל הרוכשים שייך ל-SmartTicket — הליד לא מכיר את הקונים שלו</div>
+      </div>
+      <div class="bullet-item">
+        <div class="bullet-dot dot-red"></div>
+        <div>עמלה 7% על כל כרטיס — ₪48K הפסד שנתי משוער</div>
+      </div>
+      <div class="bullet-item">
+        <div class="bullet-dot dot-red"></div>
+        <div>checkout מחייב הרשמה — נטישת עגלה גבוהה</div>
+      </div>
+      <div class="bullet-item">
+        <div class="bullet-dot dot-yellow"></div>
+        <div>אין Early Bird אוטומטי — מפספסים מכירות מוקדמות</div>
+      </div>
+      <div class="bullet-item">
+        <div class="bullet-dot dot-yellow"></div>
+        <div>כרטיס נשלח כ-PDF בלבד — אין Apple/Google Wallet</div>
+      </div>
+    </div>
+
+    <!-- OPPORTUNITIES -->
+    <div class="bullets-card">
+      <div class="card-title">הזדמנויות</div>
+      <div class="bullet-item">
+        <div class="bullet-dot dot-green"></div>
+        <div>קהילה פעילה של 12K עוקבים בפייסבוק — מוכן לWhatsApp blast</div>
+      </div>
+      <div class="bullet-item">
+        <div class="bullet-dot dot-green"></div>
+        <div>אירוע קרוב ב-15.4 — חלון זמן לסגור לפני שהם מוכרים עם SmartTicket</div>
+      </div>
+      <div class="bullet-item">
+        <div class="bullet-dot dot-green"></div>
+        <div>אתר עצמאי פעיל — Widget מוטמע אפשרי ללא פיתוח</div>
+      </div>
+      <div class="bullet-item">
+        <div class="bullet-dot dot-blue"></div>
+        <div>מתחריהם (להקת TLV) כבר עברו ל-XTIX — social proof זמין</div>
+      </div>
+    </div>
+
+    <!-- MONEY INTEL -->
+    <div class="bullets-card">
+      <div class="card-title">תמונת כסף</div>
+      <div class="bullet-item">
+        <div class="bullet-dot dot-green"></div>
+        <div>~4 אירועים/שנה × 400 כרטיסים × ₪120 ממוצע = <strong>₪192K הכנסה שנתית</strong></div>
+      </div>
+      <div class="bullet-item">
+        <div class="bullet-dot dot-red"></div>
+        <div>עמלה נוכחית SmartTicket ~7% = <strong>₪13,440/שנה</strong> יוצא מהכיס</div>
+      </div>
+      <div class="bullet-item">
+        <div class="bullet-dot dot-green"></div>
+        <div>עמלת XTIX ~5.5% = חיסכון <strong>₪2,880/שנה</strong> + הקהל שלהם</div>
+      </div>
+      <div class="bullet-item">
+        <div class="bullet-dot dot-yellow"></div>
+        <div>מחזור עוסק: ₪180K–₪220K (רשם החברות)</div>
+      </div>
+    </div>
+
+    <!-- MARKET INTEL -->
+    <div class="bullets-card">
+      <div class="card-title">מודיעין שוק</div>
+      <div class="bullet-item">
+        <div class="bullet-dot dot-red"></div>
+        <div>domain הרכישה: smarticket.co.il/jerusalem-rock — נעול לחלוטין</div>
+      </div>
+      <div class="bullet-item">
+        <div class="bullet-dot dot-blue"></div>
+        <div>פייסבוק פעיל (3 פוסטים/שבוע), אינסטגרם בינוני, אין TikTok</div>
+      </div>
+      <div class="bullet-item">
+        <div class="bullet-dot dot-blue"></div>
+        <div>שיווק: organic בלבד — אין paid, אין pixel, אין UTM</div>
+      </div>
+      <div class="bullet-item">
+        <div class="bullet-dot dot-yellow"></div>
+        <div>טראפיק אתר: ~2,400 ביקורים/חודש (SimilarWeb) — בינוני</div>
+      </div>
+    </div>
+
+  </div>
+
+  <!-- NEXT ACTION -->
+  <div class="action-block">
+    <div class="action-icon">🎯</div>
+    <div>
+      <div class="action-label">פעולה מומלצת — Meta-Judge</div>
+      <div class="action-text">התקשר עד 10.4 — לפני האירוע ב-15.4. פתח ב: "ראיתי שאתם מוכרים דרך SmartTicket — ידעתם שהקונים שלכם לא שלכם?" ואז הצג את חיסכון ₪13K ב-30 שניות.</div>
+    </div>
+  </div>
+
+  <!-- META REASONING -->
+  <div class="full-card">
+    <div class="card-title">נימוק Meta-Judge</div>
+    <div class="bullet-item" style="margin-bottom:12px;">
+      <div class="bullet-dot dot-yellow" style="margin-top:5px;"></div>
+      <div style="font-size:13px;line-height:1.7;">
+        GPT נתן 85 בגלל פוטנציאל ההכנסה הגבוה — מוצדק אבל אופטימי מעט. Claude נתן 78 בגלל אי-וודאות לגבי חוזה עם SmartTicket. הכרעתי ב-82 כי הכאב הכפול (עמלה+UX) מאושר בשלוש ראיות עצמאיות, אבל הנעילה ל-SmartTicket מוסיפה חיכוך לסגירה.
+      </div>
+    </div>
+
+    <div class="card-title" style="margin-top:16px;">מחלוקות בין מנועים</div>
+    <div class="conflict-item">
+      <div class="conflict-engine">CLAUDE vs GPT — גודל קהל</div>
+      Claude העריך 300 כרטיסים/אירוע, GPT העריך 500. בחרתי 400 — ממוצע מבוסס על נתון האירוע האחרון שנמצא ב-Eventim.
+    </div>
+    <div class="conflict-item">
+      <div class="conflict-engine">GEMINI — platform lock</div>
+      Gemini זיהה שה-domain הוא smarticket.co.il/jerusalem-rock — מאשש שהם נעולים. Claude לא זיהה זאת. קיבלתי את Gemini.
+    </div>
+
+    <div class="confidence-row">
+      <div class="conf-dot"></div>
+      <div class="conf-text">CONFIDENCE: HIGH</div>
+      <div class="conf-reason">— שלושה מנועים הסכימו על הכאב המרכזי, שתי ראיות עצמאיות לdomain חיצוני</div>
+    </div>
+  </div>
+
+  <div class="footer">
+    XTIX CRM · Triple Engine · Claude + GPT-4o + Gemini · Meta-Judge v2.1 · generated 06.03.2026 14:32
+  </div>
+
+</div>
+</body>
+</html>

@@ -6907,15 +6907,15 @@ addSalesPlaybookPanel();
         '</select>' +
         '<span id="v3-cnt" style="font-size:11px;color:var(--muted)"></span>' +
       '</div>' +
-      '<div id="v3-bulk" style="display:none;background:rgba(108,99,255,0.1);border:1px solid rgba(108,99,255,0.25);border-radius:8px;padding:8px 12px;align-items:center;gap:6px;flex-wrap:wrap">' +
+      '<div id="v3-bulk" style="display:flex;background:rgba(108,99,255,0.07);border:1px solid rgba(108,99,255,0.18);border-radius:8px;padding:8px 12px;align-items:center;gap:6px;flex-wrap:wrap">' +
         '<span id="v3-bulk-cnt" style="font-size:12px;font-weight:700;color:var(--accent)">0 נבחרו</span>' +
         '<div style="flex:1"></div>' +
-        '<button onclick="bulkV3(\'contacted\')" style="background:rgba(0,212,255,0.1);border:1px solid rgba(0,212,255,0.3);border-radius:5px;padding:4px 10px;font-size:11px;color:#00d4ff;cursor:pointer;font-family:Heebo,sans-serif">📧 נשלח מייל</button>' +
-        '<button onclick="bulkV3(\'followup\')" style="background:rgba(255,214,0,0.1);border:1px solid rgba(255,214,0,0.3);border-radius:5px;padding:4px 10px;font-size:11px;color:var(--yellow);cursor:pointer;font-family:Heebo,sans-serif">🔁 Follow-up</button>' +
-        '<button onclick="bulkV3(\'meeting\')" style="background:rgba(0,230,118,0.1);border:1px solid rgba(0,230,118,0.3);border-radius:5px;padding:4px 10px;font-size:11px;color:var(--green);cursor:pointer;font-family:Heebo,sans-serif">📅 פגישה</button>' +
-        '<button onclick="bulkV3(\'enrich\')" style="background:rgba(167,139,250,0.1);border:1px solid rgba(167,139,250,0.3);border-radius:5px;padding:4px 10px;font-size:11px;color:#a78bfa;cursor:pointer;font-family:Heebo,sans-serif">🤖 נתח AI</button>' +
-        '<button onclick="bulkV3(\'delete\')" style="background:rgba(255,71,87,0.1);border:1px solid rgba(255,71,87,0.3);border-radius:5px;padding:4px 10px;font-size:11px;color:var(--red);cursor:pointer;font-family:Heebo,sans-serif">🗑 מחק</button>' +
-        '<button onclick="clearSelV3()" style="background:none;border:1px solid var(--border);border-radius:5px;padding:4px 8px;font-size:11px;color:var(--muted);cursor:pointer">✕</button>' +
+        '<button id="v3-bulk-btn-contacted" onclick="bulkV3(\'contacted\')" style="background:rgba(0,212,255,0.1);border:1px solid rgba(0,212,255,0.3);border-radius:5px;padding:4px 10px;font-size:11px;color:#00d4ff;cursor:not-allowed;font-family:Heebo,sans-serif;opacity:0.38;pointer-events:none">📧 נשלח מייל</button>' +
+        '<button id="v3-bulk-btn-followup" onclick="bulkV3(\'followup\')" style="background:rgba(255,214,0,0.1);border:1px solid rgba(255,214,0,0.3);border-radius:5px;padding:4px 10px;font-size:11px;color:var(--yellow);cursor:not-allowed;font-family:Heebo,sans-serif;opacity:0.38;pointer-events:none">🔁 Follow-up</button>' +
+        '<button id="v3-bulk-btn-meeting" onclick="bulkV3(\'meeting\')" style="background:rgba(0,230,118,0.1);border:1px solid rgba(0,230,118,0.3);border-radius:5px;padding:4px 10px;font-size:11px;color:var(--green);cursor:not-allowed;font-family:Heebo,sans-serif;opacity:0.38;pointer-events:none">📅 פגישה</button>' +
+        '<button id="v3-bulk-btn-enrich" onclick="bulkV3(\'enrich\')" style="background:rgba(167,139,250,0.1);border:1px solid rgba(167,139,250,0.3);border-radius:5px;padding:4px 10px;font-size:11px;color:#a78bfa;cursor:not-allowed;font-family:Heebo,sans-serif;opacity:0.38;pointer-events:none">🤖 נתח AI</button>' +
+        '<button id="v3-bulk-btn-delete" onclick="bulkV3(\'delete\')" style="background:rgba(255,71,87,0.1);border:1px solid rgba(255,71,87,0.3);border-radius:5px;padding:4px 10px;font-size:11px;color:var(--red);cursor:not-allowed;font-family:Heebo,sans-serif;opacity:0.38;pointer-events:none">🗑 מחק</button>' +
+        '<button id="v3-bulk-btn-clear" onclick="clearSelV3()" style="background:none;border:1px solid var(--border);border-radius:5px;padding:4px 8px;font-size:11px;color:var(--muted);cursor:not-allowed;opacity:0.38;pointer-events:none">✕</button>' +
       '</div>';
 
     var existing = leadsPanel.querySelector('.leads-toolbar');
@@ -7415,7 +7415,19 @@ addSalesPlaybookPanel();
     if(btn)btn.textContent='☐ בחר הכל';
     updBulk();
   };
-  function updBulk(){var bar=document.getElementById('v3-bulk'),cnt=document.getElementById('v3-bulk-cnt');if(!bar)return;if(sel3.size>0){bar.style.display='flex';if(cnt)cnt.textContent=sel3.size+' נבחרו';}else bar.style.display='none';}
+  function updBulk(){
+    var bar=document.getElementById('v3-bulk'),cnt=document.getElementById('v3-bulk-cnt');
+    if(!bar)return;
+    var hasSelection=sel3.size>0;
+    if(cnt)cnt.textContent=sel3.size+' נבחרו';
+    var btnIds=['v3-bulk-btn-contacted','v3-bulk-btn-followup','v3-bulk-btn-meeting','v3-bulk-btn-enrich','v3-bulk-btn-delete','v3-bulk-btn-clear'];
+    btnIds.forEach(function(id){
+      var b=document.getElementById(id);
+      if(!b)return;
+      if(hasSelection){b.style.opacity='1';b.style.pointerEvents='auto';b.style.cursor='pointer';}
+      else{b.style.opacity='0.38';b.style.pointerEvents='none';b.style.cursor='not-allowed';}
+    });
+  }
   window.deleteLead = async function(id) {
     // Remove from leads array
     var idx = leads.findIndex(function(l){ return l.id === id; });
@@ -8724,7 +8736,19 @@ window._cleanForFirebase = function _cleanForFirebase(obj) {
     if(btn)btn.textContent='☐ בחר הכל';
     updBulk();
   };
-  function updBulk(){var bar=document.getElementById('v3-bulk'),cnt=document.getElementById('v3-bulk-cnt');if(!bar)return;if(sel3.size>0){bar.style.display='flex';if(cnt)cnt.textContent=sel3.size+' נבחרו';}else bar.style.display='none';}
+  function updBulk(){
+    var bar=document.getElementById('v3-bulk'),cnt=document.getElementById('v3-bulk-cnt');
+    if(!bar)return;
+    var hasSelection=sel3.size>0;
+    if(cnt)cnt.textContent=sel3.size+' נבחרו';
+    var btnIds=['v3-bulk-btn-contacted','v3-bulk-btn-followup','v3-bulk-btn-meeting','v3-bulk-btn-enrich','v3-bulk-btn-delete','v3-bulk-btn-clear'];
+    btnIds.forEach(function(id){
+      var b=document.getElementById(id);
+      if(!b)return;
+      if(hasSelection){b.style.opacity='1';b.style.pointerEvents='auto';b.style.cursor='pointer';}
+      else{b.style.opacity='0.38';b.style.pointerEvents='none';b.style.cursor='not-allowed';}
+    });
+  }
   window.deleteLead = async function(id) {
     // Remove from leads array
     var idx = leads.findIndex(function(l){ return l.id === id; });
