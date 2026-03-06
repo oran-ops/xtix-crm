@@ -3984,11 +3984,10 @@ BP18: Nurture existing customers — repeat customers spend 67% more
       +'<div class="lead-name">'+(lead.name||'ליד חדש')+'</div>'
       +'<div class="_lbar-meta">'
       +(lead.domain?'<span class="_lbar-meta-item">'+lead.domain+'</span>':'')
-      +(lead.email?'<span class="_lbar-meta-item" style="color:rgba(255,255,255,0.25)">'+lead.email+'</span>':'')
-      +(lead.phone?'<span class="_lbar-meta-item">'+lead.phone+'</span>':'')
-      +(lead.address?'<span class="_lbar-meta-item" style="color:rgba(255,255,255,0.22)">'+lead.address+'</span>':'')
+      +(lead.email?'<span class="_lbar-meta-item _lbar-mi-email">'+lead.email+'</span>':'')
+      +(lead.phone?'<span class="_lbar-meta-item _lbar-mi-phone">'+lead.phone+'</span>':'')
+      +(lead.address?'<span class="_lbar-meta-item _lbar-mi-addr">'+lead.address+'</span>':'')
       +(lead.type||lead.segment?'<span class="_lbar-seg">'+(lead.type||lead.segment)+'</span>':'')
-      +(lead.xtix_id?'<span class="_lbar-xtid">'+lead.xtix_id+'</span>':'')
       +'</div>'
       +'</div></div>'
       +'<div class="lead-badges">'
@@ -4003,6 +4002,7 @@ BP18: Nurture existing customers — repeat customers spend 67% more
       +'<span class="_lbar-score-tier">'+tierLabel+'</span>'
       +'</div>'
       +(updTime?'<span class="_lbar-time">'+updTime+'</span>':'')
+      +(lead.xtix_id?'<span class="_lbar-xtid" onclick="event.stopPropagation();navigator.clipboard.writeText(\''+lead.xtix_id+'\').then(function(){var el=document.getElementById(\'xtid-tip-'+lead.id+'\');if(el){el.style.opacity=1;setTimeout(function(){el.style.opacity=0;},1200);}})" title="לחץ להעתקה">'+lead.xtix_id+'<span class="_lbar-xtid-tip" id="xtid-tip-'+lead.id+'">✓ הועתק</span></span>':'')
       +'<svg class="_lbar-chevron" id="arrow-'+lead.id+'" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"/></svg>'
       +'</div>'
       +'</div>'
@@ -6107,7 +6107,7 @@ BP6-10: תעדף (פלטפורמה ישנה+דומיין+6+ אירועים), Dis
 }
 ._lbar-meta-item {
   font-size: 11px;
-  color: rgba(255,255,255,.3);
+  color: rgba(255,255,255,.52);
   font-family: 'JetBrains Mono', monospace;
   white-space: nowrap;
   overflow: hidden; text-overflow: ellipsis;
@@ -6271,11 +6271,30 @@ BP6-10: תעדף (פלטפורמה ישנה+דומיין+6+ אירועים), Dis
 
 /* ════════════════════════════════════════════════════════
 /* ════════════════════════════════════════════════════════
+._lbar-mi-email { color: rgba(255,255,255,.4) !important; }
+._lbar-mi-phone { color: rgba(255,255,255,.62) !important; font-weight: 500 !important; }
+._lbar-mi-addr  { color: rgba(255,255,255,.38) !important; }
+
 ._lbar-xtid {
   font-size: 9.5px; font-family: 'JetBrains Mono', monospace;
-  color: rgba(99,102,241,0.7); background: rgba(99,102,241,0.08);
-  border: 1px solid rgba(99,102,241,0.18); border-radius: 4px;
+  color: rgba(99,102,241,0.85); background: rgba(99,102,241,0.1);
+  border: 1px solid rgba(99,102,241,0.25); border-radius: 4px;
   padding: 1px 7px; letter-spacing: 0.04em; white-space: nowrap;
+  cursor: pointer; position: relative;
+  transition: background .15s, border-color .15s, box-shadow .15s;
+}
+._lbar-xtid:hover {
+  background: rgba(99,102,241,0.2);
+  border-color: rgba(99,102,241,0.45);
+  box-shadow: 0 0 10px rgba(99,102,241,0.25);
+}
+._lbar-xtid-tip {
+  position: absolute; bottom: calc(100% + 6px); left: 50%; transform: translateX(-50%);
+  background: rgba(30,27,75,0.97); border: 1px solid rgba(99,102,241,0.4);
+  border-radius: 5px; padding: 3px 9px; font-size: 10px; color: #a5b4fc;
+  white-space: nowrap; pointer-events: none; opacity: 0;
+  transition: opacity .25s; font-family: 'JetBrains Mono', monospace;
+  box-shadow: 0 4px 12px rgba(0,0,0,.4);
 }
 /* ══════════════════════════════════════════════════════
    LEADS PAGE — FULL REDESIGN v2
