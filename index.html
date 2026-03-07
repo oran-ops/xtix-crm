@@ -10472,12 +10472,10 @@ setTimeout(function() {
       var kbDocs = [], decisions = [];
       if (typeof db !== 'undefined' && db) {
         if (btn) btn.textContent = '⏳ טוען KB...';
-        var kbSnap = await db.collection('knowledge_base').where('status','==','ready').get();
-        kbSnap.forEach(function(d){ var data = d.data(); data._id = d.id; kbDocs.push(data); });
+        kbDocs = await window._sb.get('knowledge_base', 'status=eq.ready') || [];
 
         if (btn) btn.textContent = '⏳ טוען ניתוחים...';
-        var decSnap = await db.collection('ai_decisions').orderBy('timestamp','desc').limit(100).get();
-        decSnap.forEach(function(d){ var data = d.data(); data._id = d.id; decisions.push(data); });
+        decisions = await window._sb.get('ai_decisions', 'order=timestamp.desc&limit=100') || [];
       }
 
       if (!kbDocs.length) {
@@ -10601,11 +10599,9 @@ setTimeout(function() {
 
   // ── Init: load from Firebase ──
   window._kbInit = function() {
-    if (typeof db === 'undefined' || !db) return;
-    db.collection(KB_COL).orderBy('created_at','desc').get()
-      .then(function(snap) {
-        _kbDocs = [];
-        snap.forEach(function(doc) { _kbDocs.push(Object.assign({id:doc.id}, doc.data())); });
+    window._sb.get('knowledge_base', 'order=created_at.desc')
+      .then(function(rows) {
+        _kbDocs = rows || [];
         window._kbRender();
         var badge = document.getElementById('kb-badge');
         if (badge) { badge.textContent = _kbDocs.length; badge.style.display = _kbDocs.length ? '' : 'none'; }
@@ -10755,9 +10751,8 @@ setTimeout(function() {
     if (!doc.title) doc.title = doc.url || doc.github_url || doc.filename || 'מקור '+new Date().toLocaleString('he-IL');
 
     try {
-      if (typeof db === 'undefined' || !db) throw new Error('Firebase לא זמין');
-      var ref = await db.collection(KB_COL).add(doc);
-      doc.id = ref.id;
+      var saved = await window._sb.insert('knowledge_base', doc);
+      doc.id = saved.id;
       _kbDocs.unshift(doc);
       window._kbRender();
       var badge = document.getElementById('kb-badge');
@@ -10816,7 +10811,7 @@ setTimeout(function() {
     if (doc.type==='github') content = await _kbFetchGithub(doc.github_url);
     if (!content) return;
     doc.content = content; doc.status = 'ready'; doc.refreshed_at = new Date().toISOString();
-    if (typeof db !== 'undefined' && db) db.collection(KB_COL).doc(id).update({content, status:'ready', refreshed_at: doc.refreshed_at}).catch(function(){});
+    window._sb.update('knowledge_base', 'id=eq.'+id, {content: content, status:'ready', refreshed_at: doc.refreshed_at}).catch(function(){});
     window._kbRender();
   };
 
@@ -10824,7 +10819,7 @@ setTimeout(function() {
   window._kbDelete = async function(id) {
     if (!confirm('למחוק מקור זה?')) return;
     _kbDocs = _kbDocs.filter(function(d){return d.id!==id;});
-    if (typeof db !== 'undefined' && db) db.collection(KB_COL).doc(id).delete().catch(function(){});
+    window._sb.delete('knowledge_base', 'id=eq.'+id).catch(function(){});
     window._kbRender();
     var badge = document.getElementById('kb-badge');
     if (badge) { badge.textContent = _kbDocs.length; badge.style.display = _kbDocs.length ? '' : 'none'; }
