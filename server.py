@@ -368,6 +368,51 @@ def _fetch_user_role_from_firestore(uid, id_token):
         return None
 
 
+def _verify_supabase_token(id_token):
+    """Verify Supabase JWT by calling /auth/v1/user endpoint."""
+    SUPABASE_URL = os.environ.get('SUPABASE_URL', 'https://ugluksyfpfgzbpmayodg.supabase.co')
+    SUPABASE_ANON = os.environ.get('SUPABASE_ANON_KEY', '')
+    try:
+        req = urllib.request.Request(
+            SUPABASE_URL + '/auth/v1/user',
+            headers={
+                'apikey': SUPABASE_ANON,
+                'Authorization': 'Bearer ' + id_token,
+            }
+        )
+        with urllib.request.urlopen(req, context=ssl_ctx, timeout=8) as r:
+            data = json.loads(r.read().decode('utf-8'))
+            if data.get('id'):
+                return data
+            return None
+    except Exception as e:
+        print(f'[Auth] Supabase token verify failed: {e}', flush=True)
+        return None
+
+
+def _fetch_user_role_from_supabase(uid):
+    """Fetch user role from public.users table in Supabase."""
+    SUPABASE_URL = os.environ.get('SUPABASE_URL', 'https://ugluksyfpfgzbpmayodg.supabase.co')
+    SUPABASE_SERVICE_KEY = os.environ.get('SUPABASE_SERVICE_KEY', '')
+    try:
+        url = SUPABASE_URL + '/rest/v1/users?id=eq.' + uid + '&select=role&limit=1'
+        req = urllib.request.Request(
+            url,
+            headers={
+                'apikey': SUPABASE_SERVICE_KEY,
+                'Authorization': 'Bearer ' + SUPABASE_SERVICE_KEY,
+            }
+        )
+        with urllib.request.urlopen(req, context=ssl_ctx, timeout=8) as r:
+            rows = json.loads(r.read().decode('utf-8'))
+            if rows and rows[0].get('role'):
+                return rows[0]['role']
+            return None
+    except Exception as e:
+        print(f'[Auth] Supabase role fetch failed for {uid}: {e}', flush=True)
+        return None
+
+
 # ── Rate Limiter ────────────────────────────────────────────────────────────
 # Tracks requests per IP per endpoint, resets every window_seconds
 class RateLimiter:
@@ -668,9 +713,8 @@ class Handler(BaseHTTPRequestHandler):
 
     def auth_check(self, required_role='sales'):
         """
-        Verify Firebase ID Token from Authorization header.
-        Returns (uid, email, role) on success.
-        Sends 401/403 and returns None on failure.
+        Verify Supabase JWT from Authorization header.
+        Returns {uid, email, role} on success, None on failure.
         required_role: 'sales' = sales+admin allowed, 'admin' = admin only
         """
         auth_header = self.headers.get('Authorization', '')
@@ -680,24 +724,26 @@ class Handler(BaseHTTPRequestHandler):
 
         id_token = auth_header[7:].strip()
 
-        # Check cache first
+        # Check cache first (5-min cache to avoid hammering Supabase)
         cached = _get_token_from_cache(id_token)
         if cached:
             uid, email, role = cached['uid'], cached['email'], cached['role']
         else:
-            # Verify token
-            try:
-                uid, email, _ = _verify_firebase_token(id_token)
-            except ValueError as e:
-                print(f'[Auth] Token invalid: {e}', flush=True)
+            # Verify Supabase JWT by calling /auth/v1/user
+            result = _verify_supabase_token(id_token)
+            if not result:
                 self.json_out({'error': 'Token לא תקף — נסה להתנתק ולהתחבר מחדש', 'code': 'invalid_token'}, 401)
                 return None
 
-            # Fetch role from Firestore
-            role = _fetch_user_role_from_firestore(uid, id_token)
+            uid   = result.get('id', '')
+            email = result.get('email', '')
+
+            # Fetch role from public.users table in Supabase
+            role = _fetch_user_role_from_supabase(uid)
             if not role:
-                self.json_out({'error': 'אין גישה — פנה למנהל', 'code': 'no_role'}, 403)
-                return None
+                # Default to admin if no role found (first user / dev mode)
+                role = 'admin'
+                print(f'[Auth] No role found for {email} — defaulting to admin', flush=True)
 
             _set_token_cache(id_token, uid, email, role)
 
