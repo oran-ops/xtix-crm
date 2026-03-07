@@ -727,19 +727,27 @@ class Handler(BaseHTTPRequestHandler):
     def do_GET(self):
         p=urllib.parse.urlparse(self.path); q=urllib.parse.parse_qs(p.query); cfg=load_config()
 
-        # ── Serve CRM HTML file at root ──────────────────────────────
-        if p.path == '/' or p.path == '/index.html':
-            crm_file = os.path.join(os.path.dirname(__file__), 'index.html')
-            if os.path.exists(crm_file):
-                with open(crm_file, 'rb') as f:
-                    content = f.read()
+        # ── Serve static files (HTML, JS) ────────────────────────────
+        STATIC_FILES = {
+            '/':                   ('index.html',          'text/html; charset=utf-8'),
+            '/index.html':         ('index.html',          'text/html; charset=utf-8'),
+            '/supabase-client.js': ('supabase-client.js',  'application/javascript; charset=utf-8'),
+            '/ai-engine.js':       ('ai-engine.js',        'application/javascript; charset=utf-8'),
+        }
+        if p.path in STATIC_FILES:
+            filename, content_type = STATIC_FILES[p.path]
+            static_file = os.path.join(os.path.dirname(__file__), filename)
+            if os.path.exists(static_file):
+                with open(static_file, 'rb') as f:
+                    file_content = f.read()
                 self.send_response(200)
-                self.send_header('Content-Type', 'text/html; charset=utf-8')
-                self.send_header('Content-Length', str(len(content)))
+                self.cors()
+                self.send_header('Content-Type', content_type)
+                self.send_header('Content-Length', str(len(file_content)))
                 self.end_headers()
-                self.wfile.write(content)
+                self.wfile.write(file_content)
             else:
-                self.send_response(404); self.end_headers()
+                self.json_out({'error': filename + ' not found'}, 404)
             return
 
         if p.path=='/ping':
