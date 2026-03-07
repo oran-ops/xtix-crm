@@ -1628,7 +1628,9 @@ input::placeholder, textarea::placeholder { color: var(--t3); }
 </style>
 
   <!-- Firebase CDN (compat mode — works without type=module) -->
-<script src="supabase-client.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-auth-compat.js"></script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
 <script>
 document.addEventListener("DOMContentLoaded",function(){
@@ -3510,20 +3512,7 @@ BP18: Nurture existing customers — repeat customers spend 67% more
 
   const SERVER = window.SERVER = 'https://xtix-crm-test.up.railway.app';
 
-  // ── Authenticated fetch — adds Firebase ID Token to every server request ──
-  window._authFetch = async function(url, options) {
-    options = options || {};
-    options.headers = options.headers || {};
-    try {
-      if (auth && auth.currentUser) {
-        const token = await auth.currentUser.getIdToken(false); // false = use cached
-        options.headers['Authorization'] = 'Bearer ' + token;
-      }
-    } catch(e) {
-      console.warn('[authFetch] Could not get ID token:', e.message);
-    }
-    return fetch(url, options);
-  };
+  // ── Authenticated fetch — handled by supabase-client.js ──
   const STORAGE_KEY  = 'xtix_crm_leads';
   const STORAGE_NEXTID = 'xtix_crm_nextid';
 
@@ -4422,7 +4411,9 @@ window._editLeadSave = function(lid){
 
   // ── Google Auth ────────────────────────────────────────────────────
   window.googleLogin = function() {
-    window.SupaAuth.signInWithGoogle();
+    if(auth) auth.signInWithPopup(provider).catch(err => {
+      alert('שגיאת התחברות: ' + err.message);
+    });
   };
 
   window.googleLogout = function() {
