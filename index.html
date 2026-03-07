@@ -3780,26 +3780,23 @@ BP18: Nurture existing customers — repeat customers spend 67% more
       enrichment: {}, ai_analysis: { status: "none" } }
   ];
 
-  // ── Save to Firebase (primary) ──────────────────────────────────────
+  // ── Save to Supabase (primary) ──────────────────────────────────────
   async function saveLeads() {
     try {
-      const batch = db.batch();
-      leads.forEach(lead => {
-        const ref = db.collection(LEADS_COL).doc(String(lead.id));
-        batch.set(ref, { ...lead });
-      });
-      // Save nextId separately
-      batch.set(db.collection(SETTINGS_COL).doc('meta'), { nextId }, { merge: true });
-      await batch.commit();
-      showStorageStatus('firebase');
+      // Upsert all leads to Supabase
+      for (const lead of leads) {
+        const clean = Object.assign({}, lead);
+        delete clean._nextId;
+        if (!clean.created_at) clean.created_at = new Date().toISOString();
+        clean.updated_at = new Date().toISOString();
+        await window._sb.insert('leads', clean).catch(async () => {
+          // If insert fails (duplicate), try update
+          await window._sb.update('leads', 'id=eq.' + clean.id, clean).catch(()=>{});
+        });
+      }
+      showStorageStatus('supabase');
     } catch(e) {
-      console.warn('Firebase save failed:', e.message);
-      // Fallback: localStorage
-      try {
-        localStorage.setItem(STORAGE_KEY, JSON.stringify(leads));
-        localStorage.setItem(STORAGE_NEXTID, String(nextId));
-        showStorageStatus('local');
-      } catch(e2) {}
+      console.warn('Supabase save failed:', e.message);
     }
   }
 
@@ -3807,66 +3804,22 @@ BP18: Nurture existing customers — repeat customers spend 67% more
   async function loadLeadsAsync() {
     showStorageStatus('loading');
     try {
-      const snap = await db.collection(LEADS_COL).get();
-      // Load nextId from meta
-      try {
-        const meta = await db.collection(SETTINGS_COL).doc('meta').get();
-        if (meta.exists && meta.data().nextId) nextId = meta.data().nextId;
-      } catch(e) {}
-      if (!snap.empty) {
-        leads = [];
-        snap.forEach(docSnap => {
-          const d = docSnap.data();
-          const { _nextId, ...lead } = d;
-          leads.push(lead);
-          if (lead.id >= nextId) nextId = lead.id + 1;
-        });
-        leads.sort((a, b) => a.id - b.id);
-        // Merge any locally-added leads not yet in Firebase
-        try {
-          const localRaw = localStorage.getItem(STORAGE_KEY);
-          if (localRaw) {
-            const localLeads = JSON.parse(localRaw);
-            const fbIds = new Set(leads.map(l => l.id));
-            localLeads.forEach(ll => {
-              if (!fbIds.has(ll.id)) {
-                leads.push(ll);
-                // Also save to Firebase so it persists
-                if (db) db.collection(LEADS_COL).doc(String(ll.id)).set(ll).catch(()=>{});
-              }
-            });
-            leads.sort((a, b) => a.id - b.id);
-          }
-        } catch(e) {}
-        if (typeof window.initToolbar === 'function') window.initToolbar();
-        renderAllLeads();
-        updateStats();
-        showStorageStatus('firebase');
-        // Update nav badge
-        var nc = document.getElementById('leads-nav-count');
-        if (nc) nc.textContent = leads.length;
-        return;
+      // Load from Supabase
+      const rows = await window._sb.get('leads', 'order=id.asc');
+      leads = rows || [];
+      // Set nextId
+      if (leads.length > 0) {
+        nextId = Math.max(...leads.map(l => parseInt(l.id) || 0)) + 1;
       }
-      // Empty Firestore — seed with defaults
-      leads = DEFAULT_LEADS.slice();
-      nextId = 3;
-      await saveLeads();
       if (typeof window.initToolbar === 'function') window.initToolbar();
       renderAllLeads();
       updateStats();
+      showStorageStatus('supabase');
+      var nc = document.getElementById('leads-nav-count');
+      if (nc) nc.textContent = leads.length;
     } catch(e) {
-      console.warn('Firebase load failed:', e.message);
-      // Fallback: localStorage
-      try {
-        const saved = localStorage.getItem(STORAGE_KEY);
-        if (saved) {
-          leads  = JSON.parse(saved);
-          nextId = parseInt(localStorage.getItem(STORAGE_NEXTID) || '3');
-          renderAllLeads(); updateStats();
-          showStorageStatus('local'); return;
-        }
-      } catch(e2) {}
-      leads = DEFAULT_LEADS.slice(); nextId = 3;
+      console.warn('Supabase load failed:', e.message);
+      leads = []; nextId = 100;
       renderAllLeads(); updateStats();
       showStorageStatus('default');
     }
@@ -3936,7 +3889,8 @@ BP18: Nurture existing customers — repeat customers spend 67% more
     const el = document.getElementById('storage-indicator');
     if (!el) return;
     const map = {
-      firebase: ['☁️ Firebase', 'var(--green)', 'נתונים נשמרים ב-Firebase Cloud'],
+      firebase:  ['☁️ Firebase', 'var(--green)', 'נתונים נשמרים ב-Firebase Cloud'],
+      supabase:  ['🟢 Supabase', 'var(--green)', 'נתונים נשמרים ב-Supabase Cloud'],
       loading:  ['⏳ טוען...', 'var(--muted)', ''],
       local:    ['💾 localStorage', 'var(--yellow)', 'Firebase לא זמין — גיבוי מקומי'],
       default:  ['⚪ ברירת מחדל', 'var(--muted)', ''],
