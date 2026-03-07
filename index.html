@@ -1628,9 +1628,7 @@ input::placeholder, textarea::placeholder { color: var(--t3); }
 </style>
 
   <!-- Firebase CDN (compat mode — works without type=module) -->
-  <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
-  <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore-compat.js"></script>
-  <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-auth-compat.js"></script>
+  <script src="supabase-client.js"></script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
 <script>
 document.addEventListener("DOMContentLoaded",function(){
@@ -3382,7 +3380,7 @@ document.addEventListener("DOMContentLoaded",function(){
   // =================== FIREBASE — AUTH + CLOUD PERSISTENCE (compat) ===================
   var db = null, auth = null;
   try {
-    if (typeof firebase !== "undefined") {
+    if (false) { // Firebase disabled — using Supabase
       firebase.initializeApp({
         apiKey: "AIzaSyCWSvwxK-66wEcmJzs259XuGHuSH6BxPO0",
         authDomain: "xtix-crm.firebaseapp.com",
@@ -10894,6 +10892,6 @@ setTimeout(function() {
 })();
 </script>
 
-<script src="ai-engine.js"></script>
+<!-- ai-engine.js moved to andy-brain service -->
 </body>
 </html>
