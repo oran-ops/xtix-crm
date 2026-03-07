@@ -10543,7 +10543,7 @@ setTimeout(function() {
       var scopeBadge = d.scope==='global'
         ? '<span style="background:rgba(16,185,129,0.12);border:1px solid rgba(16,185,129,0.3);border-radius:5px;padding:1px 7px;font-size:9px;color:#10b981;font-weight:700">🌐 גלובלי</span>'
         : '<span style="background:rgba(108,99,255,0.12);border:1px solid rgba(108,99,255,0.3);border-radius:5px;padding:1px 7px;font-size:9px;color:var(--accent);font-weight:700">👤 '+(d.lead_name||'ליד')+'</span>';
-      var _tags = Array.isArray(d.tags) ? d.tags : (d.tags||'').split(',');
+      var _tags = Array.isArray(d.tags) ? d.tags : (typeof d.tags==='string' ? d.tags.split(',') : []);
       var tagBadges = _tags.filter(Boolean).map(function(t){return '<span style="background:rgba(255,255,255,0.06);border-radius:5px;padding:1px 6px;font-size:9px;color:var(--muted)">'+t.trim()+'</span>';}).join(' ');
       var preview = (d.content||d.url||'').substring(0,120);
       var statusDot = d.status==='ready'?'<span style="color:#10b981;font-size:10px" title="נטען ✓">●</span>':d.status==='error'?'<span style="color:#ef4444;font-size:10px" title="שגיאה">●</span>':'<span style="color:#F59E0B;font-size:10px" title="ממתין">●</span>';
@@ -10619,9 +10619,24 @@ setTimeout(function() {
     var nameEl = document.getElementById('kb-file-name');
     nameEl.textContent = '📎 ' + file.name;
     nameEl.style.display = 'block';
+    var ext = file.name.split('.').pop().toLowerCase();
     var reader = new FileReader();
-    reader.onload = function(e) { _kbFileData = { name: file.name, content: e.target.result }; };
-    reader.readAsText(file);
+    reader.onload = function(e) {
+      var raw = e.target.result || '';
+      // Clean: remove null bytes and non-printable chars that break Postgres TEXT
+      var clean = raw
+        .replace(/ /g, '')           // null bytes
+        .replace(/[ --]/g, ' ') // control chars
+        .replace(/�/g, '')           // replacement chars
+        .substring(0, 50000);
+      _kbFileData = { name: file.name, content: clean };
+    };
+    // PDF: read as binary text (basic extraction)
+    if (ext === 'pdf') {
+      reader.readAsBinaryString(file);
+    } else {
+      reader.readAsText(file);
+    }
   };
 
   // ── Save ──
@@ -10635,7 +10650,8 @@ setTimeout(function() {
     var scope = scopeEl ? scopeEl.value : 'global';
     var leadId   = scope==='lead' ? (document.getElementById('kb-lead-select').value||'') : '';
     var leadName = leadId ? (document.getElementById('kb-lead-select').options[document.getElementById('kb-lead-select').selectedIndex]||{}).text||'' : '';
-    var doc = { type, title, tags, scope, lead_id: leadId, lead_name: leadName, created_at: new Date().toISOString(), status: 'pending', content: '' };
+    // Convert tags string to array for Supabase
+    var doc = { type: type, title: title, tags: tags||'', scope: scope, lead_id: leadId||null, lead_name: leadName||null, created_at: new Date().toISOString(), status: 'pending', content: '' };
 
     if (type === 'url') {
       var url = (document.getElementById('kb-inp-url').value||'').trim();
@@ -10656,7 +10672,7 @@ setTimeout(function() {
       doc.status = 'ready';
     } else if (type === 'file') {
       if (!_kbFileData) { status.textContent = '❌ בחר קובץ'; status.style.color='#ef4444'; return; }
-      doc.content  = _kbFileData.content.substring(0, 50000);
+      doc.content  = (_kbFileData.content||'').replace(/\u0000/g,'').replace(/[\x00-\x08\x0B\x0C\x0E-\x1F\x7F]/g,' ').substring(0, 50000);
       doc.filename = _kbFileData.name;
       doc.status   = 'ready';
     }
