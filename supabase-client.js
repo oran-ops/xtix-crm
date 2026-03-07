@@ -181,6 +181,13 @@
     // Get user info from token
     async getUser(token) {
       try {
+        // Check JWT expiry before network call to avoid noisy 403
+        try {
+          const payload = JSON.parse(atob(token.split('.')[1]));
+          if (payload.exp && payload.exp < Math.floor(Date.now()/1000)) {
+            return null; // Token expired — skip network call, go straight to refresh
+          }
+        } catch(e) {} // Not a valid JWT — try anyway
         const res = await fetch(SUPABASE_URL + '/auth/v1/user', {
           headers: {
             'apikey':        SUPABASE_ANON,

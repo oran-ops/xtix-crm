@@ -5651,7 +5651,15 @@ BP6-10: תעדף (פלטפורמה ישנה+דומיין+6+ אירועים), Dis
       el.style.color='#ff4444';
     }
   }
-  setTimeout(checkServer, 800);
+  // Wait for auth before checking server (avoids 401)
+  setTimeout(function() {
+    if (window.currentUser) {
+      checkServer();
+    } else {
+      // Auth not ready yet - wait longer
+      setTimeout(checkServer, 3000);
+    }
+  }, 1500);
   // Load reminders from localStorage and show badge if any due
   (function checkDueReminders() {
     const reminders = JSON.parse(localStorage.getItem('xtix_reminders') || '[]');
