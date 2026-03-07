@@ -60,8 +60,29 @@
     },
     // INSERT
     async insert(table, data) {
-      const rows = await sbFetch('POST', table, Array.isArray(data) ? data : [data]);
+      // Strip null/undefined values and empty strings to avoid type errors
+      function cleanObj(obj) {
+        var out = {};
+        Object.keys(obj).forEach(function(k) {
+          var v = obj[k];
+          if (v !== null && v !== undefined && v !== '') out[k] = v;
+        });
+        return out;
+      }
+      var cleaned = Array.isArray(data) ? data.map(cleanObj) : cleanObj(data);
+      const rows = await sbFetch('POST', table, Array.isArray(data) ? cleaned : [cleaned]);
       return Array.isArray(data) ? rows : rows[0];
+    },
+    // UPSERT by filter (insert or update)
+    async upsert(table, filter, data) {
+      try {
+        const existing = await this.get(table, filter);
+        if (existing && existing.length) {
+          return this.update(table, filter, data);
+        } else {
+          return this.insert(table, data);
+        }
+      } catch(e) { return this.insert(table, data); }
     },
     // UPDATE by filter
     async update(table, filter, data) {

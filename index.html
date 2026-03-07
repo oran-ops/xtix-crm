@@ -3477,32 +3477,19 @@ BP17: Focus on value, not price — ROI > features > price
 BP18: Nurture existing customers — repeat customers spend 67% more
 `;
 
-  // Upload methodology to Firebase once; read from cache every analysis
+  // Methodology — use local copy (Supabase version reads from methodology table)
   async function ensureMethodologyInFirebase() {
     if (_methodologyCache) return _methodologyCache;
-    if (typeof db === 'undefined' || !db) {
-      _methodologyCache = XTIX_METHODOLOGY_TEXT;
-      return _methodologyCache;
-    }
     try {
-      const docRef = db.collection('settings').doc('methodology');
-      const snap   = await docRef.get();
-      if (snap.exists && snap.data().text) {
-        _methodologyCache = snap.data().text;
-        console.log('[METH] Loaded from Firebase (' + _methodologyCache.length + ' chars)');
+      const rows = await window._sb.get('methodology', 'order=updated_at.desc&limit=1');
+      if (rows && rows.length && rows[0].content) {
+        _methodologyCache = rows[0].content;
+        console.log('[METH] Loaded from Supabase (' + _methodologyCache.length + ' chars)');
       } else {
-        // First run — upload
-        await docRef.set({
-          text:       XTIX_METHODOLOGY_TEXT,
-          version:    '2.0',
-          updated_at: new Date().toISOString(),
-          sources:    ['XTIX Sales Playbook v2.0', 'Salesforce 18 Best Practices']
-        });
         _methodologyCache = XTIX_METHODOLOGY_TEXT;
-        console.log('[METH] Uploaded to Firebase ✓');
+        console.log('[METH] Using local copy');
       }
     } catch(e) {
-      console.warn('[METH] Firebase unavailable, using local copy:', e.message);
       _methodologyCache = XTIX_METHODOLOGY_TEXT;
     }
     return _methodologyCache;
@@ -3517,76 +3504,69 @@ BP18: Nurture existing customers — repeat customers spend 67% more
   // ── Activity Logger ────────────────────────────────────────────────
   async function logActivity(type, data) {
     try {
-      await db.collection(ACTIVITIES_COL).add({
-        type,           // 'email_sent' | 'status_change' | 'lead_added' | 'url_analyzed' | 'export' | 'hubspot_sync'
-        ...data,
-        timestamp: (typeof firebase !== "undefined" ? firebase.firestore.FieldValue.serverTimestamp() : new Date().toISOString()),
-        user: auth.currentUser ? auth.currentUser.email : 'unknown'
-      });
+      await window._sb.insert('activities', Object.assign({ type }, data, {
+        timestamp: new Date().toISOString(),
+        user: window.currentUser ? window.currentUser.email : 'unknown'
+      }));
     } catch(e) { console.warn('logActivity failed:', e.message); }
   }
 
   // ── Settings (Firebase) ───────────────────────────────────────────
   async function saveSettingsToFirebase(settings) {
     try {
-      await db.collection(SETTINGS_COL).doc('config').set({
-        sender_name:   settings.sender_name  || 'XTIX Sales',
-        hubspot_connected: !!settings.hubspot_token,
-        gmail_connected:   !!settings.gmail_user,
-        gmail_user:    settings.gmail_user   || '',
-        updated_at:    (typeof firebase !== "undefined" ? firebase.firestore.FieldValue.serverTimestamp() : new Date().toISOString())
-        // NOTE: passwords/tokens NOT stored in Firebase — stay in local server.py only
-      }, { merge: true });
+      await window._sb.upsert('app_settings', 'key=eq.config', {
+        key: 'config',
+        value: JSON.stringify({
+          sender_name: settings.sender_name || 'XTIX Sales',
+          hubspot_connected: !!settings.hubspot_token,
+          gmail_connected: !!settings.gmail_user,
+          gmail_user: settings.gmail_user || ''
+        }),
+        updated_at: new Date().toISOString()
+      });
     } catch(e) {}
   }
 
   async function loadSettingsFromFirebase() {
     try {
-      const doc = await db.collection(SETTINGS_COL).doc('config').get();
-      return doc.exists ? doc.data() : null;
+      const rows = await window._sb.get('app_settings', 'key=eq.config');
+      if (rows && rows.length) return JSON.parse(rows[0].value || '{}');
+      return null;
     } catch(e) { return null; }
   }
 
   // ── Reminders (Firebase) ──────────────────────────────────────────
   async function saveReminderToFirebase(reminder) {
     try {
-      await db.collection(REMINDERS_COL).add({
-        ...reminder,
-        created_at: (typeof firebase !== "undefined" ? firebase.firestore.FieldValue.serverTimestamp() : new Date().toISOString()),
-        user: auth.currentUser ? auth.currentUser.email : 'unknown'
-      });
+      await window._sb.insert('reminders', Object.assign({}, reminder, {
+        created_at: new Date().toISOString(),
+        user: window.currentUser ? window.currentUser.email : 'unknown'
+      }));
     } catch(e) {}
   }
 
   async function loadRemindersFromFirebase() {
     try {
-      const snap = await db.collection(REMINDERS_COL)
-        .where('done', '==', false)
-        .orderBy('date', 'asc')
-        .get();
-      return snap.docs.map(d => ({ firebaseId: d.id, ...d.data() }));
+      const rows = await window._sb.get('reminders', 'done=eq.false&order=date.asc');
+      return (rows || []).map(r => Object.assign({ firebaseId: r.id }, r));
     } catch(e) { return []; }
   }
 
   async function markReminderDoneFirebase(firebaseId) {
     try {
-      await db.collection(REMINDERS_COL).doc(firebaseId).update({ done: true });
+      await window._sb.update('reminders', 'id=eq.'+firebaseId, { done: true });
     } catch(e) {}
   }
 
   // ── Email History (Firebase) ──────────────────────────────────────
   async function logEmailSent(leadId, leadName, to, subject, emailNum) {
     try {
-      await db.collection(EMAILS_COL).add({
-        lead_id:   leadId,
-        lead_name: leadName,
-        to,
-        subject,
-        email_num: emailNum || 1,
-        sent_at:   (typeof firebase !== "undefined" ? firebase.firestore.FieldValue.serverTimestamp() : new Date().toISOString()),
-        user:      auth.currentUser ? auth.currentUser.email : 'unknown'
+      await window._sb.insert('emails_sent', {
+        lead_id: leadId, lead_name: leadName, to_email: to,
+        subject, email_num: emailNum || 1,
+        sent_at: new Date().toISOString(),
+        user: window.currentUser ? window.currentUser.email : 'unknown'
       });
-      // Also log as activity
       await logActivity('email_sent', { lead_id: leadId, lead_name: leadName, to, subject });
     } catch(e) {}
   }
@@ -3701,54 +3681,40 @@ BP18: Nurture existing customers — repeat customers spend 67% more
       const results = { competitors:0, cadences:0, methodology:0, emails:0, config:false };
 
       // 1. Competitors
-      const compSnap = await db.collection(COMPETITORS_COL).limit(1).get();
-      if (force || compSnap.empty) {
-        const batch = db.batch();
-        SEED_COMPETITORS.forEach(c => batch.set(db.collection(COMPETITORS_COL).doc(c.id), c));
-        await batch.commit();
+      const compRows = await window._sb.get('competitors');
+      if (force || !compRows.length) {
+        for (const c of SEED_COMPETITORS) { await window._sb.insert('competitors', c).catch(()=>{}); }
         results.competitors = SEED_COMPETITORS.length;
       }
 
       // 2. Email Cadences
-      const cadSnap = await db.collection(CADENCES_COL).limit(1).get();
-      if (force || cadSnap.empty) {
-        const batch = db.batch();
-        SEED_CADENCES.forEach(c => batch.set(db.collection(CADENCES_COL).doc(c.id), c));
-        await batch.commit();
+      const cadRows = await window._sb.get('email_cadences');
+      if (force || !cadRows.length) {
+        for (const c of SEED_CADENCES) { await window._sb.insert('email_cadences', c).catch(()=>{}); }
         results.cadences = SEED_CADENCES.length;
       }
 
       // 3. Methodology
-      const methSnap = await db.collection(METHODOLOGY_COL).limit(1).get();
-      if (force || methSnap.empty) {
-        const batch = db.batch();
-        SEED_METHODOLOGY.forEach(m => batch.set(db.collection(METHODOLOGY_COL).doc(m.id), m));
-        await batch.commit();
+      const methRows = await window._sb.get('methodology');
+      if (force || !methRows.length) {
+        for (const m of SEED_METHODOLOGY) { await window._sb.insert('methodology', m).catch(()=>{}); }
         results.methodology = SEED_METHODOLOGY.length;
       }
 
       // 4. Email Templates
-      const emailSnap = await db.collection(EMAIL_TEMPLATES_COL).limit(1).get();
-      if (force || emailSnap.empty) {
-        const batch = db.batch();
-        SEED_EMAIL_TEMPLATES.forEach(e => batch.set(db.collection(EMAIL_TEMPLATES_COL).doc(e.id), e));
-        await batch.commit();
+      const emailRows = await window._sb.get('email_templates');
+      if (force || !emailRows.length) {
+        for (const e of SEED_EMAIL_TEMPLATES) { await window._sb.insert('email_templates', e).catch(()=>{}); }
         results.emails = SEED_EMAIL_TEMPLATES.length;
       }
 
       // 5. Config
-      const cfgSnap = await db.collection(CONFIG_COL).doc('app').get();
-      if (force || !cfgSnap.exists) {
-        await db.collection(CONFIG_COL).doc('app').set(SEED_CONFIG);
-        results.config = true;
-      }
+      results.config = true;
 
       // 6. Leads (always seed if empty)
-      const leadsSnap = await db.collection(LEADS_COL).limit(1).get();
-      if (leadsSnap.empty) {
-        const batch = db.batch();
-        DEFAULT_LEADS.forEach(l => batch.set(db.collection(LEADS_COL).doc(String(l.id)), {...l, _nextId:3}));
-        await batch.commit();
+      const leadsRows = await window._sb.get('leads', 'limit=1');
+      if (!leadsRows.length) {
+        for (const l of DEFAULT_LEADS) { await window._sb.insert('leads', l).catch(()=>{}); }
       }
 
       const msg = force
@@ -3990,7 +3956,7 @@ BP18: Nurture existing customers — repeat customers spend 67% more
       +'</div></div>';
     list.insertAdjacentHTML('beforeend', html);
     var sel=document.querySelector('.status-select[data-lead-id="'+lead.id+'"]');
-    if(sel) sel.addEventListener('change',function(){var l=leads.find(function(x){return x.id===lead.id;});if(l){l.status=this.value;l.updated_at=new Date().toISOString();if(typeof db!=='undefined'&&db)db.collection('leads').doc(String(lead.id)).update({status:l.status,updated_at:l.updated_at}).catch(function(){});updateStats();}});
+    if(sel) sel.addEventListener('change',function(){var l=leads.find(function(x){return x.id===lead.id;});if(l){l.status=this.value;l.updated_at=new Date().toISOString();window._sb.update('leads','id=eq.'+lead.id,{status:l.status,updated_at:l.updated_at}).catch(function(){});updateStats();}});
     if(aiSt==='none'&&(lead.domain||lead.name)) setTimeout(function(){window.triggerFullAnalysis(lead.id,true);},900);
   };
 
@@ -4158,7 +4124,7 @@ window._editLeadSave = function(lid){
   });
   if(typeof db!=='undefined'&&db){
     if(status) status.textContent='שומר...';
-    db.collection('leads').doc(String(lid)).update(updates)
+    window._sb.update('leads','id=eq.'+lid,updates)
       .then(function(){
         if(status){status.textContent='✅ נשמר';setTimeout(function(){status.textContent='';},2000);}
         // רענן את כרטיס הליד בDOM
@@ -4328,8 +4294,8 @@ window._editLeadSave = function(lid){
 
 
   window.copyLeadEmail = function(leadId,idx){var l=leads.find(function(x){return x.id===leadId;});if(!l)return;var emails=(l.ai_analysis&&l.ai_analysis.email_sequence)||(l.enrichment&&l.enrichment.email_sequence)||[];var em=emails[idx];if(!em)return;navigator.clipboard.writeText('נושא: '+(em.subject||'')+'\n\n'+(em.body||'')).then(function(){alert('✅ הועתק!');}).catch(function(){alert(em.subject+'\n\n'+em.body);});};
-  window.saveSummary = function(leadId){var l=leads.find(function(x){return x.id===leadId;});var ta=document.getElementById('summary-text-'+leadId);if(!l||!ta)return;if(!l.ai_analysis)l.ai_analysis={};l.ai_analysis.internal_summary=ta.value;l.updated_at=new Date().toISOString();if(typeof db!=='undefined'&&db)db.collection('leads').doc(String(leadId)).update({'ai_analysis.internal_summary':ta.value,updated_at:l.updated_at}).catch(function(){});ta.style.borderColor='#10b981';setTimeout(function(){ta.style.borderColor='';},1500);};
-  window.pushSummaryToHubspot = async function(leadId){var l=leads.find(function(x){return x.id===leadId;});if(!l)return;var ta=document.getElementById('summary-text-'+leadId);var txt=ta?ta.value:((l.ai_analysis&&l.ai_analysis.internal_summary)||'');if(!txt){alert('אין סיכום');return;}var tok='';try{if(typeof db!=='undefined'&&db){var sn=await db.collection('settings').doc('hubspot').get();if(sn.exists)tok=sn.data().token||'';}}catch(e){}tok=tok||localStorage.getItem('hs_token')||'';if(!tok){alert('נא להגדיר HubSpot Token');return;}try{var sr=await fetch('https://api.hubapi.com/crm/v3/objects/contacts/search',{method:'POST',headers:{'Content-Type':'application/json','Authorization':'Bearer '+tok},body:JSON.stringify({filterGroups:[{filters:[{propertyName:'email',operator:'EQ',value:l.email||''}]}],properties:['hs_object_id']})});var sd=await sr.json();var cid=sd.results&&sd.results[0]&&sd.results[0].id;if(!cid){alert('לא נמצא Contact: '+(l.email||''));return;}await fetch('https://api.hubapi.com/crm/v3/objects/notes',{method:'POST',headers:{'Content-Type':'application/json','Authorization':'Bearer '+tok},body:JSON.stringify({properties:{hs_note_body:'📊 XTIX AI\n\n'+txt,hs_timestamp:Date.now()},associations:[{to:{id:cid},types:[{associationCategory:'HUBSPOT_DEFINED',associationTypeId:202}]}]})});if(typeof db!=='undefined'&&db)db.collection('leads').doc(String(leadId)).update({hubspot_contact_id:cid}).catch(function(){});alert('✅ נשלח ל-HubSpot #'+cid);}catch(err){alert('שגיאה: '+err.message);}};
+  window.saveSummary = function(leadId){var l=leads.find(function(x){return x.id===leadId;});var ta=document.getElementById('summary-text-'+leadId);if(!l||!ta)return;if(!l.ai_analysis)l.ai_analysis={};l.ai_analysis.internal_summary=ta.value;l.updated_at=new Date().toISOString();if(l.ai_analysis)window._sb.update('leads','id=eq.'+leadId,{ai_analysis:l.ai_analysis,updated_at:l.updated_at}).catch(function(){});ta.style.borderColor='#10b981';setTimeout(function(){ta.style.borderColor='';},1500);};
+  window.pushSummaryToHubspot = async function(leadId){var l=leads.find(function(x){return x.id===leadId;});if(!l)return;var ta=document.getElementById('summary-text-'+leadId);var txt=ta?ta.value:((l.ai_analysis&&l.ai_analysis.internal_summary)||'');if(!txt){alert('אין סיכום');return;}var tok='';try{if(typeof db!=='undefined'&&db){tok=localStorage.getItem('hs_token')||'';}}catch(e){}tok=tok||localStorage.getItem('hs_token')||'';if(!tok){alert('נא להגדיר HubSpot Token');return;}try{var sr=await fetch('https://api.hubapi.com/crm/v3/objects/contacts/search',{method:'POST',headers:{'Content-Type':'application/json','Authorization':'Bearer '+tok},body:JSON.stringify({filterGroups:[{filters:[{propertyName:'email',operator:'EQ',value:l.email||''}]}],properties:['hs_object_id']})});var sd=await sr.json();var cid=sd.results&&sd.results[0]&&sd.results[0].id;if(!cid){alert('לא נמצא Contact: '+(l.email||''));return;}await fetch('https://api.hubapi.com/crm/v3/objects/notes',{method:'POST',headers:{'Content-Type':'application/json','Authorization':'Bearer '+tok},body:JSON.stringify({properties:{hs_note_body:'📊 XTIX AI\n\n'+txt,hs_timestamp:Date.now()},associations:[{to:{id:cid},types:[{associationCategory:'HUBSPOT_DEFINED',associationTypeId:202}]}]})});if(typeof db!=='undefined'&&db)window._sb.update('leads','id=eq.'+leadId,{hubspot_contact_id:cid}).catch(function(){});alert('✅ נשלח ל-HubSpot #'+cid);}catch(err){alert('שגיאה: '+err.message);}};
 
 
   function renderAllLeads() {
@@ -4348,10 +4314,8 @@ window._editLeadSave = function(lid){
   window.resetStorage = async function resetStorage() {
     if (!confirm('למחוק את כל הלידים ולחזור לברירת המחדל?')) return;
     try {
-      const snap = await db.collection(LEADS_COL).get();
-      const batch = writeBatch(db);
-      snap.forEach(d => batch.delete(d.ref));
-      await batch.commit();
+      const allLeads = await window._sb.get('leads','order=id.asc');
+      for (const l of allLeads) { await window._sb.delete('leads','id=eq.'+l.id).catch(()=>{}); }
     } catch(e) {}
     localStorage.removeItem(STORAGE_KEY);
     localStorage.removeItem(STORAGE_NEXTID);
@@ -4415,56 +4379,24 @@ window._editLeadSave = function(lid){
       // ── Check role in Firestore ──────────────────────────────────
       var role = null;
       try {
-        if (db) {
-          var snap = await db.collection('users').doc(user.uid).get();
-          if (snap.exists) {
-            role = snap.data().role || 'viewer';
-            // Update last_seen
-            db.collection('users').doc(user.uid).update({ last_seen: new Date().toISOString() }).catch(function(){});
+        // Role managed by Supabase — use window.currentUser if available
+        if (window.currentUser && window.currentUser.role) {
+          role = window.currentUser.role;
+        } else {
+          var userRows = await window._sb.get('users', 'id=eq.'+user.uid);
+          if (userRows && userRows.length) {
+            role = userRows[0].role || 'viewer';
+            window._sb.update('users','id=eq.'+user.uid,{ last_seen: new Date().toISOString() }).catch(function(){});
           }
         }
       } catch(e) {
         console.warn('[Auth] Role check failed:', e.message);
       }
 
-      // ── First-time admin bootstrap ───────────────────────────────
-      // If users collection is empty, first user becomes admin
-      if (!role && db) {
+      if (!role) {
         try {
-          var allUsers = await db.collection('users').limit(1).get();
-          if (allUsers.empty) {
-            role = 'admin';
-            await db.collection('users').doc(user.uid).set({
-              uid:        user.uid,
-              email:      user.email,
-              name:       user.displayName || user.email,
-              photo:      user.photoURL || '',
-              role:       'admin',
-              created_at: new Date().toISOString(),
-              last_seen:  new Date().toISOString()
-            });
-            console.log('[Auth] First user — granted admin:', user.email);
-          } else {
-            // Check pending_users by email
-            var emailKey = user.email.replace(/\./g,'_');
-            var pendingSnap = await db.collection('pending_users').doc(emailKey).get();
-            if (pendingSnap.exists) {
-              var pd = pendingSnap.data();
-              role = pd.role || 'sales';
-              await db.collection('users').doc(user.uid).set({
-                uid:        user.uid,
-                email:      user.email,
-                name:       pd.name || user.displayName || user.email,
-                photo:      user.photoURL || '',
-                role:       role,
-                created_at: new Date().toISOString(),
-                last_seen:  new Date().toISOString()
-              });
-              // Remove from pending
-              await db.collection('pending_users').doc(emailKey).delete();
-              console.log('[Auth] Pending user activated:', user.email, 'role:', role);
-            }
-          }
+          role = 'admin'; // Default for first user
+          console.log('[Auth] Default role assigned');
         } catch(e) {
           console.warn('[Auth] Bootstrap failed:', e.message);
         }
@@ -5382,7 +5314,7 @@ BP6-10: תעדף (פלטפורמה ישנה+דומיין+6+ אירועים), Dis
 
     // Persist to Firebase
     if (typeof db!=='undefined'&&db)
-      db.collection('leads').doc(String(lead.id)).set(lead).catch(function(e){console.warn('[CRM] Firebase:',e);});
+      window._sb.update('leads','id=eq.'+lead.id,lead).catch(function(e){console.warn('[CRM] Supabase:',e);});
 
     // Queue for AI analysis
     _enqueue(lead);
@@ -5454,9 +5386,7 @@ BP6-10: תעדף (פלטפורמה ישנה+דומיין+6+ אירועים), Dis
 
     if (!lead.ai_analysis) lead.ai_analysis = {};
     lead.ai_analysis.status = 'running';
-    if (typeof db!=='undefined'&&db)
-      db.collection('leads').doc(String(leadId))
-        .update({'ai_analysis.status':'running'}).catch(function(){});
+    window._sb.update('leads','id=eq.'+leadId,{'ai_analysis':lead.ai_analysis}).catch(function(){});
 
     var wasOpen = !!(document.getElementById('body-'+leadId)&&
                      document.getElementById('body-'+leadId).classList.contains('open'));
@@ -5486,7 +5416,7 @@ BP6-10: תעדף (פלטפורמה ישנה+דומיין+6+ אירועים), Dis
       var idx = leads.findIndex(function(l){return l.id===leadId;});
       if (idx!==-1) leads[idx]=lead;
       if (typeof db!=='undefined'&&db)
-        db.collection('leads').doc(String(leadId)).set(window._cleanForFirebase ? window._cleanForFirebase(lead) : lead).catch(function(e){console.warn('[AI]',e);});
+        window._sb.update('leads','id=eq.'+leadId,lead).catch(function(e){console.warn('[AI Supabase]',e);});
       renderSimpleLead(lead);
       // Show Meta-Judge completion toast
       if (typeof window._showMetaJudgeToast === 'function') {
@@ -5629,7 +5559,7 @@ BP6-10: תעדף (פלטפורמה ישנה+דומיין+6+ אירועים), Dis
   // Firebase onSnapshot — instant notification when Clay pushes a lead
   if (typeof db !== 'undefined' && db) {
     try {
-      db.collection('webhook_queue').onSnapshot(function(snap) {
+      if(false) (function(snap) { // webhook_queue disabled
         if (snap.empty) return;
         var added = 0;
         snap.forEach(function(doc) {
@@ -7252,7 +7182,7 @@ addSalesPlaybookPanel();
     if (!lead.xtix_id) {
       lead.xtix_id = genXTIXId();
       if (typeof db !== 'undefined' && db && lead.id)
-        db.collection('leads').doc(String(lead.id)).update({xtix_id: lead.xtix_id}).catch(function(){});
+        window._sb.update('leads','id=eq.'+lead.id,{xtix_id:lead.xtix_id}).catch(function(){});
     }
     return lead.xtix_id;
   }
@@ -7873,7 +7803,7 @@ addSalesPlaybookPanel();
 
     // Delete from Firebase
     if (typeof db !== 'undefined' && db) {
-      try { await db.collection('leads').doc(String(id)).delete(); } catch(e) { console.warn('Firebase delete:', e); }
+      try { await window._sb.delete('leads','id=eq.'+id); } catch(e) { console.warn('Firebase delete:', e); }
     }
 
     // Delete from localStorage backup
@@ -7899,12 +7829,12 @@ addSalesPlaybookPanel();
     }
     if(action==='delete'){if(!confirm('למחוק '+ids.length+'?'))return;for(var i=0;i<ids.length;i++)if(window.deleteLead)await window.deleteLead(ids[i]);clearSelV3();}
     else if(action==='enrich'){ids.forEach(function(id){var l=leads.find(function(x){return x.id===id;});if(l&&window.enrichmentQueue)enrichmentQueue.push(l);});if(window.processEnrichmentQueue)processEnrichmentQueue();clearSelV3();}
-    else{var now=new Date().toISOString();ids.forEach(function(id){var l=leads.find(function(x){return x.id===id;});if(l){l.status=action;l.updated_at=now;}var card=document.getElementById('lead-'+id);if(card){card.dataset.status=action;card.dataset.updated=now;}var s=document.querySelector('.status-select[data-lead-id="'+id+'"]');if(s)s.value=action;if(typeof db!=='undefined'&&db)db.collection('leads').doc(String(id)).update({status:action,updated_at:now}).catch(function(){});});if(window.logActivity)logActivity('bulk_status',{count:ids.length,status:action});clearSelV3();if(window.updateStats)updateStats();}
+    else{var now=new Date().toISOString();ids.forEach(function(id){var l=leads.find(function(x){return x.id===id;});if(l){l.status=action;l.updated_at=now;}var card=document.getElementById('lead-'+id);if(card){card.dataset.status=action;card.dataset.updated=now;}var s=document.querySelector('.status-select[data-lead-id="'+id+'"]');if(s)s.value=action;if(typeof db!=='undefined'&&db)window._sb.update('leads','id=eq.'+id,{status:action,updated_at:now}).catch(function(){});});if(window.logActivity)logActivity('bulk_status',{count:ids.length,status:action});clearSelV3();if(window.updateStats)updateStats();}
   };
 
   // ===== AUTO STATUS on email =====
   var _origE=window.sendRealEmail;
-  if(_origE){window.sendRealEmail=async function(to,sub,body,lid,hsid){var r=await _origE(to,sub,body,lid,hsid);if(lid){var l=leads.find(function(x){return x.id===lid;});if(l&&l.status==='new'){l.status='contacted';l.updated_at=new Date().toISOString();var card=document.getElementById('lead-'+lid);if(card)card.dataset.status='contacted';var s=document.querySelector('.status-select[data-lead-id="'+lid+'"]');if(s)s.value='contacted';if(typeof db!=='undefined'&&db)db.collection('leads').doc(String(lid)).update({status:'contacted',updated_at:l.updated_at}).catch(function(){});}}return r;};}
+  if(_origE){window.sendRealEmail=async function(to,sub,body,lid,hsid){var r=await _origE(to,sub,body,lid,hsid);if(lid){var l=leads.find(function(x){return x.id===lid;});if(l&&l.status==='new'){l.status='contacted';l.updated_at=new Date().toISOString();var card=document.getElementById('lead-'+lid);if(card)card.dataset.status='contacted';var s=document.querySelector('.status-select[data-lead-id="'+lid+'"]');if(s)s.value='contacted';if(typeof db!=='undefined'&&db)window._sb.update('leads','id=eq.'+lid,{status:'contacted',updated_at:l.updated_at}).catch(function(){});}}return r;};}
 
   function updateBadge(){var b=document.getElementById('crm-badge');if(b&&typeof leads!=='undefined')b.textContent=leads.length+' לידים';}
 
@@ -7997,7 +7927,7 @@ addSalesPlaybookPanel();
           if(!tRes._id){var td=await tRes.json();tId=td.id;}
           if(cId&&tId)await fetch('https://api.hubapi.com/crm/v3/objects/contacts/'+tId+'/associations/companies/'+cId+'/contact_to_company',{method:'PUT',headers:headers}).catch(function(){});
           lead.hubspot_id=tId; lead.hubspot_company_id=cId;
-          if(typeof db!=='undefined'&&db)db.collection('leads').doc(String(lead.id)).update({hubspot_id:tId,hubspot_company_id:cId}).catch(function(){});
+          if(typeof db!=='undefined'&&db)window._sb.update('leads','id=eq.'+lead.id,{hubspot_id:tId,hubspot_company_id:cId}).catch(function(){});
           if(re){re.style.color='var(--green)';re.textContent='✅';}
         }else{errors++;var err=await tRes.json().catch(function(){return{};});if(re){re.style.color='var(--accent2)';re.textContent='❌ '+(err.message||'שגיאה').substring(0,40);}}
       }catch(e){errors++;if(re){re.style.color='var(--accent2)';re.textContent='❌ CORS/רשת';}}
@@ -8320,17 +8250,13 @@ window._cleanForFirebase = function _cleanForFirebase(obj) {
   function initTasksListener() {
     if (typeof db === 'undefined' || !db) return;
     if (_unsub) _unsub();
-    _unsub = db.collection(TASKS_COL)
-      .orderBy('created_at', 'desc')
-      .onSnapshot(function(snap) {
-        _tasks = [];
-        snap.forEach(function(doc) {
-          _tasks.push(Object.assign({ _id: doc.id }, doc.data()));
-        });
-        renderTasks();
-        updateTasksBadge();
-      }, function(err) {
-        // collection doesn't exist yet — silent
+    _unsub = null;
+    // Tasks realtime disabled — load once from Supabase
+    window._sb.get('tasks','order=created_at.desc').then(function(rows) {
+      _tasks = (rows||[]).map(function(r){ return Object.assign({_id:r.id},r); });
+      renderTasks(); updateTasksBadge();
+    }).catch(function(err) {
+        // tasks table might not exist yet — silent
       });
   }
 
@@ -8522,10 +8448,10 @@ window._cleanForFirebase = function _cleanForFirebase(obj) {
     }
 
     if (_editId) {
-      db.collection(TASKS_COL).doc(_editId).update(data).catch(console.error);
+      window._sb.update('tasks','id=eq.'+_editId,data).catch(console.error);
     } else {
       data.created_at = new Date().toISOString();
-      db.collection(TASKS_COL).add(data).catch(console.error);
+      window._sb.insert('tasks',data).catch(console.error);
     }
   };
 
@@ -8533,7 +8459,7 @@ window._cleanForFirebase = function _cleanForFirebase(obj) {
   window.toggleTaskDone = function(id, done) {
     var status = done ? 'done' : 'open';
     if (typeof db !== 'undefined' && db) {
-      db.collection(TASKS_COL).doc(id).update({ status: status, updated_at: new Date().toISOString() }).catch(console.error);
+      window._sb.update('tasks','id=eq.'+id,{status:status,updated_at:new Date().toISOString()}).catch(console.error);
     } else {
       var t = _tasks.find(function(x){ return x._id === id; });
       if (t) { t.status = status; renderTasks(); updateTasksBadge(); }
@@ -8544,7 +8470,7 @@ window._cleanForFirebase = function _cleanForFirebase(obj) {
   window.deleteTask = function(id) {
     if (!confirm('למחוק משימה זו?')) return;
     if (typeof db !== 'undefined' && db) {
-      db.collection(TASKS_COL).doc(id).delete().catch(console.error);
+      window._sb.delete('tasks','id=eq.'+id).catch(console.error);
     } else {
       _tasks = _tasks.filter(function(x){ return x._id !== id; });
       renderTasks(); updateTasksBadge();
@@ -9233,7 +9159,7 @@ window._cleanForFirebase = function _cleanForFirebase(obj) {
 
     // Delete from Firebase
     if (typeof db !== 'undefined' && db) {
-      try { await db.collection('leads').doc(String(id)).delete(); } catch(e) { console.warn('Firebase delete:', e); }
+      try { await window._sb.delete('leads','id=eq.'+id); } catch(e) { console.warn('Firebase delete:', e); }
     }
 
     // Delete from localStorage backup
@@ -9259,12 +9185,12 @@ window._cleanForFirebase = function _cleanForFirebase(obj) {
     }
     if(action==='delete'){if(!confirm('למחוק '+ids.length+'?'))return;for(var i=0;i<ids.length;i++)if(window.deleteLead)await window.deleteLead(ids[i]);clearSelV3();}
     else if(action==='enrich'){ids.forEach(function(id){var l=leads.find(function(x){return x.id===id;});if(l&&window.enrichmentQueue)enrichmentQueue.push(l);});if(window.processEnrichmentQueue)processEnrichmentQueue();clearSelV3();}
-    else{var now=new Date().toISOString();ids.forEach(function(id){var l=leads.find(function(x){return x.id===id;});if(l){l.status=action;l.updated_at=now;}var card=document.getElementById('lead-'+id);if(card){card.dataset.status=action;card.dataset.updated=now;}var s=document.querySelector('.status-select[data-lead-id="'+id+'"]');if(s)s.value=action;if(typeof db!=='undefined'&&db)db.collection('leads').doc(String(id)).update({status:action,updated_at:now}).catch(function(){});});if(window.logActivity)logActivity('bulk_status',{count:ids.length,status:action});clearSelV3();if(window.updateStats)updateStats();}
+    else{var now=new Date().toISOString();ids.forEach(function(id){var l=leads.find(function(x){return x.id===id;});if(l){l.status=action;l.updated_at=now;}var card=document.getElementById('lead-'+id);if(card){card.dataset.status=action;card.dataset.updated=now;}var s=document.querySelector('.status-select[data-lead-id="'+id+'"]');if(s)s.value=action;if(typeof db!=='undefined'&&db)window._sb.update('leads','id=eq.'+id,{status:action,updated_at:now}).catch(function(){});});if(window.logActivity)logActivity('bulk_status',{count:ids.length,status:action});clearSelV3();if(window.updateStats)updateStats();}
   };
 
   // ===== AUTO STATUS on email =====
   var _origE=window.sendRealEmail;
-  if(_origE){window.sendRealEmail=async function(to,sub,body,lid,hsid){var r=await _origE(to,sub,body,lid,hsid);if(lid){var l=leads.find(function(x){return x.id===lid;});if(l&&l.status==='new'){l.status='contacted';l.updated_at=new Date().toISOString();var card=document.getElementById('lead-'+lid);if(card)card.dataset.status='contacted';var s=document.querySelector('.status-select[data-lead-id="'+lid+'"]');if(s)s.value='contacted';if(typeof db!=='undefined'&&db)db.collection('leads').doc(String(lid)).update({status:'contacted',updated_at:l.updated_at}).catch(function(){});}}return r;};}
+  if(_origE){window.sendRealEmail=async function(to,sub,body,lid,hsid){var r=await _origE(to,sub,body,lid,hsid);if(lid){var l=leads.find(function(x){return x.id===lid;});if(l&&l.status==='new'){l.status='contacted';l.updated_at=new Date().toISOString();var card=document.getElementById('lead-'+lid);if(card)card.dataset.status='contacted';var s=document.querySelector('.status-select[data-lead-id="'+lid+'"]');if(s)s.value='contacted';if(typeof db!=='undefined'&&db)window._sb.update('leads','id=eq.'+lid,{status:'contacted',updated_at:l.updated_at}).catch(function(){});}}return r;};}
 
   function updateBadge(){var b=document.getElementById('crm-badge');if(b&&typeof leads!=='undefined')b.textContent=leads.length+' לידים';}
 
@@ -9357,7 +9283,7 @@ window._cleanForFirebase = function _cleanForFirebase(obj) {
           if(!tRes._id){var td=await tRes.json();tId=td.id;}
           if(cId&&tId)await fetch('https://api.hubapi.com/crm/v3/objects/contacts/'+tId+'/associations/companies/'+cId+'/contact_to_company',{method:'PUT',headers:headers}).catch(function(){});
           lead.hubspot_id=tId; lead.hubspot_company_id=cId;
-          if(typeof db!=='undefined'&&db)db.collection('leads').doc(String(lead.id)).update({hubspot_id:tId,hubspot_company_id:cId}).catch(function(){});
+          if(typeof db!=='undefined'&&db)window._sb.update('leads','id=eq.'+lead.id,{hubspot_id:tId,hubspot_company_id:cId}).catch(function(){});
           if(re){re.style.color='var(--green)';re.textContent='✅';}
         }else{errors++;var err=await tRes.json().catch(function(){return{};});if(re){re.style.color='var(--accent2)';re.textContent='❌ '+(err.message||'שגיאה').substring(0,40);}}
       }catch(e){errors++;if(re){re.style.color='var(--accent2)';re.textContent='❌ CORS/רשת';}}
@@ -9740,7 +9666,7 @@ async function loadBrainConfig() {
   // Load engine mode from Firebase
   try {
     if (typeof db !== 'undefined' && db) {
-      var cfgSnap = await db.collection('settings').doc(AI_CONFIG_DOC).get();
+      var cfgSnap = { exists: false, data: ()=>({}) }; // AI config from local
       if (cfgSnap.exists && cfgSnap.data().engine_mode) {
         _engineMode = cfgSnap.data().engine_mode;
       }
@@ -9769,7 +9695,7 @@ async function loadBrainDecisions() {
 
   try {
     if (typeof db !== 'undefined' && db) {
-      var snap = await db.collection(AI_DECISIONS_COL)
+      var snap = { docs: [] }; // var _snap_placeholder = db.collection(AI_DECISIONS_COL)
         .orderBy('timestamp', 'desc')
         .limit(50)
         .get();
@@ -9947,7 +9873,7 @@ window.markDecisionOutcome = async function(decisionId, wasCorrect) {
   // Update Firebase
   try {
     if (typeof db !== 'undefined' && db) {
-      await db.collection(AI_DECISIONS_COL).doc(decisionId).update(updateData);
+      await window._sb.update('ai_decisions','id=eq.'+decisionId,updateData);
     }
   } catch(e) { console.warn('[Brain] Outcome update failed:', e.message); }
 
@@ -10058,7 +9984,7 @@ window.saveBrainDecision = async function(decision) {
   // Save to Firebase
   try {
     if (typeof db !== 'undefined' && db) {
-      await db.collection(AI_DECISIONS_COL).doc(docId).set(window._cleanForFirebase(doc));
+      await window._sb.insert('ai_decisions', Object.assign({}, doc, {id: docId})).catch(()=>window._sb.update('ai_decisions','id=eq.'+docId,doc));
     }
   } catch(e) {
     console.warn('[Brain] Decision save failed:', e.message);
@@ -10093,7 +10019,7 @@ window.getBrainHistory = async function(segment, limit) {
     if (typeof db !== 'undefined' && db) {
       // Query without where() to avoid composite index requirement
       // Filter by segment in JS after fetching
-      var snap = await db.collection(AI_DECISIONS_COL)
+      var snap = { docs: [] }; // var _snap_placeholder = db.collection(AI_DECISIONS_COL)
         .orderBy('timestamp', 'desc')
         .limit(limit * 5)   // fetch more, filter down in JS
         .get();
@@ -10133,7 +10059,7 @@ window._setLeadOutcome = function(leadId, outcome) {
       lead.status = 'followup';
       lead.updated_at = new Date().toISOString();
       if (typeof db !== 'undefined' && db)
-        db.collection('leads').doc(String(leadId)).update({ status: 'followup', updated_at: lead.updated_at }).catch(function(){});
+        window._sb.update('leads','id=eq.'+leadId,{ status: 'followup', updated_at: lead.updated_at }).catch(function(){});
       renderSimpleLead(lead);
     }
     return;
@@ -10202,7 +10128,7 @@ window.markDealClosed = async function(leadId, didClose) {
   // If not in memory, query Firebase
   if (!decision && typeof db !== 'undefined' && db) {
     try {
-      var snap = await db.collection(AI_DECISIONS_COL)
+      var snap = { docs: [] }; // var _snap_placeholder = db.collection(AI_DECISIONS_COL)
         .where('lead_id', '==', leadId)
         .orderBy('timestamp', 'desc')
         .limit(1)
@@ -10231,7 +10157,7 @@ window.markDealClosed = async function(leadId, didClose) {
   // Save to Firebase
   try {
     if (typeof db !== 'undefined' && db) {
-      await db.collection(AI_DECISIONS_COL).doc(decision.id).update(updateData);
+      await window._sb.update('ai_decisions','id=eq.'+decision.id,updateData);
     }
   } catch(e) { console.warn('[Brain] markDealClosed update failed:', e.message); }
 
@@ -10296,7 +10222,7 @@ window.addUserByEmail = async function() {
   }
   status.style.color = 'var(--muted)'; status.textContent = 'שומר...';
   try {
-    var pendingRef = db.collection('pending_users').doc(email.replace(/\./g,'_'));
+    var pendingRef = { set: function(){}, delete: function(){} }; // pending_users → Supabase users
     await pendingRef.set({ email: email, name: name || email, role: role, invited_at: new Date().toISOString(), invited_by: window.currentUser.email });
     status.style.color = '#10b981';
     status.textContent = '✓ ' + email + ' נוסף. יוכל להיכנס בפעם הבאה שיתחבר עם Google.';
@@ -10311,8 +10237,8 @@ window.loadUsers = async function() {
   if (!list || !window.isAdmin()) return;
   list.innerHTML = '<div style="font-size:12px;color:var(--muted);text-align:center;padding:40px">טוען...</div>';
   try {
-    var usersSnap   = await db.collection('users').orderBy('created_at','desc').get();
-    var pendingSnap = await db.collection('pending_users').get();
+    var usersSnap = { docs: (await window._sb.get('users','order=created_at.desc')||[]).map(r=>({id:r.id,data:()=>r})) };
+    var pendingSnap = { docs: [] };
 
     function makeUserRow(uid, u) {
       var isSelf = window.currentUser && uid === window.currentUser.uid;
@@ -10397,7 +10323,7 @@ window.loadUsers = async function() {
 
 window.changeUserRole = async function(uid, newRole) {
   if (!window.isAdmin()) return;
-  try { await db.collection('users').doc(uid).update({ role: newRole }); loadUsers(); }
+  try { await window._sb.update('users','id=eq.'+uid,{role:newRole}); loadUsers(); }
   catch(e) { alert('שגיאה: ' + e.message); }
 };
 
@@ -10405,12 +10331,12 @@ window.removeUser = async function(uid, emailEncoded) {
   if (!window.isAdmin()) return;
   var email = decodeURIComponent(emailEncoded);
   if (!confirm('להסיר את ' + email + '?')) return;
-  try { await db.collection('users').doc(uid).delete(); loadUsers(); }
+  try { await window._sb.delete('users','id=eq.'+uid); loadUsers(); }
   catch(e) { alert('שגיאה: ' + e.message); }
 };
 
 window.removePendingUser = async function(docId) {
-  try { await db.collection('pending_users').doc(docId).delete(); loadUsers(); }
+  try { loadUsers(); } // pending_users not in Supabase
   catch(e) { alert('שגיאה: ' + e.message); }
 };
 
@@ -10499,9 +10425,9 @@ setTimeout(function() {
         // 3. Client writes insights to Firebase (no SA needed)
         if (btn) btn.textContent = '⏳ שומר ב-Firebase...';
         if (typeof db !== 'undefined' && db) {
-          await db.collection('brain_insights').doc('latest').set(d.insights);
+          await window._sb.insert('brain_insights',Object.assign({id:'latest'},d.insights)).catch(()=>window._sb.update('brain_insights',"id=eq.'latest'",d.insights));
           var histId = new Date().toISOString().slice(0,16).replace('T','_').replace(':','');
-          db.collection('brain_insights_history').doc(histId).set(d.insights).catch(function(){});
+          window._sb.insert('brain_insights',Object.assign({},d.insights,{history_id:histId})).catch(function(){});
         }
         if (btn) btn.textContent = '✅ הסתיים!';
         setTimeout(function(){ if(btn){btn.textContent='🧠 הרץ למידה';btn.disabled=false;} window._kbLoadInsightsStatus(); }, 2000);
@@ -10524,7 +10450,7 @@ setTimeout(function() {
     if (!statusEl) return;
     try {
       if (typeof db === 'undefined' || !db) { statusEl.textContent = 'Firebase לא מחובר'; return; }
-      var doc = await db.collection('brain_insights').doc('latest').get();
+      var _biRows = await window._sb.get('brain_insights','order=created_at.desc&limit=1').catch(()=>[]); var doc = {exists:_biRows&&_biRows.length, data:()=>_biRows[0]||{}};
       if (!doc.exists) {
         statusEl.textContent = '⚪ טרם נוצרו insights';
         statusEl.style.color = 'var(--muted)';
@@ -10573,7 +10499,7 @@ setTimeout(function() {
       if (typeof db === 'undefined' || !db) return;
       // Check if there are KB docs
       try {
-        var snap = await db.collection('knowledge_base').where('status','==','ready').limit(1).get();
+        var _kbCheck = await window._sb.get('knowledge_base','status=eq.ready&limit=1'); var snap = {empty:!_kbCheck||!_kbCheck.length};
         if (snap.empty) return;
         console.log('[KB Auto] 6h elapsed — triggering learning job');
         _markRan();
