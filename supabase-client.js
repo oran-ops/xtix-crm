@@ -647,6 +647,12 @@
           window._onAuthCallbacks.forEach(function(cb) { cb(window.auth.currentUser); });
         }
         console.log('[Auth] ✅ Signed in as', user.email, '(' + user.role + ')');
+        // Load leads from Supabase after auth
+        setTimeout(function() {
+          if (typeof window.loadLeadsAsync === 'function') {
+            window.loadLeadsAsync();
+          }
+        }, 300);
       },
       function(reason, email) {
         // Not authenticated — show login screen
