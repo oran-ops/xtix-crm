@@ -3481,7 +3481,7 @@ BP18: Nurture existing customers — repeat customers spend 67% more
   async function ensureMethodologyInFirebase() {
     if (_methodologyCache) return _methodologyCache;
     try {
-      const rows = await window._sb.get('methodology', 'order=updated_at.desc&limit=1');
+      const rows = await window._sb.get('methodology', 'order=created_at.desc&limit=1');
       if (rows && rows.length && rows[0].content) {
         _methodologyCache = rows[0].content;
         console.log('[METH] Loaded from Supabase (' + _methodologyCache.length + ' chars)');
@@ -5439,7 +5439,13 @@ BP6-10: תעדף (פלטפורמה ישנה+דומיין+6+ אירועים), Dis
       var idx = leads.findIndex(function(l){return l.id===leadId;});
       if (idx!==-1) leads[idx]=lead;
       if (typeof db!=='undefined'&&db)
-        window._sb.update('leads','id=eq.'+leadId,lead).catch(function(e){console.warn('[AI Supabase]',e);});
+        // Only update if leadId is a valid UUID (not old Firebase numeric ID)
+        var _isUUID = leadId && /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(String(leadId));
+        if (_isUUID) {
+          window._sb.update('leads','id=eq.'+leadId,lead).catch(function(e){console.warn('[AI Supabase]',e);});
+        } else {
+          console.warn('[AI] Skipping save - non-UUID lead ID:', leadId);
+        }
       renderSimpleLead(lead);
       // Show Meta-Judge completion toast
       if (typeof window._showMetaJudgeToast === 'function') {

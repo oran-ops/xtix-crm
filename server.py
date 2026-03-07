@@ -17,8 +17,6 @@ import urllib.request, urllib.parse
 # ══════════════════════════════════════════════════════════════════
 
 FIREBASE_PROJECT_ID = os.environ.get('FIREBASE_PROJECT_ID', 'xtix-crm')
-SUPABASE_URL        = os.environ.get('SUPABASE_URL', 'https://ugluksyfpfgzbpmayodg.supabase.co')
-SUPABASE_SERVICE_KEY= os.environ.get('SUPABASE_SERVICE_KEY', '')
 
 # In-memory cache — client uploads KB docs + decisions via /kb/run
 _kb_cache = {
@@ -220,8 +218,6 @@ from email.mime.multipart import MIMEMultipart
 # No external dependencies — pure stdlib
 
 FIREBASE_PROJECT_ID = os.environ.get('FIREBASE_PROJECT_ID', 'xtix-crm')
-SUPABASE_URL        = os.environ.get('SUPABASE_URL', 'https://ugluksyfpfgzbpmayodg.supabase.co')
-SUPABASE_SERVICE_KEY= os.environ.get('SUPABASE_SERVICE_KEY', '')
 _google_certs = {}          # cache: {kid: public_key_pem}
 _google_certs_expiry = 0    # unix timestamp
 _certs_lock = threading.Lock()
@@ -249,9 +245,9 @@ def _b64_decode(s):
     s += '=' * (4 - len(s) % 4)
     return base64.b64decode(s)
 
-def _verify_supabase_token(id_token):
+def _verify_firebase_token(id_token):
     """
-    Verify Supabase JWT token.
+    Verify Firebase ID Token.
     Returns (uid, email, decoded_payload) on success.
     Raises ValueError with reason on failure.
     """
@@ -265,37 +261,70 @@ def _verify_supabase_token(id_token):
     except Exception as e:
         raise ValueError(f'JWT decode failed: {e}')
 
-    # Step 2: basic payload checks (Supabase JWT)
+    # Step 2: basic payload checks
     now = time.time()
+    if payload.get('aud') != FIREBASE_PROJECT_ID:
+        raise ValueError(f'Wrong audience: {payload.get("aud")}')
+    if payload.get('iss') != f'https://securetoken.google.com/{FIREBASE_PROJECT_ID}':
+        raise ValueError('Wrong issuer')
     if payload.get('exp', 0) < now:
         raise ValueError('Token expired')
+    if payload.get('iat', 0) > now + 300:
+        raise ValueError('Token issued in future')
     if not payload.get('sub'):
         raise ValueError('Missing subject (uid)')
-    # Supabase tokens have role='authenticated'
-    if payload.get('role') not in ('authenticated', 'service_role', 'anon'):
-        raise ValueError(f'Invalid Supabase role: {payload.get("role")}')
 
-    # Step 3: verify token online via Supabase
+    # Step 3: verify signature using Google public key
     try:
-        sb_url = os.environ.get('SUPABASE_URL', 'https://ugluksyfpfgzbpmayodg.supabase.co')
-        sb_key = os.environ.get('SUPABASE_SERVICE_KEY', '')
-        vreq = urllib.request.Request(
-            sb_url + '/auth/v1/user',
-            headers={
-                'apikey':        sb_key,
-                'Authorization': 'Bearer ' + id_token,
-            }
-        )
-        with urllib.request.urlopen(vreq, context=ssl_ctx, timeout=8) as r:
-            vdata = json.loads(r.read().decode('utf-8'))
-            if not vdata.get('id'):
-                raise ValueError('User not found in Supabase')
-            payload['sub']   = vdata['id']
-            payload['email'] = vdata.get('email', '')
-    except urllib.error.HTTPError as e:
-        raise ValueError(f'Supabase token invalid: {e.code}')
-    except Exception as e:
-        raise ValueError(f'Supabase verification failed: {e}')
+        import cryptography
+        HAS_CRYPTO = True
+    except ImportError:
+        HAS_CRYPTO = False
+
+    if HAS_CRYPTO:
+        try:
+            from cryptography.hazmat.primitives import hashes, serialization
+            from cryptography.hazmat.primitives.asymmetric import padding
+            from cryptography.x509 import load_pem_x509_certificate
+            from cryptography.hazmat.backends import default_backend
+
+            kid = header.get('alg_kid') or header.get('kid')
+            certs = _fetch_google_certs()
+            if kid not in certs:
+                raise ValueError(f'Unknown key id: {kid}')
+
+            cert_pem = certs[kid].encode('utf-8')
+            cert = load_pem_x509_certificate(cert_pem, default_backend())
+            pub_key = cert.public_key()
+
+            msg = f'{parts[0]}.{parts[1]}'.encode('utf-8')
+            sig = _b64_decode(parts[2])
+            pub_key.verify(sig, msg, padding.PKCS1v15(), hashes.SHA256())
+        except Exception as e:
+            raise ValueError(f'Signature verification failed: {e}')
+    else:
+        # Fallback: verify token online via Firebase REST API
+        # (less secure but works without cryptography package)
+        try:
+            verify_url = f'https://identitytoolkit.googleapis.com/v1/accounts:lookup?key={os.environ.get("FIREBASE_WEB_API_KEY","")}'
+            vreq = urllib.request.Request(
+                verify_url,
+                data=json.dumps({'idToken': id_token}).encode('utf-8'),
+                headers={'Content-Type': 'application/json'},
+                method='POST'
+            )
+            with urllib.request.urlopen(vreq, context=ssl_ctx, timeout=10) as r:
+                vdata = json.loads(r.read().decode('utf-8'))
+                if 'error' in vdata:
+                    raise ValueError(vdata['error'].get('message', 'Invalid token'))
+                users = vdata.get('users', [])
+                if not users:
+                    raise ValueError('User not found')
+        except ValueError:
+            raise
+        except Exception as e:
+            raise ValueError(f'Online verification failed: {e}')
+
     uid   = payload.get('sub')
     email = payload.get('email', '')
     return uid, email, payload
@@ -325,26 +354,15 @@ def _set_token_cache(id_token, uid, email, role):
             for k in keys: del _token_cache[k]
 
 def _fetch_user_role_from_firestore(uid, id_token):
-    """Fetch user role from Supabase users table."""
+    """Fetch user role from Firestore REST API using the user's own ID token."""
     try:
-        sb_url = os.environ.get('SUPABASE_URL', 'https://ugluksyfpfgzbpmayodg.supabase.co')
-        sb_key = os.environ.get('SUPABASE_SERVICE_KEY', '')
-        req = urllib.request.Request(
-            sb_url + f'/rest/v1/users?id=eq.{uid}&select=role,status',
-            headers={
-                'apikey':        sb_key,
-                'Authorization': 'Bearer ' + sb_key,
-                'Accept':        'application/json',
-            }
-        )
+        fs_url = f'https://firestore.googleapis.com/v1/projects/{FIREBASE_PROJECT_ID}/databases/(default)/documents/users/{uid}'
+        req = urllib.request.Request(fs_url, headers={'Authorization': 'Bearer ' + id_token})
         with urllib.request.urlopen(req, context=ssl_ctx, timeout=8) as r:
-            rows = json.loads(r.read().decode('utf-8'))
-            if not rows:
-                return None
-            user = rows[0]
-            if user.get('status') in ('pending', 'disabled'):
-                return None
-            return user.get('role', 'viewer')
+            data = json.loads(r.read().decode('utf-8'))
+            fields = data.get('fields', {})
+            role = fields.get('role', {}).get('stringValue', '')
+            return role
     except Exception as e:
         print(f'[Auth] Role fetch failed for {uid}: {e}', flush=True)
         return None
@@ -669,7 +687,7 @@ class Handler(BaseHTTPRequestHandler):
         else:
             # Verify token
             try:
-                uid, email, _ = _verify_supabase_token(id_token)
+                uid, email, _ = _verify_firebase_token(id_token)
             except ValueError as e:
                 print(f'[Auth] Token invalid: {e}', flush=True)
                 self.json_out({'error': 'Token לא תקף — נסה להתנתק ולהתחבר מחדש', 'code': 'invalid_token'}, 401)
@@ -709,27 +727,39 @@ class Handler(BaseHTTPRequestHandler):
     def do_GET(self):
         p=urllib.parse.urlparse(self.path); q=urllib.parse.parse_qs(p.query); cfg=load_config()
 
-        # ── Serve static files (HTML, JS) ────────────────────────────
-        STATIC_FILES = {
-            '/':                   ('index.html',          'text/html; charset=utf-8'),
-            '/index.html':         ('index.html',          'text/html; charset=utf-8'),
-            '/supabase-client.js': ('supabase-client.js',  'application/javascript; charset=utf-8'),
-            '/ai-engine.js':       ('ai-engine.js',        'application/javascript; charset=utf-8'),
-        }
-        if p.path in STATIC_FILES:
-            filename, content_type = STATIC_FILES[p.path]
-            static_file = os.path.join(os.path.dirname(__file__), filename)
-            if os.path.exists(static_file):
-                with open(static_file, 'rb') as f:
-                    file_content = f.read()
+        # ── Serve CRM HTML file at root ──────────────────────────────
+        if p.path == '/' or p.path == '/index.html':
+            crm_file = os.path.join(os.path.dirname(__file__), 'index.html')
+            if os.path.exists(crm_file):
+                with open(crm_file, 'rb') as f:
+                    content = f.read()
                 self.send_response(200)
-                self.cors()
-                self.send_header('Content-Type', content_type)
-                self.send_header('Content-Length', str(len(file_content)))
+                self.send_header('Content-Type', 'text/html; charset=utf-8')
+                self.send_header('Content-Length', str(len(content)))
                 self.end_headers()
-                self.wfile.write(file_content)
+                self.wfile.write(content)
             else:
-                self.json_out({'error': filename + ' not found'}, 404)
+                self.send_response(404); self.end_headers()
+            return
+
+        # ── Serve static JS files ────────────────────────────────────
+        static_js = {
+            '/supabase-client.js': 'supabase-client.js',
+            '/ai-engine.js':       'ai-engine.js',
+        }
+        if p.path in static_js:
+            js_file = os.path.join(os.path.dirname(__file__), static_js[p.path])
+            if os.path.exists(js_file):
+                with open(js_file, 'rb') as f:
+                    js_content = f.read()
+                self.send_response(200)
+                self.send_header('Content-Type', 'application/javascript; charset=utf-8')
+                self.send_header('Content-Length', str(len(js_content)))
+                self.send_header('Cache-Control', 'no-cache')
+                self.end_headers()
+                self.wfile.write(js_content)
+            else:
+                self.send_response(404); self.end_headers()
             return
 
         if p.path=='/ping':
