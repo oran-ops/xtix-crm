@@ -494,8 +494,16 @@
 
   window._authFetch = async function(url, options = {}) {
     options.headers = options.headers || {};
-    if (_authToken) {
-      options.headers['Authorization'] = 'Bearer ' + _authToken;
+    // Use _authToken if set, otherwise fall back to localStorage
+    const token = _authToken || (function() {
+      try {
+        const s = localStorage.getItem('sb_session');
+        return s ? JSON.parse(s).access_token : null;
+      } catch(e) { return null; }
+    })();
+    if (token) {
+      options.headers['Authorization'] = 'Bearer ' + token;
+      if (!_authToken) _authToken = token; // cache it
     }
     return fetch(url, options);
   };
