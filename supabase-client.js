@@ -194,7 +194,7 @@
 
       if (!session) { onNoUser && onNoUser(); return; }
 
-      // Set token globally
+      // Set token globally — MUST be before any API calls
       _authToken = session.access_token;
 
       // Get user info
@@ -467,6 +467,7 @@
     },
 
     onAuthStateChanged(callback) {
+      // Run immediately — handles both page load and post-OAuth redirect
       window.SupaAuth.init(
         (user) => {
           window.auth.currentUser = { uid: user.uid, email: user.email, getIdToken: async () => _authToken };
@@ -478,6 +479,9 @@
           if (reason === 'pending') {
             console.log('[Auth] User pending approval:', email);
           }
+          // Show login screen if no user
+          const loginScreen = document.getElementById('login-screen');
+          if (loginScreen) loginScreen.style.display = 'flex';
         }
       );
     }
