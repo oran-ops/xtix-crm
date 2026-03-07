@@ -10624,11 +10624,13 @@ setTimeout(function() {
     reader.onload = function(e) {
       var raw = e.target.result || '';
       // Clean: remove null bytes and non-printable chars that break Postgres TEXT
-      var clean = raw
-        .replace(/ /g, '')           // null bytes
-        .replace(/[ --]/g, ' ') // control chars
-        .replace(/�/g, '')           // replacement chars
-        .substring(0, 50000);
+      // Remove chars that break Postgres TEXT
+      var clean = '';
+      for (var _i = 0; _i < raw.length && _i < 50000; _i++) {
+        var _c = raw.charCodeAt(_i);
+        if (_c === 0 || _c < 9 || _c === 11 || _c === 12 || (_c > 13 && _c < 32) || _c === 127 || _c === 65533) continue;
+        clean += raw[_i];
+      }
       _kbFileData = { name: file.name, content: clean };
     };
     // PDF: read as binary text (basic extraction)
