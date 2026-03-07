@@ -615,4 +615,60 @@
   console.log('%c🧠 XTIX CRM — Supabase Client v1.0 loaded', 'color:#6366f1;font-weight:bold');
   console.log('%c  DB: Supabase · Auth: Supabase · Brain: ANDY v2.0', 'color:#8b5cf6');
 
+  // ── Auto-init on page load ──────────────────────────────────────────
+  // Runs after DOM is ready — handles both fresh login and returning session
+  function _autoInit() {
+    window.SupaAuth.init(
+      function(user) {
+        // Authenticated — set globals and fire Firebase-compat callback
+        window.currentUser = user;
+        if (window.auth) {
+          window.auth.currentUser = {
+            uid:        user.uid,
+            email:      user.email,
+            getIdToken: async function() { return _authToken; }
+          };
+        }
+        // Hide login screen, show app
+        var ls = document.getElementById('login-screen');
+        if (ls) ls.style.display = 'none';
+        var app = document.getElementById('app') || document.getElementById('main-app');
+        if (app) app.style.display = '';
+        // Fire any waiting onAuthStateChanged callbacks
+        if (window._onAuthCallbacks) {
+          window._onAuthCallbacks.forEach(function(cb) { cb(window.auth.currentUser); });
+        }
+        console.log('[Auth] ✅ Signed in as', user.email, '(' + user.role + ')');
+      },
+      function(reason, email) {
+        // Not authenticated — show login screen
+        window.currentUser = null;
+        var ls = document.getElementById('login-screen');
+        if (ls) ls.style.display = 'flex';
+        if (reason === 'pending') {
+          console.warn('[Auth] User pending approval:', email);
+          var msg = document.getElementById('login-message');
+          if (msg) msg.textContent = 'הבקשה שלך ממתינה לאישור מנהל';
+        }
+        if (window._onAuthCallbacks) {
+          window._onAuthCallbacks.forEach(function(cb) { cb(null); });
+        }
+      }
+    );
+  }
+
+  // Override onAuthStateChanged to store callbacks + run init
+  var _origOnAuth = window.auth.onAuthStateChanged.bind(window.auth);
+  window._onAuthCallbacks = [];
+  window.auth.onAuthStateChanged = function(callback) {
+    window._onAuthCallbacks.push(callback);
+  };
+
+  // Run auto-init when DOM is ready
+  if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', _autoInit);
+  } else {
+    setTimeout(_autoInit, 100);
+  }
+
 })();
