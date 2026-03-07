@@ -9695,12 +9695,8 @@ async function loadBrainDecisions() {
 
   try {
     if (typeof db !== 'undefined' && db) {
-      var snap = { docs: [] }; // var _snap_placeholder = db.collection(AI_DECISIONS_COL)
-        .orderBy('timestamp', 'desc')
-        .limit(50)
-        .get();
-      _brainDecisions = [];
-      snap.forEach(doc => _brainDecisions.push({ id: doc.id, ...doc.data() }));
+      const _decRows = await window._sb.get('ai_decisions', 'order=timestamp.desc&limit=50').catch(()=>[]);
+      _brainDecisions = (_decRows||[]).map(r => Object.assign({id:r.id}, r));
     }
   } catch(e) {
     console.warn('[Brain] Decisions load failed:', e.message);
@@ -10019,13 +10015,9 @@ window.getBrainHistory = async function(segment, limit) {
     if (typeof db !== 'undefined' && db) {
       // Query without where() to avoid composite index requirement
       // Filter by segment in JS after fetching
-      var snap = { docs: [] }; // var _snap_placeholder = db.collection(AI_DECISIONS_COL)
-        .orderBy('timestamp', 'desc')
-        .limit(limit * 5)   // fetch more, filter down in JS
-        .get();
-      snap.forEach(function(doc) {
-        var d = Object.assign({ id: doc.id }, doc.data());
-        if (!segment || d.lead_segment === segment) results.push(d);
+      const _decRows2 = await window._sb.get('ai_decisions', 'order=timestamp.desc&limit='+(limit*5)).catch(()=>[]);
+      (_decRows2||[]).forEach(function(d) {
+        if (!segment || d.lead_segment === segment) results.push(Object.assign({id:d.id},d));
         if (results.length >= limit) return;
       });
     }
@@ -10128,15 +10120,9 @@ window.markDealClosed = async function(leadId, didClose) {
   // If not in memory, query Firebase
   if (!decision && typeof db !== 'undefined' && db) {
     try {
-      var snap = { docs: [] }; // var _snap_placeholder = db.collection(AI_DECISIONS_COL)
-        .where('lead_id', '==', leadId)
-        .orderBy('timestamp', 'desc')
-        .limit(1)
-        .get();
-      if (!snap.empty) {
-        snap.forEach(function(doc) {
-          decision = Object.assign({ id: doc.id }, doc.data());
-        });
+      const _decRows3 = await window._sb.get('ai_decisions', 'lead_id=eq.'+leadId+'&order=timestamp.desc&limit=1').catch(()=>[]);
+      if (_decRows3 && _decRows3.length) {
+        decision = Object.assign({ id: _decRows3[0].id }, _decRows3[0]);
       }
     } catch(e) { console.warn('[Brain] markDealClosed query failed:', e.message); }
   }
