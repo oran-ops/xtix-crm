@@ -10283,7 +10283,7 @@ window.loadUsers = async function() {
 
     usersSnap.forEach(function(doc) { list.appendChild(makeUserRow(doc.id, doc.data())); });
 
-    if (!pendingSnap.empty) {
+    if (pendingSnap.docs && pendingSnap.docs.length) {
       var lbl = document.createElement('div');
       lbl.className = 'usr-section-lbl';
       lbl.textContent = '⏳ ממתינים לכניסה ראשונה';
@@ -10437,13 +10437,13 @@ setTimeout(function() {
     try {
       if (typeof db === 'undefined' || !db) { statusEl.textContent = 'Firebase לא מחובר'; return; }
       var _biRows = await window._sb.get('brain_insights','order=created_at.desc&limit=1').catch(()=>[]); var doc = {exists:_biRows&&_biRows.length, data:()=>_biRows[0]||{}};
-      if (!doc.exists) {
+      if (!doc.exists || !doc.data()) {
         statusEl.textContent = '⚪ טרם נוצרו insights';
         statusEl.style.color = 'var(--muted)';
         if (kbDotEl) kbDotEl.title = 'KB — אין insights עדיין';
         return;
       }
-      var bi = doc.data();
+      var bi = doc.data() || {};
       var genAt = bi.generated_at ? new Date(bi.generated_at).toLocaleString('he-IL') : '?';
       statusEl.textContent = '✅ עודכן: ' + genAt;
       statusEl.style.color = '#10b981';
@@ -10482,7 +10482,6 @@ setTimeout(function() {
 
     async function _autoRun() {
       if (!_shouldRunNow()) return;
-      if (typeof db === 'undefined' || !db) return;
       // Check if there are KB docs
       try {
         var _kbCheck = await window._sb.get('knowledge_base','status=eq.ready&limit=1'); var snap = {empty:!_kbCheck||!_kbCheck.length};
@@ -10544,7 +10543,8 @@ setTimeout(function() {
       var scopeBadge = d.scope==='global'
         ? '<span style="background:rgba(16,185,129,0.12);border:1px solid rgba(16,185,129,0.3);border-radius:5px;padding:1px 7px;font-size:9px;color:#10b981;font-weight:700">🌐 גלובלי</span>'
         : '<span style="background:rgba(108,99,255,0.12);border:1px solid rgba(108,99,255,0.3);border-radius:5px;padding:1px 7px;font-size:9px;color:var(--accent);font-weight:700">👤 '+(d.lead_name||'ליד')+'</span>';
-      var tagBadges = (d.tags||'').split(',').filter(Boolean).map(function(t){return '<span style="background:rgba(255,255,255,0.06);border-radius:5px;padding:1px 6px;font-size:9px;color:var(--muted)">'+t.trim()+'</span>';}).join(' ');
+      var _tags = Array.isArray(d.tags) ? d.tags : (d.tags||'').split(',');
+      var tagBadges = _tags.filter(Boolean).map(function(t){return '<span style="background:rgba(255,255,255,0.06);border-radius:5px;padding:1px 6px;font-size:9px;color:var(--muted)">'+t.trim()+'</span>';}).join(' ');
       var preview = (d.content||d.url||'').substring(0,120);
       var statusDot = d.status==='ready'?'<span style="color:#10b981;font-size:10px" title="נטען ✓">●</span>':d.status==='error'?'<span style="color:#ef4444;font-size:10px" title="שגיאה">●</span>':'<span style="color:#F59E0B;font-size:10px" title="ממתין">●</span>';
       return '<div style="background:var(--surface);border:1px solid var(--border);border-radius:12px;padding:14px 16px;display:flex;gap:12px;align-items:flex-start">'+
