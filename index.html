@@ -3755,9 +3755,16 @@ BP18: Nurture existing customers — repeat customers spend 67% more
         delete clean._nextId;
         if (!clean.created_at) clean.created_at = new Date().toISOString();
         clean.updated_at = new Date().toISOString();
-        await window._sb.insert('leads', clean).catch(async () => {
-          // If insert fails (duplicate), try update
-          await window._sb.update('leads', 'id=eq.' + clean.id, clean).catch(()=>{});
+        // Skip leads with old Firebase numeric IDs (not UUID format)
+        const isUUID = clean.id && /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(String(clean.id));
+        if (!isUUID) {
+          delete clean.id; // Let Supabase generate UUID
+        }
+        await window._sb.insert('leads', clean).catch(async (e) => {
+          // If insert fails (duplicate UUID), try update
+          if (isUUID) {
+            await window._sb.update('leads', 'id=eq.' + clean.id, clean).catch(()=>{});
+          }
         });
       }
       showStorageStatus('supabase');
@@ -3774,9 +3781,7 @@ BP18: Nurture existing customers — repeat customers spend 67% more
       const rows = await window._sb.get('leads', 'order=id.asc');
       leads = rows || [];
       // Set nextId
-      if (leads.length > 0) {
-        nextId = Math.max(...leads.map(l => parseInt(l.id) || 0)) + 1;
-      }
+      nextId = leads.length + 1; // UUID-based, nextId not critical
       if (typeof window.initToolbar === 'function') window.initToolbar();
       renderAllLeads();
       updateStats();
@@ -5516,7 +5521,16 @@ BP6-10: תעדף (פלטפורמה ישנה+דומיין+6+ אירועים), Dis
         raw = raw.replace(/^```json\s*/,'').replace(/^```\s*/,'').replace(/\s*```$/,'');
         var si=raw.indexOf('{'), ei=raw.lastIndexOf('}');
         if(si!==-1&&ei!==-1) raw=raw.substring(si,ei+1);
-        try { return JSON.parse(raw); }
+        try {
+          // Clean common AI JSON issues before parse
+          var cleaned = raw
+            .replace(/([^\\])\n/g, '$1 ')  // unescaped newlines in strings
+            .replace(/([^\\])\r/g, '$1 ')
+            .replace(/,\s*}/g, '}')          // trailing commas
+            .replace(/,\s*]/g, ']');
+          try { return JSON.parse(cleaned); } catch(e2) { /* fall through to manual */ }
+          return JSON.parse(raw);
+        }
         catch(e) {
           // manual field extraction fallback
           function get(k){var m=raw.match(new RegExp('"'+k+'"\\s*:\\s*"([^\"\\n]{0,500})"'));return m?m[1]:'';}
@@ -10389,7 +10403,7 @@ setTimeout(function() {
   var navCount = document.getElementById('leads-nav-count');
   if (navCount && leads_arr.length > 0) navCount.textContent = leads_arr.length;
 
-}, 1000);
+}, 5000);
 
   // ── Manual trigger (admin) ──
   window._kbTriggerJob = async function() {
@@ -10400,13 +10414,12 @@ setTimeout(function() {
 
       // 1. Collect KB docs from Firebase
       var kbDocs = [], decisions = [];
-      if (typeof db !== 'undefined' && db) {
-        if (btn) btn.textContent = '⏳ טוען KB...';
-        kbDocs = await window._sb.get('knowledge_base', 'status=eq.ready') || [];
+      // Load KB and decisions from Supabase (no db check needed)
+      if (btn) btn.textContent = '⏳ טוען KB...';
+      kbDocs = await window._sb.get('knowledge_base', 'status=eq.ready') || [];
 
-        if (btn) btn.textContent = '⏳ טוען ניתוחים...';
-        decisions = await window._sb.get('ai_decisions', 'order=timestamp.desc&limit=100') || [];
-      }
+      if (btn) btn.textContent = '⏳ טוען ניתוחים...';
+      decisions = await window._sb.get('ai_decisions', 'order=timestamp.desc&limit=100') || [];
 
       if (!kbDocs.length) {
         if (btn) { btn.textContent = '⚠️ אין מקורות KB'; btn.disabled = false; }
