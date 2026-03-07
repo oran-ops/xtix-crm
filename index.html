@@ -4804,7 +4804,7 @@ window._editLeadSave = function(lid){
     var platMap = {'0':'לא ידוע','1':'SmarTicket/Bravo/Leaan','2':'כן - מתחרה אחר','':'לא ידוע'};
 
     var now = new Date().toISOString();
-    var id  = Date.now();
+    var id  = (typeof crypto !== 'undefined' && crypto.randomUUID) ? crypto.randomUUID() : 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g,function(c){var r=Math.random()*16|0;return(c=='x'?r:(r&0x3|0x8)).toString(16);});
 
     var lead = {
       id:         id,
@@ -5299,7 +5299,7 @@ BP6-10: תעדף (פלטפורמה ישנה+דומיין+6+ אירועים), Dis
     opts = opts || {};
     // Normalize & stamp
     var lead = Object.assign({
-      id:         rawLead.id || (Date.now() + Math.floor(Math.random()*9000)),
+      id:         rawLead.id || (typeof crypto !== 'undefined' && crypto.randomUUID ? crypto.randomUUID() : 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g,function(c){var r=Math.random()*16|0;return(c=='x'?r:(r&0x3|0x8)).toString(16);})),
       name:       rawLead.name       || rawLead.company || '(ללא שם)',
       domain:     (rawLead.domain||rawLead.website||'').replace(/https?:\/\//,'').split('/')[0],
       email:      rawLead.email      || '',
@@ -5335,9 +5335,10 @@ BP6-10: תעדף (פלטפורמה ישנה+דומיין+6+ אירועים), Dis
     renderSimpleLead(lead);
     updateStats();
 
-    // Persist to Firebase
-    if (typeof db!=='undefined'&&db)
-      window._sb.update('leads','id=eq.'+lead.id,lead).catch(function(e){console.warn('[CRM] Supabase:',e);});
+    // Persist to Supabase — INSERT new lead
+    window._sb.insert('leads', lead).catch(function(e){
+      console.warn('[CRM] Supabase insert failed:', e.message);
+    });
 
     // Queue for AI analysis
     _enqueue(lead);
