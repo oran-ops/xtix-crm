@@ -92,22 +92,13 @@
 
   window.SupaAuth = {
 
-    // Sign in with Google
+    // Sign in with Google — redirect flow
     async signInWithGoogle() {
-      const res = await fetch(SUPABASE_URL + '/auth/v1/authorize?provider=google&redirect_to=' + encodeURIComponent(window.location.origin), {
-        headers: { 'apikey': SUPABASE_ANON }
-      });
-      // Redirect to Google OAuth
-      const data = await res.json();
-      if (data.url) {
-        window.location.href = data.url;
-      } else {
-        // Use Supabase JS SDK approach
-        const authUrl = SUPABASE_URL + '/auth/v1/authorize?provider=google' +
-          '&redirect_to=' + encodeURIComponent(window.location.origin) +
-          '&access_type=offline';
-        window.location.href = authUrl;
-      }
+      const redirectTo = encodeURIComponent(window.location.origin + window.location.pathname);
+      const authUrl = SUPABASE_URL + '/auth/v1/authorize' +
+        '?provider=google' +
+        '&redirect_to=' + redirectTo;
+      window.location.href = authUrl;
     },
 
     // Sign out
@@ -129,13 +120,27 @@
 
     // Get current session from localStorage / URL hash
     async getSession() {
-      // Check URL hash (after OAuth redirect)
+      // Check URL hash (#access_token=... after OAuth redirect)
       const hash = window.location.hash;
       if (hash && hash.includes('access_token')) {
         const params = new URLSearchParams(hash.replace('#', ''));
         const token = params.get('access_token');
         const refresh = params.get('refresh_token');
         if (token) {
+          _authToken = token;
+          localStorage.setItem('sb_session', JSON.stringify({ access_token: token, refresh_token: refresh }));
+          window.history.replaceState({}, '', window.location.pathname);
+          return { access_token: token };
+        }
+      }
+      // Check query params (?access_token=... alternative format)
+      const search = window.location.search;
+      if (search && search.includes('access_token')) {
+        const params = new URLSearchParams(search);
+        const token = params.get('access_token');
+        const refresh = params.get('refresh_token');
+        if (token) {
+          _authToken = token;
           localStorage.setItem('sb_session', JSON.stringify({ access_token: token, refresh_token: refresh }));
           window.history.replaceState({}, '', window.location.pathname);
           return { access_token: token };
@@ -453,7 +458,7 @@
   window.auth = {
     currentUser: null,
 
-    async signInWithPopup() {
+    async signInWithPopup(provider) {
       return window.SupaAuth.signInWithGoogle();
     },
 
