@@ -48,7 +48,9 @@
   --text2:       #c4c4cc;
   --muted:       #8b8b9a;
   --sidebar-w:     220px;
-  --sidebar-w-col: 56px;
+  --sidebar-w-col: 56px
+  --bg2: rgba(255,255,255,0.03);
+  --bord: rgba(255,255,255,0.08);;
 }
 
 *, *::before, *::after { box-sizing: border-box; }
@@ -5504,44 +5506,45 @@ BP6-10: תעדף (פלטפורמה ישנה+דומיין+6+ אירועים), Dis
     if (_aq.running || _aq.queue.length === 0) return;
     _aq.running = true;
 
-    while (_aq.queue.length > 0) {
-      var item = _aq.queue.shift();
-      var lead = item.lead;
-      var pct  = Math.round((_aq.done / (_aq.total||1)) * 100);
-      _pbUpdate(pct, 'מנתח: ' + (lead.name||''), lead);
+    try {
+      while (_aq.queue.length > 0) {
+        var item = _aq.queue.shift();
+        var lead = item.lead;
+        var pct  = Math.round((_aq.done / (_aq.total||1)) * 100);
+        _pbUpdate(pct, 'מנתח: ' + (lead.name||''), lead);
 
-      try {
-        await window.triggerFullAnalysis(lead.id, /*silent=*/true);
-        _aq.done++;
-        var pct2 = Math.round((_aq.done / (_aq.total||1)) * 100);
-        _pbUpdate(pct2, '✅ הושלם: ' + (lead.name||''), lead);
-      } catch(err) {
-        console.warn('[QUEUE] failed for', lead.name, err.message);
-        if ((err.message||'').indexOf('429') !== -1 && item.retries < 3) {
-          // rate-limit — requeue with backoff
-          item.retries++;
-          var wait = item.retries * 20000; // 20s, 40s, 60s
-          _pbUpdate(pct, '⏳ Rate limit — ממתין ' + (wait/1000) + 'ש...', lead);
-          await new Promise(function(r){setTimeout(r, wait);});
-          _aq.queue.unshift(item); // back to front
-        } else {
-          _aq.failed++;
-          console.error('[QUEUE] gave up on', lead.name);
+        try {
+          await window.triggerFullAnalysis(lead.id, /*silent=*/true);
+          _aq.done++;
+          var pct2 = Math.round((_aq.done / (_aq.total||1)) * 100);
+          _pbUpdate(pct2, '✅ הושלם: ' + (lead.name||''), lead);
+        } catch(err) {
+          console.warn('[QUEUE] failed for', lead.name, err.message);
+          if ((err.message||'').indexOf('429') !== -1 && item.retries < 3) {
+            // rate-limit — requeue with backoff
+            item.retries++;
+            var wait = item.retries * 20000; // 20s, 40s, 60s
+            _pbUpdate(pct, '⏳ Rate limit — ממתין ' + (wait/1000) + 'ש...', lead);
+            await new Promise(function(r){setTimeout(r, wait);});
+            _aq.queue.unshift(item); // back to front
+          } else {
+            _aq.failed++;
+            console.error('[QUEUE] gave up on', lead.name);
+          }
+        }
+
+        // brief pause between leads (avoid hammering API)
+        if (_aq.queue.length > 0) {
+          await new Promise(function(r){setTimeout(r, 1500);});
         }
       }
-
-      // brief pause between leads (avoid hammering API)
-      if (_aq.queue.length > 0) {
-        await new Promise(function(r){setTimeout(r, 1500);});
-      }
+    } finally {
+      _aq.running = false;
+      var allDone = _aq.done + _aq.failed;
+      _pbUpdate(100, '🎉 הניתוח הושלם! ' + _aq.done + '/' + allDone + ' הצליחו', null);
+      setTimeout(window._pbHide, 5000);
+      _aq.total = 0; _aq.done = 0; _aq.failed = 0;
     }
-
-    _aq.running = false;
-    var allDone = _aq.done + _aq.failed;
-    _pbUpdate(100, '🎉 הניתוח הושלם! ' + _aq.done + '/' + allDone + ' הצליחו', null);
-    setTimeout(window._pbHide, 5000);
-    // reset for next batch
-    _aq.total = 0; _aq.done = 0; _aq.failed = 0;
   }
 
   // ════════════════════════════════════════════════════════════════
@@ -6473,6 +6476,15 @@ BP6-10: תעדף (פלטפורמה ישנה+דומיין+6+ אירועים), Dis
   animation: _lbar-breathe 1.8s ease-in-out infinite;
 }
 @keyframes _lbar-breathe { 0%,100%{opacity:.6;transform:scale(1)} 50%{opacity:1;transform:scale(1.01)} }
+
+@keyframes spin {
+  to { transform: rotate(360deg); }
+}
+@keyframes _fadeIn {
+  from { opacity: 0; transform: translateY(6px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+
 
 ._lbar-ai-btn {
   display: inline-flex; align-items: center; gap: 5px;
@@ -12592,7 +12604,7 @@ window._intelFilter = function(comp) {
   var listEl = document.getElementById('intel-leads-list');
   if (!listEl || !window._intelAllLeads) return;
   var leads = window._intelAllLeads;
-  if (comp !== 'all') leads = leads.filter(function(l){ return (l.platform||'').toLowerCase().includes(comp.toLowerCase()); });
+    if (comp !== 'all') leads = leads.filter(function(l){ var c=(l.competitor||l.platform||'').toLowerCase(); return c.includes(comp.toLowerCase()); });
   if (!leads.length) { listEl.innerHTML = '<div style="color:var(--t3);font-size:11px;padding:10px">אין לידים עבור '+comp+'</div>'; return; }
   var html = '';
   leads.slice(0,50).forEach(function(l) {
@@ -12603,7 +12615,7 @@ window._intelFilter = function(comp) {
     html += '<div style="display:grid;grid-template-columns:36px 1fr auto auto;gap:10px;align-items:center;padding:8px 10px;background:var(--surface2);border-radius:8px;border:1px solid var(--border)">';
     html += '<div style="text-align:center;font-size:14px;font-weight:800;color:'+scC+'">'+sc+'</div>';
     html += '<div>';
-    html += '<div style="font-size:12px;font-weight:700;color:var(--t1)">'+( l.name||'')+'</div>';
+    html += '<div style="font-size:12px;font-weight:700;color:var(--t1)">'+String(l.name||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;')+'</div>';
     html += '<div style="font-size:10px;color:var(--t3)">'+( l.segment||'—')+'</div>';
     html += '</div>';
     html += '<span style="font-size:10px;font-weight:700;color:'+(cd?cd.color:'#9ca3af')+';background:'+(cd?cd.bg:'rgba(107,114,128,0.1)')+';border-radius:5px;padding:2px 7px">'+(l.platform||'')+'</span>';
