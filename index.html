@@ -4115,6 +4115,11 @@ BP18: Nurture existing customers — repeat customers spend 67% more
     ['עלות שנתית',    lead.estimated_annual_fees ? '₪'+lead.estimated_annual_fees.toLocaleString() : null],
     ['חיסכון ב-XTIX', lead.estimated_xtix_savings ? '₪'+lead.estimated_xtix_savings.toLocaleString()+'/שנה' : null],
     ['Steal Score',   lead.steal_score ? lead.steal_score+'%' : null],
+    ['Pitch Angle',   lead.pitch_angle || e.pitch_angle || a.pitch_angle],
+    ['איש קשר',       lead.contact_name || e.contact_name || a.contact_name],
+    ['תפקיד',         lead.contact_title || e.contact_title || a.contact_title],
+    ['אזור גיאוגרפי', lead.geographic_area || e.geographic_area || a.geographic_area],
+    ['Subject מייל 1', lead.first_email_subject ? lead.first_email_subject.substring(0,50) : null],
     ['מתחרים',        (e.competitors_used||a.competitors_used||[]).join(', ')],
     ['אירועים/שנה',   lead.events_per_year||e.events_per_year||a.events_per_year],
     ['גודל מקום',     e.venue_size||a.venue_size],
@@ -5181,7 +5186,12 @@ ${proxyCtx}
     "active_social": true,
     "contact_accessible": true,
     "large_audience": false
-  }
+  },
+  "pitch_angle": "savings/widget/analytics/ease/support — הzווית הכי חזקה לליד זה",
+  "contact_name": "שם איש הקשר אם נמצא (מנהל/בעלים/שיווק)",
+  "contact_title": "תפקיד: מנהל/בעלים/שיווק/הפקה/כספים",
+  "geographic_area": "צפון/מרכז/דרום/שרון/ירושלים/חוץ",
+  "first_email_subject": "הנושא המדויק של המייל הראשון מה-email_sequence למעלה"
 }`;
 
     let enriched = {};
@@ -5207,11 +5217,18 @@ ${proxyCtx}
     // Merge enrichment into lead
     const enrichedLead = {
       ...lead,
-      segment:          enriched.segment          || lead.segment || lead.type || 'כללי',
-      platform:         enriched.platform_current || lead.platform || '',
-      score:            enriched.score            || lead.score   || 50,
-      tier:             enriched.tier             || '2',
-      notes:            enriched.summary          || lead.notes   || '',
+      segment:           enriched.segment          || lead.segment || lead.type || 'כללי',
+      platform:          enriched.platform_current || lead.platform || '',
+      score:             enriched.score            || lead.score   || 50,
+      tier:              enriched.tier             || '2',
+      notes:             enriched.summary          || lead.notes   || '',
+      pitch_angle:       enriched.pitch_angle      || lead.pitch_angle      || '',
+      contact_name:      enriched.contact_name     || lead.contact_name     || '',
+      contact_title:     enriched.contact_title    || lead.contact_title    || '',
+      geographic_area:   enriched.geographic_area  || lead.geographic_area  || '',
+      first_email_subject: enriched.first_email_subject
+                        || (enriched.email_sequence && enriched.email_sequence[0] && enriched.email_sequence[0].subject)
+                        || lead.first_email_subject || '',
       enrichment: {
         summary:              enriched.summary              || '',
         platform_current:     enriched.platform_current     || '',
@@ -5232,8 +5249,14 @@ ${proxyCtx}
         enriched_by:          'claude-auto',
         email_sequence:    enriched.email_sequence    || [],
         research_summary:  enriched.research_summary  || "",
-        estimated_fees:    enriched.estimated_annual_fees || "",
-        estimated_savings: enriched.estimated_xtix_savings || ""
+        estimated_fees:    enriched.estimated_annual_fees || '',
+        estimated_savings: enriched.estimated_xtix_savings || '',
+        pitch_angle:       enriched.pitch_angle            || '',
+        contact_name:      enriched.contact_name           || '',
+        contact_title:     enriched.contact_title          || '',
+        geographic_area:   enriched.geographic_area        || '',
+        first_email_subject: enriched.first_email_subject
+                            || (enriched.email_sequence && enriched.email_sequence[0] && enriched.email_sequence[0].subject) || ''
       }
     };
 
@@ -11547,6 +11570,15 @@ window._signalOnStatusChange = function(leadId, newStatus, lead) {
 
     // שמור learning_pattern
     if (window._sb && lead) {
+      // ── איסוף email_subject_won מ-email_sequence ──
+      var _enr = (lead.enrichment || lead.ai_analysis || {});
+      var _emailSeq = _enr.email_sequence || (lead.ai_analysis && lead.ai_analysis.email_sequence) || [];
+      var _firstSubject = lead.first_email_subject
+        || (_emailSeq[0] && _emailSeq[0].subject) || '';
+      var _pitchAngle = lead.pitch_angle || _enr.pitch_angle || '';
+      var _contactTitle = lead.contact_title || _enr.contact_title || '';
+      var _geoArea = lead.geographic_area || _enr.geographic_area || '';
+
       var _lp = {
         lead_id:            leadId,
         outcome:            (newStatus==='won'||newStatus==='closed') ? 'closed' : 'lost',
@@ -11562,16 +11594,23 @@ window._signalOnStatusChange = function(leadId, newStatus, lead) {
         has_domain:         !!(lead.domain),
         has_email:          !!(lead.email),
         has_phone:          !!(lead.phone),
-        cadence:            (lead.ai_analysis && lead.ai_analysis.recommended_cadence) || 'cool',
+        cadence:            _enr.recommended_cadence || 'cool',
         source:             lead.source || 'unknown',
         events_per_year:    lead.events_per_year || 0,
         audience_size:      lead.audience_size   || 0,
         estimated_fees:     lead.estimated_annual_fees || 0,
         hunt_source:        lead.hunt_query ? 'hunt' : lead.source || 'manual',
+        // ── Pitch & Contact Intelligence ──
+        email_subject_won:  (newStatus==='won'||newStatus==='closed') ? _firstSubject : '',
+        pitch_angle_used:   _pitchAngle,
+        contact_title:      _contactTitle,
+        geographic_area:    _geoArea,
         created_at:         now
       };
       window._sb.insert('learning_patterns', _lp).catch(function(){});
-      console.log('[Brain] 📚 Learning pattern saved:', _lp.competitor, _lp.outcome, 'steal:', _lp.steal_score);
+      console.log('[Brain] 📚 LP saved:', _lp.competitor, _lp.outcome,
+        '| steal:', _lp.steal_score, '| pitch:', _lp.pitch_angle_used,
+        '| subject:', _lp.email_subject_won.substring(0,40));
     }
   }
 
@@ -11761,14 +11800,37 @@ window._brainBackgroundAnalysis = async function() {
     var lpData = await window._sb.get('learning_patterns',
       'order=created_at.desc&limit=100'
     ).catch(function(){ return []; });
-    var lpByComp = {};
+    var lpByComp = {}, lpByPitch = {}, lpByContact = {};
     (lpData||[]).forEach(function(lp) {
+      // per competitor
       var c = lp.competitor || lp.platform || 'unknown';
       if (!lpByComp[c]) lpByComp[c] = { won:0, lost:0, steal_scores:[], days:[] };
       if (lp.outcome==='closed') lpByComp[c].won++;
       else lpByComp[c].lost++;
       if (lp.steal_score) lpByComp[c].steal_scores.push(lp.steal_score);
       if (lp.days_to_close) lpByComp[c].days.push(lp.days_to_close);
+      // per pitch angle
+      var p = lp.pitch_angle_used || 'unknown';
+      if (!lpByPitch[p]) lpByPitch[p] = { won:0, lost:0, subjects:[] };
+      if (lp.outcome==='closed') { lpByPitch[p].won++; if(lp.email_subject_won) lpByPitch[p].subjects.push(lp.email_subject_won); }
+      else lpByPitch[p].lost++;
+      // per contact title
+      var t = lp.contact_title || 'unknown';
+      if (!lpByContact[t]) lpByContact[t] = { won:0, lost:0 };
+      if (lp.outcome==='closed') lpByContact[t].won++;
+      else lpByContact[t].lost++;
+    });
+    // pitch win rates
+    var pitchStats = {};
+    Object.keys(lpByPitch).forEach(function(p) {
+      var d = lpByPitch[p], total = d.won+d.lost;
+      pitchStats[p] = { win_rate: total ? Math.round((d.won/total)*100) : 0, total: total, top_subjects: d.subjects.slice(0,3) };
+    });
+    // contact win rates
+    var contactStats = {};
+    Object.keys(lpByContact).forEach(function(t) {
+      var d = lpByContact[t], total = d.won+d.lost;
+      contactStats[t] = { win_rate: total ? Math.round((d.won/total)*100) : 0, total: total };
     });
     var competitorStats = {};
     Object.keys(lpByComp).forEach(function(c) {
@@ -11787,6 +11849,8 @@ window._brainBackgroundAnalysis = async function() {
       leads_tracked:    Object.keys(byLead).length,
       learning_patterns: lpData ? lpData.length : 0,
       competitor_stats: competitorStats,
+      pitch_stats:      pitchStats,
+      contact_stats:    contactStats,
       winners: winners.slice(0,5).map(function(w){ return {
         segment:     w.lead.segment,
         platform:    w.lead.platform,
@@ -11825,11 +11889,14 @@ window._brainBackgroundAnalysis = async function() {
       JSON.stringify(summary, null, 2),
       '',
       'נתח ומצא:',
-      '1. patterns ב-winners vs losers (כולל מתחרה + steal_score)',
-      '2. איזה מתחרה הכי קל לגזול לפי win_rate האמיתי',
-      '3. אילו סגמנטים + מתחרים הכי מבטיחים ביחד',
-      '4. המלצות ספציפיות ל-Hunt — איזה מתחרה לתקוף עכשיו',
-      '5. אזהרות — מתחרים קשים / סגמנטים לא כדאיים',
+      '1. patterns ב-winners vs losers (מתחרה, steal_score, pitch_angle, contact_title)',
+      '2. איזה מתחרה הכי קל לגזול — לפי win_rate האמיתי מהנתונים',
+      '3. איזה pitch_angle עבד הכי טוב per מתחרה (savings/widget/analytics)',
+      '4. איזה contact_title להגיע אליו קודם (מנהל/בעלים/שיווק)',
+      '5. איזה subject מייל הביא הכי הרבה won (מ-email_subject_won)',
+      '6. כמה זמן ממוצע ל-won per מתחרה/סגמנט',
+      '7. המלצות Hunt — מתחרה + pitch + contact לתקוף עכשיו',
+      '8. אזהרות — מה לא עבד',
       '',
       'החזר JSON בלבד: {',
       '  "patterns_winners": ["..."],',
@@ -11838,7 +11905,11 @@ window._brainBackgroundAnalysis = async function() {
       '  "top_platforms": [{"platform":"","confidence":0.8,"reason":""}],',
       '  "competitor_win_rates": {"SmarTicket":72,"Tickchak":40},',
       '  "best_competitor_to_attack": "שם המתחרה",',
-      '  "best_pitch_by_competitor": {"SmarTicket":"..."},',
+      '  "best_pitch_by_competitor": {"SmarTicket":"savings","Tickchak":"widget"},',
+      '  "best_pitch_subject_by_competitor": {"SmarTicket":"...","Tickchak":"..."},',
+      '  "best_contact_title": "בעלים/מנהל/שיווק — מי מגיב הכי טוב",',
+      '  "avg_days_to_won_by_competitor": {"SmarTicket":14,"Tickchak":28},',
+      '  "top_winning_subjects": ["subject1","subject2"],',
       '  "hunt_recommendations": ["..."],',
       '  "warnings": ["..."],',
       '  "quality_score": 75,',
@@ -11875,7 +11946,9 @@ window._brainBackgroundAnalysis = async function() {
 
     // שמור competitor intelligence ב-brain_memory
     var _bm_update = { competitor_win_rates: analysis.competitor_win_rates || competitorStats };
-    if (analysis.best_pitch_by_competitor) _bm_update.best_pitch_by_competitor = analysis.best_pitch_by_competitor;
+    if (analysis.best_pitch_by_competitor)       _bm_update.best_pitch_by_competitor       = analysis.best_pitch_by_competitor;
+    if (analysis.avg_days_to_won_by_competitor)  _bm_update.competitor_avg_days             = analysis.avg_days_to_won_by_competitor;
+    if (analysis.best_contact_title)             _bm_update.notes                          = { best_contact_title: analysis.best_contact_title, top_winning_subjects: analysis.top_winning_subjects || [] };
     await window._sb.insert('brain_memory', Object.assign({
       snapshot_type: 'auto',
       won_deals:  winners.length,
