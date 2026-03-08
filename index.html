@@ -3865,6 +3865,7 @@ BP18: Nurture existing customers — repeat customers spend 67% more
       for (const lead of leads) {
         const clean = Object.assign({}, lead);
         delete clean._nextId;
+        delete clean.type;  // Supabase לא מכיר 'type' — משתמשים ב-segment
         if (!clean.created_at) clean.created_at = new Date().toISOString();
         clean.updated_at = new Date().toISOString();
         // Skip leads with old Firebase numeric IDs (not UUID format)
@@ -5559,7 +5560,9 @@ BP6-10: תעדף (פלטפורמה ישנה+דומיין+6+ אירועים), Dis
     updateStats();
 
     // Persist to Supabase — INSERT new lead
-    window._sb.insert('leads', lead).catch(function(e){
+    var _leadForDB = Object.assign({}, lead);
+    delete _leadForDB.type; // Supabase לא מכיר 'type'
+    window._sb.insert('leads', _leadForDB).catch(function(e){
       console.warn('[CRM] Supabase insert failed:', e.message);
     });
 
@@ -5624,6 +5627,15 @@ BP6-10: תעדף (פלטפורמה ישנה+דומיין+6+ אירועים), Dis
   };
 
   var _aiInProgress = {};
+
+  // ── Pipeline aliases — triggerFullAnalysis קורא לאלו ──
+  window._deepAIPipeline = async function(lead) {
+    return await window.autoEnrichLead(lead);
+  };
+  window._tripleEnginePipeline = async function(lead) {
+    // כרגע: same as deep (triple engine requires GPT/Gemini keys)
+    return await window.autoEnrichLead(lead);
+  };
 
   window.triggerFullAnalysis = async function(leadId, silent) {
     var lead = leads.find(function(x){return x.id===leadId;});
