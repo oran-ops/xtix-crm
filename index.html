@@ -789,9 +789,16 @@ input::placeholder, textarea::placeholder { color: var(--t3); }
 }
 
 /* Result cards */
-.hunt-step-panel {
-  animation: _fadeIn 0.2s ease;
+.hunt-step-panel { animation: _fadeIn 0.2s ease; }
+.andy-rec-card {
+  background: rgba(167,139,250,0.05);
+  border: 1px solid rgba(167,139,250,0.15);
+  border-radius: 10px;
+  padding: 12px;
+  cursor: pointer;
+  transition: border-color 0.15s;
 }
+.andy-rec-card:hover { border-color: rgba(167,139,250,0.4); }
 .hunt-result-card {
   background: rgba(255,255,255,0.025);
   border: 1px solid rgba(255,255,255,0.08);
@@ -11108,7 +11115,7 @@ setTimeout(function() {
 })();
 </script>
 
-<script src="ai-engine.js">
+<script>
 // ╔══════════════════════════════════════════════════════════════════╗
 // ║           ANDY SIGNAL ENGINE v1.0                               ║
 // ║   ~120 signals → lead_signals table → brain learns              ║
@@ -11681,29 +11688,54 @@ window._loadAndyRecs = async function() {
     rows.slice(0,3).forEach(function(row) {
       var wr = Math.round(row.win_rate || 0);
       var c  = wrColor(wr);
-      html += '<div style="background:rgba(167,139,250,0.05);border:1px solid rgba(167,139,250,0.15);border-radius:10px;padding:12px;cursor:pointer;transition:all 0.15s" ';
-      html += 'onmouseenter="this.style.borderColor='rgba(167,139,250,0.4)'" onmouseleave="this.style.borderColor='rgba(167,139,250,0.15)'" ';
-      html += 'onclick="window._applyAndyRec(''+encodeURIComponent(row.segment)+'',''+encodeURIComponent(row.geo||'ארצי')+'')">';
+      var seg = (row.segment||'').replace(/"/g,'&quot;');
+      var geo = (row.geo||'ארצי').replace(/"/g,'&quot;');
+      html += '<div class="andy-rec-card" data-seg="'+seg+'" data-geo="'+geo+'">';
       html += '<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:6px">';
       html += '<span style="font-size:12px;font-weight:700;color:var(--t1)">'+(row.segment||'')+'</span>';
-      html += '<span style="font-size:9px;font-weight:700;color:'+c+';background:'+c+'18;border-radius:10px;padding:2px 7px">'+wrLabel(wr)+'</span>';
+      html += '<span style="font-size:9px;font-weight:700;color:'+c+';background:'+c+'18;border-radius:10px;padding:2px 7px">'+(wr>=70?'🔥 חם':wr>=50?'✅ טוב':'📈 מתפתח')+'</span>';
       html += '</div>';
-      // win rate bar
       html += '<div style="height:3px;background:rgba(255,255,255,0.06);border-radius:2px;margin-bottom:7px;overflow:hidden">';
       html += '<div style="height:100%;width:'+wr+'%;background:'+c+';border-radius:2px;transition:width 0.6s ease"></div></div>';
       html += '<div style="display:flex;justify-content:space-between;font-size:10px;color:var(--t3)">';
       html += '<span>win rate <strong style="color:'+c+'">'+wr+'%</strong></span>';
-      html += '<span>'+( row.leads_won||0)+'/'+( row.leads_added||0)+' לידים</span>';
+      html += '<span>'+(row.leads_won||0)+'/'+(row.leads_added||0)+' לידים</span>';
       html += '</div>';
-      if (row.platform) html += '<div style="font-size:10px;color:rgba(167,139,250,0.7);margin-top:5px">📍 '+row.geo+' · '+row.platform+'</div>';
+      if (row.platform) html += '<div style="font-size:10px;color:rgba(167,139,250,0.7);margin-top:5px">📍 '+(row.geo||'')+' · '+row.platform+'</div>';
       html += '<div style="margin-top:8px;font-size:10px;font-weight:700;color:#a78bfa;text-align:center">Hunt עכשיו →</div>';
       html += '</div>';
     });
     container.innerHTML = html;
+    // Event delegation לכרטיסי ANDY
+    container.querySelectorAll('.andy-rec-card').forEach(function(card) {
+      card.addEventListener('click', function() {
+        var s = this.getAttribute('data-seg') || '';
+        var g = this.getAttribute('data-geo') || 'ארצי';
+        if (window._applyAndyRec) window._applyAndyRec(encodeURIComponent(s), encodeURIComponent(g));
+      });
+    });
     if (updatedEl) updatedEl.textContent = 'עודכן: '+new Date().toLocaleTimeString('he-IL',{hour:'2-digit',minute:'2-digit'});
   } catch(e) {
-    container.style.display = 'none';
-    if (emptyEl) emptyEl.style.display = 'block';
+    console.error('[ANDY Recs] שגיאה:', e.message, e);
+    // fallback ב-catch — הצג defaults גם אם Supabase נכשל
+    var fallbackSegs = [
+      { segment: 'תיאטרון', geo: 'תל אביב והמרכז', win_rate: 0, leads_won: 0, leads_added: 0, platform: '' },
+      { segment: 'סטנד-אפ', geo: 'ארצי',           win_rate: 0, leads_won: 0, leads_added: 0, platform: '' },
+      { segment: 'מוזיקה',  geo: 'ארצי',           win_rate: 0, leads_won: 0, leads_added: 0, platform: '' }
+    ];
+    function wrColorFb(r){ return r>=70?'#10b981':r>=50?'#3b82f6':'#f59e0b'; }
+    function wrLabelFb(r){ return r>=70?'🔥 חם':r>=50?'✅ טוב':'📈 מתפתח'; }
+    fallbackSegs.forEach(function(row) {
+      var seg = (row.segment||'').replace(/"/g,'&quot;');
+      var geo = (row.geo||'ארצי').replace(/"/g,'&quot;');
+      fbHtml += '<div class="andy-rec-card" data-seg="'+seg+'" data-geo="'+geo+'">';
+      fbHtml += '<div style="font-size:12px;font-weight:700;color:var(--t1);margin-bottom:6px">'+row.segment+'</div>';
+      fbHtml += '<div style="height:3px;background:rgba(255,255,255,0.06);border-radius:2px;margin-bottom:7px"></div>';
+      fbHtml += '<div style="font-size:10px;color:var(--t3)">📍 '+row.geo+'</div>';
+      fbHtml += '<div style="margin-top:8px;font-size:10px;font-weight:700;color:#a78bfa;text-align:center">Hunt עכשיו →</div>';
+      fbHtml += '</div>';
+    });
+    if (container) container.innerHTML = fbHtml;
   }
 };
 
