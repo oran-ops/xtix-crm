@@ -8848,7 +8848,7 @@ window._cleanForFirebase = function _cleanForFirebase(obj) {
       'תיאטרון ואמנות': ['תיאטרון ישראל הצגות', 'מרכזי תרבות ישראל'],
       'פסטיבלים': ['פסטיבלים ישראל אירועים', 'פסטיבל תרבות ישראל'],
       'אירועי BarMitzvah וחתונות': ['אולמות אירועים ישראל', 'מפיקי אירועים חתונות ישראל'],
-      'ספקי כרטיסים קיימים': ['מכירת כרטיסים ישראל אתר', 'Eventbrite ישראל OR Tickets ישראל']
+      'ספקי כרטיסים קיימים': ['מפיקי אירועים ישראל platform כרטיסים', 'ארגוני אירועים ישראל ticketing']
     };
     if (p.segments && p.segments.length) {
       p.segments.forEach(function(seg) {
@@ -8868,7 +8868,9 @@ window._cleanForFirebase = function _cleanForFirebase(obj) {
     }
     if (p.competitors && p.competitors.length) {
       p.competitors.forEach(function(comp) {
-        baseQueries.push(comp + ' ישראל site:' + comp.toLowerCase().replace(/\s/g,'')+'.co.il OR ' + comp + ' כרטיסים');
+        // מחפש לקוחות של המתחרה — לא את המתחרה עצמו
+        baseQueries.push('אירועים ' + comp + ' ישראל לקוחות');
+        baseQueries.push('site:' + comp.toLowerCase().replace(/\s/g,'') + '.co.il');
       });
     }
     // Boost: הוסף שאילתות מסגמנטים שעבדו בעבר
@@ -8921,8 +8923,9 @@ window._cleanForFirebase = function _cleanForFirebase(obj) {
         'תוצאות גוגל:',
         serpSummary,
         '',
-        'קריטריוני סינון: רק ארגונים שמוכרים/מנהלים כרטיסים לאירועים בישראל.',
-        'אל תכלול: חנויות, מסעדות, עסקים שאינם קשורים לאירועים, ממשלה.',
+        'קריטריוני סינון: רק ארגוני אירועים שמייצרים/מפיקים אירועים ועדיין אינם לקוחות XTIX.',
+        'אל תכלול (XTIX מתחרים — דלג לחלוטין): SmarTicket, Leaan, Bravo, Tickchak, Eventbuzz, COMY, Glatticket, Eventobot, Eventer, Mevalim, Easytix, Eventim.',
+        'אל תכלול גם: חנויות, מסעדות, ממשלה, פלטפורמות כרטיסים. הלקוח האידיאלי: תיאטרון, קבוצת ספורט, מפיק הופעות, פסטיבל.',
         depthInstructions[p.depth] || depthInstructions['עמוק'],
         '',
         'החזר JSON בלבד: {"leads":[{"name":"","domain":"","phone":"","segment":"","platform_current":"","score":80,"reason":"","size_estimate":"","events_per_year":"","estimated_annual_fees":"","tier":"A"}]}',
