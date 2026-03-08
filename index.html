@@ -8907,12 +8907,43 @@ window._cleanForFirebase = function _cleanForFirebase(obj) {
       var s = raw.indexOf('{'), e = raw.lastIndexOf('}');
       if (s===-1||e===-1) throw new Error('לא התקבל JSON תקין');
       var jsonStr = raw.substring(s, e+1);
-      jsonStr = jsonStr.replace(/"([^"\\]*?)\n([^"\\]*?)"/g, function(_,a,b){return '"'+a+' '+b+'"';});
+      // ── sanitize JSON from Claude ──────────────────────────
+      function _sanitizeJSON(str) {
+        // 1. החלף מרכאות עבריות/חכמות
+        str = str.replace(/[\u201c\u201d\u05f4]/g,'"').replace(/[\u2018\u2019\u05f3]/g,"'");
+        // 2. נקה newlines בתוך string values (שורה אחר שורה)
+        var out = '', inStr = false, esc = false;
+        for (var i = 0; i < str.length; i++) {
+          var ch = str[i];
+          if (esc)          { out += ch; esc = false; continue; }
+          if (ch === '\\') { out += ch; esc = true;  continue; }
+          if (ch === '"')   { inStr = !inStr; out += ch; continue; }
+          if (inStr && (ch === '\n' || ch === '\r' || ch === '\t')) {
+            out += ' '; continue; // החלף whitespace בתוך strings ברווח
+          }
+          out += ch;
+        }
+        str = out;
+        // 3. trailing commas לפני ] או }
+        str = str.replace(/,\s*([\]\}])/g, '$1');
+        // 4. הסר comments
+        str = str.replace(/\/\/[^\n]*/g, '').replace(/\/\*[\s\S]*?\*\//g, '');
+        return str;
+      }
+      jsonStr = _sanitizeJSON(jsonStr);
       var parsed;
       try { parsed = JSON.parse(jsonStr); }
       catch(je) {
-        jsonStr = jsonStr.replace(/[\u201c\u201d]/g,'"').replace(/[\u2018\u2019]/g,"'");
-        parsed = JSON.parse(jsonStr);
+        // last resort: מצא כל object בתוך leads array ונתח ידנית
+        console.warn('[Hunt] JSON parse failed, trying manual extraction:', je.message);
+        var leadsArr = [];
+        var objRe = /\{[^{}]*"name"[^{}]*\}/g;
+        var m;
+        while ((m = objRe.exec(jsonStr)) !== null) {
+          try { leadsArr.push(JSON.parse(_sanitizeJSON(m[0]))); } catch(e2) {}
+        }
+        parsed = { leads: leadsArr };
+        if (!leadsArr.length) throw new Error('JSON parse failed: ' + je.message.substring(0,80));
       }
       var foundLeads = parsed.leads || [];
 
