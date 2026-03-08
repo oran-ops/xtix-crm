@@ -3967,7 +3967,7 @@ BP18: Nurture existing customers — repeat customers spend 67% more
       +'</div></div>';
     list.insertAdjacentHTML('beforeend', html);
     var sel=document.querySelector('.status-select[data-lead-id="'+lead.id+'"]');
-    if(sel) sel.addEventListener('change',function(){var l=leads.find(function(x){return x.id===lead.id;});if(l){l.status=this.value;l.updated_at=new Date().toISOString();window._sb.update('leads','id=eq.'+lead.id,{status:l.status,updated_at:l.updated_at}).catch(function(){});updateStats();}});
+    if(sel) sel.addEventListener('change',function(){var l=leads.find(function(x){return x.id===lead.id;});if(l){l.status=this.value;l.updated_at=new Date().toISOString();window._sb.update('leads','id=eq.'+lead.id,{status:l.status,updated_at:l.updated_at}).catch(function(){});if(window._signalOnStatusChange) window._signalOnStatusChange(l.id, l.status, l);updateStats();}});
     if(aiSt==='none'&&(lead.domain||lead.name)) {
       setTimeout(function(){window.triggerFullAnalysis(lead.id,true);},900);
     }
@@ -5454,6 +5454,8 @@ BP6-10: תעדף (פלטפורמה ישנה+דומיין+6+ אירועים), Dis
       } else {
         console.warn('[AI] Skipping save - non-UUID lead ID:', leadId);
       }
+      // Signal: analysis completed
+      if (window._signalOnAnalysis) window._signalOnAnalysis(leadId, lead.ai_analysis);
       renderSimpleLead(lead);
       // Show Meta-Judge completion toast
       if (typeof window._showMetaJudgeToast === 'function') {
@@ -7464,10 +7466,10 @@ addSalesPlaybookPanel();
     }
 
     var validationNotes = [];
-    if (domainOk === false) validationNotes.push('⚠️ אתר לא נגיש');
-    if (phoneOk === false)  validationNotes.push('⚠️ טלפון לא תקין');
-    if (domainOk === true)  validationNotes.push('✅ אתר פעיל');
-    if (phoneOk === true)   validationNotes.push('✅ טלפון תקין');
+    if (domainOk === false) { validationNotes.push('⚠️ אתר לא נגיש'); }
+    if (phoneOk === false)  { validationNotes.push('⚠️ טלפון לא תקין'); }
+    if (domainOk === true)  { validationNotes.push('✅ אתר פעיל'); }
+    if (phoneOk === true)   { validationNotes.push('✅ טלפון תקין'); }
 
     var newLead = {
       name:       lead.name     || '',
@@ -7497,6 +7499,14 @@ addSalesPlaybookPanel();
 
     // ── רשום ב-hunt_learnings ──
     window._huntRecordFound(lead.segment, lead.platform_current || lead.platform, lead.score);
+    // ── Signal: hunt_found + validation signals ──
+    if (window._signalRecord && newLead.id) {
+      window._signalRecord(newLead.id, 'hunt_found', { segment: newLead.segment, score: newLead.score });
+      if (domainOk === true)  window._signalRecord(newLead.id, 'hunt_domain_verified', {});
+      if (domainOk === false) window._signalRecord(newLead.id, 'hunt_domain_failed',   {});
+      if (phoneOk  === true)  window._signalRecord(newLead.id, 'hunt_phone_valid',     {});
+      if (phoneOk  === false) window._signalRecord(newLead.id, 'hunt_phone_invalid',   {});
+    }
 
     if (typeof updateStats === 'function') updateStats();
     // Visual feedback
@@ -9040,10 +9050,10 @@ window._cleanForFirebase = function _cleanForFirebase(obj) {
     }
 
     var validationNotes = [];
-    if (domainOk === false) validationNotes.push('⚠️ אתר לא נגיש');
-    if (phoneOk === false)  validationNotes.push('⚠️ טלפון לא תקין');
-    if (domainOk === true)  validationNotes.push('✅ אתר פעיל');
-    if (phoneOk === true)   validationNotes.push('✅ טלפון תקין');
+    if (domainOk === false) { validationNotes.push('⚠️ אתר לא נגיש'); }
+    if (phoneOk === false)  { validationNotes.push('⚠️ טלפון לא תקין'); }
+    if (domainOk === true)  { validationNotes.push('✅ אתר פעיל'); }
+    if (phoneOk === true)   { validationNotes.push('✅ טלפון תקין'); }
 
     var newLead = {
       name:       lead.name     || '',
@@ -9073,6 +9083,14 @@ window._cleanForFirebase = function _cleanForFirebase(obj) {
 
     // ── רשום ב-hunt_learnings ──
     window._huntRecordFound(lead.segment, lead.platform_current || lead.platform, lead.score);
+    // ── Signal: hunt_found + validation signals ──
+    if (window._signalRecord && newLead.id) {
+      window._signalRecord(newLead.id, 'hunt_found', { segment: newLead.segment, score: newLead.score });
+      if (domainOk === true)  window._signalRecord(newLead.id, 'hunt_domain_verified', {});
+      if (domainOk === false) window._signalRecord(newLead.id, 'hunt_domain_failed',   {});
+      if (phoneOk  === true)  window._signalRecord(newLead.id, 'hunt_phone_valid',     {});
+      if (phoneOk  === false) window._signalRecord(newLead.id, 'hunt_phone_invalid',   {});
+    }
 
     if (typeof updateStats === 'function') updateStats();
     // Visual feedback
@@ -10519,6 +10537,24 @@ window.markDealClosed = async function(leadId, didClose) {
   if (typeof window._huntRecordOutcome === 'function') {
     window._huntRecordOutcome(leadId, didClose);
   }
+  // Signal: won/lost
+  if (window._signalRecord) {
+    var _lead = leads && leads.find(function(l){return l.id===leadId;});
+    window._signalRecord(leadId, didClose ? 'status_won' : 'status_lost', {
+      segment:  _lead && _lead.segment,
+      platform: _lead && _lead.platform,
+      score:    _lead && _lead.score,
+      tier:     _lead && _lead.tier
+    });
+    // Was the AI prediction correct?
+    if (_lead && _lead.score !== undefined) {
+      var predicted_win = _lead.score >= 60;
+      window._signalRecord(leadId,
+        (predicted_win === didClose) ? 'prediction_was_correct' : 'prediction_was_wrong',
+        { score: _lead.score, outcome: didClose }
+      );
+    }
+  }
 
   // Toast feedback
   var msg = didClose ? '🎉 עסקה נסגרה — המוח מעדכן את הלמידה' : '📊 עסקה לא נסגרה — המוח ילמד מהטעות';
@@ -11119,6 +11155,469 @@ setTimeout(function() {
 })();
 </script>
 
-<script src="ai-engine.js"></script>
+<script src="ai-engine.js">
+// ╔══════════════════════════════════════════════════════════════════╗
+// ║           ANDY SIGNAL ENGINE v1.0                               ║
+// ║   ~120 signals → lead_signals table → brain learns              ║
+// ╚══════════════════════════════════════════════════════════════════╝
+
+(function() {
+
+// ── משקולות לכל סיגנל ──────────────────────────────────────────
+var SIGNAL_WEIGHTS = {
+  // מייל
+  email_sent:                    +5,
+  email_opened_once:             +15,
+  email_opened_multiple:         +25,
+  email_clicked_link:            +30,
+  email_forwarded:               +45,
+  email_replied_short:           +25,
+  email_replied_long:            +40,
+  email_replied_with_question:   +50,
+  email_replied_negative:        -40,
+  email_replied_future:          +10,
+  email_bounced_soft:            -10,
+  email_bounced_hard:            -30,
+  email_unsubscribed:            -60,
+  email_marked_spam:             -80,
+  no_reply_3d:                   -10,
+  no_reply_7d:                   -20,
+  no_reply_14d:                  -35,
+  no_reply_30d:                  -50,
+  email_open_time_morning:       +5,
+  email_open_time_evening:       +3,
+  email_open_time_weekend:       +10,
+  email_opened_on_mobile:        +2,
+  email_opened_on_desktop:       +5,
+  // שיחות
+  call_answered_first_try:       +35,
+  call_answered_after_attempts:  +20,
+  call_missed:                   -10,
+  call_voicemail:                -5,
+  call_duration_short:           +5,
+  call_duration_medium:          +25,
+  call_duration_long:            +45,
+  call_callback_requested:       +40,
+  call_transferred_to_decision_maker: +60,
+  whatsapp_sent:                 +5,
+  whatsapp_delivered:            +8,
+  whatsapp_read:                 +15,
+  whatsapp_read_no_reply:        -10,
+  whatsapp_replied_fast:         +35,
+  whatsapp_replied_slow:         +10,
+  whatsapp_voice_message_sent:   +20,
+  whatsapp_voice_message_received: +40,
+  whatsapp_shared_document:      +55,
+  // פגישות
+  meeting_set:                   +50,
+  meeting_confirmed:             +60,
+  meeting_rescheduled:           +20,
+  meeting_cancelled_by_them:     -25,
+  meeting_cancelled_by_us:       -5,
+  meeting_no_show:               -40,
+  meeting_no_show_apologized:    -15,
+  meeting_held_short:            +30,
+  meeting_held_full:             +65,
+  meeting_held_with_ceo:         +80,
+  meeting_held_with_manager:     +50,
+  meeting_held_with_staff:       +20,
+  meeting_demo_requested:        +70,
+  meeting_second_meeting_set:    +75,
+  meeting_proposal_requested:    +85,
+  meeting_includes_finance:      +90,
+  meeting_online:                +40,
+  meeting_in_person:             +70,
+  // ניתוח AI
+  score_exceptional:             +40,
+  score_very_high:               +30,
+  score_high:                    +20,
+  score_medium:                  +5,
+  score_low:                     -15,
+  score_very_low:                -30,
+  tier_a:                        +35,
+  tier_b:                        +15,
+  tier_c:                        -10,
+  triple_engine_consensus:       +25,
+  triple_engine_disagreement:    -5,
+  meta_judge_override:           +10,
+  analysis_confidence_high:      +20,
+  analysis_confidence_low:       -10,
+  analysis_revised_up:           +15,
+  analysis_revised_down:         -15,
+  pain_points_critical_found:    +30,
+  competitor_identified:         +20,
+  budget_signal_found:           +35,
+  decision_maker_identified:     +40,
+  urgency_signal_found:          +45,
+  // Hunt ואיכות דאטה
+  hunt_found:                    +5,
+  hunt_domain_verified:          +15,
+  hunt_domain_failed:            -20,
+  hunt_phone_valid:              +10,
+  hunt_phone_invalid:            -10,
+  hunt_email_valid:              +15,
+  hunt_email_guessed:            -5,
+  hunt_serper_top3_result:       +20,
+  hunt_serper_appeared_multiple: +30,
+  data_enriched_from_website:    +10,
+  data_enriched_from_linkedin:   +15,
+  contact_found_name:            +10,
+  contact_found_title:           +15,
+  contact_found_direct_email:    +25,
+  company_size_micro:            -5,
+  company_size_small:            +10,
+  company_size_medium:           +25,
+  company_size_large:            +35,
+  events_very_high:              +30,
+  events_high:                   +20,
+  events_medium:                 +10,
+  events_low:                    -10,
+  // סטטוס
+  status_contacted:              +10,
+  status_followup:               +20,
+  status_meeting:                +50,
+  status_negotiation:            +70,
+  status_proposal_sent:          +80,
+  status_won:                    +100,
+  status_lost:                   -50,
+  status_ghosted:                -30,
+  status_not_relevant:           -60,
+  status_future_potential:       +5,
+  status_referred_us_to_other:   +90,
+  // זמן וקצב
+  response_time_immediate:       +40,
+  response_time_same_day:        +30,
+  response_time_next_day:        +20,
+  response_time_this_week:       +10,
+  response_time_over_week:       -10,
+  deal_cycle_lightning:          +30,
+  deal_cycle_fast:               +20,
+  deal_cycle_normal:             +5,
+  deal_cycle_slow:               -10,
+  deal_cycle_stalled:            -25,
+  stale_14d:                     -15,
+  stale_30d:                     -25,
+  stale_60d:                     -40,
+  stale_90d:                     -55,
+  reengaged_after_stale:         +35,
+  // דיגיטל
+  website_active:                +10,
+  website_dead:                  -25,
+  website_has_ticket_page:       +20,
+  website_has_events_page:       +15,
+  website_uses_eventbrite_embed: +25,
+  website_uses_google_forms:     +35,
+  social_facebook_events_active: +20,
+  social_linkedin_active:        +15,
+  news_mentions_found:           +20,
+  // עסקי
+  budget_explicitly_mentioned:   +50,
+  budget_asked_pricing_early:    +40,
+  budget_pushed_back_price:      -20,
+  contract_requested:            +75,
+  contract_sent:                 +85,
+  pilot_requested:               +60,
+  references_requested:          +45,
+  integration_question_asked:    +55,
+  multi_year_deal_discussed:     +80,
+  // מטא-למידה
+  prediction_was_correct:        +20,
+  prediction_was_wrong:          -10,
+  similar_to_previous_winner:    +35,
+  similar_to_previous_loser:     -25,
+  new_pattern_detected:          +15,
+  anomaly_detected:              0
+};
+
+// ── פונקציה מרכזית — רישום סיגנל ──────────────────────────────
+window._signalRecord = async function(leadId, signalType, metadata) {
+  var weight = SIGNAL_WEIGHTS[signalType] || 0;
+  var now    = new Date().toISOString();
+  try {
+    await window._sb.insert('lead_signals', {
+      lead_id:     leadId,
+      signal_type: signalType,
+      weight:      weight,
+      metadata:    Object.assign({ ts: now }, metadata || {}),
+      created_at:  now
+    });
+    console.log('[Signal] '+signalType+' ('+( weight >= 0 ? '+' : '')+weight+') → lead', String(leadId).substring(0,8)+'...');
+  } catch(e) {
+    console.warn('[Signal] record failed:', e.message);
+  }
+};
+
+// ── סיגנל שינוי סטטוס ──────────────────────────────────────────
+window._signalOnStatusChange = function(leadId, newStatus, lead) {
+  var statusMap = {
+    'contacted':  'status_contacted',
+    'followup':   'status_followup',
+    'meeting':    'status_meeting',
+    'closed':     'status_won',
+    'lost':       'status_lost',
+    'ghosted':    'status_ghosted'
+  };
+  var sig = statusMap[newStatus];
+  if (sig) window._signalRecord(leadId, sig, {
+    segment:  lead && lead.segment,
+    platform: lead && lead.platform,
+    score:    lead && lead.score,
+    tier:     lead && lead.tier
+  });
+};
+
+// ── סיגנל ניתוח AI הושלם ────────────────────────────────────────
+window._signalOnAnalysis = function(leadId, result) {
+  var score = result.score || result.meta_score || 0;
+  var tier  = result.tier  || 'B';
+  var sig   = score >= 95 ? 'score_exceptional'
+            : score >= 85 ? 'score_very_high'
+            : score >= 70 ? 'score_high'
+            : score >= 50 ? 'score_medium'
+            : score >= 30 ? 'score_low'
+            :               'score_very_low';
+  window._signalRecord(leadId, sig, { score: score, tier: tier, segment: result.segment });
+  window._signalRecord(leadId, 'tier_'+(tier||'b').toLowerCase(), { score: score });
+  if (result.triple_engine)    window._signalRecord(leadId, 'triple_engine_consensus', {});
+  if (result.pain_points)      window._signalRecord(leadId, 'pain_points_critical_found', {});
+  if (result.decision_maker)   window._signalRecord(leadId, 'decision_maker_identified', {});
+};
+
+// ── סיגנל מייל נשלח ─────────────────────────────────────────────
+window._signalEmailSent = function(leadId, meta) {
+  window._signalRecord(leadId, 'email_sent', meta || {});
+};
+
+// ── זיהוי סיגנל no_reply (background check) ─────────────────────
+window._checkNoReplySignals = async function() {
+  var now = Date.now();
+  var leads3d  = leads.filter(function(l) {
+    if (!l.last_contacted_at) return false;
+    var diff = (now - new Date(l.last_contacted_at).getTime()) / 86400000;
+    return diff >= 3 && diff < 7 && l.status === 'contacted';
+  });
+  var leads7d  = leads.filter(function(l) {
+    if (!l.last_contacted_at) return false;
+    var diff = (now - new Date(l.last_contacted_at).getTime()) / 86400000;
+    return diff >= 7 && diff < 14 && l.status === 'contacted';
+  });
+  var leads14d = leads.filter(function(l) {
+    if (!l.last_contacted_at) return false;
+    var diff = (now - new Date(l.last_contacted_at).getTime()) / 86400000;
+    return diff >= 14 && diff < 30 && l.status === 'contacted';
+  });
+  var stale30 = leads.filter(function(l) {
+    if (!l.updated_at) return false;
+    var diff = (now - new Date(l.updated_at).getTime()) / 86400000;
+    return diff >= 30 && l.status !== 'won' && l.status !== 'lost';
+  });
+  leads3d.forEach(function(l)  { window._signalRecord(l.id, 'no_reply_3d',  { segment: l.segment }); });
+  leads7d.forEach(function(l)  { window._signalRecord(l.id, 'no_reply_7d',  { segment: l.segment }); });
+  leads14d.forEach(function(l) { window._signalRecord(l.id, 'no_reply_14d', { segment: l.segment }); });
+  stale30.forEach(function(l)  { window._signalRecord(l.id, 'stale_30d',    { segment: l.segment }); });
+};
+
+// ══════════════════════════════════════════════════════════════════
+//  BRAIN BACKGROUND ANALYSIS — רץ כל 4 שעות
+//  1. שולף כל הסיגנלים מהשבוע האחרון
+//  2. מריץ SQL aggregation
+//  3. שולח ל-Claude לניתוח patterns
+//  4. שומר ב-brain_analysis_log
+//  5. מעדכן hunt_learnings
+// ══════════════════════════════════════════════════════════════════
+
+window._brainBackgroundAnalysis = async function() {
+  console.log('[Brain BG] Starting background analysis...');
+  try {
+    // שלב 1 — שלוף סיגנלים (30 ימים אחרונים)
+    var cutoff = new Date(Date.now() - 30*24*60*60*1000).toISOString();
+    var signals = await window._sb.get('lead_signals',
+      'created_at=gte.'+cutoff+'&order=created_at.desc&limit=500'
+    ).catch(function(){return [];});
+    if (!signals || signals.length < 3) {
+      console.log('[Brain BG] Not enough signals yet ('+( signals&&signals.length||0)+')');
+      return;
+    }
+
+    // שלב 2 — אגרגציה מקומית
+    var byLead = {};
+    signals.forEach(function(s) {
+      if (!s.lead_id) return;
+      if (!byLead[s.lead_id]) byLead[s.lead_id] = { signals: [], total_weight: 0 };
+      byLead[s.lead_id].signals.push(s.signal_type);
+      byLead[s.lead_id].total_weight += (s.weight || 0);
+    });
+
+    // שלב 3 — מצא winners vs losers
+    var winners = [], losers = [], stalled = [];
+    leads.forEach(function(l) {
+      var entry = byLead[l.id];
+      if (!entry) return;
+      if (l.status === 'closed' || l.status === 'won')   winners.push({ lead: l, entry: entry });
+      else if (l.status === 'lost' || l.status === 'ghosted') losers.push({ lead: l, entry: entry });
+      else if (entry.total_weight > 30) stalled.push({ lead: l, entry: entry });
+    });
+
+    // שלב 4 — בנה סיכום לClaude
+    var summary = {
+      total_signals: signals.length,
+      leads_tracked: Object.keys(byLead).length,
+      winners: winners.slice(0,5).map(function(w){ return {
+        segment:  w.lead.segment,
+        platform: w.lead.platform,
+        score:    w.lead.score,
+        tier:     w.lead.tier,
+        signals:  w.entry.signals.slice(0,10),
+        weight:   w.entry.total_weight
+      };}),
+      losers: losers.slice(0,5).map(function(w){ return {
+        segment:  w.lead.segment,
+        platform: w.lead.platform,
+        score:    w.lead.score,
+        signals:  w.entry.signals.slice(0,10),
+        weight:   w.entry.total_weight
+      };}),
+      signal_frequency: {},
+      top_signals_winners: [],
+      top_signals_losers: []
+    };
+
+    // ספור תדירות סיגנלים
+    signals.forEach(function(s) { summary.signal_frequency[s.signal_type] = (summary.signal_frequency[s.signal_type]||0)+1; });
+
+    // שלב 5 — Claude מנתח patterns
+    var prompt = [
+      'אתה ANDY — מנוע הבינה של XTIX.AI.',
+      'נתחת '+signals.length+' סיגנלים מ-'+Object.keys(byLead).length+' לידים ב-30 הימים האחרונים.',
+      '',
+      'נתונים:',
+      JSON.stringify(summary, null, 2),
+      '',
+      'נתח ומצא:',
+      '1. אילו patterns משותפים ללידים שנסגרו (winners)',
+      '2. אילו patterns משותפים ללידים שנכשלו (losers)',
+      '3. אילו סגמנטים/פלטפורמות הכי מבטיחים',
+      '4. המלצות ספציפיות לשיפור ה-Hunt',
+      '5. אזהרות — מה להימנע',
+      '',
+      'החזר JSON בלבד: {',
+      '  "patterns_winners": ["..."],',
+      '  "patterns_losers": ["..."],',
+      '  "top_segments": [{"segment":"","confidence":0.85,"reason":""}],',
+      '  "top_platforms": [{"platform":"","confidence":0.8,"reason":""}],',
+      '  "hunt_recommendations": ["..."],',
+      '  "warnings": ["..."],',
+      '  "quality_score": 75,',
+      '  "summary_hebrew": "תיאור קצר בעברית"',
+      '}'
+    ].join('\n');
+
+    var res = await window._authFetch('https://xtix-crm-test.up.railway.app/ai', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        model: 'claude-haiku-4-5-20251001',
+        max_tokens: 1500,
+        system: 'Return ONLY valid JSON. No markdown.',
+        messages: [{ role: 'user', content: prompt }]
+      }),
+      signal: AbortSignal.timeout(45000)
+    });
+    var data = await res.json();
+    var raw  = (data.content||[]).map(function(b){return b.text||'';}).join('');
+    var s0 = raw.indexOf('{'), e0 = raw.lastIndexOf('}');
+    if (s0 === -1) throw new Error('No JSON from Claude');
+    var analysis = JSON.parse(raw.substring(s0, e0+1));
+
+    // שלב 6 — שמור ב-brain_analysis_log
+    await window._sb.insert('brain_analysis_log', {
+      analysis_type:   'signal_pattern_analysis',
+      findings:        analysis,
+      recommendations: analysis.hunt_recommendations || [],
+      leads_analyzed:  Object.keys(byLead).length,
+      signals_used:    signals.length,
+      generated_at:    new Date().toISOString()
+    }).catch(function(e){ console.warn('[Brain BG] log save failed:', e.message); });
+
+    // שלב 7 — עדכן hunt_learnings לפי המלצות Claude
+    if (analysis.top_segments && analysis.top_segments.length) {
+      for (var i = 0; i < analysis.top_segments.length; i++) {
+        var seg = analysis.top_segments[i];
+        if (!seg.segment || seg.confidence < 0.5) continue;
+        try {
+          var existing = await window._sb.get('hunt_learnings',
+            'segment=eq.'+encodeURIComponent(seg.segment)+'&limit=1'
+          ).catch(function(){return [];});
+          var now2 = new Date().toISOString();
+          if (existing && existing.length) {
+            await window._sb.update('hunt_learnings','id=eq.'+existing[0].id,{
+              notes:      seg.reason || '',
+              updated_at: now2
+            }).catch(function(){});
+          } else {
+            await window._sb.insert('hunt_learnings',{
+              segment:     seg.segment,
+              platform:    '',
+              geo:         'ארצי',
+              leads_found: 0,
+              win_rate:    Math.round((seg.confidence||0.5)*100),
+              notes:       seg.reason || '',
+              last_hunt_at: now2
+            }).catch(function(){});
+          }
+        } catch(e) {}
+      }
+    }
+
+    console.log('[Brain BG] ✅ Analysis complete — quality_score:', analysis.quality_score);
+    console.log('[Brain BG] Summary:', analysis.summary_hebrew);
+    return analysis;
+
+  } catch(e) {
+    console.warn('[Brain BG] Analysis failed:', e.message);
+  }
+};
+
+// ── Background scheduler — כל 4 שעות ──────────────────────────
+(function _brainBGScheduler() {
+  var INTERVAL    = 4 * 60 * 60 * 1000; // 4 hours
+  var LAST_RUN_KEY = 'brain_bg_last_run';
+
+  function _shouldRun() {
+    try {
+      var last = parseInt(localStorage.getItem(LAST_RUN_KEY)||'0');
+      return (Date.now() - last) > INTERVAL;
+    } catch(e) { return false; }
+  }
+  function _markRan() {
+    try { localStorage.setItem(LAST_RUN_KEY, String(Date.now())); } catch(e){}
+  }
+  async function _autoRun() {
+    if (!_shouldRun()) return;
+    if (!window.currentUser) return; // not logged in
+    _markRan();
+    await window._brainBackgroundAnalysis();
+    await window._checkNoReplySignals();
+  }
+  setTimeout(_autoRun, 15000); // 15s after page load
+  setInterval(_autoRun, 60*60*1000); // check every hour
+})();
+
+// ── חשוף API נקי ───────────────────────────────────────────────
+window._signals = {
+  record:        window._signalRecord,
+  onStatus:      window._signalOnStatusChange,
+  onAnalysis:    window._signalOnAnalysis,
+  emailSent:     window._signalEmailSent,
+  checkNoReply:  window._checkNoReplySignals,
+  runAnalysis:   window._brainBackgroundAnalysis,
+  weights:       SIGNAL_WEIGHTS
+};
+
+console.log('[Signal Engine] ✅ Loaded — '+Object.keys(SIGNAL_WEIGHTS).length+' signal types registered');
+
+})(); // end Signal Engine IIFE
+
+</script>
 </body>
 </html>
