@@ -7445,32 +7445,144 @@ addSalesPlaybookPanel();
 
 ;
 
-  window.huntAddLead = function huntAddLead(lead) {
+  window.huntAddLead = async function huntAddLead(lead, btn) {
     var now = new Date().toISOString();
+
+    // ── בדיקת דומיין (HTTP HEAD) ──
+    var domainOk = null;
+    if (lead.domain) {
+      try {
+        var chk = await fetch('https://'+lead.domain.replace(/^https?:\/\//,''), {method:'HEAD', signal:AbortSignal.timeout(5000), mode:'no-cors'});
+        domainOk = true;
+      } catch(e) { domainOk = false; }
+    }
+
+    // ── בדיקת טלפון (פורמט ישראלי) ──
+    var phoneOk = null;
+    if (lead.phone) {
+      phoneOk = /^(\+972|0)(5[0-9]|[2-9]\d)[\d\-]{6,8}$/.test(lead.phone.replace(/\s/g,''));
+    }
+
+    var validationNotes = [];
+    if (domainOk === false) validationNotes.push('⚠️ אתר לא נגיש');
+    if (phoneOk === false)  validationNotes.push('⚠️ טלפון לא תקין');
+    if (domainOk === true)  validationNotes.push('✅ אתר פעיל');
+    if (phoneOk === true)   validationNotes.push('✅ טלפון תקין');
+
     var newLead = {
-      id: Date.now(),
-      name: lead.name || '',
-      domain: lead.domain || '',
-      phone: lead.phone || '',
-      segment: lead.segment || '',
-      platform: lead.platform || '',
-      score: lead.score || 50,
-      status: 'new',
-      source: 'ai-hunt',
+      name:       lead.name     || '',
+      domain:     lead.domain   || '',
+      phone:      lead.phone    || '',
+      segment:    lead.segment  || '',
+      platform:   lead.platform || lead.platform_current || '',
+      score:      lead.score    || 50,
+      tier:       lead.tier     || 'B',
+      status:     'new',
+      source:     'ai-hunt',
       created_at: now,
       updated_at: now,
-      notes: 'נמצא ע"י AI Hunt. ' + (lead.reason || '')
+      notes: ['נמצא ע"י AI Hunt.', lead.reason||'', validationNotes.join(' | ')].filter(Boolean).join(' '),
+      enrichment: {
+        domain_verified: domainOk,
+        phone_verified:  phoneOk,
+        verified_at:     now,
+        size_estimate:   lead.size_estimate   || '',
+        events_per_year: lead.events_per_year || '',
+        estimated_annual_fees: lead.estimated_annual_fees || ''
+      }
     };
+
     // ── Route through central entry point ──
     window.addLeadToCRM(newLead, {source: 'hunt'});
-    try {
-      var s = JSON.parse(localStorage.getItem('xtix_crm_leads')||'[]');
-      s.push(newLead); localStorage.setItem('xtix_crm_leads', JSON.stringify(s));
-    } catch(e) {}
+
+    // ── רשום ב-hunt_learnings ──
+    window._huntRecordFound(lead.segment, lead.platform_current || lead.platform, lead.score);
+
     if (typeof updateStats === 'function') updateStats();
-    if (typeof updateBadge === 'function') updateBadge();
-    // Visual feedback on the button
-    event && event.target && (event.target.textContent = '✅ נוסף!') && (event.target.disabled = true);
+    // Visual feedback
+    if (btn) { btn.textContent = domainOk === false ? '⚠️ נוסף (בדוק)' : '✅ נוסף!'; btn.disabled = true; }
+  };
+
+
+  // ══════════════════════════════════════════════════════════════
+  //  HUNT LEARNINGS — Self-improving search engine
+  //  Tracks: what segments/platforms/geos produce closed deals
+  // ══════════════════════════════════════════════════════════════
+
+  // רשום ליד שנמצא
+  window._huntRecordFound = async function(segment, platform, score) {
+    if (!segment) return;
+    try {
+      // Upsert: increment leads_found, update avg_score
+      var existing = await window._sb.get('hunt_learnings',
+        'segment=eq.'+encodeURIComponent(segment||'')+'&platform=eq.'+encodeURIComponent(platform||'')+'&geo=eq.ארצי&limit=1'
+      ).catch(function(){return [];});
+      var now = new Date().toISOString();
+      if (existing && existing.length) {
+        var row = existing[0];
+        var newFound = (row.leads_found||0) + 1;
+        var newAvg   = Math.round(((row.avg_lead_score||0)*(newFound-1) + (score||50)) / newFound);
+        await window._sb.update('hunt_learnings','id=eq.'+row.id,{
+          leads_found:    newFound,
+          avg_lead_score: newAvg,
+          last_hunt_at:   now,
+          updated_at:     now
+        }).catch(function(){});
+      } else {
+        await window._sb.insert('hunt_learnings',{
+          segment:        segment||'',
+          platform:       platform||'',
+          geo:            'ארצי',
+          leads_found:    1,
+          avg_lead_score: score||50,
+          last_hunt_at:   now
+        }).catch(function(){});
+      }
+    } catch(e) { console.warn('[Hunt] _huntRecordFound:', e.message); }
+  };
+
+  // עדכן תוצאת עסקה → המוח לומד
+  window._huntRecordOutcome = async function(leadId, won) {
+    var lead = leads && leads.find(function(l){ return l.id===leadId; });
+    if (!lead || lead.source !== 'ai-hunt') return; // רק לידים מ-Hunt
+    var segment  = lead.segment  || '';
+    var platform = lead.platform || '';
+    if (!segment) return;
+    try {
+      var existing = await window._sb.get('hunt_learnings',
+        'segment=eq.'+encodeURIComponent(segment)+'&platform=eq.'+encodeURIComponent(platform)+'&geo=eq.ארצי&limit=1'
+      ).catch(function(){return [];});
+      var now = new Date().toISOString();
+      if (existing && existing.length) {
+        var row = existing[0];
+        var newWon    = (row.leads_won||0)  + (won ? 1 : 0);
+        var newLost   = (row.leads_lost||0) + (won ? 0 : 1);
+        var newAdded  = (row.leads_added||0) + 1;
+        var totalDone = newWon + newLost;
+        var newRate   = totalDone > 0 ? Math.round((newWon / totalDone) * 100) : 0;
+        var update = {
+          leads_added:  newAdded,
+          leads_won:    newWon,
+          leads_lost:   newLost,
+          win_rate:     newRate,
+          updated_at:   now
+        };
+        if (won)  update.last_won_at  = now;
+        if (!won) update.last_lost_at = now;
+        await window._sb.update('hunt_learnings','id=eq.'+row.id, update).catch(function(){});
+        console.log('[Hunt] Learning updated — '+segment+'/'+platform+' win_rate:'+newRate+'%');
+      }
+    } catch(e) { console.warn('[Hunt] _huntRecordOutcome:', e.message); }
+  };
+
+  // טען learnings לשיפור החיפוש הבא
+  window._huntLoadLearnings = async function() {
+    try {
+      var rows = await window._sb.get('hunt_learnings',
+        'order=win_rate.desc&limit=20'
+      ).catch(function(){return [];});
+      return rows || [];
+    } catch(e) { return []; }
   };
 
   // ══════════════════════════════════════════════════
@@ -8711,6 +8823,21 @@ window._cleanForFirebase = function _cleanForFirebase(obj) {
       }, stepTimes[i]);
     });
 
+    // ── טען learnings — מה עבד בעבר ──
+    var huntLearnings = [];
+    try { huntLearnings = await window._huntLoadLearnings(); } catch(e) {}
+    var topSegments = huntLearnings
+      .filter(function(r){ return r.win_rate > 0; })
+      .slice(0, 3)
+      .map(function(r){ return r.segment; });
+    var topPlatforms = huntLearnings
+      .filter(function(r){ return r.win_rate > 0 && r.platform; })
+      .slice(0, 2)
+      .map(function(r){ return r.platform; });
+    if (topSegments.length) {
+      console.log('[Hunt] Learning-based boost → segments:', topSegments.join(', '));
+    }
+
     // ── Build Serper search queries from params ──
     var baseQueries = [];
     var segMap = {
@@ -8741,6 +8868,17 @@ window._cleanForFirebase = function _cleanForFirebase(obj) {
     if (p.competitors && p.competitors.length) {
       p.competitors.forEach(function(comp) {
         baseQueries.push(comp + ' ישראל site:' + comp.toLowerCase().replace(/\s/g,'')+'.co.il OR ' + comp + ' כרטיסים');
+      });
+    }
+    // Boost: הוסף שאילתות מסגמנטים שעבדו בעבר
+    if (topSegments.length && !p.segments.length) {
+      topSegments.forEach(function(seg) {
+        baseQueries.unshift(seg + ' ישראל אירועים'); // עדיפות גבוהה
+      });
+    }
+    if (topPlatforms.length) {
+      topPlatforms.forEach(function(plat) {
+        baseQueries.push('אירועים ישראל ' + plat + ' OR ' + plat + ' ישראל');
       });
     }
     // Limit to 5 queries (Serper credits)
@@ -8868,7 +9006,7 @@ window._cleanForFirebase = function _cleanForFirebase(obj) {
         if (lead.next_action) html += '<div style="font-size:10px;color:#3b82f6;margin-top:4px">→ '+lead.next_action+'</div>';
         html += '</div>';
         // CRM button
-        html += '<button onclick="huntAddLead('+JSON.stringify(lead).replace(/"/g,'&quot;')+')" ';
+        html += '<button onclick="window.huntAddLead('+JSON.stringify(lead).replace(/"/g,'&quot;')+', this)" ';
         html += 'style="background:rgba(16,185,129,0.1);border:1px solid rgba(16,185,129,0.3);border-radius:8px;padding:8px 14px;color:#10b981;font-size:11px;font-weight:700;cursor:pointer;font-family:DM Sans,Heebo,sans-serif;white-space:nowrap;align-self:start">➕ CRM</button>';
         html += '</div></div>';
       });
@@ -8883,32 +9021,144 @@ window._cleanForFirebase = function _cleanForFirebase(obj) {
     }
   };
 
-    window.huntAddLead = function huntAddLead(lead) {
+    window.huntAddLead = async function huntAddLead(lead, btn) {
     var now = new Date().toISOString();
+
+    // ── בדיקת דומיין (HTTP HEAD) ──
+    var domainOk = null;
+    if (lead.domain) {
+      try {
+        var chk = await fetch('https://'+lead.domain.replace(/^https?:\/\//,''), {method:'HEAD', signal:AbortSignal.timeout(5000), mode:'no-cors'});
+        domainOk = true;
+      } catch(e) { domainOk = false; }
+    }
+
+    // ── בדיקת טלפון (פורמט ישראלי) ──
+    var phoneOk = null;
+    if (lead.phone) {
+      phoneOk = /^(\+972|0)(5[0-9]|[2-9]\d)[\d\-]{6,8}$/.test(lead.phone.replace(/\s/g,''));
+    }
+
+    var validationNotes = [];
+    if (domainOk === false) validationNotes.push('⚠️ אתר לא נגיש');
+    if (phoneOk === false)  validationNotes.push('⚠️ טלפון לא תקין');
+    if (domainOk === true)  validationNotes.push('✅ אתר פעיל');
+    if (phoneOk === true)   validationNotes.push('✅ טלפון תקין');
+
     var newLead = {
-      id: Date.now(),
-      name: lead.name || '',
-      domain: lead.domain || '',
-      phone: lead.phone || '',
-      segment: lead.segment || '',
-      platform: lead.platform || '',
-      score: lead.score || 50,
-      status: 'new',
-      source: 'ai-hunt',
+      name:       lead.name     || '',
+      domain:     lead.domain   || '',
+      phone:      lead.phone    || '',
+      segment:    lead.segment  || '',
+      platform:   lead.platform || lead.platform_current || '',
+      score:      lead.score    || 50,
+      tier:       lead.tier     || 'B',
+      status:     'new',
+      source:     'ai-hunt',
       created_at: now,
       updated_at: now,
-      notes: 'נמצא ע"י AI Hunt. ' + (lead.reason || '')
+      notes: ['נמצא ע"י AI Hunt.', lead.reason||'', validationNotes.join(' | ')].filter(Boolean).join(' '),
+      enrichment: {
+        domain_verified: domainOk,
+        phone_verified:  phoneOk,
+        verified_at:     now,
+        size_estimate:   lead.size_estimate   || '',
+        events_per_year: lead.events_per_year || '',
+        estimated_annual_fees: lead.estimated_annual_fees || ''
+      }
     };
+
     // ── Route through central entry point ──
     window.addLeadToCRM(newLead, {source: 'hunt'});
-    try {
-      var s = JSON.parse(localStorage.getItem('xtix_crm_leads')||'[]');
-      s.push(newLead); localStorage.setItem('xtix_crm_leads', JSON.stringify(s));
-    } catch(e) {}
+
+    // ── רשום ב-hunt_learnings ──
+    window._huntRecordFound(lead.segment, lead.platform_current || lead.platform, lead.score);
+
     if (typeof updateStats === 'function') updateStats();
-    if (typeof updateBadge === 'function') updateBadge();
-    // Visual feedback on the button
-    event && event.target && (event.target.textContent = '✅ נוסף!') && (event.target.disabled = true);
+    // Visual feedback
+    if (btn) { btn.textContent = domainOk === false ? '⚠️ נוסף (בדוק)' : '✅ נוסף!'; btn.disabled = true; }
+  };
+
+
+  // ══════════════════════════════════════════════════════════════
+  //  HUNT LEARNINGS — Self-improving search engine
+  //  Tracks: what segments/platforms/geos produce closed deals
+  // ══════════════════════════════════════════════════════════════
+
+  // רשום ליד שנמצא
+  window._huntRecordFound = async function(segment, platform, score) {
+    if (!segment) return;
+    try {
+      // Upsert: increment leads_found, update avg_score
+      var existing = await window._sb.get('hunt_learnings',
+        'segment=eq.'+encodeURIComponent(segment||'')+'&platform=eq.'+encodeURIComponent(platform||'')+'&geo=eq.ארצי&limit=1'
+      ).catch(function(){return [];});
+      var now = new Date().toISOString();
+      if (existing && existing.length) {
+        var row = existing[0];
+        var newFound = (row.leads_found||0) + 1;
+        var newAvg   = Math.round(((row.avg_lead_score||0)*(newFound-1) + (score||50)) / newFound);
+        await window._sb.update('hunt_learnings','id=eq.'+row.id,{
+          leads_found:    newFound,
+          avg_lead_score: newAvg,
+          last_hunt_at:   now,
+          updated_at:     now
+        }).catch(function(){});
+      } else {
+        await window._sb.insert('hunt_learnings',{
+          segment:        segment||'',
+          platform:       platform||'',
+          geo:            'ארצי',
+          leads_found:    1,
+          avg_lead_score: score||50,
+          last_hunt_at:   now
+        }).catch(function(){});
+      }
+    } catch(e) { console.warn('[Hunt] _huntRecordFound:', e.message); }
+  };
+
+  // עדכן תוצאת עסקה → המוח לומד
+  window._huntRecordOutcome = async function(leadId, won) {
+    var lead = leads && leads.find(function(l){ return l.id===leadId; });
+    if (!lead || lead.source !== 'ai-hunt') return; // רק לידים מ-Hunt
+    var segment  = lead.segment  || '';
+    var platform = lead.platform || '';
+    if (!segment) return;
+    try {
+      var existing = await window._sb.get('hunt_learnings',
+        'segment=eq.'+encodeURIComponent(segment)+'&platform=eq.'+encodeURIComponent(platform)+'&geo=eq.ארצי&limit=1'
+      ).catch(function(){return [];});
+      var now = new Date().toISOString();
+      if (existing && existing.length) {
+        var row = existing[0];
+        var newWon    = (row.leads_won||0)  + (won ? 1 : 0);
+        var newLost   = (row.leads_lost||0) + (won ? 0 : 1);
+        var newAdded  = (row.leads_added||0) + 1;
+        var totalDone = newWon + newLost;
+        var newRate   = totalDone > 0 ? Math.round((newWon / totalDone) * 100) : 0;
+        var update = {
+          leads_added:  newAdded,
+          leads_won:    newWon,
+          leads_lost:   newLost,
+          win_rate:     newRate,
+          updated_at:   now
+        };
+        if (won)  update.last_won_at  = now;
+        if (!won) update.last_lost_at = now;
+        await window._sb.update('hunt_learnings','id=eq.'+row.id, update).catch(function(){});
+        console.log('[Hunt] Learning updated — '+segment+'/'+platform+' win_rate:'+newRate+'%');
+      }
+    } catch(e) { console.warn('[Hunt] _huntRecordOutcome:', e.message); }
+  };
+
+  // טען learnings לשיפור החיפוש הבא
+  window._huntLoadLearnings = async function() {
+    try {
+      var rows = await window._sb.get('hunt_learnings',
+        'order=win_rate.desc&limit=20'
+      ).catch(function(){return [];});
+      return rows || [];
+    } catch(e) { return []; }
   };
 
   // ══════════════════════════════════════════════════
@@ -10263,6 +10513,11 @@ window.markDealClosed = async function(leadId, didClose) {
   if (panel && panel.classList.contains('active')) {
     _renderDecisionsList();
     _updateBrainStats();
+  }
+
+  // Hunt learning — עדכן hunt_learnings אם הליד מגיע מ-Hunt
+  if (typeof window._huntRecordOutcome === 'function') {
+    window._huntRecordOutcome(leadId, didClose);
   }
 
   // Toast feedback
