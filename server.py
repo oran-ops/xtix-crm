@@ -727,6 +727,22 @@ class Handler(BaseHTTPRequestHandler):
     def do_GET(self):
         p=urllib.parse.urlparse(self.path); q=urllib.parse.parse_qs(p.query); cfg=load_config()
 
+        # ── Serve static files (.js, .css) ──────────────────────────
+        if p.path.endswith('.js') or p.path.endswith('.css'):
+            static_file = os.path.join(os.path.dirname(__file__), p.path.lstrip('/'))
+            if os.path.exists(static_file):
+                mime = 'application/javascript' if p.path.endswith('.js') else 'text/css'
+                with open(static_file, 'rb') as f:
+                    content = f.read()
+                self.send_response(200)
+                self.send_header('Content-Type', mime + '; charset=utf-8')
+                self.send_header('Content-Length', str(len(content)))
+                self.end_headers()
+                self.wfile.write(content)
+            else:
+                self.send_response(404); self.end_headers()
+            return
+
         # ── Serve CRM HTML file at root ──────────────────────────────
         if p.path == '/' or p.path == '/index.html':
             crm_file = os.path.join(os.path.dirname(__file__), 'index.html')
