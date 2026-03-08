@@ -368,51 +368,6 @@ def _fetch_user_role_from_firestore(uid, id_token):
         return None
 
 
-def _verify_supabase_token(id_token):
-    """Verify Supabase JWT by calling /auth/v1/user endpoint."""
-    SUPABASE_URL = os.environ.get('SUPABASE_URL', 'https://ugluksyfpfgzbpmayodg.supabase.co')
-    SUPABASE_ANON = os.environ.get('SUPABASE_ANON_KEY', '')
-    try:
-        req = urllib.request.Request(
-            SUPABASE_URL + '/auth/v1/user',
-            headers={
-                'apikey': SUPABASE_ANON,
-                'Authorization': 'Bearer ' + id_token,
-            }
-        )
-        with urllib.request.urlopen(req, context=ssl_ctx, timeout=8) as r:
-            data = json.loads(r.read().decode('utf-8'))
-            if data.get('id'):
-                return data
-            return None
-    except Exception as e:
-        print(f'[Auth] Supabase token verify failed: {e}', flush=True)
-        return None
-
-
-def _fetch_user_role_from_supabase(uid):
-    """Fetch user role from public.users table in Supabase."""
-    SUPABASE_URL = os.environ.get('SUPABASE_URL', 'https://ugluksyfpfgzbpmayodg.supabase.co')
-    SUPABASE_SERVICE_KEY = os.environ.get('SUPABASE_SERVICE_KEY', '')
-    try:
-        url = SUPABASE_URL + '/rest/v1/users?id=eq.' + uid + '&select=role&limit=1'
-        req = urllib.request.Request(
-            url,
-            headers={
-                'apikey': SUPABASE_SERVICE_KEY,
-                'Authorization': 'Bearer ' + SUPABASE_SERVICE_KEY,
-            }
-        )
-        with urllib.request.urlopen(req, context=ssl_ctx, timeout=8) as r:
-            rows = json.loads(r.read().decode('utf-8'))
-            if rows and rows[0].get('role'):
-                return rows[0]['role']
-            return None
-    except Exception as e:
-        print(f'[Auth] Supabase role fetch failed for {uid}: {e}', flush=True)
-        return None
-
-
 # ── Rate Limiter ────────────────────────────────────────────────────────────
 # Tracks requests per IP per endpoint, resets every window_seconds
 class RateLimiter:
@@ -713,8 +668,9 @@ class Handler(BaseHTTPRequestHandler):
 
     def auth_check(self, required_role='sales'):
         """
-        Verify Supabase JWT from Authorization header.
-        Returns {uid, email, role} on success, None on failure.
+        Verify Firebase ID Token from Authorization header.
+        Returns (uid, email, role) on success.
+        Sends 401/403 and returns None on failure.
         required_role: 'sales' = sales+admin allowed, 'admin' = admin only
         """
         auth_header = self.headers.get('Authorization', '')
@@ -724,26 +680,24 @@ class Handler(BaseHTTPRequestHandler):
 
         id_token = auth_header[7:].strip()
 
-        # Check cache first (5-min cache to avoid hammering Supabase)
+        # Check cache first
         cached = _get_token_from_cache(id_token)
         if cached:
             uid, email, role = cached['uid'], cached['email'], cached['role']
         else:
-            # Verify Supabase JWT by calling /auth/v1/user
-            result = _verify_supabase_token(id_token)
-            if not result:
+            # Verify token
+            try:
+                uid, email, _ = _verify_firebase_token(id_token)
+            except ValueError as e:
+                print(f'[Auth] Token invalid: {e}', flush=True)
                 self.json_out({'error': 'Token לא תקף — נסה להתנתק ולהתחבר מחדש', 'code': 'invalid_token'}, 401)
                 return None
 
-            uid   = result.get('id', '')
-            email = result.get('email', '')
-
-            # Fetch role from public.users table in Supabase
-            role = _fetch_user_role_from_supabase(uid)
+            # Fetch role from Firestore
+            role = _fetch_user_role_from_firestore(uid, id_token)
             if not role:
-                # Default to admin if no role found (first user / dev mode)
-                role = 'admin'
-                print(f'[Auth] No role found for {email} — defaulting to admin', flush=True)
+                self.json_out({'error': 'אין גישה — פנה למנהל', 'code': 'no_role'}, 403)
+                return None
 
             _set_token_cache(id_token, uid, email, role)
 
@@ -775,7 +729,7 @@ class Handler(BaseHTTPRequestHandler):
 
         # ── Serve CRM HTML file at root ──────────────────────────────
         if p.path == '/' or p.path == '/index.html':
-            crm_file = os.path.join(os.path.dirname(__file__), 'index.html')
+            crm_file = os.path.join(os.path.dirname(__file__), 'xtix-crm.html')
             if os.path.exists(crm_file):
                 with open(crm_file, 'rb') as f:
                     content = f.read()
@@ -784,26 +738,6 @@ class Handler(BaseHTTPRequestHandler):
                 self.send_header('Content-Length', str(len(content)))
                 self.end_headers()
                 self.wfile.write(content)
-            else:
-                self.send_response(404); self.end_headers()
-            return
-
-        # ── Serve static JS files ────────────────────────────────────
-        static_js = {
-            '/supabase-client.js': 'supabase-client.js',
-            '/ai-engine.js':       'ai-engine.js',
-        }
-        if p.path in static_js:
-            js_file = os.path.join(os.path.dirname(__file__), static_js[p.path])
-            if os.path.exists(js_file):
-                with open(js_file, 'rb') as f:
-                    js_content = f.read()
-                self.send_response(200)
-                self.send_header('Content-Type', 'application/javascript; charset=utf-8')
-                self.send_header('Content-Length', str(len(js_content)))
-                self.send_header('Cache-Control', 'no-cache')
-                self.end_headers()
-                self.wfile.write(js_content)
             else:
                 self.send_response(404); self.end_headers()
             return
@@ -1023,64 +957,6 @@ class Handler(BaseHTTPRequestHandler):
                 self.json_out({'error': str(e)}, 500)
             return
 
-
-        if p.path=='/hunt':
-            if not self.auth_check('sales'): return
-            if not self.rate_check('/hunt'): return
-            api_key = os.environ.get('SERP_API_KEY','')
-            if not api_key:
-                self.json_out({'error':'SERP_API_KEY not set in Railway Variables'},500); return
-            try:
-                queries = b.get('queries', [])
-                all_results = []
-                for q in queries[:5]:  # max 5 queries per request
-                    payload = json.dumps({
-                        'q': q,
-                        'gl': 'il',
-                        'hl': 'iw',
-                        'num': 10
-                    }).encode('utf-8')
-                    req = urllib.request.Request(
-                        'https://google.serper.dev/search',
-                        data=payload,
-                        headers={
-                            'Content-Type': 'application/json',
-                            'X-API-KEY': api_key
-                        },
-                        method='POST'
-                    )
-                    with urllib.request.urlopen(req, context=ssl_ctx, timeout=15) as r:
-                        result = json.loads(r.read().decode('utf-8'))
-                        organic = result.get('organic', [])
-                        for item in organic:
-                            item['_query'] = q
-                        all_results.extend(organic)
-                    print(f'  [Hunt] Query "{q}" → {len(organic)} results', flush=True)
-                # Deduplicate by domain
-                seen = set()
-                unique = []
-                for item in all_results:
-                    link = item.get('link','')
-                    try:
-                        from urllib.parse import urlparse
-                        domain = urlparse(link).netloc.replace('www.','')
-                    except:
-                        domain = link
-                    if domain and domain not in seen:
-                        seen.add(domain)
-                        item['_domain'] = domain
-                        unique.append(item)
-                print(f'  [Hunt] Total unique results: {len(unique)}', flush=True)
-                self.json_out({'results': unique, 'total': len(unique)})
-            except urllib.error.HTTPError as e:
-                err_body = e.read().decode('utf-8')
-                print(f'  [Hunt] HTTP {e.code}: {err_body[:150]}', flush=True)
-                self.json_out({'error': err_body[:200]}, e.code)
-            except Exception as e:
-                print(f'  [Hunt] Error: {e}', flush=True)
-                self.json_out({'error': str(e)}, 500)
-            return
-
         if p.path=='/send-email':
             if not self.auth_check('sales'): return
             if not self.rate_check('/send-email'): return
@@ -1128,6 +1004,44 @@ class Handler(BaseHTTPRequestHandler):
         elif p.path=='/clay-pending':
             if not self.auth_check('sales'): return
             self.json_out(load_clay_pending())
+        elif p.path=='/hunt':
+            if not self.auth_check('sales'): return
+            if not self.rate_check('/hunt'): return
+            api_key = os.environ.get('SERP_API_KEY','')
+            if not api_key:
+                self.json_out({'error':'SERP_API_KEY not set'}, 500); return
+            queries = b.get('queries', [])
+            if not queries:
+                self.json_out({'error':'Missing queries'}, 400); return
+            all_results = []
+            seen_domains = set()
+            for q in queries[:5]:
+                try:
+                    payload = json.dumps({'q': q, 'gl': 'il', 'hl': 'he', 'num': 10}).encode('utf-8')
+                    req = urllib.request.Request(
+                        'https://google.serper.dev/search',
+                        data=payload,
+                        headers={'X-API-KEY': api_key, 'Content-Type': 'application/json'},
+                        method='POST'
+                    )
+                    with urllib.request.urlopen(req, timeout=15) as r:
+                        data = json.loads(r.read().decode('utf-8'))
+                    for item in data.get('organic', []):
+                        domain = item.get('link','').replace('https://','').replace('http://','').split('/')[0]
+                        if domain and domain not in seen_domains:
+                            seen_domains.add(domain)
+                            all_results.append({
+                                'title':   item.get('title',''),
+                                'snippet': item.get('snippet',''),
+                                'link':    item.get('link',''),
+                                '_domain': domain,
+                                '_query':  q
+                            })
+                except Exception as e:
+                    print(f'  [Hunt] Query failed: {e}', flush=True)
+            self.json_out({'results': all_results, 'count': len(all_results)})
+            return
+
         elif p.path=='/webhook/lead':
             # Universal lead intake — accepts from Clay, Zapier, n8n, direct API
             try:

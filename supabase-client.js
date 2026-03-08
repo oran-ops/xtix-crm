@@ -668,7 +668,7 @@
         // Hide login screen, show app
         var ls = document.getElementById('login-screen');
         if (ls) ls.style.display = 'none';
-        var app = document.getElementById('app') || document.getElementById('main-app');
+        var app = document.getElementById('app') || document.getElementById('main-app') || document.getElementById('app-wrapper');
         if (app) app.style.display = '';
         // Fire any waiting onAuthStateChanged callbacks
         if (window._onAuthCallbacks) {

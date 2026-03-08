@@ -3930,13 +3930,20 @@ BP18: Nurture existing customers — repeat customers spend 67% more
           'מקור': l.source || '',
           'סגמנט': l.segment || l.type || '',
           'פלטפורמה': l.platform || e.platform_current || '',
+          'מתחרה': l.competitor || '',
+          'Steal Score': l.steal_score || 0,
           'ציון': l.score || '',
           'דירוג': l.tier || '',
           'פניות': l.contacted ? 'כן' : 'לא',
+          'זווית Pitch': l.pitch_angle || e.pitch_angle || '',
+          'תפקיד איש קשר': l.contact_title || e.contact_title || '',
+          'אזור גיאוגרפי': l.geographic_area || e.geographic_area || '',
+          'אירועים/שנה': l.events_per_year || 0,
+          'עמלות שנתיות': l.estimated_annual_fees || e.estimated_annual_fees || '',
+          'חיסכון ב-XTIX': l.estimated_xtix_savings || e.estimated_savings || '',
+          'מקור Hunt': l.hunt_query || '',
           'סיכום AI': e.summary || '',
           'חולשת פלטפורמה': e.platform_weakness || '',
-          'עמלות שנתיות': e.estimated_fees || '',
-          'חיסכון ב-XTIX': e.estimated_savings || '',
           'הערות': l.notes || '',
           'תאריך יצירה': l.created_at ? new Date(l.created_at).toLocaleDateString('he-IL') : '',
           'תאריך עדכון': l.updated_at ? new Date(l.updated_at).toLocaleDateString('he-IL') : '',
@@ -3991,6 +3998,8 @@ BP18: Nurture existing customers — repeat customers spend 67% more
   // =================== renderSimpleLead — builds dynamic lead cards ===================
     window._realRenderSimpleLead = window.renderSimpleLead = function renderSimpleLead(lead) {
     if (!lead || !lead.id) return;
+    // XSS helper
+    var _esc = function(s){ return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;'); };
     var list = document.getElementById('leads-list');
     if (!list) return;
     var existing = document.getElementById('lead-' + lead.id);
@@ -4390,9 +4399,14 @@ window._editLeadSave = function(lid){
         +'<div id="analysis-bar-'+lead.id+'" style="height:100%;width:5%;background:linear-gradient(90deg,#6366f1,#a78bfa);border-radius:2px;transition:width 2s ease"></div></div>'
         +'</div>';
 
-    var nextAction = a.meta_action||a.next_action||'';
-    var summary    = a.executive_summary||a.summary||e.summary||'';
-    var engine     = a.triple_engine ? 'Meta-Judge · Triple Engine' : 'Claude AI';
+    var nextAction   = a.meta_action||a.next_action||'';
+    var summary      = a.executive_summary||a.summary||e.summary||'';
+    var pitchAngle   = a.pitch_angle   || e.pitch_angle   || '';
+    var painPoints   = a.pain_points   || e.pain_points   || [];
+    var pitchText    = a.pitch         || e.pitch         || '';
+    var contactTitle = a.contact_title || e.contact_title || '';
+    var geoArea      = a.geographic_area || e.geographic_area || '';
+    var engine       = a.triple_engine ? 'Meta-Judge · Triple Engine' : 'Claude AI';
     var analyzedAt = (a.enriched_at||a.analyzed_at)
       ? new Date(a.enriched_at||a.analyzed_at).toLocaleString('he-IL',{day:'2-digit',month:'2-digit',hour:'2-digit',minute:'2-digit'})
       : '';
@@ -4410,6 +4424,20 @@ window._editLeadSave = function(lid){
       +(nextAction?'<div style="font-size:11px;background:rgba(52,211,153,0.07);border-right:2px solid #10b981;padding:6px 10px;border-radius:4px;color:'+C.text+'"><span style="color:#34d399;font-weight:700">→ </span>'+nextAction+'</div>':'')
       +'</div>'
       +'</div>';
+
+    // ── Intel block: pitch angle, contact, geo ──
+    if (pitchAngle || contactTitle || geoArea || pitchText) {
+      html += '<div style="margin-top:12px;background:rgba(16,185,129,0.05);border:1px solid rgba(16,185,129,0.15);border-radius:8px;padding:12px;">';
+      html += '<div style="font-size:10px;color:#10b981;text-transform:uppercase;letter-spacing:1px;margin-bottom:8px">🎯 Intel</div>';
+      if (pitchAngle)   html += '<div style="font-size:12px;color:#e2e8f0;margin-bottom:5px"><b>זווית:</b> '+pitchAngle+'</div>';
+      if (contactTitle) html += '<div style="font-size:12px;color:#e2e8f0;margin-bottom:5px"><b>פנה אל:</b> '+contactTitle+'</div>';
+      if (geoArea)      html += '<div style="font-size:12px;color:#e2e8f0;margin-bottom:5px"><b>אזור:</b> '+geoArea+'</div>';
+      if (pitchText)    html += '<div style="font-size:11px;color:rgba(226,232,240,0.7);margin-top:6px;border-top:1px solid rgba(255,255,255,0.06);padding-top:6px">'+pitchText+'</div>';
+      if (painPoints && painPoints.length) {
+        html += '<div style="margin-top:6px;font-size:11px;color:#fbbf24">⚡ ' + painPoints.slice(0,3).join(' · ') + '</div>';
+      }
+      html += '</div>';
+    }
 
     html += '<div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap">'
       +'<button onclick="window.showAnalysisChoice(\''+lead.id+'\')" style="background:rgba(99,102,241,0.12);border:1px solid rgba(99,102,241,0.3);border-radius:8px;padding:8px 18px;font-size:11px;font-weight:700;color:#a5b4fc;cursor:pointer;font-family:Heebo,sans-serif">🔄 ניתוח מחדש</button>'
@@ -5555,14 +5583,22 @@ BP6-10: תעדף (פלטפורמה ישנה+דומיין+6+ אירועים), Dis
       win_reason:             rawLead.win_reason            || '',
       lost_reason:            rawLead.lost_reason           || ''
     }, rawLead);
-    // Ensure competitor syncs with platform
-    if (!lead.competitor && lead.platform) lead.competitor = lead.platform;
-    if (lead.competitor && !lead.competitor_fee_pct && window.XTIX_COMPETITORS) {
-      var _cd = window._getCompData ? window._getCompData(lead.competitor) : null;
+    // ── Normalize competitor — מגן על empty string ידרוס מ-Object.assign ──
+    // rawLead.competitor = '' ידרס את defaults → חשב מחדש תמיד
+    lead.competitor = lead.competitor
+      || lead.platform_current
+      || lead.platform
+      || '';
+    // תמיד חשב מחדש מ-XTIX_COMPETITORS
+    if (lead.competitor && window._getCompData) {
+      var _cd = window._getCompData(lead.competitor);
       if (_cd) {
         lead.competitor_fee_pct = _cd.fee;
-        if (!lead.steal_score) lead.steal_score = _cd.steal;
+        lead.steal_score        = _cd.steal;  // תמיד override מ-COMPETITORS
       }
+    }
+    if (!lead.steal_score && window._getStealScore) {
+      lead.steal_score = window._getStealScore(lead.competitor || lead.platform || '');
     }
 
     // De-duplicate by domain
@@ -5690,10 +5726,13 @@ BP6-10: תעדף (פלטפורמה ישנה+דומיין+6+ אירועים), Dis
       var forceMode = window._forceAnalysisMode;
       var useTriple = forceMode === 'triple' ? true : forceMode === 'claude' ? false : hasExtra;
       var result = await (useTriple ? window._tripleEnginePipeline(lead) : window._deepAIPipeline(lead));
-      lead.ai_analysis = result;
+      // ai_analysis = enrichment בלבד (לא כל result עם כפילויות)
+      lead.ai_analysis = result.enrichment
+        ? Object.assign({ status: 'done' }, result.enrichment)
+        : { status: 'done', summary: result.summary || '' };
       lead.score   = result.score   || lead.score   || 50;
       lead.tier    = result.tier    || lead.tier    || 'B';
-      lead.platform  = result.platform_current || lead.platform || '';
+      lead.platform  = result.platform_current || result.platform || lead.platform || '';
       lead.segment   = result.segment || lead.type || lead.segment || '';
       // ── Competitor Intelligence — מחושב אוטומטי מניתוח AI ──
       // result = enrichedLead מ-autoEnrichLead — כל השדות ב-root
@@ -9352,10 +9391,13 @@ window._cleanForFirebase = function _cleanForFirebase(obj) {
       phone:      lead.phone    || '',
       segment:    lead.segment  || '',
       platform:   lead.platform || lead.platform_current || '',
+      competitor: lead.platform_current || lead.platform || '',
       score:      lead.score    || 50,
       tier:       lead.tier     || 'B',
       status:     'new',
       source:     'ai-hunt',
+      hunt_query: lead.hunt_query || lead.query || '',
+      hunt_source_score: lead.score || 50,
       created_at: now,
       updated_at: now,
       notes: ['נמצא ע"י AI Hunt.', lead.reason||'', validationNotes.join(' | ')].filter(Boolean).join(' '),
@@ -9369,18 +9411,25 @@ window._cleanForFirebase = function _cleanForFirebase(obj) {
       }
     };
 
-    // ── Route through central entry point ──
-    window.addLeadToCRM(newLead, {source: 'hunt'});
+    // ── Route through central entry point — תפוס את ה-lead עם ה-id שנוצר ──
+    var _addedLead = window.addLeadToCRM(newLead, {source: 'hunt'});
+    // אם null → duplicate (ליד כבר קיים) — עצור כאן
+    if (!_addedLead) {
+      console.log('[Hunt] Duplicate skipped:', newLead.name, newLead.domain);
+      if (btn) { btn.disabled = true; btn.textContent = '✓ קיים'; }
+      return;
+    }
+    var _addedId = _addedLead.id;
 
     // ── רשום ב-hunt_learnings ──
     window._huntRecordFound(lead.segment, lead.platform_current || lead.platform, lead.score);
     // ── Signal: hunt_found + validation signals ──
-    if (window._signalRecord && newLead.id) {
-      window._signalRecord(newLead.id, 'hunt_found', { segment: newLead.segment, score: newLead.score });
-      if (domainOk === true)  window._signalRecord(newLead.id, 'hunt_domain_verified', {});
-      if (domainOk === false) window._signalRecord(newLead.id, 'hunt_domain_failed',   {});
-      if (phoneOk  === true)  window._signalRecord(newLead.id, 'hunt_phone_valid',     {});
-      if (phoneOk  === false) window._signalRecord(newLead.id, 'hunt_phone_invalid',   {});
+    if (window._signalRecord && _addedId) {
+      window._signalRecord(_addedId, 'hunt_found', { segment: newLead.segment, score: newLead.score });
+      if (domainOk === true)  window._signalRecord(_addedId, 'hunt_domain_verified', {});
+      if (domainOk === false) window._signalRecord(_addedId, 'hunt_domain_failed',   {});
+      if (phoneOk  === true)  window._signalRecord(_addedId, 'hunt_phone_valid',     {});
+      if (phoneOk  === false) window._signalRecord(_addedId, 'hunt_phone_invalid',   {});
     }
 
     if (typeof updateStats === 'function') updateStats();
@@ -11397,6 +11446,26 @@ var SIGNAL_WEIGHTS = {
   email_bounced_hard:            -30,
   email_unsubscribed:            -60,
   email_marked_spam:             -80,
+  // ── Hunt signals ──
+  hunt_found:                    +10,
+  hunt_domain_verified:          +15,
+  hunt_domain_failed:            -5,
+  hunt_phone_valid:              +10,
+  hunt_phone_invalid:            -5,
+  // ── AI Analysis signals ──
+  pain_points_critical_found:    +25,
+  decision_maker_identified:     +20,
+  triple_engine_consensus:       +15,
+  post_analysis_email_sent:      +10,
+  post_analysis_no_action:       -5,
+  // ── Tier signals ──
+  tier_a:                        +20,
+  tier_b:                        +10,
+  tier_c:                        0,
+  // ── Re-engagement / Stale signals ──
+  reengaged_after_stale:         +15,
+  stale_30d:                     -20,
+  status_referred_us_to_other:   +30,
   no_reply_3d:                   -10,
   no_reply_7d:                   -20,
   no_reply_14d:                  -35,
@@ -11659,6 +11728,11 @@ window._signalOnStatusChange = function(leadId, newStatus, lead) {
         pitch_angle_used:   _pitchAngle,
         contact_title:      _contactTitle,
         geographic_area:    _geoArea,
+        days_to_close: (function(){
+          var _fc = lead.first_contact_at || updates.first_contact_at;
+          if (!_fc) return null;
+          return Math.round((Date.now() - new Date(_fc).getTime()) / (1000*60*60*24));
+        })(),
         created_at:         now
       };
       window._sb.insert('learning_patterns', _lp).catch(function(){});
@@ -11687,7 +11761,7 @@ window._signalOnAnalysis = function(leadId, result) {
             : score >= 30 ? 'score_low'
             :               'score_very_low';
   window._signalRecord(leadId, sig, { score: score, tier: tier, segment: result.segment });
-  window._signalRecord(leadId, 'tier_'+(tier||'b').toLowerCase(), { score: score });
+  window._signalRecord(leadId, 'tier_'+((tier||'b').toLowerCase()).toLowerCase(), { score: score });
   if (result.triple_engine)    window._signalRecord(leadId, 'triple_engine_consensus', {});
   if (result.pain_points)      window._signalRecord(leadId, 'pain_points_critical_found', {});
   if (result.decision_maker)   window._signalRecord(leadId, 'decision_maker_identified', {});
@@ -12384,7 +12458,15 @@ window._loadIntelDashboard = async function() {
         l.steal_score = window._getStealScore(l.competitor);
       }
     });
-    var withPlatform = leads.filter(function(l){ return (l.competitor||l.platform||'').trim(); });
+    var withPlatform = leads
+      .filter(function(l){ return (l.competitor||l.platform||'').trim(); })
+      .sort(function(a,b){ return (b.steal_score||0) - (a.steal_score||0); });
+    if (!withPlatform.length) {
+      var el2 = function(id){ return document.getElementById(id); };
+      if (el2('intel-total')) el2('intel-total').textContent = '0';
+      if (el2('intel-breakdown-bars')) el2('intel-breakdown-bars').innerHTML = '<div style="color:var(--t3);font-size:12px;text-align:center;padding:20px">אין לידים עם מידע על פלטפורמה עדיין</div>';
+      return;
+    }
     var C = window.XTIX_COMPETITORS || {};
 
     // ── ספירה per מתחרה ──
