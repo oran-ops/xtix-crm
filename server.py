@@ -729,7 +729,7 @@ class Handler(BaseHTTPRequestHandler):
 
         # ── Serve CRM HTML file at root ──────────────────────────────
         if p.path == '/' or p.path == '/index.html':
-            crm_file = os.path.join(os.path.dirname(__file__), 'xtix-crm.html')
+            crm_file = os.path.join(os.path.dirname(__file__), 'index.html')
             if os.path.exists(crm_file):
                 with open(crm_file, 'rb') as f:
                     content = f.read()
