@@ -3864,9 +3864,7 @@ BP18: Nurture existing customers — repeat customers spend 67% more
       // Upsert all leads to Supabase
       for (const lead of leads) {
         const clean = Object.assign({}, lead);
-        delete clean._nextId;
-        delete clean.type;           // Supabase לא מכיר 'type'
-        delete clean.enrichment_raw; // לא שדה DB
+        ['_nextId','type','enrichment_raw','days_to_close','url'].forEach(function(f){ delete clean[f]; });
         if (!clean.created_at) clean.created_at = new Date().toISOString();
         clean.updated_at = new Date().toISOString();
         // Skip leads with old Firebase numeric IDs (not UUID format)
@@ -5368,18 +5366,23 @@ ${proxyCtx}
         enriched_at:          new Date().toISOString(),
         enriched_by:          'claude-auto'
       },
-      // ── שדות ישירים על lead ──
+      // ── שדות ישירים על lead (גם ב-root וגם כ-aliases לתאימות) ──
       score,
-      tier:                basic.tier || (score >= 80 ? 'A' : score >= 60 ? 'B' : 'C'),
-      platform:            basic.platform_current     || lead.platform || '',
-      segment:             basic.segment              || lead.segment  || lead.type || '',
-      pitch_angle:         basic.pitch_angle          || lead.pitch_angle    || '',
-      contact_name:        basic.contact_name         || lead.contact_name   || '',
-      contact_title:       basic.contact_title        || lead.contact_title  || '',
-      geographic_area:     basic.geographic_area      || lead.geographic_area|| '',
-      first_email_subject: basic.first_email_subject  || _firstSubj || lead.first_email_subject || '',
-      status:              lead.status    || 'new',
-      updated_at:          new Date().toISOString()
+      tier:                 basic.tier || (score >= 80 ? 'A' : score >= 60 ? 'B' : 'C'),
+      platform:             basic.platform_current     || lead.platform || '',
+      platform_current:     basic.platform_current     || lead.platform || '',  // alias לתאימות
+      segment:              basic.segment              || lead.segment  || lead.type || '',
+      pitch_angle:          basic.pitch_angle          || lead.pitch_angle    || '',
+      contact_name:         basic.contact_name         || lead.contact_name   || '',
+      contact_title:        basic.contact_title        || lead.contact_title  || '',
+      geographic_area:      basic.geographic_area      || lead.geographic_area|| '',
+      first_email_subject:  basic.first_email_subject  || _firstSubj || lead.first_email_subject || '',
+      estimated_annual_fees: basic.estimated_annual_fees || lead.estimated_annual_fees || 0,
+      estimated_xtix_savings: basic.estimated_xtix_savings || lead.estimated_xtix_savings || 0,
+      events_per_year:      basic.events_per_year      || lead.events_per_year || 0,
+      audience_size:        basic.audience_size        || lead.audience_size   || 0,
+      status:               lead.status    || 'new',
+      updated_at:           new Date().toISOString()
     };
   };
 
@@ -5582,7 +5585,7 @@ BP6-10: תעדף (פלטפורמה ישנה+דומיין+6+ אירועים), Dis
 
     // Persist to Supabase — INSERT new lead
     var _leadForDB = Object.assign({}, lead);
-    delete _leadForDB.type; // Supabase לא מכיר 'type'
+    ['type','_nextId','enrichment_raw','days_to_close','url'].forEach(function(f){ delete _leadForDB[f]; });
     window._sb.insert('leads', _leadForDB).catch(function(e){
       console.warn('[CRM] Supabase insert failed:', e.message);
     });
@@ -5693,7 +5696,8 @@ BP6-10: תעדף (פלטפורמה ישנה+דומיין+6+ אירועים), Dis
       lead.platform  = result.platform_current || lead.platform || '';
       lead.segment   = result.segment || lead.type || lead.segment || '';
       // ── Competitor Intelligence — מחושב אוטומטי מניתוח AI ──
-      var _detectedComp = result.platform_current || lead.platform || '';
+      // result = enrichedLead מ-autoEnrichLead — כל השדות ב-root
+      var _detectedComp = result.platform_current || result.platform || lead.platform || '';
       if (_detectedComp) {
         lead.competitor = _detectedComp;
         var _cd2 = window._getCompData ? window._getCompData(_detectedComp) : null;
@@ -5702,32 +5706,44 @@ BP6-10: תעדף (פלטפורמה ישנה+דומיין+6+ אירועים), Dis
           lead.steal_score        = _cd2.steal;
         }
       }
-      // estimated_annual_fees מה-AI result
-      if (result.estimated_annual_fees) {
-        var _feeStr = String(result.estimated_annual_fees).replace(/[₪,\s]/g,'');
+      // estimated fees מה-result (root level)
+      var _rawFees = result.estimated_annual_fees || (result.enrichment && result.enrichment.estimated_fees) || 0;
+      if (_rawFees) {
+        var _feeStr = String(_rawFees).replace(/[₪,\s]/g,'');
         lead.estimated_annual_fees  = parseInt(_feeStr) || 0;
         var _xtixFee = lead.estimated_annual_fees * 0.025;
         var _compFee = lead.estimated_annual_fees * ((lead.competitor_fee_pct||5) / 100);
         lead.estimated_xtix_savings = Math.max(0, Math.round(_compFee - _xtixFee));
       }
-      if (result.events_per_year)  lead.events_per_year = parseInt(result.events_per_year) || 0;
-      if (result.audience_size)    lead.audience_size   = parseInt(String(result.audience_size).replace(/[^0-9]/g,'')) || 0;
-      if (window._getStealScore)   lead.steal_score     = lead.steal_score || window._getStealScore(lead.platform);
-      // first_contact_at — סמן בפעם הראשונה שנוצר קשר
+      // events / audience
+      var _epy = result.events_per_year || (result.enrichment && result.enrichment.events_per_year) || 0;
+      var _aud = result.audience_size   || (result.enrichment && result.enrichment.audience_size)   || 0;
+      if (_epy) lead.events_per_year = parseInt(String(_epy).replace(/[^0-9]/g,'')) || 0;
+      if (_aud) lead.audience_size   = parseInt(String(_aud).replace(/[^0-9]/g,'')) || 0;
+      // pitch / contact / geo / email subject (תיקון 5)
+      if (result.pitch_angle)          lead.pitch_angle          = result.pitch_angle;
+      if (result.contact_name)         lead.contact_name         = result.contact_name;
+      if (result.contact_title)        lead.contact_title        = result.contact_title;
+      if (result.geographic_area)      lead.geographic_area      = result.geographic_area;
+      if (result.first_email_subject)  lead.first_email_subject  = result.first_email_subject;
+      // steal score
+      if (window._getStealScore) lead.steal_score = lead.steal_score || window._getStealScore(lead.platform);
+      // first_contact_at
       if (!lead.first_contact_at && lead.status && lead.status !== 'new') {
         lead.first_contact_at = new Date().toISOString();
       }
+      // enrichment sync
+      if (result.enrichment) lead.enrichment = result.enrichment;
       lead.updated_at = new Date().toISOString();
       var idx = leads.findIndex(function(l){return l.id===leadId;});
       if (idx!==-1) leads[idx]=lead;
       // Save analysis back to Supabase (UUID leads only)
       var _isUUID = leadId && /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(String(leadId));
       if (_isUUID) {
-        // נקה שדות שSB לא מכיר לפני update
+        // נקה שדות לא חוקיים לפני Supabase update
         var _leadUpdate = Object.assign({}, lead);
-        delete _leadUpdate.type;
-        delete _leadUpdate._nextId;
-        delete _leadUpdate.enrichment_raw;
+        var _badFields = ['type','_nextId','enrichment_raw','days_to_close','url'];
+        _badFields.forEach(function(f){ delete _leadUpdate[f]; });
         window._sb.update('leads','id=eq.'+leadId,_leadUpdate).catch(function(e){console.warn('[AI Supabase]',e);});
       } else {
         console.warn('[AI] Skipping save - non-UUID lead ID:', leadId);
