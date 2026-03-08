@@ -791,14 +791,18 @@ input::placeholder, textarea::placeholder { color: var(--t3); }
 /* Result cards */
 .hunt-step-panel { animation: _fadeIn 0.2s ease; }
 .andy-rec-card {
-  background: rgba(167,139,250,0.05);
-  border: 1px solid rgba(167,139,250,0.15);
+  background: rgba(167,139,250,0.06);
+  border: 1px solid rgba(167,139,250,0.18);
   border-radius: 10px;
-  padding: 12px;
+  padding: 12px 14px;
   cursor: pointer;
-  transition: border-color 0.15s;
+  transition: border-color 0.15s, background 0.15s;
+  user-select: none;
 }
-.andy-rec-card:hover { border-color: rgba(167,139,250,0.4); }
+.andy-rec-card:hover {
+  border-color: rgba(167,139,250,0.45);
+  background: rgba(167,139,250,0.1);
+}
 .hunt-result-card {
   background: rgba(255,255,255,0.025);
   border: 1px solid rgba(255,255,255,0.08);
@@ -11688,21 +11692,18 @@ window._loadAndyRecs = async function() {
     rows.slice(0,3).forEach(function(row) {
       var wr = Math.round(row.win_rate || 0);
       var c  = wrColor(wr);
+      var lbl = wr>=70?'🔥 חם':wr>=50?'✅ טוב':'📈 מתפתח';
       var seg = (row.segment||'').replace(/"/g,'&quot;');
       var geo = (row.geo||'ארצי').replace(/"/g,'&quot;');
       html += '<div class="andy-rec-card" data-seg="'+seg+'" data-geo="'+geo+'">';
-      html += '<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:6px">';
-      html += '<span style="font-size:12px;font-weight:700;color:var(--t1)">'+(row.segment||'')+'</span>';
-      html += '<span style="font-size:9px;font-weight:700;color:'+c+';background:'+c+'18;border-radius:10px;padding:2px 7px">'+(wr>=70?'🔥 חם':wr>=50?'✅ טוב':'📈 מתפתח')+'</span>';
-      html += '</div>';
-      html += '<div style="height:3px;background:rgba(255,255,255,0.06);border-radius:2px;margin-bottom:7px;overflow:hidden">';
+      html += '<div style="font-size:13px;font-weight:700;color:var(--t1);margin-bottom:8px">'+(row.segment||'')+'</div>';
+      html += '<div style="height:3px;background:rgba(255,255,255,0.06);border-radius:2px;margin-bottom:8px;overflow:hidden">';
       html += '<div style="height:100%;width:'+wr+'%;background:'+c+';border-radius:2px;transition:width 0.6s ease"></div></div>';
-      html += '<div style="display:flex;justify-content:space-between;font-size:10px;color:var(--t3)">';
-      html += '<span>win rate <strong style="color:'+c+'">'+wr+'%</strong></span>';
-      html += '<span>'+(row.leads_won||0)+'/'+(row.leads_added||0)+' לידים</span>';
+      html += '<div style="display:flex;justify-content:space-between;align-items:center">';
+      html += '<span style="font-size:10px;color:var(--t3)">win <strong style="color:'+c+'">'+wr+'%</strong> · '+(row.leads_won||0)+'/'+(row.leads_added||0)+'</span>';
+      html += '<span style="font-size:9px;font-weight:700;color:'+c+';background:'+c+'18;border-radius:8px;padding:2px 6px">'+lbl+'</span>';
       html += '</div>';
-      if (row.platform) html += '<div style="font-size:10px;color:rgba(167,139,250,0.7);margin-top:5px">📍 '+(row.geo||'')+' · '+row.platform+'</div>';
-      html += '<div style="margin-top:8px;font-size:10px;font-weight:700;color:#a78bfa;text-align:center">Hunt עכשיו →</div>';
+      html += '<div style="margin-top:8px;font-size:10px;font-weight:700;color:#a78bfa;text-align:center;border-top:1px solid rgba(167,139,250,0.1);padding-top:7px">Hunt עכשיו →</div>';
       html += '</div>';
     });
     container.innerHTML = html;
