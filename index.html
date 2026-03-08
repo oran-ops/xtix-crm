@@ -1800,6 +1800,7 @@ document.addEventListener("DOMContentLoaded",function(){
     <button class="mn-btn"        onclick="methTab('emails')"      data-tab="emails">📧 Email Cadence</button>
     <button class="mn-btn"        onclick="methTab('objections')"  data-tab="objections">🛡 התנגדויות</button>
     <button class="mn-btn"        onclick="methTab('kpis')"        data-tab="kpis">📊 KPIs</button>
+    <button class="mn-btn"        onclick="methTab('intel')"       data-tab="intel" id="mn-intel">🕵️ Intel מתחרים</button>
   </div>
 
   <!-- ══════════════ TAB: OVERVIEW — מפת השוק ══════════════ -->
@@ -2183,10 +2184,13 @@ document.addEventListener("DOMContentLoaded",function(){
           <div class="tier-card-action">פנייה מיידית</div>
           <div class="tier-card-cadence">Cadence: 4 מיילים + שיחה</div>
           <div class="tier-card-profile">
-            <div>✓ Smarticket/Leaan</div>
+            <div>✓ <span style="color:#ef4444">Eventim/SmarTicket/Leaan</span> (steal 85–95%)</div>
             <div>✓ >5K קהל שנתי</div>
             <div>✓ אתר + 10K followers</div>
             <div>✓ מוציא >₪50K עמלות</div>
+          </div>
+          <div style="margin-top:8px;padding-top:8px;border-top:1px solid rgba(52,211,153,0.2);font-size:10px;color:rgba(52,211,153,0.8)">
+            🎯 platform score: עד +30 נק׳ לפי steal %
           </div>
         </div>
         <div class="tier-card tier-b">
@@ -2681,6 +2685,65 @@ document.addEventListener("DOMContentLoaded",function(){
     </div>
   </div><!-- /meth-kpis -->
 
+
+  <!-- ══════════════ TAB: COMPETITOR INTEL ══════════════ -->
+  <div class="meth-section" id="meth-intel">
+
+    <div class="meth-page-title">🕵️ Intel מתחרים — מי עובד עם מי</div>
+
+    <!-- Live Stats Bar -->
+    <div id="intel-stats-bar" style="display:grid;grid-template-columns:repeat(4,1fr);gap:10px;margin-bottom:20px">
+      <div class="card" style="text-align:center;padding:14px">
+        <div id="intel-total" style="font-size:28px;font-weight:800;color:var(--t1)">—</div>
+        <div style="font-size:10px;color:var(--t3);margin-top:2px">לידים עם מתחרה ידוע</div>
+      </div>
+      <div class="card" style="text-align:center;padding:14px">
+        <div id="intel-top-comp" style="font-size:20px;font-weight:800;color:#ef4444">—</div>
+        <div style="font-size:10px;color:var(--t3);margin-top:2px">מתחרה דומיננטי</div>
+      </div>
+      <div class="card" style="text-align:center;padding:14px">
+        <div id="intel-avg-steal" style="font-size:28px;font-weight:800;color:#10b981">—%</div>
+        <div style="font-size:10px;color:var(--t3);margin-top:2px">ממוצע "קל לגזול"</div>
+      </div>
+      <div class="card" style="text-align:center;padding:14px">
+        <div id="intel-hot-count" style="font-size:28px;font-weight:800;color:#f59e0b">—</div>
+        <div style="font-size:10px;color:var(--t3);margin-top:2px">לידים חמים (steal≥75%)</div>
+      </div>
+    </div>
+
+    <!-- Competitor Breakdown -->
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:14px;margin-bottom:20px">
+
+      <!-- Pie / Bar chart -->
+      <div class="card" style="padding:16px">
+        <div style="font-size:11px;font-weight:700;color:var(--t3);letter-spacing:1px;text-transform:uppercase;margin-bottom:12px">התפלגות לפי מתחרה</div>
+        <div id="intel-breakdown-bars" style="display:flex;flex-direction:column;gap:7px"></div>
+      </div>
+
+      <!-- Steal Score Table -->
+      <div class="card" style="padding:16px">
+        <div style="font-size:11px;font-weight:700;color:var(--t3);letter-spacing:1px;text-transform:uppercase;margin-bottom:12px">טבלת steal scores</div>
+        <div id="intel-steal-table" style="display:flex;flex-direction:column;gap:5px"></div>
+      </div>
+    </div>
+
+    <!-- Lead List by Competitor -->
+    <div class="card" style="padding:16px">
+      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:12px">
+        <div style="font-size:11px;font-weight:700;color:var(--t3);letter-spacing:1px;text-transform:uppercase">לידים לפי מתחרה</div>
+        <div style="display:flex;gap:6px;flex-wrap:wrap" id="intel-filter-btns">
+          <button onclick="window._intelFilter('all')" id="ifb-all"
+            style="background:var(--accent);color:#fff;border:none;border-radius:6px;padding:4px 12px;font-size:10px;font-weight:700;cursor:pointer">הכל</button>
+        </div>
+      </div>
+      <div id="intel-leads-list" style="display:flex;flex-direction:column;gap:6px;max-height:400px;overflow-y:auto"></div>
+    </div>
+
+    <!-- Hunt by Competitor CTA -->
+    <div id="intel-hunt-cta" style="margin-top:14px;display:grid;grid-template-columns:repeat(auto-fill,minmax(200px,1fr));gap:10px"></div>
+
+  </div><!-- /meth-intel -->
+
 </div><!-- /tab-market -->
 
 
@@ -2819,14 +2882,19 @@ document.addEventListener("DOMContentLoaded",function(){
                 </div>
               </div>
 
-              <!-- Q2 -->
+              <!-- Q2 — Competitor-aware -->
               <div style="background:var(--surface2);border-radius:9px;padding:12px 14px">
-                <div style="font-size:12px;font-weight:700;margin-bottom:8px">2. הכרטיסים נמכרים דרך <strong style="color:var(--accent)">פלטפורמה חיצונית</strong>? <span style="color:var(--accent2);font-size:10px">+15 נק׳</span></div>
-                <div style="display:flex;gap:8px;flex-wrap:wrap">
-                  <label style="display:flex;align-items:center;gap:6px;cursor:pointer;font-size:12px"><input type="radio" name="q_platform" value="2" onchange="runScorer()" style="accent-color:var(--accent)"> כן — Smarticket/Bravo/Leaan</label>
-                  <label style="display:flex;align-items:center;gap:6px;cursor:pointer;font-size:12px"><input type="radio" name="q_platform" value="1" onchange="runScorer()" style="accent-color:var(--accent)"> כן — מתחרה אחר</label>
-                  <label style="display:flex;align-items:center;gap:6px;cursor:pointer;font-size:12px"><input type="radio" name="q_platform" value="0" onchange="runScorer()" style="accent-color:var(--accent)"> מוכרים מהאתר / ידני</label>
+                <div style="font-size:12px;font-weight:700;margin-bottom:8px">2. הכרטיסים נמכרים דרך <strong style="color:var(--accent)">פלטפורמה חיצונית</strong>? <span style="color:var(--accent2);font-size:10px">עד +30 נק׳</span></div>
+                <div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:8px">
+                  <label style="display:flex;align-items:center;gap:6px;cursor:pointer;font-size:12px"><input type="radio" name="q_platform" value="2" onchange="runScorer()" style="accent-color:var(--accent)"> כן — פלטפורמה ידועה</label>
+                  <label style="display:flex;align-items:center;gap:6px;cursor:pointer;font-size:12px"><input type="radio" name="q_platform" value="1" onchange="runScorer()" style="accent-color:var(--accent)"> כן — לא ידוע</label>
+                  <label style="display:flex;align-items:center;gap:6px;cursor:pointer;font-size:12px"><input type="radio" name="q_platform" value="0" onchange="runScorer()" style="accent-color:var(--accent)"> ידני / אין</label>
                 </div>
+                <!-- Competitor picker — מוצג רק כשvalue=2 -->
+                <div id="q2-comp-picker" style="display:none;flex-wrap:wrap;gap:6px;margin-top:6px;padding-top:8px;border-top:1px solid rgba(255,255,255,0.06)">
+                  <div style="font-size:10px;color:var(--t3);width:100%;margin-bottom:4px">בחר מתחרה ספציפי לציון מדויק:</div>
+                </div>
+                <div id="q2-steal-preview" style="display:none;margin-top:8px;font-size:11px;border-radius:7px;padding:7px 10px"></div>
               </div>
 
               <!-- Q3 -->
@@ -3953,8 +4021,14 @@ BP18: Nurture existing customers — repeat customers spend 67% more
 
     var statusDot = {new:'#34d399',contacted:'#60a5fa',followup:'#fbbf24',meeting:'#a78bfa',negotiation:'#818cf8',won:'#10b981',lost:'#ef4444',ghosted:'#6b7280',not_relevant:'#374151',future_potential:'#f59e0b',referred_us:'#fbbf24'}[lead.status||'new']||'#34d399';
 
-    var platformTag = (lead.platform||enr.platform_current)
-      ? '<span class="_lbar-tag">'+(lead.platform||enr.platform_current).replace(/[<>]/g,'')+'</span>' : '';
+    var _plat = (lead.platform||enr.platform_current||'').replace(/[<>]/g,'');
+    var _comp = window._getCompData ? window._getCompData(_plat) : null;
+    var platformTag = _plat
+      ? '<span class="_lbar-tag comp-tag" style="background:'+(_comp?_comp.bg:'rgba(107,114,128,0.12)')+';color:'+(_comp?_comp.color:'#9ca3af')+';border-color:'+(_comp?_comp.color+'55':'rgba(107,114,128,0.3)')+'">'+_plat+'</span>'
+      : '';
+    var stealTag = (_plat && _comp && _comp.steal >= 50)
+      ? '<span class="_lbar-tag" style="background:rgba(16,185,129,0.1);color:#10b981;border-color:rgba(16,185,129,0.25);font-size:9px">🎯 '+_comp.steal+'% לגזול</span>'
+      : '';
 
     var aiChip = aiSt==='done'
       ? '<button class="_lbar-ai-done" onclick="event.stopPropagation();window.showAnalysisChoice(\''+lead.id+'\')" title="נתח מחדש">Analyzed</button>'
@@ -3985,6 +4059,7 @@ BP18: Nurture existing customers — repeat customers spend 67% more
       +'</div></div>'
       +'<div class="lead-badges">'
       +platformTag
+      +stealTag
       +aiChip
       +'<div class="_lbar-status" onclick="event.stopPropagation()">'
       +'<span class="_lbar-sdot" style="background:'+statusDot+';box-shadow:0 0 6px '+statusDot+'"></span>'
@@ -4035,8 +4110,13 @@ BP18: Nurture existing customers — repeat customers spend 67% more
   // שדות enrichment (read-only)
   var enrichFields=[
     ['קהל יעד',       e.target_audience||a.target_audience],
+    ['מתחרה נוכחי',   lead.competitor || e.platform_current||a.platform_current],
+    ['עמלה נוכחית',   lead.competitor_fee_pct ? lead.competitor_fee_pct+'%' : null],
+    ['עלות שנתית',    lead.estimated_annual_fees ? '₪'+lead.estimated_annual_fees.toLocaleString() : null],
+    ['חיסכון ב-XTIX', lead.estimated_xtix_savings ? '₪'+lead.estimated_xtix_savings.toLocaleString()+'/שנה' : null],
+    ['Steal Score',   lead.steal_score ? lead.steal_score+'%' : null],
     ['מתחרים',        (e.competitors_used||a.competitors_used||[]).join(', ')],
-    ['אירועים/שנה',   e.events_per_year||a.events_per_year],
+    ['אירועים/שנה',   lead.events_per_year||e.events_per_year||a.events_per_year],
     ['גודל מקום',     e.venue_size||a.venue_size],
     ['מחירי כרטיסים', e.ticket_price_range||a.ticket_price_range],
     ['עמלות נוכחיות', e.estimated_annual_fees||a.estimated_annual_fees],
@@ -4724,9 +4804,17 @@ window._editLeadSave = function(lid){
     // Domain (0/10/20)
     if (q_domain === 2) score += 20;
     else if (q_domain === 1) score += 10;
-    // Platform (0/8/15)
-    if (q_platform === 2) score += 15;
-    else if (q_platform === 1) score += 8;
+    // Platform — competitor-aware (0/8/30)
+    var selectedComp = document.querySelector('#q2-comp-picker input:checked');
+    var compName = selectedComp ? selectedComp.value : '';
+    if (q_platform === 2) {
+      if (compName && window.XTIX_COMPETITORS && window.XTIX_COMPETITORS[compName]) {
+        // steal_score → platform points: steal/100 * 30
+        score += Math.round((window.XTIX_COMPETITORS[compName].steal / 100) * 30);
+      } else {
+        score += 15; // ברירת מחדל
+      }
+    } else if (q_platform === 1) score += 8;
     // Frequency (0/5/10/15)
     if (q_freq === 3) score += 15;
     else if (q_freq === 2) score += 10;
@@ -4758,6 +4846,44 @@ window._editLeadSave = function(lid){
     const barEl = document.getElementById('score-bar');
     const verdictEl = document.getElementById('score-verdict');
     if (!scoreEl) return;
+
+    // עדכן competitor picker visibility
+    var compPicker = document.getElementById('q2-comp-picker');
+    var stealPreview = document.getElementById('q2-steal-preview');
+    if (compPicker) {
+      if (q_platform === 2) {
+        compPicker.style.display = 'flex';
+        // בנה chips אם ריק
+        if (compPicker.querySelectorAll('input').length === 0) {
+          var C = window.XTIX_COMPETITORS || {};
+          Object.entries(C)
+            .filter(function(e){ return e[1].steal >= 50; })
+            .sort(function(a,b){ return b[1].steal - a[1].steal; })
+            .forEach(function(e) {
+              var name = e[0], cd = e[1];
+              var lbl = document.createElement('label');
+              lbl.style.cssText = 'display:flex;align-items:center;gap:5px;cursor:pointer;font-size:11px;font-weight:600;padding:3px 9px;border-radius:20px;border:1px solid '+cd.color+'44;color:'+cd.color+';background:'+cd.bg;
+              lbl.innerHTML = '<input type="radio" name="q_competitor" value="'+name+'" style="accent-color:'+cd.color+'"> '+name+' ('+cd.steal+'%)';
+              lbl.querySelector('input').addEventListener('change', function(){ runScorer(); });
+              compPicker.appendChild(lbl);
+            });
+        }
+      } else {
+        compPicker.style.display = 'none';
+        document.querySelectorAll('input[name="q_competitor"]').forEach(function(r){ r.checked = false; });
+        if (stealPreview) stealPreview.style.display = 'none';
+      }
+    }
+    // Steal preview
+    if (stealPreview && compName && window.XTIX_COMPETITORS && window.XTIX_COMPETITORS[compName]) {
+      var cd = window.XTIX_COMPETITORS[compName];
+      var pts = Math.round((cd.steal/100)*30);
+      stealPreview.style.display = 'block';
+      stealPreview.style.background = cd.bg;
+      stealPreview.style.color = cd.color;
+      stealPreview.style.border = '1px solid '+cd.color+'44';
+      stealPreview.innerHTML = '🎯 <strong>'+compName+'</strong> — steal score <strong>'+cd.steal+'%</strong> → <strong>+'+pts+' נק׳</strong> מפלטפורמה · חולשה: '+cd.weakness;
+    }
 
     scoreEl.textContent = score;
     barEl.style.width = score + '%';
@@ -4990,7 +5116,7 @@ ${proxyCtx}
 {
   "summary": "2 משפטים ספציפיים על הליד — מי הם ומה הם עושים",
   "segment": "קטגוריה (מוזיקה/תיאטרון/סטנד-אפ/ספורט/פסטיבל/קולנוע/אחר)",
-  "platform_current": "פלטפורמה נוכחית שזוהתה או לא ידוע",
+  "platform_current": "שם מתחרה מדויק שזוהה באתר — חפש: SmarTicket|Leaan|Bravo|Tickchak|COMY|Eventbuzz|Glatticket|Eventobot|Eventer|Mevalim|Easytix|Eventim — או 'ידני/אין' אם לא נמצא",
   "platform_weakness": "החולשה הספציפית של הפלטפורמה שלהם ביחס ל-XTIX",
   "estimated_annual_tickets": "הערכת כמות כרטיסים שנתית",
   "estimated_annual_fees": "הערכת עמלות שנתיות שמשלמים (₪)",
@@ -5365,9 +5491,31 @@ BP6-10: תעדף (פלטפורמה ישנה+דומיין+6+ אירועים), Dis
       notes:      rawLead.notes      || '',
       created_at: rawLead.created_at || new Date().toISOString(),
       updated_at: new Date().toISOString(),
-      enrichment: rawLead.enrichment || {},
-      ai_analysis: rawLead.ai_analysis || { status: 'none' }
+      enrichment:  rawLead.enrichment || {},
+      ai_analysis: rawLead.ai_analysis || { status: 'none' },
+      // ── Competitor Intelligence fields ──
+      competitor:             rawLead.competitor             || rawLead.platform_current || '',
+      competitor_fee_pct:     rawLead.competitor_fee_pct    || 0,
+      steal_score:            rawLead.steal_score           || (window._getStealScore ? window._getStealScore(rawLead.competitor || rawLead.platform_current || '') : 0),
+      estimated_annual_fees:  rawLead.estimated_annual_fees || 0,
+      estimated_xtix_savings: rawLead.estimated_xtix_savings|| 0,
+      events_per_year:        rawLead.events_per_year       || 0,
+      audience_size:          rawLead.audience_size         || 0,
+      hunt_query:             rawLead.hunt_query            || opts.huntQuery || '',
+      hunt_source_score:      rawLead.hunt_source_score     || parseInt(rawLead.score) || 0,
+      first_contact_at:       rawLead.first_contact_at      || null,
+      win_reason:             rawLead.win_reason            || '',
+      lost_reason:            rawLead.lost_reason           || ''
     }, rawLead);
+    // Ensure competitor syncs with platform
+    if (!lead.competitor && lead.platform) lead.competitor = lead.platform;
+    if (lead.competitor && !lead.competitor_fee_pct && window.XTIX_COMPETITORS) {
+      var _cd = window._getCompData ? window._getCompData(lead.competitor) : null;
+      if (_cd) {
+        lead.competitor_fee_pct = _cd.fee;
+        if (!lead.steal_score) lead.steal_score = _cd.steal;
+      }
+    }
 
     // De-duplicate by domain
     var domainKey = lead.domain || lead.email || lead.name;
@@ -5486,8 +5634,33 @@ BP6-10: תעדף (פלטפורמה ישנה+דומיין+6+ אירועים), Dis
       lead.ai_analysis = result;
       lead.score   = result.score   || lead.score   || 50;
       lead.tier    = result.tier    || lead.tier    || 'B';
-      lead.platform= result.platform_current || lead.platform || '';
-      lead.segment = result.segment || lead.type || lead.segment || '';
+      lead.platform  = result.platform_current || lead.platform || '';
+      lead.segment   = result.segment || lead.type || lead.segment || '';
+      // ── Competitor Intelligence — מחושב אוטומטי מניתוח AI ──
+      var _detectedComp = result.platform_current || lead.platform || '';
+      if (_detectedComp) {
+        lead.competitor = _detectedComp;
+        var _cd2 = window._getCompData ? window._getCompData(_detectedComp) : null;
+        if (_cd2) {
+          lead.competitor_fee_pct = _cd2.fee;
+          lead.steal_score        = _cd2.steal;
+        }
+      }
+      // estimated_annual_fees מה-AI result
+      if (result.estimated_annual_fees) {
+        var _feeStr = String(result.estimated_annual_fees).replace(/[₪,\s]/g,'');
+        lead.estimated_annual_fees  = parseInt(_feeStr) || 0;
+        var _xtixFee = lead.estimated_annual_fees * 0.025;
+        var _compFee = lead.estimated_annual_fees * ((lead.competitor_fee_pct||5) / 100);
+        lead.estimated_xtix_savings = Math.max(0, Math.round(_compFee - _xtixFee));
+      }
+      if (result.events_per_year)  lead.events_per_year = parseInt(result.events_per_year) || 0;
+      if (result.audience_size)    lead.audience_size   = parseInt(String(result.audience_size).replace(/[^0-9]/g,'')) || 0;
+      if (window._getStealScore)   lead.steal_score     = lead.steal_score || window._getStealScore(lead.platform);
+      // first_contact_at — סמן בפעם הראשונה שנוצר קשר
+      if (!lead.first_contact_at && lead.status && lead.status !== 'new') {
+        lead.first_contact_at = new Date().toISOString();
+      }
       lead.updated_at = new Date().toISOString();
       var idx = leads.findIndex(function(l){return l.id===leadId;});
       if (idx!==-1) leads[idx]=lead;
@@ -11340,11 +11513,74 @@ window._signalOnStatusChange = function(leadId, newStatus, lead) {
   };
   var sig = statusMap[newStatus];
   if (sig) window._signalRecord(leadId, sig, {
-    segment:  lead && lead.segment,
-    platform: lead && lead.platform,
-    score:    lead && lead.score,
-    tier:     lead && lead.tier
+    segment:    lead && lead.segment,
+    platform:   lead && lead.platform,
+    competitor: lead && lead.competitor,
+    steal_score:lead && lead.steal_score,
+    score:      lead && lead.score,
+    tier:       lead && lead.tier
   });
+
+  // ── Won/Lost: עדכן closed_at + first_contact_at + שמור learning_pattern ──
+  if (newStatus === 'won' || newStatus === 'lost' || newStatus === 'closed') {
+    var now = new Date().toISOString();
+    var updates = { closed_at: now, updated_at: now };
+    if (lead && !lead.first_contact_at) updates.first_contact_at = now;
+
+    // prompt לwin/lost reason
+    var _reason = '';
+    if (newStatus === 'won' || newStatus === 'closed') {
+      _reason = prompt('🎉 נסגר! מה היה הגורם המכריע? (לא חובה)') || '';
+      updates.win_reason = _reason;
+      updates.status = 'won';
+    } else {
+      _reason = prompt('❌ לא נסגר. מה הסיבה? (מחיר/תזמון/מתחרה/לא רלוונטי)') || '';
+      updates.lost_reason = _reason;
+    }
+
+    // עדכן ב-DB
+    if (window._sb && leadId) {
+      window._sb.update('leads', 'id=eq.'+leadId, updates).catch(function(){});
+    }
+    // עדכן in-memory
+    if (lead) Object.assign(lead, updates);
+
+    // שמור learning_pattern
+    if (window._sb && lead) {
+      var _lp = {
+        lead_id:            leadId,
+        outcome:            (newStatus==='won'||newStatus==='closed') ? 'closed' : 'lost',
+        ai_score:           lead.score || 0,
+        was_correct:        lead.score >= 70 && (newStatus==='won'||newStatus==='closed'),
+        segment:            lead.segment || lead.type || '',
+        platform:           lead.platform || '',
+        competitor:         lead.competitor || lead.platform || '',
+        competitor_fee_pct: lead.competitor_fee_pct || 0,
+        steal_score:        lead.steal_score || 0,
+        win_reason:         updates.win_reason  || '',
+        lost_reason:        updates.lost_reason || '',
+        has_domain:         !!(lead.domain),
+        has_email:          !!(lead.email),
+        has_phone:          !!(lead.phone),
+        cadence:            (lead.ai_analysis && lead.ai_analysis.recommended_cadence) || 'cool',
+        source:             lead.source || 'unknown',
+        events_per_year:    lead.events_per_year || 0,
+        audience_size:      lead.audience_size   || 0,
+        estimated_fees:     lead.estimated_annual_fees || 0,
+        hunt_source:        lead.hunt_query ? 'hunt' : lead.source || 'manual',
+        created_at:         now
+      };
+      window._sb.insert('learning_patterns', _lp).catch(function(){});
+      console.log('[Brain] 📚 Learning pattern saved:', _lp.competitor, _lp.outcome, 'steal:', _lp.steal_score);
+    }
+  }
+
+  // first_contact_at — סמן בפעם הראשונה שנוצר קשר
+  if (newStatus === 'contacted' && lead && !lead.first_contact_at) {
+    var _fc = new Date().toISOString();
+    if (window._sb) window._sb.update('leads','id=eq.'+leadId,{first_contact_at:_fc}).catch(function(){});
+    if (lead) lead.first_contact_at = _fc;
+  }
 };
 
 // ── סיגנל ניתוח AI הושלם ────────────────────────────────────────
@@ -11521,23 +11757,56 @@ window._brainBackgroundAnalysis = async function() {
     });
 
     // שלב 4 — בנה סיכום לClaude
+    // ── טען learning_patterns לנתוח תחרותי ──
+    var lpData = await window._sb.get('learning_patterns',
+      'order=created_at.desc&limit=100'
+    ).catch(function(){ return []; });
+    var lpByComp = {};
+    (lpData||[]).forEach(function(lp) {
+      var c = lp.competitor || lp.platform || 'unknown';
+      if (!lpByComp[c]) lpByComp[c] = { won:0, lost:0, steal_scores:[], days:[] };
+      if (lp.outcome==='closed') lpByComp[c].won++;
+      else lpByComp[c].lost++;
+      if (lp.steal_score) lpByComp[c].steal_scores.push(lp.steal_score);
+      if (lp.days_to_close) lpByComp[c].days.push(lp.days_to_close);
+    });
+    var competitorStats = {};
+    Object.keys(lpByComp).forEach(function(c) {
+      var d = lpByComp[c];
+      var total = d.won + d.lost;
+      competitorStats[c] = {
+        win_rate:      total ? Math.round((d.won/total)*100) : 0,
+        total:         total,
+        avg_steal:     d.steal_scores.length ? Math.round(d.steal_scores.reduce(function(a,b){return a+b;},0)/d.steal_scores.length) : 0,
+        avg_days:      d.days.length ? Math.round(d.days.reduce(function(a,b){return a+b;},0)/d.days.length) : 0
+      };
+    });
+
     var summary = {
-      total_signals: signals.length,
-      leads_tracked: Object.keys(byLead).length,
+      total_signals:    signals.length,
+      leads_tracked:    Object.keys(byLead).length,
+      learning_patterns: lpData ? lpData.length : 0,
+      competitor_stats: competitorStats,
       winners: winners.slice(0,5).map(function(w){ return {
-        segment:  w.lead.segment,
-        platform: w.lead.platform,
-        score:    w.lead.score,
-        tier:     w.lead.tier,
-        signals:  w.entry.signals.slice(0,10),
-        weight:   w.entry.total_weight
+        segment:     w.lead.segment,
+        platform:    w.lead.platform,
+        competitor:  w.lead.competitor,
+        steal_score: w.lead.steal_score,
+        score:       w.lead.score,
+        tier:        w.lead.tier,
+        win_reason:  w.lead.win_reason,
+        signals:     w.entry.signals.slice(0,10),
+        weight:      w.entry.total_weight
       };}),
       losers: losers.slice(0,5).map(function(w){ return {
-        segment:  w.lead.segment,
-        platform: w.lead.platform,
-        score:    w.lead.score,
-        signals:  w.entry.signals.slice(0,10),
-        weight:   w.entry.total_weight
+        segment:     w.lead.segment,
+        platform:    w.lead.platform,
+        competitor:  w.lead.competitor,
+        steal_score: w.lead.steal_score,
+        score:       w.lead.score,
+        lost_reason: w.lead.lost_reason,
+        signals:     w.entry.signals.slice(0,10),
+        weight:      w.entry.total_weight
       };}),
       signal_frequency: {},
       top_signals_winners: [],
@@ -11556,17 +11825,20 @@ window._brainBackgroundAnalysis = async function() {
       JSON.stringify(summary, null, 2),
       '',
       'נתח ומצא:',
-      '1. אילו patterns משותפים ללידים שנסגרו (winners)',
-      '2. אילו patterns משותפים ללידים שנכשלו (losers)',
-      '3. אילו סגמנטים/פלטפורמות הכי מבטיחים',
-      '4. המלצות ספציפיות לשיפור ה-Hunt',
-      '5. אזהרות — מה להימנע',
+      '1. patterns ב-winners vs losers (כולל מתחרה + steal_score)',
+      '2. איזה מתחרה הכי קל לגזול לפי win_rate האמיתי',
+      '3. אילו סגמנטים + מתחרים הכי מבטיחים ביחד',
+      '4. המלצות ספציפיות ל-Hunt — איזה מתחרה לתקוף עכשיו',
+      '5. אזהרות — מתחרים קשים / סגמנטים לא כדאיים',
       '',
       'החזר JSON בלבד: {',
       '  "patterns_winners": ["..."],',
       '  "patterns_losers": ["..."],',
       '  "top_segments": [{"segment":"","confidence":0.85,"reason":""}],',
       '  "top_platforms": [{"platform":"","confidence":0.8,"reason":""}],',
+      '  "competitor_win_rates": {"SmarTicket":72,"Tickchak":40},',
+      '  "best_competitor_to_attack": "שם המתחרה",',
+      '  "best_pitch_by_competitor": {"SmarTicket":"..."},',
       '  "hunt_recommendations": ["..."],',
       '  "warnings": ["..."],',
       '  "quality_score": 75,',
@@ -11600,6 +11872,22 @@ window._brainBackgroundAnalysis = async function() {
       signals_used:    signals.length,
       generated_at:    new Date().toISOString()
     }).catch(function(e){ console.warn('[Brain BG] log save failed:', e.message); });
+
+    // שמור competitor intelligence ב-brain_memory
+    var _bm_update = { competitor_win_rates: analysis.competitor_win_rates || competitorStats };
+    if (analysis.best_pitch_by_competitor) _bm_update.best_pitch_by_competitor = analysis.best_pitch_by_competitor;
+    await window._sb.insert('brain_memory', Object.assign({
+      snapshot_type: 'auto',
+      won_deals:  winners.length,
+      lost_deals: losers.length,
+      total_deals: winners.length + losers.length,
+      win_rate:   winners.length + losers.length > 0 ? Math.round((winners.length / (winners.length + losers.length)) * 100) : 0,
+      weights:    {},
+      segment_rates: {},
+      top_insights:    analysis.patterns_winners || [],
+      recommendations: analysis.hunt_recommendations || []
+    }, _bm_update)).catch(function(){});
+    console.log('[Brain BG] ✅ Competitor intel saved. Best target:', analysis.best_competitor_to_attack);
 
     // שלב 7 — עדכן hunt_learnings לפי המלצות Claude
     if (analysis.top_segments && analysis.top_segments.length) {
@@ -11898,6 +12186,242 @@ window.renderHuntHistory = function() {
   };
 })();
 
+
+// ══════════════════════════════════════════════════════════════
+// COMPETITOR INTELLIGENCE MAP — XTIX v1.0
+// ══════════════════════════════════════════════════════════════
+window.XTIX_COMPETITORS = {
+  'SmarTicket':  { fee: 6.0, steal: 90, type: 'premium',    color: '#ef4444', bg: 'rgba(239,68,68,0.12)',    weakness: 'יקר, ממשק ישן — לקוחות מתוסכלים' },
+  'Leaan':       { fee: 5.5, steal: 85, type: 'premium',    color: '#f97316', bg: 'rgba(249,115,22,0.12)',   weakness: 'יקר, תמיכה חלשה' },
+  'Bravo':       { fee: 5.0, steal: 75, type: 'mid',        color: '#f59e0b', bg: 'rgba(245,158,11,0.12)',   weakness: 'אין analytics' },
+  'Glatticket':  { fee: 4.5, steal: 70, type: 'mid',        color: '#ec4899', bg: 'rgba(236,72,153,0.12)',   weakness: 'אין BI' },
+  'Mevalim':     { fee: 5.0, steal: 70, type: 'mid',        color: '#84cc16', bg: 'rgba(132,204,22,0.12)',   weakness: 'ממוקד ספורט בלבד' },
+  'Eventbuzz':   { fee: 4.0, steal: 65, type: 'mid',        color: '#8b5cf6', bg: 'rgba(139,92,246,0.12)',   weakness: 'ממשק מסורבל' },
+  'Eventobot':   { fee: 4.0, steal: 60, type: 'mid',        color: '#10b981', bg: 'rgba(16,185,129,0.12)',   weakness: 'קטן, אין תמיכה' },
+  'Tickchak':    { fee: 3.5, steal: 55, type: 'budget',     color: '#3b82f6', bg: 'rgba(59,130,246,0.12)',   weakness: 'אין widget/embed' },
+  'COMY':        { fee: 3.0, steal: 50, type: 'budget',     color: '#6366f1', bg: 'rgba(99,102,241,0.12)',   weakness: 'בסיסי מאוד' },
+  'Eventer':     { fee: 3.5, steal: 50, type: 'budget',     color: '#06b6d4', bg: 'rgba(6,182,212,0.12)',    weakness: 'ישן, לא מתעדכן' },
+  'Easytix':     { fee: 3.0, steal: 45, type: 'budget',     color: '#a78bfa', bg: 'rgba(167,139,250,0.12)',  weakness: 'פשוט מאוד, אין features' },
+  'Eventim':     { fee: 8.0, steal: 95, type: 'enterprise', color: '#f43f5e', bg: 'rgba(244,63,94,0.12)',    weakness: 'יקר מאוד, rigid, לא גמיש' },
+  'ידני/אין':    { fee: 0,   steal: 30, type: 'none',       color: '#6b7280', bg: 'rgba(107,114,128,0.12)',  weakness: 'כאב גדול — צריך חינוך' },
+};
+
+// חזור על steal score של ליד לפי platform_current
+window._getStealScore = function(platform) {
+  if (!platform) return 30;
+  var p = platform.trim();
+  if (window.XTIX_COMPETITORS[p]) return window.XTIX_COMPETITORS[p].steal;
+  // partial match
+  var keys = Object.keys(window.XTIX_COMPETITORS);
+  for (var i = 0; i < keys.length; i++) {
+    if (p.toLowerCase().includes(keys[i].toLowerCase()) ||
+        keys[i].toLowerCase().includes(p.toLowerCase())) {
+      return window.XTIX_COMPETITORS[keys[i]].steal;
+    }
+  }
+  return 40; // unknown competitor
+};
+
+window._getCompData = function(platform) {
+  if (!platform) return window.XTIX_COMPETITORS['ידני/אין'];
+  var p = platform.trim();
+  if (window.XTIX_COMPETITORS[p]) return window.XTIX_COMPETITORS[p];
+  var keys = Object.keys(window.XTIX_COMPETITORS);
+  for (var i = 0; i < keys.length; i++) {
+    if (p.toLowerCase().includes(keys[i].toLowerCase()) ||
+        keys[i].toLowerCase().includes(p.toLowerCase())) {
+      return window.XTIX_COMPETITORS[keys[i]];
+    }
+  }
+  return { fee: 4, steal: 40, color: '#6b7280', bg: 'rgba(107,114,128,0.12)', weakness: 'מתחרה לא ידוע' };
+};
+
+
+// ══════════════════════════════════════════════════════════════
+// COMPETITOR INTEL DASHBOARD
+// ══════════════════════════════════════════════════════════════
+
+window._intelCurrentFilter = 'all';
+
+window._loadIntelDashboard = async function() {
+  if (!window._sb) return;
+  try {
+    // טען כל הלידים עם platform
+    var leads = await window._sb.get('leads', 'select=id,name,platform,score,status,segment&order=score.desc&limit=500');
+    if (!leads || !leads.length) return;
+
+    var withPlatform = leads.filter(function(l){ return l.platform && l.platform.trim(); });
+    var C = window.XTIX_COMPETITORS || {};
+
+    // ── ספירה per מתחרה ──
+    var counts = {};
+    withPlatform.forEach(function(l) {
+      var p = (l.platform||'').trim();
+      // normalize
+      var key = p;
+      Object.keys(C).forEach(function(k) {
+        if (p.toLowerCase().includes(k.toLowerCase())) key = k;
+      });
+      counts[key] = (counts[key]||0) + 1;
+    });
+
+    var sorted = Object.entries(counts).sort(function(a,b){ return b[1]-a[1]; });
+    var total  = withPlatform.length;
+    var topComp = sorted[0] ? sorted[0][0] : '—';
+
+    // steal scores
+    var avgSteal = 0, hotCount = 0;
+    withPlatform.forEach(function(l) {
+      var s = window._getStealScore(l.platform);
+      avgSteal += s;
+      if (s >= 75) hotCount++;
+    });
+    avgSteal = total ? Math.round(avgSteal / total) : 0;
+
+    // ── עדכן stats bar ──
+    var el = function(id){ return document.getElementById(id); };
+    if (el('intel-total'))    el('intel-total').textContent    = total;
+    if (el('intel-top-comp')) { el('intel-top-comp').textContent = topComp; var cd = window._getCompData(topComp); if(cd) el('intel-top-comp').style.color = cd.color; }
+    if (el('intel-avg-steal')) el('intel-avg-steal').textContent = avgSteal + '%';
+    if (el('intel-hot-count')) el('intel-hot-count').textContent = hotCount;
+
+    // ── breakdown bars ──
+    var barsEl = el('intel-breakdown-bars');
+    if (barsEl) {
+      var bHtml = '';
+      sorted.slice(0,8).forEach(function(entry) {
+        var name = entry[0], cnt = entry[1];
+        var pct  = Math.round((cnt/total)*100);
+        var cd   = window._getCompData(name);
+        var steal = cd ? cd.steal : 40;
+        bHtml += '<div>';
+        bHtml += '<div style="display:flex;justify-content:space-between;font-size:10px;margin-bottom:3px">';
+        bHtml += '<span style="color:var(--t1);font-weight:600">'+name+'</span>';
+        bHtml += '<span style="color:var(--t3)">'+cnt+' לידים · steal '+steal+'%</span></div>';
+        bHtml += '<div style="height:6px;background:rgba(255,255,255,0.06);border-radius:3px;overflow:hidden">';
+        bHtml += '<div style="height:100%;width:'+pct+'%;background:'+(cd?cd.color:'#6b7280')+';border-radius:3px;transition:width 0.5s ease"></div>';
+        bHtml += '</div></div>';
+      });
+      barsEl.innerHTML = bHtml || '<div style="color:var(--t3);font-size:11px">אין נתונים עדיין</div>';
+    }
+
+    // ── steal table ──
+    var stealEl = el('intel-steal-table');
+    if (stealEl) {
+      var sHtml = '';
+      Object.entries(C).sort(function(a,b){ return b[1].steal - a[1].steal; }).slice(0,10).forEach(function(entry) {
+        var name = entry[0], cd = entry[1];
+        var cnt  = counts[name] || 0;
+        var bar  = Math.round(cd.steal/10);
+        sHtml += '<div style="display:flex;align-items:center;gap:8px;padding:4px 0;border-bottom:1px solid rgba(255,255,255,0.04)">';
+        sHtml += '<span style="width:90px;font-size:10px;color:'+cd.color+';font-weight:600">'+name+'</span>';
+        sHtml += '<div style="flex:1;height:4px;background:rgba(255,255,255,0.06);border-radius:2px;overflow:hidden">';
+        sHtml += '<div style="height:100%;width:'+cd.steal+'%;background:'+cd.color+';border-radius:2px"></div></div>';
+        sHtml += '<span style="font-size:9px;font-weight:700;color:'+cd.color+';width:28px;text-align:right">'+cd.steal+'%</span>';
+        sHtml += '<span style="font-size:9px;color:var(--t3);width:30px;text-align:right">'+( cnt?cnt+' 📋':''  )+'</span>';
+        sHtml += '</div>';
+      });
+      stealEl.innerHTML = sHtml;
+    }
+
+    // ── filter buttons ──
+    var filterEl = el('intel-filter-btns');
+    if (filterEl) {
+      filterEl.innerHTML = '';
+      var allBtn = document.createElement('button');
+      allBtn.textContent = 'הכל ('+total+')';
+      allBtn.style.cssText = 'background:var(--accent);color:#fff;border:none;border-radius:6px;padding:4px 12px;font-size:10px;font-weight:700;cursor:pointer';
+      allBtn.addEventListener('click', function(){ window._intelFilter('all'); });
+      filterEl.appendChild(allBtn);
+      sorted.slice(0,6).forEach(function(entry) {
+        var name = entry[0], cnt = entry[1];
+        var cd = window._getCompData(name);
+        var btn = document.createElement('button');
+        btn.textContent = name + ' (' + cnt + ')';
+        btn.style.cssText = 'background:'+(cd?cd.bg:'rgba(107,114,128,0.1)')+';color:'+(cd?cd.color:'#9ca3af')+';border:1px solid '+(cd?cd.color+'44':'rgba(107,114,128,0.3)')+';border-radius:6px;padding:4px 12px;font-size:10px;font-weight:600;cursor:pointer';
+        btn.addEventListener('click', (function(n){ return function(){ window._intelFilter(n); }; })(name));
+        filterEl.appendChild(btn);
+      });
+    }
+    // ── store leads for filter ──
+    window._intelAllLeads = withPlatform;
+    window._intelFilter('all');
+
+    // ── Hunt CTA cards ──
+    var ctaEl = el('intel-hunt-cta');
+    if (ctaEl) {
+      ctaEl.innerHTML = '';
+      sorted.slice(0,4).forEach(function(entry) {
+        var name = entry[0];
+        var cd = window._getCompData(name);
+        if (!cd || cd.steal < 50) return;
+        var card = document.createElement('div');
+        card.style.cssText = 'background:'+cd.bg+';border:1px solid '+cd.color+'33;border-radius:10px;padding:14px;cursor:pointer';
+        card.innerHTML = '<div style="font-size:12px;font-weight:700;color:'+cd.color+';margin-bottom:4px">🎯 Hunt לקוחות '+name+'</div>'
+          +'<div style="font-size:10px;color:var(--t3);margin-bottom:8px">steal score: '+cd.steal+'% · עמלה: '+cd.fee+'%</div>'
+          +'<div style="font-size:10px;color:var(--t2)">'+cd.weakness+'</div>'
+          +'<div style="margin-top:10px;font-size:10px;font-weight:700;color:'+cd.color+';text-align:center;border-top:1px solid '+cd.color+'22;padding-top:8px">Hunt עכשיו →</div>';
+        card.addEventListener('click', (function(n){ return function(){ window._huntFromCompetitor(n); }; })(name));
+        ctaEl.appendChild(card);
+      });
+    }
+
+  } catch(e) {
+    console.error('[Intel] שגיאה:', e.message);
+  }
+};
+
+window._intelFilter = function(comp) {
+  window._intelCurrentFilter = comp;
+  var listEl = document.getElementById('intel-leads-list');
+  if (!listEl || !window._intelAllLeads) return;
+  var leads = window._intelAllLeads;
+  if (comp !== 'all') leads = leads.filter(function(l){ return (l.platform||'').toLowerCase().includes(comp.toLowerCase()); });
+  if (!leads.length) { listEl.innerHTML = '<div style="color:var(--t3);font-size:11px;padding:10px">אין לידים עבור '+comp+'</div>'; return; }
+  var html = '';
+  leads.slice(0,50).forEach(function(l) {
+    var steal = window._getStealScore(l.platform);
+    var cd    = window._getCompData(l.platform);
+    var sc    = l.score || 0;
+    var scC   = sc>=80?'#10b981':sc>=60?'#3b82f6':'#f59e0b';
+    html += '<div style="display:grid;grid-template-columns:36px 1fr auto auto;gap:10px;align-items:center;padding:8px 10px;background:var(--surface2);border-radius:8px;border:1px solid var(--border)">';
+    html += '<div style="text-align:center;font-size:14px;font-weight:800;color:'+scC+'">'+sc+'</div>';
+    html += '<div>';
+    html += '<div style="font-size:12px;font-weight:700;color:var(--t1)">'+( l.name||'')+'</div>';
+    html += '<div style="font-size:10px;color:var(--t3)">'+( l.segment||'—')+'</div>';
+    html += '</div>';
+    html += '<span style="font-size:10px;font-weight:700;color:'+(cd?cd.color:'#9ca3af')+';background:'+(cd?cd.bg:'rgba(107,114,128,0.1)')+';border-radius:5px;padding:2px 7px">'+(l.platform||'')+'</span>';
+    html += '<span style="font-size:10px;font-weight:700;color:#10b981;background:rgba(16,185,129,0.1);border-radius:5px;padding:2px 7px">🎯 '+steal+'%</span>';
+    html += '</div>';
+  });
+  listEl.innerHTML = html;
+};
+
+// Hunt מתוך Intel — קופץ ל-Hunt tab עם המתחרה בפרמטרים
+window._huntFromCompetitor = function(compName) {
+  // עבור ל-Lead Finder → Hunt tab
+  var lf = document.querySelector('[onclick*="leadfinder"]') || document.querySelector('[data-panel="leadfinder"]');
+  if (lf) lf.click();
+  setTimeout(function() {
+    if (typeof window.setLeadMode === 'function') window.setLeadMode('hunt');
+    setTimeout(function() {
+      // סמן את המתחרה ברשימת המתחרים
+      document.querySelectorAll('#hunt-competitors input[type=checkbox]').forEach(function(cb) {
+        if (cb.value === compName) { cb.checked = true; if(cb.closest('.hunt-chip')) cb.closest('.hunt-chip').style.borderColor = '#a78bfa'; }
+      });
+      if (typeof showToast === 'function') showToast('🎯 Hunt לקוחות '+compName+' — בחר שוק ולחץ הפעל', 'info');
+    }, 200);
+  }, 100);
+};
+
+// טען Intel בפתיחת הטאב
+(function() {
+  var origMethTab = window.methTab;
+  window.methTab = function(tab) {
+    if (typeof origMethTab === 'function') origMethTab(tab);
+    if (tab === 'intel') setTimeout(window._loadIntelDashboard, 150);
+  };
+})();
 // ── חשוף API נקי ───────────────────────────────────────────────
 window._signals = {
   record:        window._signalRecord,
