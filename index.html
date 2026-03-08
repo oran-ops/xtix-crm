@@ -11664,11 +11664,15 @@ window._loadAndyRecs = async function() {
   if (!window._sb) return;
   try {
     var rows = await window._sb.get('hunt_learnings',
-      'order=win_rate.desc&limit=6&leads_added=gte.2');
+      'order=win_rate.desc&limit=6');
     if (!rows || !rows.length) {
-      container.style.display = 'none';
-      if (emptyEl) emptyEl.style.display = 'block';
-      return;
+      // Fallback: default segments עד שהמוח ילמד
+      var defaults = [
+        { segment: 'תיאטרון', geo: 'תל אביב והמרכז', win_rate: 0, leads_won: 0, leads_added: 0, platform: '' },
+        { segment: 'סטנד-אפ', geo: 'ארצי', win_rate: 0, leads_won: 0, leads_added: 0, platform: '' },
+        { segment: 'מוזיקה',  geo: 'ארצי', win_rate: 0, leads_won: 0, leads_added: 0, platform: '' }
+      ];
+      rows = defaults;
     }
     // צבע לפי win_rate
     function wrColor(r){ return r>=70?'#10b981':r>=50?'#3b82f6':'#f59e0b'; }
