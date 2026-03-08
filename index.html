@@ -3795,29 +3795,29 @@ BP18: Nurture existing customers — repeat customers spend 67% more
       const results = { competitors:0, cadences:0, methodology:0, emails:0, config:false };
 
       // 1. Competitors
-      const compRows = await window._sb.get('competitors');
-      if (force || !compRows.length) {
+      const compRows = await window._sb.get('competitors').catch(()=>[]);
+      if (force || !(compRows||[]).length) {
         for (const c of SEED_COMPETITORS) { await window._sb.insert('competitors', c).catch(()=>{}); }
         results.competitors = SEED_COMPETITORS.length;
       }
 
       // 2. Email Cadences
-      const cadRows = await window._sb.get('email_cadences');
-      if (force || !cadRows.length) {
+      const cadRows = await window._sb.get('email_cadences').catch(()=>[]);
+      if (force || !(cadRows||[]).length) {
         for (const c of SEED_CADENCES) { await window._sb.insert('email_cadences', c).catch(()=>{}); }
         results.cadences = SEED_CADENCES.length;
       }
 
       // 3. Methodology
-      const methRows = await window._sb.get('methodology');
-      if (force || !methRows.length) {
+      const methRows = await window._sb.get('methodology').catch(()=>[]);
+      if (force || !(methRows||[]).length) {
         for (const m of SEED_METHODOLOGY) { await window._sb.insert('methodology', m).catch(()=>{}); }
         results.methodology = SEED_METHODOLOGY.length;
       }
 
       // 4. Email Templates
-      const emailRows = await window._sb.get('email_templates');
-      if (force || !emailRows.length) {
+      const emailRows = await window._sb.get('email_templates').catch(()=>[]);
+      if (force || !(emailRows||[]).length) {
         for (const e of SEED_EMAIL_TEMPLATES) { await window._sb.insert('email_templates', e).catch(()=>{}); }
         results.emails = SEED_EMAIL_TEMPLATES.length;
       }
@@ -3826,8 +3826,8 @@ BP18: Nurture existing customers — repeat customers spend 67% more
       results.config = true;
 
       // 6. Leads (always seed if empty)
-      const leadsRows = await window._sb.get('leads', 'limit=1');
-      if (!leadsRows.length) {
+      const leadsRows = await window._sb.get('leads', 'limit=1').catch(()=>[]);
+      if (!(leadsRows||[]).length) {
         for (const l of DEFAULT_LEADS) { await window._sb.insert('leads', l).catch(()=>{}); }
       }
 
@@ -4161,7 +4161,7 @@ BP18: Nurture existing customers — repeat customers spend 67% more
   // מצב עריכה: inputs
   var editGrid = directFields.map(function(f){
     var inp = f.type==='textarea'
-      ? '<textarea id="ledit-'+f.k+'-'+lid+'" style="'+IS+';resize:vertical;min-height:60px">'+f.val+'</textarea>'
+      ? '<textarea id="ledit-'+f.k+'-'+lid+'" style="'+IS+';resize:vertical;min-height:60px">'+f.val.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;')+'</textarea>'
       : '<input type="text" id="ledit-'+f.k+'-'+lid+'" value="'+f.val.replace(/"/g,'&quot;')+'" style="'+IS+'">';
     return '<div class="info-box"><label>'+f.label+'</label>'+inp+'</div>';
   }).join('');
@@ -4282,8 +4282,7 @@ window._editLeadSave = function(lid){
     var el=document.getElementById('ledit-'+k+'-'+lid);
     if(el){ lead[k]=el.value; updates[k]=el.value; }
   });
-  if(typeof db!=='undefined'&&db){
-    if(status) status.textContent='שומר...';
+  if(status) status.textContent='שומר...';
     window._sb.update('leads','id=eq.'+lid,updates)
       .then(function(){
         if(status){status.textContent='✅ נשמר';setTimeout(function(){status.textContent='';},2000);}
@@ -4302,11 +4301,6 @@ window._editLeadSave = function(lid){
         if(status) status.textContent='❌ שגיאה';
         console.error('Save lead error:',err);
       });
-  } else {
-    // ללא Firebase - שמור locally
-    if(status){status.textContent='✅ נשמר (local)';setTimeout(function(){status.textContent='';},2000);}
-    window._editLeadCancel(lid);
-  }
 };
 
   function _ltab_analysis(lead,ai,enr){var a=ai||{},e=enr||{};if(!a.status||a.status==='none')return '<div style="padding:32px;text-align:center"><div style="font-size:40px;margin-bottom:12px">🧠</div><div style="font-size:13px;color:var(--text2);margin-bottom:16px">אין ניתוח עדיין</div><div style=\"font-size:11px;color:rgba(196,196,204,0.5);margin-top:4px\">לחץ Analyze בשורת הליד</div></div>';if(a.status==='running')return '<div style="padding:32px;text-align:center"><div style="font-size:36px;margin-bottom:12px;animation:_aip 1.2s ease-in-out infinite">'+
@@ -4474,7 +4468,7 @@ window._editLeadSave = function(lid){
 
   window.copyLeadEmail = function(leadId,idx){var l=leads.find(function(x){return x.id===leadId;});if(!l)return;var emails=(l.ai_analysis&&l.ai_analysis.email_sequence)||(l.enrichment&&l.enrichment.email_sequence)||[];var em=emails[idx];if(!em)return;navigator.clipboard.writeText('נושא: '+(em.subject||'')+'\n\n'+(em.body||'')).then(function(){alert('✅ הועתק!');}).catch(function(){alert(em.subject+'\n\n'+em.body);});};
   window.saveSummary = function(leadId){var l=leads.find(function(x){return x.id===leadId;});var ta=document.getElementById('summary-text-'+leadId);if(!l||!ta)return;if(!l.ai_analysis)l.ai_analysis={};l.ai_analysis.internal_summary=ta.value;l.updated_at=new Date().toISOString();if(l.ai_analysis)window._sb.update('leads','id=eq.'+leadId,{ai_analysis:l.ai_analysis,updated_at:l.updated_at}).catch(function(){});ta.style.borderColor='#10b981';setTimeout(function(){ta.style.borderColor='';},1500);};
-  window.pushSummaryToHubspot = async function(leadId){var l=leads.find(function(x){return x.id===leadId;});if(!l)return;var ta=document.getElementById('summary-text-'+leadId);var txt=ta?ta.value:((l.ai_analysis&&l.ai_analysis.internal_summary)||'');if(!txt){alert('אין סיכום');return;}var tok='';try{if(typeof db!=='undefined'&&db){tok=localStorage.getItem('hs_token')||'';}}catch(e){}tok=tok||localStorage.getItem('hs_token')||'';if(!tok){alert('נא להגדיר HubSpot Token');return;}try{var sr=await fetch('https://api.hubapi.com/crm/v3/objects/contacts/search',{method:'POST',headers:{'Content-Type':'application/json','Authorization':'Bearer '+tok},body:JSON.stringify({filterGroups:[{filters:[{propertyName:'email',operator:'EQ',value:l.email||''}]}],properties:['hs_object_id']})});var sd=await sr.json();var cid=sd.results&&sd.results[0]&&sd.results[0].id;if(!cid){alert('לא נמצא Contact: '+(l.email||''));return;}await fetch('https://api.hubapi.com/crm/v3/objects/notes',{method:'POST',headers:{'Content-Type':'application/json','Authorization':'Bearer '+tok},body:JSON.stringify({properties:{hs_note_body:'📊 XTIX AI\n\n'+txt,hs_timestamp:Date.now()},associations:[{to:{id:cid},types:[{associationCategory:'HUBSPOT_DEFINED',associationTypeId:202}]}]})});if(typeof db!=='undefined'&&db)window._sb.update('leads','id=eq.'+leadId,{hubspot_contact_id:cid}).catch(function(){});alert('✅ נשלח ל-HubSpot #'+cid);}catch(err){alert('שגיאה: '+err.message);}};
+  window.pushSummaryToHubspot = async function(leadId){var l=leads.find(function(x){return x.id===leadId;});if(!l)return;var ta=document.getElementById('summary-text-'+leadId);var txt=ta?ta.value:((l.ai_analysis&&l.ai_analysis.internal_summary)||'');if(!txt){alert('אין סיכום');return;}var tok='';try{if(typeof db!=='undefined'&&db){tok=localStorage.getItem('hs_token')||'';}}catch(e){}tok=tok||localStorage.getItem('hs_token')||'';if(!tok){alert('נא להגדיר HubSpot Token');return;}try{var sr=await fetch('https://api.hubapi.com/crm/v3/objects/contacts/search',{method:'POST',headers:{'Content-Type':'application/json','Authorization':'Bearer '+tok},body:JSON.stringify({filterGroups:[{filters:[{propertyName:'email',operator:'EQ',value:l.email||''}]}],properties:['hs_object_id']})});var sd=await sr.json();var cid=sd.results&&sd.results[0]&&sd.results[0].id;if(!cid){alert('לא נמצא Contact: '+(l.email||''));return;}await fetch('https://api.hubapi.com/crm/v3/objects/notes',{method:'POST',headers:{'Content-Type':'application/json','Authorization':'Bearer '+tok},body:JSON.stringify({properties:{hs_note_body:'📊 XTIX AI\n\n'+txt,hs_timestamp:Date.now()},associations:[{to:{id:cid},types:[{associationCategory:'HUBSPOT_DEFINED',associationTypeId:202}]}]})});window._sb.update('leads','id=eq.'+leadId,{hubspot_contact_id:cid}).catch(function(){});alert('✅ נשלח ל-HubSpot #'+cid);}catch(err){alert('שגיאה: '+err.message);}};
 
 
   function renderAllLeads() {
@@ -4562,7 +4556,7 @@ window._editLeadSave = function(lid){
         if (window.currentUser && window.currentUser.role) {
           role = window.currentUser.role;
         } else {
-          var userRows = await window._sb.get('users', 'id=eq.'+user.uid);
+          var userRows = window._sb ? await window._sb.get('users', 'id=eq.'+user.uid).catch(function(){return[];}) : [];
           if (userRows && userRows.length) {
             role = userRows[0].role || 'viewer';
             window._sb.update('users','id=eq.'+user.uid,{ last_seen: new Date().toISOString() }).catch(function(){});
@@ -4574,8 +4568,8 @@ window._editLeadSave = function(lid){
 
       if (!role) {
         try {
-          role = 'admin'; // Default for first user
-          console.log('[Auth] Default role assigned');
+          // No default role — deny access (stay null)
+          console.log('[Auth] No role found — access denied');
         } catch(e) {
           console.warn('[Auth] Bootstrap failed:', e.message);
         }
@@ -5964,28 +5958,8 @@ BP6-10: תעדף (פלטפורמה ישנה+דומיין+6+ אירועים), Dis
   // Manual: window.checkForNewLeads() available in console or button
 
   // Firebase onSnapshot — instant notification when Clay pushes a lead
-  if (typeof db !== 'undefined' && db) {
-    try {
-      if(false) (function(snap) { // webhook_queue disabled
-        if (snap.empty) return;
-        var added = 0;
-        snap.forEach(function(doc) {
-          var raw = doc.data();
-          if (raw._processed) return; // already handled
-          var lead = window.addLeadToCRM(raw, {source: raw.source||'webhook'});
-          if (lead) {
-            added++;
-            // Mark as processed in Firebase so other tabs don't duplicate
-            doc.ref.update({_processed: true, _processed_at: new Date().toISOString()}).catch(function(){});
-          }
-        });
-        if (added > 0) console.log('[WEBHOOK] Firebase snapshot:', added, 'new leads');
-      }, function(err) {
-        // webhook_queue collection might not exist yet — that's fine
-        console.log('[WEBHOOK] onSnapshot not active:', err.code);
-      });
-    } catch(e) {}
-  }
+  // Clay webhook_queue — disabled (Supabase polling instead)
+  // if(false) block intentionally removed — Firebase onSnapshot not used
 
   // Manual check — callable from UI or console
   window.checkForNewLeads = function() {
@@ -7612,7 +7586,7 @@ addSalesPlaybookPanel();
   function ensureLeadId(lead) {
     if (!lead.xtix_id) {
       lead.xtix_id = genXTIXId();
-      if (typeof db !== 'undefined' && db && lead.id)
+      if (lead.id)
         window._sb.update('leads','id=eq.'+lead.id,{xtix_id:lead.xtix_id}).catch(function(){});
     }
     return lead.xtix_id;
@@ -7871,6 +7845,16 @@ addSalesPlaybookPanel();
         if (won) upd.last_won_at=now; else upd.last_lost_at=now;
         await window._sb.update('hunt_learnings','id=eq.'+row.id,upd).catch(function(){});
         console.log('[Hunt] Learning updated — '+segment+' win_rate:'+newRate+'%');
+      } else {
+        // First time hunting this segment — create new record
+        var initRow = {
+          segment: segment, platform: platform, geo: 'ארצי',
+          leads_found: 1, leads_won: won ? 1 : 0, leads_lost: won ? 0 : 1,
+          leads_added: 1, win_rate: won ? 100 : 0,
+          last_hunt_at: now, updated_at: now
+        };
+        await window._sb.insert('hunt_learnings', initRow).catch(function(){});
+        console.log('[Hunt] Learning created — '+segment);
       }
     } catch(e) { console.warn('[Hunt] _huntRecordOutcome:', e.message); }
   };
@@ -8293,12 +8277,12 @@ addSalesPlaybookPanel();
     }
     if(action==='delete'){if(!confirm('למחוק '+ids.length+'?'))return;for(var i=0;i<ids.length;i++)if(window.deleteLead)await window.deleteLead(ids[i]);clearSelV3();}
     else if(action==='enrich'){ids.forEach(function(id){var l=leads.find(function(x){return x.id===id;});if(l&&window.enrichmentQueue)enrichmentQueue.push(l);});if(window.processEnrichmentQueue)processEnrichmentQueue();clearSelV3();}
-    else{var now=new Date().toISOString();ids.forEach(function(id){var l=leads.find(function(x){return x.id===id;});if(l){l.status=action;l.updated_at=now;}var card=document.getElementById('lead-'+id);if(card){card.dataset.status=action;card.dataset.updated=now;}var s=document.querySelector('.status-select[data-lead-id="'+id+'"]');if(s)s.value=action;if(typeof db!=='undefined'&&db)window._sb.update('leads','id=eq.'+id,{status:action,updated_at:now}).catch(function(){});});if(window.logActivity)logActivity('bulk_status',{count:ids.length,status:action});clearSelV3();if(window.updateStats)updateStats();}
+    else{var now=new Date().toISOString();ids.forEach(function(id){var l=leads.find(function(x){return x.id===id;});if(l){l.status=action;l.updated_at=now;}var card=document.getElementById('lead-'+id);if(card){card.dataset.status=action;card.dataset.updated=now;}var s=document.querySelector('.status-select[data-lead-id="'+id+'"]');if(s)s.value=action;window._sb.update('leads','id=eq.'+id,{status:action,updated_at:now}).catch(function(){});});if(window.logActivity)logActivity('bulk_status',{count:ids.length,status:action});clearSelV3();if(window.updateStats)updateStats();}
   };
 
   // ===== AUTO STATUS on email =====
   var _origE=window.sendRealEmail;
-  if(_origE){window.sendRealEmail=async function(to,sub,body,lid,hsid){var r=await _origE(to,sub,body,lid,hsid);if(lid){var l=leads.find(function(x){return x.id===lid;});if(l&&l.status==='new'){l.status='contacted';l.updated_at=new Date().toISOString();var card=document.getElementById('lead-'+lid);if(card)card.dataset.status='contacted';var s=document.querySelector('.status-select[data-lead-id="'+lid+'"]');if(s)s.value='contacted';if(typeof db!=='undefined'&&db)window._sb.update('leads','id=eq.'+lid,{status:'contacted',updated_at:l.updated_at}).catch(function(){});}}return r;};}
+  if(_origE){window.sendRealEmail=async function(to,sub,body,lid,hsid){var r=await _origE(to,sub,body,lid,hsid);if(lid){var l=leads.find(function(x){return x.id===lid;});if(l&&l.status==='new'){l.status='contacted';l.updated_at=new Date().toISOString();var card=document.getElementById('lead-'+lid);if(card)card.dataset.status='contacted';var s=document.querySelector('.status-select[data-lead-id="'+lid+'"]');if(s)s.value='contacted';window._sb.update('leads','id=eq.'+lid,{status:'contacted',updated_at:l.updated_at}).catch(function(){});}}return r;};}
 
   function updateBadge(){var b=document.getElementById('crm-badge');if(b&&typeof leads!=='undefined')b.textContent=leads.length+' לידים';}
 
@@ -8391,7 +8375,7 @@ addSalesPlaybookPanel();
           if(!tRes._id){var td=await tRes.json();tId=td.id;}
           if(cId&&tId)await fetch('https://api.hubapi.com/crm/v3/objects/contacts/'+tId+'/associations/companies/'+cId+'/contact_to_company',{method:'PUT',headers:headers}).catch(function(){});
           lead.hubspot_id=tId; lead.hubspot_company_id=cId;
-          if(typeof db!=='undefined'&&db)window._sb.update('leads','id=eq.'+lead.id,{hubspot_id:tId,hubspot_company_id:cId}).catch(function(){});
+          window._sb.update('leads','id=eq.'+lead.id,{hubspot_id:tId,hubspot_company_id:cId}).catch(function(){});
           if(re){re.style.color='var(--green)';re.textContent='✅';}
         }else{errors++;var err=await tRes.json().catch(function(){return{};});if(re){re.style.color='var(--accent2)';re.textContent='❌ '+(err.message||'שגיאה').substring(0,40);}}
       }catch(e){errors++;if(re){re.style.color='var(--accent2)';re.textContent='❌ CORS/רשת';}}
@@ -8712,7 +8696,7 @@ window._cleanForFirebase = function _cleanForFirebase(obj) {
 
   // ── Firebase realtime sync ──────────────────────────────
   function initTasksListener() {
-    if (typeof db === 'undefined' || !db) return;
+    if (!window._sb) return;
     if (_unsub) _unsub();
     _unsub = null;
     // Tasks realtime disabled — load once from Supabase
@@ -8766,7 +8750,7 @@ window._cleanForFirebase = function _cleanForFirebase(obj) {
   var prioBorder  = { urgent:'rgba(239,68,68,0.25)', important:'rgba(245,158,11,0.2)', normal:'rgba(16,185,129,0.18)' };
 
   function renderTaskCard(t) {
-    var id  = t._id || '';
+    var id  = t.id || t._id || '';
     var bc  = prioColor[t.priority]  || 'rgba(255,255,255,0.04)';
     var bor = prioBorder[t.priority] || 'rgba(255,255,255,0.1)';
     var isDone = t.status === 'done';
@@ -8897,26 +8881,23 @@ window._cleanForFirebase = function _cleanForFirebase(obj) {
 
     document.getElementById('task-modal').style.display = 'none';
 
-    if (typeof db === 'undefined' || !db) {
-      // Offline fallback
-      if (_editId) {
-        var idx = _tasks.findIndex(function(x){ return x._id === _editId; });
-        if (idx >= 0) _tasks[idx] = Object.assign(_tasks[idx], data);
-      } else {
-        data._id = 'local_' + Date.now();
-        data.created_at = data.updated_at;
-        _tasks.unshift(data);
-      }
-      renderTasks(); updateTasksBadge();
-      return;
-    }
-
+    // Save to Supabase (always)
     if (_editId) {
+      var _idx = _tasks.findIndex(function(x){ return (x.id||x._id) === _editId; });
+      if (_idx >= 0) _tasks[_idx] = Object.assign(_tasks[_idx], data);
       window._sb.update('tasks','id=eq.'+_editId,data).catch(console.error);
     } else {
       data.created_at = new Date().toISOString();
-      window._sb.insert('tasks',data).catch(console.error);
+      data._id = 'local_' + Date.now(); // temp id until Supabase returns uuid
+      _tasks.unshift(data);
+      window._sb.insert('tasks',data).then(function(rows){
+        if (rows && rows[0] && rows[0].id) {
+          data.id = rows[0].id;
+          data._id = rows[0].id;
+        }
+      }).catch(console.error);
     }
+    renderTasks(); updateTasksBadge();
   };
 
   // ── Toggle done ─────────────────────────────────────────
@@ -8932,12 +8913,11 @@ window._cleanForFirebase = function _cleanForFirebase(obj) {
   // ── Delete ──────────────────────────────────────────────
   window.deleteTask = function(id) {
     if (!confirm('למחוק משימה זו?')) return;
-    if (typeof db !== 'undefined' && db) {
-      window._sb.delete('tasks','id=eq.'+id).catch(console.error);
-    } else {
-      _tasks = _tasks.filter(function(x){ return x._id !== id; });
-      renderTasks(); updateTasksBadge();
-    }
+    // Delete from Supabase (always)
+    window._sb.delete('tasks','id=eq.'+id).catch(console.error);
+    // Remove from local array
+    _tasks = _tasks.filter(function(x){ return (x.id||x._id) !== id; });
+    renderTasks(); updateTasksBadge();
   };
 
   // ── Public: read tasks (for Claude to use in new chats) ─
@@ -8972,14 +8952,10 @@ window._cleanForFirebase = function _cleanForFirebase(obj) {
   });
 
   // ── Init when Firebase is ready ────────────────────────
-  function tryInit() {
-    if (typeof db !== 'undefined' && db) {
-      initTasksListener();
-    } else {
-      setTimeout(tryInit, 800);
-    }
-  }
-  setTimeout(tryInit, 1200);
+  // initTasksListener — Supabase only, call directly
+  setTimeout(function() {
+    if (typeof initTasksListener === 'function') initTasksListener();
+  }, 1200);
   window.huntAddLeadFromSaved = function(searchIdx, leadIdx) {
     var searches = loadSavedSearches();
     if (!searches[searchIdx] || !searches[searchIdx].leads[leadIdx]) return;
@@ -9856,13 +9832,8 @@ window._cleanForFirebase = function _cleanForFirebase(obj) {
     }
     if(action==='delete'){if(!confirm('למחוק '+ids.length+'?'))return;for(var i=0;i<ids.length;i++)if(window.deleteLead)await window.deleteLead(ids[i]);clearSelV3();}
     else if(action==='enrich'){ids.forEach(function(id){var l=leads.find(function(x){return x.id===id;});if(l&&window.enrichmentQueue)enrichmentQueue.push(l);});if(window.processEnrichmentQueue)processEnrichmentQueue();clearSelV3();}
-    else{var now=new Date().toISOString();ids.forEach(function(id){var l=leads.find(function(x){return x.id===id;});if(l){l.status=action;l.updated_at=now;}var card=document.getElementById('lead-'+id);if(card){card.dataset.status=action;card.dataset.updated=now;}var s=document.querySelector('.status-select[data-lead-id="'+id+'"]');if(s)s.value=action;if(typeof db!=='undefined'&&db)window._sb.update('leads','id=eq.'+id,{status:action,updated_at:now}).catch(function(){});});if(window.logActivity)logActivity('bulk_status',{count:ids.length,status:action});clearSelV3();if(window.updateStats)updateStats();}
+    else{var now=new Date().toISOString();ids.forEach(function(id){var l=leads.find(function(x){return x.id===id;});if(l){l.status=action;l.updated_at=now;}var card=document.getElementById('lead-'+id);if(card){card.dataset.status=action;card.dataset.updated=now;}var s=document.querySelector('.status-select[data-lead-id="'+id+'"]');if(s)s.value=action;window._sb.update('leads','id=eq.'+id,{status:action,updated_at:now}).catch(function(){});});if(window.logActivity)logActivity('bulk_status',{count:ids.length,status:action});clearSelV3();if(window.updateStats)updateStats();}
   };
-
-  // ===== AUTO STATUS on email =====
-  var _origE=window.sendRealEmail;
-  if(_origE){window.sendRealEmail=async function(to,sub,body,lid,hsid){var r=await _origE(to,sub,body,lid,hsid);if(lid){var l=leads.find(function(x){return x.id===lid;});if(l&&l.status==='new'){l.status='contacted';l.updated_at=new Date().toISOString();var card=document.getElementById('lead-'+lid);if(card)card.dataset.status='contacted';var s=document.querySelector('.status-select[data-lead-id="'+lid+'"]');if(s)s.value='contacted';if(typeof db!=='undefined'&&db)window._sb.update('leads','id=eq.'+lid,{status:'contacted',updated_at:l.updated_at}).catch(function(){});}}return r;};}
-
   function updateBadge(){var b=document.getElementById('crm-badge');if(b&&typeof leads!=='undefined')b.textContent=leads.length+' לידים';}
 
   // ===== HUBSPOT UPGRADE =====
@@ -9954,7 +9925,7 @@ window._cleanForFirebase = function _cleanForFirebase(obj) {
           if(!tRes._id){var td=await tRes.json();tId=td.id;}
           if(cId&&tId)await fetch('https://api.hubapi.com/crm/v3/objects/contacts/'+tId+'/associations/companies/'+cId+'/contact_to_company',{method:'PUT',headers:headers}).catch(function(){});
           lead.hubspot_id=tId; lead.hubspot_company_id=cId;
-          if(typeof db!=='undefined'&&db)window._sb.update('leads','id=eq.'+lead.id,{hubspot_id:tId,hubspot_company_id:cId}).catch(function(){});
+          window._sb.update('leads','id=eq.'+lead.id,{hubspot_id:tId,hubspot_company_id:cId}).catch(function(){});
           if(re){re.style.color='var(--green)';re.textContent='✅';}
         }else{errors++;var err=await tRes.json().catch(function(){return{};});if(re){re.style.color='var(--accent2)';re.textContent='❌ '+(err.message||'שגיאה').substring(0,40);}}
       }catch(e){errors++;if(re){re.style.color='var(--accent2)';re.textContent='❌ CORS/רשת';}}
@@ -10372,10 +10343,8 @@ async function loadBrainDecisions() {
   listEl.innerHTML = '<div style="text-align:center;padding:32px;color:var(--muted);font-size:12px">⏳ טוען...</div>';
 
   try {
-    if (typeof db !== 'undefined' && db) {
-      const _decRows = await window._sb.get('ai_decisions', 'order=timestamp.desc&limit=50').catch(()=>[]);
+    const _decRows = await window._sb.get('ai_decisions', 'order=timestamp.desc&limit=50').catch(()=>[]);
       _brainDecisions = (_decRows||[]).map(r => Object.assign({id:r.id}, r));
-    }
   } catch(e) {
     console.warn('[Brain] Decisions load failed:', e.message);
     // Try localStorage fallback
@@ -10546,9 +10515,7 @@ window.markDecisionOutcome = async function(decisionId, wasCorrect) {
 
   // Update Firebase
   try {
-    if (typeof db !== 'undefined' && db) {
-      await window._sb.update('ai_decisions','id=eq.'+decisionId,updateData);
-    }
+    await window._sb.update('ai_decisions','id=eq.'+decisionId,updateData);
   } catch(e) { console.warn('[Brain] Outcome update failed:', e.message); }
 
   // Update local cache
@@ -10657,9 +10624,7 @@ window.saveBrainDecision = async function(decision) {
 
   // Save to Firebase
   try {
-    if (typeof db !== 'undefined' && db) {
-      await window._sb.insert('ai_decisions', Object.assign({}, doc, {id: docId})).catch(()=>window._sb.update('ai_decisions','id=eq.'+docId,doc));
-    }
+    await window._sb.insert('ai_decisions', Object.assign({}, doc, {id: docId})).catch(()=>window._sb.update('ai_decisions','id=eq.'+docId,doc));
   } catch(e) {
     console.warn('[Brain] Decision save failed:', e.message);
     // localStorage fallback
@@ -10690,15 +10655,13 @@ window.getBrainHistory = async function(segment, limit) {
   limit = limit || 10;
   var results = [];
   try {
-    if (typeof db !== 'undefined' && db) {
-      // Query without where() to avoid composite index requirement
+    // Query without where() to avoid composite index requirement
       // Filter by segment in JS after fetching
       const _decRows2 = await window._sb.get('ai_decisions', 'order=timestamp.desc&limit='+(limit*5)).catch(()=>[]);
       (_decRows2||[]).forEach(function(d) {
         if (!segment || d.lead_segment === segment) results.push(Object.assign({id:d.id},d));
         if (results.length >= limit) return;
       });
-    }
   } catch(e) {
     // Fallback: filter from in-memory cache
     console.warn('[Brain] getBrainHistory Firebase failed, using cache:', e.message);
@@ -10728,8 +10691,7 @@ window._setLeadOutcome = function(leadId, outcome) {
     if (lead) {
       lead.status = 'followup';
       lead.updated_at = new Date().toISOString();
-      if (typeof db !== 'undefined' && db)
-        window._sb.update('leads','id=eq.'+leadId,{ status: 'followup', updated_at: lead.updated_at }).catch(function(){});
+      window._sb.update('leads','id=eq.'+leadId,{ status: 'followup', updated_at: lead.updated_at }).catch(function(){});
       renderSimpleLead(lead);
     }
     return;
@@ -10795,8 +10757,8 @@ window.markDealClosed = async function(leadId, didClose) {
   // Search in-memory first
   decision = _brainDecisions.find(function(d) { return d.lead_id === leadId; });
 
-  // If not in memory, query Firebase
-  if (!decision && typeof db !== 'undefined' && db) {
+  // If not in memory, query Supabase
+  if (!decision) {
     try {
       const _decRows3 = await window._sb.get('ai_decisions', 'lead_id=eq.'+leadId+'&order=timestamp.desc&limit=1').catch(()=>[]);
       if (_decRows3 && _decRows3.length) {
@@ -10820,9 +10782,7 @@ window.markDealClosed = async function(leadId, didClose) {
 
   // Save to Firebase
   try {
-    if (typeof db !== 'undefined' && db) {
-      await window._sb.update('ai_decisions','id=eq.'+decision.id,updateData);
-    }
+    await window._sb.update('ai_decisions','id=eq.'+decision.id,updateData);
   } catch(e) { console.warn('[Brain] markDealClosed update failed:', e.message); }
 
   // Update local cache
@@ -10942,8 +10902,8 @@ window.loadUsers = async function() {
       var info = document.createElement('div');
       info.className = 'usr-info';
       info.innerHTML =
-        '<div class="usr-name">' + (u.name||u.email) + (isSelf?' <span class="usr-you">(אתה)</span>':'') + '</div>' +
-        '<div class="usr-email">' + u.email + '</div>' +
+        '<div class="usr-name">' + _esc(u.name||u.email) + (isSelf?' <span class="usr-you">(אתה)</span>':'') + '</div>' +
+        '<div class="usr-email">' + _esc(u.email) + '</div>' +
         '<div class="usr-seen">כניסה אחרונה: ' + (u.last_seen ? u.last_seen.substring(0,10) : '—') + '</div>';
       row.appendChild(info);
 
@@ -11110,11 +11070,10 @@ setTimeout(function() {
       if (d.ok && d.insights) {
         // 3. Client writes insights to Firebase (no SA needed)
         if (btn) btn.textContent = '⏳ שומר ב-Firebase...';
-        if (typeof db !== 'undefined' && db) {
-          await window._sb.insert('brain_insights',Object.assign({id:'latest'},d.insights)).catch(()=>window._sb.update('brain_insights',"id=eq.'latest'",d.insights));
+        // Save to Supabase always
+        await window._sb.insert('brain_insights',Object.assign({id:'latest'},d.insights)).catch(()=>window._sb.update('brain_insights',"id=eq.'latest'",d.insights));
           var histId = new Date().toISOString().slice(0,16).replace('T','_').replace(':','');
-          window._sb.insert('brain_insights',Object.assign({},d.insights,{history_id:histId})).catch(function(){});
-        }
+        window._sb.insert('brain_insights',Object.assign({},d.insights,{history_id:histId})).catch(function(){});
         if (btn) btn.textContent = '✅ הסתיים!';
         setTimeout(function(){ if(btn){btn.textContent='🧠 הרץ למידה';btn.disabled=false;} window._kbLoadInsightsStatus(); }, 2000);
       } else {
@@ -11135,7 +11094,7 @@ setTimeout(function() {
     var kbDotEl   = document.getElementById('kb-status-indicator');
     if (!statusEl) return;
     try {
-      if (typeof db === 'undefined' || !db) { statusEl.textContent = 'Firebase לא מחובר'; return; }
+      if (!window._sb) { statusEl.textContent = 'Supabase לא נטען'; return; }
       var _biRows = await window._sb.get('brain_insights','limit=1').catch(()=>[]); var doc = {exists:_biRows&&_biRows.length, data:()=>_biRows[0]||{}};
       if (!doc.exists || !doc.data()) {
         statusEl.textContent = '⚪ טרם נוצרו insights';
@@ -11824,7 +11783,8 @@ window._signalEmailSent = function(leadId, meta) {
         score:         lead.score,
         tier:          lead.tier,
         segment:       lead.segment
-      });
+      })
+      .catch(function(e){ console.warn('[KB] init load failed:', e.message); });
       console.log('[Signal] ✅ Post-analysis email sent — '+hoursToAct+'h after analysis, score:'+lead.score);
     }
     window._sb.update('leads','id=eq.'+leadId,{
@@ -12116,7 +12076,8 @@ window._brainBackgroundAnalysis = async function() {
     var analysis = JSON.parse(raw.substring(s0, e0+1));
 
     // שלב 6 — שמור ב-brain_analysis_log
-    await window._sb.insert('brain_analysis_log', {
+    try {
+      await window._sb.insert('brain_analysis_log', {
       analysis_type:   'signal_pattern_analysis',
       findings:        analysis,
       recommendations: analysis.hunt_recommendations || [],
@@ -12124,6 +12085,7 @@ window._brainBackgroundAnalysis = async function() {
       signals_used:    signals.length,
       generated_at:    new Date().toISOString()
     }).catch(function(e){ console.warn('[Brain BG] log save failed:', e.message); });
+    } catch(e) { console.warn('[Brain] analysis log failed:', e.message); }
 
     // שמור competitor intelligence ב-brain_memory
     var _bm_update = { competitor_win_rates: analysis.competitor_win_rates || competitorStats };
@@ -12292,14 +12254,14 @@ window._applyAndyRec = function(segEnc, geoEnc) {
   // סמן segment
   document.querySelectorAll('#hunt-segments input[type=checkbox]').forEach(function(cb){
     cb.checked = (cb.value === seg);
-    if (cb.checked) cb.closest('.hunt-chip').style.borderColor = '#a78bfa';
-    else cb.closest('.hunt-chip').style.borderColor = '';
+    var _chip1 = cb.closest('.hunt-chip');
+    if (_chip1) _chip1.style.borderColor = cb.checked ? '#a78bfa' : '';
   });
   // סמן geo
   document.querySelectorAll('#hunt-geo input[type=checkbox]').forEach(function(cb){
     cb.checked = (cb.value === geo || (geo==='ארצי' && cb.value.includes('ארצי')));
-    if (cb.checked) cb.closest('.hunt-chip').style.borderColor = '#a78bfa';
-    else cb.closest('.hunt-chip').style.borderColor = '';
+    var _chip2 = cb.closest('.hunt-chip');
+    if (_chip2) _chip2.style.borderColor = cb.checked ? '#a78bfa' : '';
   });
   // עדכן insight
   window._showAndyInsight(seg, geo);
