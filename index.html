@@ -8711,38 +8711,92 @@ window._cleanForFirebase = function _cleanForFirebase(obj) {
       }, stepTimes[i]);
     });
 
-    var depthInstructions = {
-      'מהיר': 'החזר שם, domain, טלפון, segment, platform, score, reason קצר בלבד.',
-      'עמוק': 'החזר שם, domain, טלפון, segment, platform_current, score (0-100), reason (2-3 משפטים בעברית), size_estimate, events_per_year, estimated_annual_fees, data_ownership_pain.',
-      'מקיף': 'החזר פרטים מלאים: שם, domain, טלפון, email אם ידוע, segment, platform_current, score (0-100), reason (3-4 משפטים בעברית), size_estimate, events_per_year, estimated_annual_fees, data_ownership_pain, social_presence, next_action מוצעת, tier (A/B/C).'
+    // ── Build Serper search queries from params ──
+    var baseQueries = [];
+    var segMap = {
+      'הופעות ומוזיקה': ['הופעות מוזיקה אירועים ישראל', 'מפיקי הופעות ישראל'],
+      'ספורט': ['מועדוני ספורט ישראל כרטיסים', 'אירועי ספורט ישראל'],
+      'כנסים עסקיים': ['כנסים עסקיים ישראל ארגונים', 'כנסי הייטק ישראל'],
+      'תיאטרון ואמנות': ['תיאטרון ישראל הצגות', 'מרכזי תרבות ישראל'],
+      'פסטיבלים': ['פסטיבלים ישראל אירועים', 'פסטיבל תרבות ישראל'],
+      'אירועי BarMitzvah וחתונות': ['אולמות אירועים ישראל', 'מפיקי אירועים חתונות ישראל'],
+      'ספקי כרטיסים קיימים': ['מכירת כרטיסים ישראל אתר', 'Eventbrite ישראל OR Tickets ישראל']
     };
-
-    var prompt = [
-      'אתה מומחה מכירות B2B ב-XTIX.AI — מערכת מכירת כרטיסים ישראלית שגובה 2.5% בלבד (vs 5-8% בשוק).',
-      'מצא '+count+' ארגונים ישראלים אמיתיים ופעילים שמתאימים לפרופיל הבא:',
-      p.segments.length  ? '• סוג אירועים: '+p.segments.join(', ') : '',
-      p.geo.length       ? '• אזורים: '+p.geo.join(', ') : '• אזור: ארצי',
-      p.competitors.length ? '• משתמשים כיום ב: '+p.competitors.join(' או ') : '',
-      p.market.length    ? '• מגזר: '+p.market.join(', ') : '',
-      p.size.length      ? '• גודל אירוע: '+p.size.join(', ') : '',
-      p.freq !== 'ללא מגבלה' ? '• תדירות: '+p.freq : '',
-      p.priority.length  ? '• סיגנלי עדיפות: '+p.priority.join(', ') : '',
-      p.exclude.length   ? '• אל תכלול: '+p.exclude.join(', ') : '',
-      '',
-      depthInstructions[p.depth] || depthInstructions['עמוק'],
-      '',
-      'החזר JSON בלבד, ללא markdown: {"leads":[{"name":"","domain":"","phone":"","segment":"","platform_current":"","score":80,"reason":"","size_estimate":"","events_per_year":"","estimated_annual_fees":"","tier":"A"}]}',
-      'חשוב: רק ארגונים ישראלים אמיתיים שאתה מכיר. '+count+' לידים בלבד, ממוינים לפי score מהגבוה לנמוך.'
-    ].filter(Boolean).join('\n');
+    if (p.segments && p.segments.length) {
+      p.segments.forEach(function(seg) {
+        var qs = segMap[seg];
+        if (qs) baseQueries = baseQueries.concat(qs);
+        else baseQueries.push(seg + ' ישראל אירועים');
+      });
+    } else {
+      // Default: broad event organizer search
+      baseQueries = [
+        'מפיקי אירועים ישראל',
+        'ארגוני כנסים ישראל',
+        'תיאטראות ומרכזי תרבות ישראל',
+        'מועדוני ספורט ישראל כרטיסים',
+        'פסטיבלים ישראל 2025'
+      ];
+    }
+    if (p.competitors && p.competitors.length) {
+      p.competitors.forEach(function(comp) {
+        baseQueries.push(comp + ' ישראל site:' + comp.toLowerCase().replace(/\s/g,'')+'.co.il OR ' + comp + ' כרטיסים');
+      });
+    }
+    // Limit to 5 queries (Serper credits)
+    var serpQueries = baseQueries.slice(0, 5);
 
     try {
+      // Step 1: Get real Google results via Serper
+      var serpRes = await window._authFetch('https://xtix-crm-test.up.railway.app/hunt', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ queries: serpQueries }),
+        signal: AbortSignal.timeout(30000)
+      });
+      var serpData = await serpRes.json();
+      if (serpData.error) throw new Error('Serper: ' + serpData.error);
+      var serpResults = serpData.results || [];
+
+      // Update loading step
+      var hls2 = document.getElementById('hls-2');
+      if (hls2) { hls2.classList.remove('active'); hls2.classList.add('done'); }
+      var hls3 = document.getElementById('hls-3');
+      if (hls3) hls3.classList.add('active');
+
+      // Step 2: Claude scores + enriches the real results
+      var serpSummary = serpResults.slice(0, 20).map(function(r, i) {
+        return (i+1)+'. '+r.title+' | '+r._domain+' | '+( r.snippet||'').substring(0,120);
+      }).join('\n');
+
+      var depthInstructions = {
+        'מהיר': 'החזר שם, domain, segment, score, reason קצר בלבד.',
+        'עמוק': 'החזר שם, domain, טלפון אם מופיע, segment, platform_current, score (0-100), reason (2-3 משפטים), size_estimate, events_per_year, estimated_annual_fees.',
+        'מקיף': 'החזר פרטים מלאים: שם, domain, טלפון, segment, platform_current, score (0-100), reason (3-4 משפטים), size_estimate, events_per_year, estimated_annual_fees, next_action, tier (A/B/C).'
+      };
+
+      var prompt = [
+        'אתה מומחה מכירות B2B ב-XTIX.AI — מערכת מכירת כרטיסים ישראלית, עמלה 2.5% בלבד (vs 5-8% בשוק).',
+        'קיבלת תוצאות חיפוש אמיתיות מגוגל. נתח כל ארגון והחזר רק את ' + count + ' הכי מתאימים לXTIX:',
+        '',
+        'תוצאות גוגל:',
+        serpSummary,
+        '',
+        'קריטריוני סינון: רק ארגונים שמוכרים/מנהלים כרטיסים לאירועים בישראל.',
+        'אל תכלול: חנויות, מסעדות, עסקים שאינם קשורים לאירועים, ממשלה.',
+        depthInstructions[p.depth] || depthInstructions['עמוק'],
+        '',
+        'החזר JSON בלבד: {"leads":[{"name":"","domain":"","phone":"","segment":"","platform_current":"","score":80,"reason":"","size_estimate":"","events_per_year":"","estimated_annual_fees":"","tier":"A"}]}',
+        'בחר ' + count + ' לידים בלבד, ממוינים לפי score מהגבוה לנמוך.'
+      ].filter(Boolean).join('\n');
+
       var res = await window._authFetch('https://xtix-crm-test.up.railway.app/ai', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           model: 'claude-haiku-4-5-20251001',
           max_tokens: 2000,
-          system: 'Return ONLY valid JSON array. No markdown, no explanation. Respond in Hebrew where text is required.',
+          system: 'Return ONLY valid JSON. No markdown, no explanation.',
           messages: [{ role: 'user', content: prompt }]
         }),
         signal: AbortSignal.timeout(60000)
@@ -8752,7 +8806,6 @@ window._cleanForFirebase = function _cleanForFirebase(obj) {
       var s = raw.indexOf('{'), e = raw.lastIndexOf('}');
       if (s===-1||e===-1) throw new Error('לא התקבל JSON תקין');
       var jsonStr = raw.substring(s, e+1);
-      // Fix unescaped newlines inside JSON string values
       jsonStr = jsonStr.replace(/"([^"\\]*?)\n([^"\\]*?)"/g, function(_,a,b){return '"'+a+' '+b+'"';});
       var parsed;
       try { parsed = JSON.parse(jsonStr); }

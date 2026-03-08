@@ -1023,6 +1023,64 @@ class Handler(BaseHTTPRequestHandler):
                 self.json_out({'error': str(e)}, 500)
             return
 
+
+        if p.path=='/hunt':
+            if not self.auth_check('sales'): return
+            if not self.rate_check('/hunt'): return
+            api_key = os.environ.get('SERP_API_KEY','')
+            if not api_key:
+                self.json_out({'error':'SERP_API_KEY not set in Railway Variables'},500); return
+            try:
+                queries = b.get('queries', [])
+                all_results = []
+                for q in queries[:5]:  # max 5 queries per request
+                    payload = json.dumps({
+                        'q': q,
+                        'gl': 'il',
+                        'hl': 'iw',
+                        'num': 10
+                    }).encode('utf-8')
+                    req = urllib.request.Request(
+                        'https://google.serper.dev/search',
+                        data=payload,
+                        headers={
+                            'Content-Type': 'application/json',
+                            'X-API-KEY': api_key
+                        },
+                        method='POST'
+                    )
+                    with urllib.request.urlopen(req, context=ssl_ctx, timeout=15) as r:
+                        result = json.loads(r.read().decode('utf-8'))
+                        organic = result.get('organic', [])
+                        for item in organic:
+                            item['_query'] = q
+                        all_results.extend(organic)
+                    print(f'  [Hunt] Query "{q}" → {len(organic)} results', flush=True)
+                # Deduplicate by domain
+                seen = set()
+                unique = []
+                for item in all_results:
+                    link = item.get('link','')
+                    try:
+                        from urllib.parse import urlparse
+                        domain = urlparse(link).netloc.replace('www.','')
+                    except:
+                        domain = link
+                    if domain and domain not in seen:
+                        seen.add(domain)
+                        item['_domain'] = domain
+                        unique.append(item)
+                print(f'  [Hunt] Total unique results: {len(unique)}', flush=True)
+                self.json_out({'results': unique, 'total': len(unique)})
+            except urllib.error.HTTPError as e:
+                err_body = e.read().decode('utf-8')
+                print(f'  [Hunt] HTTP {e.code}: {err_body[:150]}', flush=True)
+                self.json_out({'error': err_body[:200]}, e.code)
+            except Exception as e:
+                print(f'  [Hunt] Error: {e}', flush=True)
+                self.json_out({'error': str(e)}, 500)
+            return
+
         if p.path=='/send-email':
             if not self.auth_check('sales'): return
             if not self.rate_check('/send-email'): return
