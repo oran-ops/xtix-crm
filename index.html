@@ -5311,13 +5311,16 @@ ${proxyCtx}
     }
 
     // CALL 1: Basic analysis (fast, ~10s)
-    const prompt1 = `נתח את הליד הבא עבור XTIX.AI (פלטפורמת כרטוס All-in-One ישראלית, עמלה 5-10% תלוי היקף, נקבעת אישית).
+    const prompt1 = `נתח את הליד הבא עבור XTIX.AI (פלטפורמת כרטוס All-in-One ישראלית, עמלה 2.5-5% נקבעת אישית, vs מתחרים 5-8%).
 מתחרים: ${competitorInfo}
 ליד: שם=${lead.name}, דומיין=${domain}, סוג=${lead.type||lead.segment||'?'}, טלפון=${lead.phone||'?'}
 ${proxyCtx}
 
+חפש באתר: מי פלטפורמת הכרטיסים הנוכחית שלהם (SmarTicket/Leaan/Bravo/Tickchak/Eventim/COMY/Glatticket/ידני).
+זהה: שם + תפקיד איש קשר, אזור גיאוגרפי, כמה אירועים בשנה.
+
 החזר JSON בלבד:
-{"summary":"2 משפטים","segment":"סגמנט","platform_current":"פלטפורמה","platform_weakness":"חולשה","estimated_annual_fees":"₪X","estimated_xtix_savings":"₪X","score":70,"tier":"A/B/C","recommended_cadence":"hot/warm/cool","pitch":"משפט פתיחה","pain_points":["כאב1","כאב2"],"xtix_advantages":["יתרון1","יתרון2"],"discovery_questions":["שאלה1","שאלה2"],"research_summary":"מה חקרת"}`;
+{"summary":"2 משפטים ספציפיים","segment":"מוזיקה/תיאטרון/סטנד-אפ/ספורט/פסטיבל/קולנוע/אחר","platform_current":"שם מתחרה מדויק או ידני/אין","platform_weakness":"חולשה ספציפית","estimated_annual_fees":"₪X","estimated_xtix_savings":"₪X","score":70,"tier":"A/B/C","recommended_cadence":"hot/warm/cool","pitch":"משפט פתיחה ספציפי","pain_points":["כאב1","כאב2"],"xtix_advantages":["יתרון1","יתרון2"],"discovery_questions":["שאלה1","שאלה2"],"research_summary":"מה חקרת","pitch_angle":"savings/widget/analytics/ease/support","contact_name":"שם אם נמצא","contact_title":"מנהל/בעלים/שיווק/הפקה/כספים","geographic_area":"צפון/מרכז/דרום/שרון/ירושלים","events_per_year":12,"audience_size":500,"competitor_tier":"1/2/3","score_factors":{"has_external_ticketing":true,"has_own_domain":true,"active_social":true,"contact_accessible":true,"large_audience":false}}`;
 
     let basic = {};
     try { basic = await callAI(prompt1, 800); } catch(e) { console.warn('[ENRICH] Call 1 failed:', e.message); }
@@ -5334,31 +5337,48 @@ ${proxyCtx}
     try { emails = await callAI(prompt2, 1200); } catch(e) { console.warn('[ENRICH] Call 2 failed:', e.message); }
 
     const score = parseInt(basic.score) || 50;
+    const _firstSubj = (emails.email_sequence && emails.email_sequence[0] && emails.email_sequence[0].subject) || '';
     return {
       ...lead,
       enrichment: {
-        summary:             basic.summary             || '',
-        segment:             basic.segment             || lead.type || '',
-        platform_current:    basic.platform_current    || '',
-        platform_weakness:   basic.platform_weakness   || '',
-        estimated_fees:      basic.estimated_annual_fees || '',
-        estimated_savings:   basic.estimated_xtix_savings || '',
-        pain_points:         basic.pain_points         || [],
-        xtix_advantages:     basic.xtix_advantages     || [],
-        pitch:               basic.pitch               || '',
-        recommended_cadence: basic.recommended_cadence || 'warm',
-        discovery_questions: basic.discovery_questions || [],
-        research_summary:    basic.research_summary    || '',
-        email_sequence:      emails.email_sequence     || [],
-        enriched_at:         new Date().toISOString(),
-        enriched_by:         'claude-auto'
+        summary:              basic.summary              || '',
+        segment:              basic.segment              || lead.type || '',
+        platform_current:     basic.platform_current     || '',
+        platform_weakness:    basic.platform_weakness    || '',
+        estimated_fees:       basic.estimated_annual_fees || '',
+        estimated_savings:    basic.estimated_xtix_savings || '',
+        pain_points:          basic.pain_points          || [],
+        xtix_advantages:      basic.xtix_advantages      || [],
+        pitch:                basic.pitch                || '',
+        recommended_cadence:  basic.recommended_cadence  || 'warm',
+        discovery_questions:  basic.discovery_questions  || [],
+        research_summary:     basic.research_summary     || '',
+        email_sequence:       emails.email_sequence      || [],
+        // ── שדות Competitor Intelligence ──
+        pitch_angle:          basic.pitch_angle          || '',
+        contact_name:         basic.contact_name         || '',
+        contact_title:        basic.contact_title        || '',
+        geographic_area:      basic.geographic_area      || '',
+        first_email_subject:  basic.first_email_subject  || _firstSubj,
+        estimated_annual_fees: basic.estimated_annual_fees || '',
+        estimated_xtix_savings: basic.estimated_xtix_savings || '',
+        competitor_tier:      basic.competitor_tier      || '',
+        score_factors:        basic.score_factors        || {},
+        enriched_at:          new Date().toISOString(),
+        enriched_by:          'claude-auto'
       },
+      // ── שדות ישירים על lead ──
       score,
-      tier:     basic.tier     || (score >= 80 ? 'A' : score >= 60 ? 'B' : 'C'),
-      platform: basic.platform_current || lead.platform || '',
-      segment:  basic.segment  || lead.segment || lead.type || '',
-      status:   lead.status    || 'new',
-      updated_at: new Date().toISOString()
+      tier:                basic.tier || (score >= 80 ? 'A' : score >= 60 ? 'B' : 'C'),
+      platform:            basic.platform_current     || lead.platform || '',
+      segment:             basic.segment              || lead.segment  || lead.type || '',
+      pitch_angle:         basic.pitch_angle          || lead.pitch_angle    || '',
+      contact_name:        basic.contact_name         || lead.contact_name   || '',
+      contact_title:       basic.contact_title        || lead.contact_title  || '',
+      geographic_area:     basic.geographic_area      || lead.geographic_area|| '',
+      first_email_subject: basic.first_email_subject  || _firstSubj || lead.first_email_subject || '',
+      status:              lead.status    || 'new',
+      updated_at:          new Date().toISOString()
     };
   };
 
@@ -12332,10 +12352,17 @@ window._loadIntelDashboard = async function() {
   if (!window._sb) return;
   try {
     // טען כל הלידים עם platform
-    var leads = await window._sb.get('leads', 'select=id,name,platform,score,status,segment&order=score.desc&limit=500');
+    var leads = await window._sb.get('leads', 'select=id,name,platform,competitor,steal_score,score,status,segment,estimated_annual_fees,estimated_xtix_savings&order=score.desc&limit=500');
     if (!leads || !leads.length) return;
 
-    var withPlatform = leads.filter(function(l){ return l.platform && l.platform.trim(); });
+    // השתמש ב-competitor אם קיים, fallback ל-platform
+    leads.forEach(function(l) {
+      if (!l.competitor && l.platform) l.competitor = l.platform;
+      if (!l.steal_score && l.competitor && window._getStealScore) {
+        l.steal_score = window._getStealScore(l.competitor);
+      }
+    });
+    var withPlatform = leads.filter(function(l){ return (l.competitor||l.platform||'').trim(); });
     var C = window.XTIX_COMPETITORS || {};
 
     // ── ספירה per מתחרה ──
