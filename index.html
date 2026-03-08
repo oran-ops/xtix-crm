@@ -3267,11 +3267,17 @@ document.addEventListener("DOMContentLoaded",function(){
         <label style="font-size:11px;color:rgba(196,196,204,0.75);display:block;margin-bottom:5px">סטטוס</label>
         <select id="new-status" style="width:100%;background:var(--surface2);border:1px solid var(--border);border-radius:8px;padding:8px 12px;font-size:13px;color:var(--text);font-family:Heebo,sans-serif;outline:none;box-sizing:border-box">
           <option value="new">🆕 ליד חדש</option>
+          <option value="new">🟢 ליד חדש</option>
           <option value="contacted">📧 נוצר קשר</option>
           <option value="followup">🔁 Follow-up</option>
           <option value="meeting">📅 פגישה קבועה</option>
-          <option value="closed_won">✅ נסגר - הצלחה</option>
-          <option value="closed_lost">❌ נסגר - כישלון</option>
+          <option value="negotiation">🤝 במשא ומתן</option>
+          <option value="won">✅ נסגר - הצלחה</option>
+          <option value="lost">❌ נסגר - כישלון</option>
+          <option value="ghosted">👻 לא מגיב</option>
+          <option value="not_relevant">🚫 לא רלוונטי</option>
+          <option value="future_potential">⏳ עתידי - לחזור</option>
+          <option value="referred_us">🌟 הפנה אותנו</option>
         </select>
       </div>
     </div>
@@ -3898,7 +3904,7 @@ BP18: Nurture existing customers — repeat customers spend 67% more
       _s.textContent='@keyframes _aip{0%,100%{opacity:.35}50%{opacity:1}}.email-body{display:none}.email-body.open{display:block}';
       document.head.appendChild(_s);
     }
-    var statusOpts=[['new','🟢 ליד חדש'],['contacted','📧 נשלח מייל'],['followup','🔁 Follow-up'],['meeting','📅 פגישה'],['closed','✅ נסגר']]
+    var statusOpts=[['new','🟢 ליד חדש'],['contacted','📧 נוצר קשר'],['followup','🔁 Follow-up'],['meeting','📅 פגישה קבועה'],['negotiation','🤝 במשא ומתן'],['won','✅ נסגר - הצלחה'],['lost','❌ נסגר - כישלון'],['ghosted','👻 לא מגיב'],['not_relevant','🚫 לא רלוונטי'],['future_potential','⏳ עתידי - לחזור'],['referred_us','🌟 הפנה אותנו']]
       .map(function(o){return '<option value="'+o[0]+'"'+(lead.status===o[0]?' selected':'')+'>'+o[1]+'</option>';}).join('');
     var platBadge=(lead.platform||enr.platform_current)?'<span class="plat-badge">'+(lead.platform||enr.platform_current)+'</span>':'';
     var aiBadge=aiSt==='done'?'<span class="ai-badge done">✓ AI</span>':aiSt==='running'?'<span id="ai-badge-'+lead.id+'" class="ai-badge running">⏳</span>':'';
@@ -3907,7 +3913,7 @@ BP18: Nurture existing customers — repeat customers spend 67% more
     var tierBg     = score>=80?'rgba(52,211,153,.1)':score>=60?'rgba(96,165,250,.1)':'rgba(252,211,77,.1)';
     var tierBorder = score>=80?'rgba(52,211,153,.3)':score>=60?'rgba(96,165,250,.3)':'rgba(252,211,77,.3)';
 
-    var statusDot = {new:'#34d399',contacted:'#60a5fa',followup:'#fbbf24',meeting:'#a78bfa',closed:'#4b5563'}[lead.status||'new']||'#34d399';
+    var statusDot = {new:'#34d399',contacted:'#60a5fa',followup:'#fbbf24',meeting:'#a78bfa',negotiation:'#818cf8',won:'#10b981',lost:'#ef4444',ghosted:'#6b7280',not_relevant:'#374151',future_potential:'#f59e0b',referred_us:'#fbbf24'}[lead.status||'new']||'#34d399';
 
     var platformTag = (lead.platform||enr.platform_current)
       ? '<span class="_lbar-tag">'+(lead.platform||enr.platform_current).replace(/[<>]/g,'')+'</span>' : '';
@@ -5456,6 +5462,13 @@ BP6-10: תעדף (פלטפורמה ישנה+דומיין+6+ אירועים), Dis
       }
       // Signal: analysis completed
       if (window._signalOnAnalysis) window._signalOnAnalysis(leadId, lead.ai_analysis);
+      // שמור מתי הניתוח הושלם — לבדיקת email conversion
+      lead.analysis_completed_at = new Date().toISOString();
+      lead.post_analysis_emailed = false;
+      window._sb.update('leads','id=eq.'+leadId,{
+        analysis_completed_at: lead.analysis_completed_at,
+        post_analysis_emailed: false
+      }).catch(function(){});
       renderSimpleLead(lead);
       // Show Meta-Judge completion toast
       if (typeof window._showMetaJudgeToast === 'function') {
@@ -6286,9 +6299,16 @@ BP6-10: תעדף (פלטפורמה ישנה+דומיין+6+ אירועים), Dis
   box-shadow: 0 0 0 1px rgba(59,130,246,0.1) !important;
 }
 .lead-card[data-status="new"]       { border-right: 3px solid #10b981 !important; }
-.lead-card[data-status="contacted"] { border-right: 3px solid #3b82f6 !important; }
-.lead-card[data-status="followup"]  { border-right: 3px solid #f59e0b !important; }
-.lead-card[data-status="meeting"]   { border-right: 3px solid #8b5cf6 !important; }
+.lead-card[data-status="contacted"]       { border-right: 3px solid #3b82f6 !important; }
+.lead-card[data-status="followup"]        { border-right: 3px solid #f59e0b !important; }
+.lead-card[data-status="meeting"]         { border-right: 3px solid #8b5cf6 !important; }
+.lead-card[data-status="negotiation"]     { border-right: 3px solid #818cf8 !important; }
+.lead-card[data-status="won"]             { border-right: 3px solid #10b981 !important; }
+.lead-card[data-status="lost"]            { border-right: 3px solid #ef4444 !important; }
+.lead-card[data-status="ghosted"]         { border-right: 3px solid #6b7280 !important; }
+.lead-card[data-status="not_relevant"]    { border-right: 3px solid #374151 !important; }
+.lead-card[data-status="future_potential"]{ border-right: 3px solid #f59e0b !important; }
+.lead-card[data-status="referred_us"]     { border-right: 3px solid #fbbf24 !important; }
 .lead-card[data-status="closed"]    { border-right: 3px solid #6b7280 !important; }
 
 /* ── Card header layout ── */
@@ -6955,7 +6975,7 @@ addSalesPlaybookPanel();
           <div style="font-size:20px;font-weight:800;color:var(--text)">✅ לוח משימות</div>
           <div style="font-size:11px;color:rgba(196,196,204,0.75);margin-top:2px">ניהול משותף — אורן ו-Claude</div>
         </div>
-        <button onclick="window.openAddTask()" 
+        <button onclick="window.openAddTask()"
           style="background:var(--accent);border:none;border-radius:10px;padding:9px 20px;
                  color:#fff;font-size:13px;font-weight:700;cursor:pointer;font-family:Heebo,sans-serif;
                  display:flex;align-items:center;gap:6px">
@@ -7268,7 +7288,7 @@ addSalesPlaybookPanel();
         '<select id="v3-fst" onchange="filterV3()" style="background:var(--surface2);border:1px solid var(--border);border-radius:6px;padding:5px 8px;color:var(--text);font-size:11px;font-family:Heebo,sans-serif;outline:none">' +
           '<option value="">כל הסטטוסים</option>' +
           '<option value="new">🟢 חדש</option><option value="contacted">📧 נשלח מייל</option>' +
-          '<option value="followup">🔁 Follow-up</option><option value="meeting">📅 פגישה</option><option value="closed">✅ נסגר</option>' +
+          '<option value="followup">🔁 Follow-up</option><option value="meeting">📅 פגישה</option><option value="negotiation">🤝 משא ומתן</option><option value="won">✅ נסגר</option><option value="ghosted">👻 לא מגיב</option><option value="future_potential">⏳ עתידי</option><option value="referred_us">🌟 הפנה אותנו</option>' +
         '</select>' +
         '<select id="v3-fsrc" onchange="filterV3()" style="background:var(--surface2);border:1px solid var(--border);border-radius:6px;padding:5px 8px;color:var(--text);font-size:11px;font-family:Heebo,sans-serif;outline:none">' +
           '<option value="">כל המקורות</option>' +
@@ -7445,85 +7465,17 @@ addSalesPlaybookPanel();
     huntState.step = 0;
   }
 
-;
 
-  window.huntAddLead = async function huntAddLead(lead, btn) {
-    var now = new Date().toISOString();
 
-    // ── בדיקת דומיין (HTTP HEAD) ──
-    var domainOk = null;
-    if (lead.domain) {
-      try {
-        var chk = await fetch('https://'+lead.domain.replace(/^https?:\/\//,''), {method:'HEAD', signal:AbortSignal.timeout(5000), mode:'no-cors'});
-        domainOk = true;
-      } catch(e) { domainOk = false; }
-    }
-
-    // ── בדיקת טלפון (פורמט ישראלי) ──
-    var phoneOk = null;
-    if (lead.phone) {
-      phoneOk = /^(\+972|0)(5[0-9]|[2-9]\d)[\d\-]{6,8}$/.test(lead.phone.replace(/\s/g,''));
-    }
-
-    var validationNotes = [];
-    if (domainOk === false) { validationNotes.push('⚠️ אתר לא נגיש'); }
-    if (phoneOk === false)  { validationNotes.push('⚠️ טלפון לא תקין'); }
-    if (domainOk === true)  { validationNotes.push('✅ אתר פעיל'); }
-    if (phoneOk === true)   { validationNotes.push('✅ טלפון תקין'); }
-
-    var newLead = {
-      name:       lead.name     || '',
-      domain:     lead.domain   || '',
-      phone:      lead.phone    || '',
-      segment:    lead.segment  || '',
-      platform:   lead.platform || lead.platform_current || '',
-      score:      lead.score    || 50,
-      tier:       lead.tier     || 'B',
-      status:     'new',
-      source:     'ai-hunt',
-      created_at: now,
-      updated_at: now,
-      notes: ['נמצא ע"י AI Hunt.', lead.reason||'', validationNotes.join(' | ')].filter(Boolean).join(' '),
-      enrichment: {
-        domain_verified: domainOk,
-        phone_verified:  phoneOk,
-        verified_at:     now,
-        size_estimate:   lead.size_estimate   || '',
-        events_per_year: lead.events_per_year || '',
-        estimated_annual_fees: lead.estimated_annual_fees || ''
-      }
-    };
-
-    // ── Route through central entry point ──
-    window.addLeadToCRM(newLead, {source: 'hunt'});
-
-    // ── רשום ב-hunt_learnings ──
-    window._huntRecordFound(lead.segment, lead.platform_current || lead.platform, lead.score);
-    // ── Signal: hunt_found + validation signals ──
-    if (window._signalRecord && newLead.id) {
-      window._signalRecord(newLead.id, 'hunt_found', { segment: newLead.segment, score: newLead.score });
-      if (domainOk === true)  window._signalRecord(newLead.id, 'hunt_domain_verified', {});
-      if (domainOk === false) window._signalRecord(newLead.id, 'hunt_domain_failed',   {});
-      if (phoneOk  === true)  window._signalRecord(newLead.id, 'hunt_phone_valid',     {});
-      if (phoneOk  === false) window._signalRecord(newLead.id, 'hunt_phone_invalid',   {});
-    }
-
-    if (typeof updateStats === 'function') updateStats();
-    // Visual feedback
-    if (btn) { btn.textContent = domainOk === false ? '⚠️ נוסף (בדוק)' : '✅ נוסף!'; btn.disabled = true; }
-  };
 
 
   // ══════════════════════════════════════════════════════════════
   //  HUNT LEARNINGS — Self-improving search engine
-  //  Tracks: what segments/platforms/geos produce closed deals
   // ══════════════════════════════════════════════════════════════
 
-  // רשום ליד שנמצא
   window._huntRecordFound = async function(segment, platform, score) {
     if (!segment) return;
     try {
-      // Upsert: increment leads_found, update avg_score
       var existing = await window._sb.get('hunt_learnings',
         'segment=eq.'+encodeURIComponent(segment||'')+'&platform=eq.'+encodeURIComponent(platform||'')+'&geo=eq.ארצי&limit=1'
       ).catch(function(){return [];});
@@ -7533,30 +7485,22 @@ addSalesPlaybookPanel();
         var newFound = (row.leads_found||0) + 1;
         var newAvg   = Math.round(((row.avg_lead_score||0)*(newFound-1) + (score||50)) / newFound);
         await window._sb.update('hunt_learnings','id=eq.'+row.id,{
-          leads_found:    newFound,
-          avg_lead_score: newAvg,
-          last_hunt_at:   now,
-          updated_at:     now
+          leads_found: newFound, avg_lead_score: newAvg,
+          last_hunt_at: now, updated_at: now
         }).catch(function(){});
       } else {
         await window._sb.insert('hunt_learnings',{
-          segment:        segment||'',
-          platform:       platform||'',
-          geo:            'ארצי',
-          leads_found:    1,
-          avg_lead_score: score||50,
-          last_hunt_at:   now
+          segment: segment||'', platform: platform||'', geo: 'ארצי',
+          leads_found: 1, avg_lead_score: score||50, last_hunt_at: now
         }).catch(function(){});
       }
     } catch(e) { console.warn('[Hunt] _huntRecordFound:', e.message); }
   };
 
-  // עדכן תוצאת עסקה → המוח לומד
   window._huntRecordOutcome = async function(leadId, won) {
     var lead = leads && leads.find(function(l){ return l.id===leadId; });
-    if (!lead || lead.source !== 'ai-hunt') return; // רק לידים מ-Hunt
-    var segment  = lead.segment  || '';
-    var platform = lead.platform || '';
+    if (!lead || lead.source !== 'ai-hunt') return;
+    var segment = lead.segment || '', platform = lead.platform || '';
     if (!segment) return;
     try {
       var existing = await window._sb.get('hunt_learnings',
@@ -7565,32 +7509,20 @@ addSalesPlaybookPanel();
       var now = new Date().toISOString();
       if (existing && existing.length) {
         var row = existing[0];
-        var newWon    = (row.leads_won||0)  + (won ? 1 : 0);
-        var newLost   = (row.leads_lost||0) + (won ? 0 : 1);
-        var newAdded  = (row.leads_added||0) + 1;
-        var totalDone = newWon + newLost;
-        var newRate   = totalDone > 0 ? Math.round((newWon / totalDone) * 100) : 0;
-        var update = {
-          leads_added:  newAdded,
-          leads_won:    newWon,
-          leads_lost:   newLost,
-          win_rate:     newRate,
-          updated_at:   now
-        };
-        if (won)  update.last_won_at  = now;
-        if (!won) update.last_lost_at = now;
-        await window._sb.update('hunt_learnings','id=eq.'+row.id, update).catch(function(){});
-        console.log('[Hunt] Learning updated — '+segment+'/'+platform+' win_rate:'+newRate+'%');
+        var newWon = (row.leads_won||0)+(won?1:0), newLost = (row.leads_lost||0)+(won?0:1);
+        var newAdded = (row.leads_added||0)+1, totalDone = newWon+newLost;
+        var newRate = totalDone>0 ? Math.round((newWon/totalDone)*100) : 0;
+        var upd = {leads_added:newAdded,leads_won:newWon,leads_lost:newLost,win_rate:newRate,updated_at:now};
+        if (won) upd.last_won_at=now; else upd.last_lost_at=now;
+        await window._sb.update('hunt_learnings','id=eq.'+row.id,upd).catch(function(){});
+        console.log('[Hunt] Learning updated — '+segment+' win_rate:'+newRate+'%');
       }
     } catch(e) { console.warn('[Hunt] _huntRecordOutcome:', e.message); }
   };
 
-  // טען learnings לשיפור החיפוש הבא
   window._huntLoadLearnings = async function() {
     try {
-      var rows = await window._sb.get('hunt_learnings',
-        'order=win_rate.desc&limit=20'
-      ).catch(function(){return [];});
+      var rows = await window._sb.get('hunt_learnings','order=win_rate.desc&limit=20').catch(function(){return [];});
       return rows || [];
     } catch(e) { return []; }
   };
@@ -8833,9 +8765,17 @@ window._cleanForFirebase = function _cleanForFirebase(obj) {
       }, stepTimes[i]);
     });
 
-    // ── טען learnings — מה עבד בעבר ──
+    // ── טען learnings + brain analysis ──
     var huntLearnings = [];
+    var brainInsights = null;
     try { huntLearnings = await window._huntLoadLearnings(); } catch(e) {}
+    try {
+      var logs = await window._sb.get('brain_analysis_log',
+        'analysis_type=eq.signal_pattern_analysis&order=generated_at.desc&limit=1'
+      ).catch(function(){return [];});
+      if (logs && logs.length) brainInsights = logs[0].findings;
+    } catch(e) {}
+
     var topSegments = huntLearnings
       .filter(function(r){ return r.win_rate > 0; })
       .slice(0, 3)
@@ -8844,6 +8784,19 @@ window._cleanForFirebase = function _cleanForFirebase(obj) {
       .filter(function(r){ return r.win_rate > 0 && r.platform; })
       .slice(0, 2)
       .map(function(r){ return r.platform; });
+
+    // הוסף segments מה-brain analysis log
+    if (brainInsights && brainInsights.top_segments) {
+      brainInsights.top_segments.forEach(function(s) {
+        if (s.confidence > 0.6 && topSegments.indexOf(s.segment) === -1) {
+          topSegments.push(s.segment);
+        }
+      });
+    }
+    // הצג warnings בקונסול
+    if (brainInsights && brainInsights.warnings && brainInsights.warnings.length) {
+      console.log('[Hunt] ⚠️ Brain warnings:', brainInsights.warnings.join(' | '));
+    }
     if (topSegments.length) {
       console.log('[Hunt] Learning-based boost → segments:', topSegments.join(', '));
     }
@@ -9097,87 +9050,6 @@ window._cleanForFirebase = function _cleanForFirebase(obj) {
     if (btn) { btn.textContent = domainOk === false ? '⚠️ נוסף (בדוק)' : '✅ נוסף!'; btn.disabled = true; }
   };
 
-
-  // ══════════════════════════════════════════════════════════════
-  //  HUNT LEARNINGS — Self-improving search engine
-  //  Tracks: what segments/platforms/geos produce closed deals
-  // ══════════════════════════════════════════════════════════════
-
-  // רשום ליד שנמצא
-  window._huntRecordFound = async function(segment, platform, score) {
-    if (!segment) return;
-    try {
-      // Upsert: increment leads_found, update avg_score
-      var existing = await window._sb.get('hunt_learnings',
-        'segment=eq.'+encodeURIComponent(segment||'')+'&platform=eq.'+encodeURIComponent(platform||'')+'&geo=eq.ארצי&limit=1'
-      ).catch(function(){return [];});
-      var now = new Date().toISOString();
-      if (existing && existing.length) {
-        var row = existing[0];
-        var newFound = (row.leads_found||0) + 1;
-        var newAvg   = Math.round(((row.avg_lead_score||0)*(newFound-1) + (score||50)) / newFound);
-        await window._sb.update('hunt_learnings','id=eq.'+row.id,{
-          leads_found:    newFound,
-          avg_lead_score: newAvg,
-          last_hunt_at:   now,
-          updated_at:     now
-        }).catch(function(){});
-      } else {
-        await window._sb.insert('hunt_learnings',{
-          segment:        segment||'',
-          platform:       platform||'',
-          geo:            'ארצי',
-          leads_found:    1,
-          avg_lead_score: score||50,
-          last_hunt_at:   now
-        }).catch(function(){});
-      }
-    } catch(e) { console.warn('[Hunt] _huntRecordFound:', e.message); }
-  };
-
-  // עדכן תוצאת עסקה → המוח לומד
-  window._huntRecordOutcome = async function(leadId, won) {
-    var lead = leads && leads.find(function(l){ return l.id===leadId; });
-    if (!lead || lead.source !== 'ai-hunt') return; // רק לידים מ-Hunt
-    var segment  = lead.segment  || '';
-    var platform = lead.platform || '';
-    if (!segment) return;
-    try {
-      var existing = await window._sb.get('hunt_learnings',
-        'segment=eq.'+encodeURIComponent(segment)+'&platform=eq.'+encodeURIComponent(platform)+'&geo=eq.ארצי&limit=1'
-      ).catch(function(){return [];});
-      var now = new Date().toISOString();
-      if (existing && existing.length) {
-        var row = existing[0];
-        var newWon    = (row.leads_won||0)  + (won ? 1 : 0);
-        var newLost   = (row.leads_lost||0) + (won ? 0 : 1);
-        var newAdded  = (row.leads_added||0) + 1;
-        var totalDone = newWon + newLost;
-        var newRate   = totalDone > 0 ? Math.round((newWon / totalDone) * 100) : 0;
-        var update = {
-          leads_added:  newAdded,
-          leads_won:    newWon,
-          leads_lost:   newLost,
-          win_rate:     newRate,
-          updated_at:   now
-        };
-        if (won)  update.last_won_at  = now;
-        if (!won) update.last_lost_at = now;
-        await window._sb.update('hunt_learnings','id=eq.'+row.id, update).catch(function(){});
-        console.log('[Hunt] Learning updated — '+segment+'/'+platform+' win_rate:'+newRate+'%');
-      }
-    } catch(e) { console.warn('[Hunt] _huntRecordOutcome:', e.message); }
-  };
-
-  // טען learnings לשיפור החיפוש הבא
-  window._huntLoadLearnings = async function() {
-    try {
-      var rows = await window._sb.get('hunt_learnings',
-        'order=win_rate.desc&limit=20'
-      ).catch(function(){return [];});
-      return rows || [];
-    } catch(e) { return []; }
-  };
 
   // ══════════════════════════════════════════════════
   // SAVED LEAD RESULTS — save/delete found leads per search
@@ -9786,9 +9658,16 @@ window._cleanForFirebase = function _cleanForFirebase(obj) {
   box-shadow: 0 0 0 1px rgba(59,130,246,0.1) !important;
 }
 .lead-card[data-status="new"]       { border-right: 3px solid #10b981 !important; }
-.lead-card[data-status="contacted"] { border-right: 3px solid #3b82f6 !important; }
-.lead-card[data-status="followup"]  { border-right: 3px solid #f59e0b !important; }
-.lead-card[data-status="meeting"]   { border-right: 3px solid #8b5cf6 !important; }
+.lead-card[data-status="contacted"]       { border-right: 3px solid #3b82f6 !important; }
+.lead-card[data-status="followup"]        { border-right: 3px solid #f59e0b !important; }
+.lead-card[data-status="meeting"]         { border-right: 3px solid #8b5cf6 !important; }
+.lead-card[data-status="negotiation"]     { border-right: 3px solid #818cf8 !important; }
+.lead-card[data-status="won"]             { border-right: 3px solid #10b981 !important; }
+.lead-card[data-status="lost"]            { border-right: 3px solid #ef4444 !important; }
+.lead-card[data-status="ghosted"]         { border-right: 3px solid #6b7280 !important; }
+.lead-card[data-status="not_relevant"]    { border-right: 3px solid #374151 !important; }
+.lead-card[data-status="future_potential"]{ border-right: 3px solid #f59e0b !important; }
+.lead-card[data-status="referred_us"]     { border-right: 3px solid #fbbf24 !important; }
 .lead-card[data-status="closed"]    { border-right: 3px solid #6b7280 !important; }
 
 /* ── Card header layout ── */
@@ -11326,7 +11205,10 @@ var SIGNAL_WEIGHTS = {
   similar_to_previous_winner:    +35,
   similar_to_previous_loser:     -25,
   new_pattern_detected:          +15,
-  anomaly_detected:              0
+  anomaly_detected:              0,
+  // email conversion after analysis
+  post_analysis_email_sent:     +35,
+  post_analysis_no_action:      -20
 };
 
 // ── פונקציה מרכזית — רישום סיגנל ──────────────────────────────
@@ -11350,12 +11232,20 @@ window._signalRecord = async function(leadId, signalType, metadata) {
 // ── סיגנל שינוי סטטוס ──────────────────────────────────────────
 window._signalOnStatusChange = function(leadId, newStatus, lead) {
   var statusMap = {
-    'contacted':  'status_contacted',
-    'followup':   'status_followup',
-    'meeting':    'status_meeting',
-    'closed':     'status_won',
-    'lost':       'status_lost',
-    'ghosted':    'status_ghosted'
+    'contacted':       'status_contacted',
+    'followup':        'status_followup',
+    'meeting':         'status_meeting',
+    'negotiation':     'status_negotiation',
+    'won':             'status_won',
+    'lost':            'status_lost',
+    'ghosted':         'status_ghosted',
+    'not_relevant':    'status_not_relevant',
+    'future_potential':'status_future_potential',
+    'referred_us':     'status_referred_us_to_other',
+    // legacy
+    'closed':          'status_won',
+    'closed_won':      'status_won',
+    'closed_lost':     'status_lost'
   };
   var sig = statusMap[newStatus];
   if (sig) window._signalRecord(leadId, sig, {
@@ -11386,11 +11276,36 @@ window._signalOnAnalysis = function(leadId, result) {
 // ── סיגנל מייל נשלח ─────────────────────────────────────────────
 window._signalEmailSent = function(leadId, meta) {
   window._signalRecord(leadId, 'email_sent', meta || {});
+  var lead = leads && leads.find(function(l){ return l.id === leadId; });
+  if (lead) {
+    var now = new Date().toISOString();
+    lead.last_contacted_at = now;
+    lead.updated_at        = now;
+    // האם זה המייל הראשון אחרי ניתוח?
+    if (lead.analysis_completed_at && !lead.post_analysis_emailed) {
+      lead.post_analysis_emailed = true;
+      var hoursToAct = Math.round((Date.now() - new Date(lead.analysis_completed_at).getTime()) / 3600000);
+      window._signalRecord(leadId, 'post_analysis_email_sent', {
+        hours_to_act:  hoursToAct,
+        score:         lead.score,
+        tier:          lead.tier,
+        segment:       lead.segment
+      });
+      console.log('[Signal] ✅ Post-analysis email sent — '+hoursToAct+'h after analysis, score:'+lead.score);
+    }
+    window._sb.update('leads','id=eq.'+leadId,{
+      last_contacted_at:    lead.last_contacted_at,
+      post_analysis_emailed: true,
+      updated_at:           now
+    }).catch(function(){});
+  }
 };
 
 // ── זיהוי סיגנל no_reply (background check) ─────────────────────
 window._checkNoReplySignals = async function() {
   var now = Date.now();
+
+  // ── no-reply signals ──
   var leads3d  = leads.filter(function(l) {
     if (!l.last_contacted_at) return false;
     var diff = (now - new Date(l.last_contacted_at).getTime()) / 86400000;
@@ -11409,12 +11324,68 @@ window._checkNoReplySignals = async function() {
   var stale30 = leads.filter(function(l) {
     if (!l.updated_at) return false;
     var diff = (now - new Date(l.updated_at).getTime()) / 86400000;
-    return diff >= 30 && l.status !== 'won' && l.status !== 'lost';
+    return diff >= 30 && l.status !== 'won' && l.status !== 'lost'
+        && l.status !== 'not_relevant' && l.status !== 'future_potential';
   });
   leads3d.forEach(function(l)  { window._signalRecord(l.id, 'no_reply_3d',  { segment: l.segment }); });
   leads7d.forEach(function(l)  { window._signalRecord(l.id, 'no_reply_7d',  { segment: l.segment }); });
   leads14d.forEach(function(l) { window._signalRecord(l.id, 'no_reply_14d', { segment: l.segment }); });
   stale30.forEach(function(l)  { window._signalRecord(l.id, 'stale_30d',    { segment: l.segment }); });
+
+  // ── post_analysis_no_action — לא נשלח מייל תוך 7 ימים מהניתוח ──
+  var noAction = leads.filter(function(l) {
+    if (!l.analysis_completed_at) return false;
+    if (l.post_analysis_emailed)  return false;
+    if (l.status === 'won' || l.status === 'lost' || l.status === 'not_relevant') return false;
+    var diff = (now - new Date(l.analysis_completed_at).getTime()) / 86400000;
+    return diff >= 7;
+  });
+  noAction.forEach(function(l) {
+    window._signalRecord(l.id, 'post_analysis_no_action', {
+      days_since_analysis: Math.floor((now - new Date(l.analysis_completed_at).getTime()) / 86400000),
+      score:   l.score,
+      tier:    l.tier,
+      segment: l.segment
+    });
+  });
+  if (noAction.length > 0) {
+    console.log('[Signal] ⚠️ '+noAction.length+' leads analyzed but never emailed');
+  }
+
+  // ── future_potential — תזכורת אחרי 90 יום ──
+  var toReengage = leads.filter(function(l) {
+    if (l.status !== 'future_potential') return false;
+    if (!l.updated_at) return false;
+    var diff = (now - new Date(l.updated_at).getTime()) / 86400000;
+    return diff >= 90;
+  });
+  if (toReengage.length > 0) {
+    // הצג toast
+    var names = toReengage.slice(0,3).map(function(l){return l.name||l.domain||'ליד';}).join(', ');
+    var toast = document.createElement('div');
+    toast.style.cssText = 'position:fixed;bottom:70px;left:50%;transform:translateX(-50%);background:rgba(17,12,34,0.97);border:1px solid rgba(245,158,11,0.5);border-radius:12px;padding:12px 20px;font-size:12px;color:#fbbf24;font-family:Heebo,sans-serif;z-index:9999;font-weight:700;cursor:pointer;direction:rtl;max-width:340px;text-align:center';
+    toast.innerHTML = '⏳ '+toReengage.length+' ליד/ים עתידיים מחכים לחזרה:<br><span style="font-weight:400;font-size:11px">'+names+'</span>';
+    toast.onclick   = function(){ toast.remove(); };
+    document.body.appendChild(toast);
+    setTimeout(function(){ if(toast.parentNode) toast.remove(); }, 8000);
+    // רשום signal re-engagement
+    toReengage.forEach(function(l) {
+      window._signalRecord(l.id, 'reengaged_after_stale', { days_stale: Math.floor((now - new Date(l.updated_at).getTime())/86400000) });
+    });
+    console.log('[Brain] ⏳ Re-engage reminders:', toReengage.map(function(l){return l.name;}).join(', '));
+  }
+
+  // ── referred_us — signal חזק, תודה + follow-up ──
+  var referred = leads.filter(function(l) {
+    if (l.status !== 'referred_us') return false;
+    if (!l.updated_at) return false;
+    var diff = (now - new Date(l.updated_at).getTime()) / 86400000;
+    return diff >= 14 && !l.enrichment?.referred_followup_sent;
+  });
+  referred.forEach(function(l) {
+    window._signalRecord(l.id, 'status_referred_us_to_other', { segment: l.segment });
+    console.log('[Brain] 🌟 Referred lead needs follow-up:', l.name);
+  });
 };
 
 // ══════════════════════════════════════════════════════════════════
