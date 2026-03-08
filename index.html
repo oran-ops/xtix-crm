@@ -3865,7 +3865,8 @@ BP18: Nurture existing customers — repeat customers spend 67% more
       for (const lead of leads) {
         const clean = Object.assign({}, lead);
         delete clean._nextId;
-        delete clean.type;  // Supabase לא מכיר 'type' — משתמשים ב-segment
+        delete clean.type;           // Supabase לא מכיר 'type'
+        delete clean.enrichment_raw; // לא שדה DB
         if (!clean.created_at) clean.created_at = new Date().toISOString();
         clean.updated_at = new Date().toISOString();
         // Skip leads with old Firebase numeric IDs (not UUID format)
@@ -5722,7 +5723,12 @@ BP6-10: תעדף (פלטפורמה ישנה+דומיין+6+ אירועים), Dis
       // Save analysis back to Supabase (UUID leads only)
       var _isUUID = leadId && /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(String(leadId));
       if (_isUUID) {
-        window._sb.update('leads','id=eq.'+leadId,lead).catch(function(e){console.warn('[AI Supabase]',e);});
+        // נקה שדות שSB לא מכיר לפני update
+        var _leadUpdate = Object.assign({}, lead);
+        delete _leadUpdate.type;
+        delete _leadUpdate._nextId;
+        delete _leadUpdate.enrichment_raw;
+        window._sb.update('leads','id=eq.'+leadId,_leadUpdate).catch(function(e){console.warn('[AI Supabase]',e);});
       } else {
         console.warn('[AI] Skipping save - non-UUID lead ID:', leadId);
       }
