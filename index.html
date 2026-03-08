@@ -5388,8 +5388,8 @@ ${proxyCtx}
         segment:              basic.segment              || lead.type || '',
         platform_current:     basic.platform_current     || '',
         platform_weakness:    basic.platform_weakness    || '',
-        estimated_fees:       basic.estimated_annual_fees || '',
-        estimated_savings:    basic.estimated_xtix_savings || '',
+        estimated_fees:       parseFloat(String(basic.estimated_annual_fees||'0').replace(/[^0-9.]/g,'')) || 0,
+        estimated_savings:    parseFloat(String(basic.estimated_xtix_savings||'0').replace(/[^0-9.]/g,'')) || 0,
         pain_points:          basic.pain_points          || [],
         xtix_advantages:      basic.xtix_advantages      || [],
         pitch:                basic.pitch                || '',
@@ -5421,10 +5421,10 @@ ${proxyCtx}
       contact_title:        basic.contact_title        || lead.contact_title  || '',
       geographic_area:      basic.geographic_area      || lead.geographic_area|| '',
       first_email_subject:  basic.first_email_subject  || _firstSubj || lead.first_email_subject || '',
-      estimated_annual_fees: basic.estimated_annual_fees || lead.estimated_annual_fees || 0,
-      estimated_xtix_savings: basic.estimated_xtix_savings || lead.estimated_xtix_savings || 0,
-      events_per_year:      basic.events_per_year      || lead.events_per_year || 0,
-      audience_size:        basic.audience_size        || lead.audience_size   || 0,
+      estimated_annual_fees: parseFloat(String(basic.estimated_annual_fees||lead.estimated_annual_fees||'0').replace(/[^0-9.]/g,'')) || 0,
+      estimated_xtix_savings: parseFloat(String(basic.estimated_xtix_savings||lead.estimated_xtix_savings||'0').replace(/[^0-9.]/g,'')) || 0,
+      events_per_year:      parseInt(basic.events_per_year || lead.events_per_year) || 0,
+      audience_size:        parseInt(basic.audience_size  || lead.audience_size)   || 0,
       status:               lead.status    || 'new',
       updated_at:           new Date().toISOString()
     };
@@ -9419,16 +9419,21 @@ window._cleanForFirebase = function _cleanForFirebase(obj) {
     var newLead = {
       name:       lead.name     || '',
       domain:     lead.domain   || '',
+      email:      lead.email    || '',
       phone:      lead.phone    || '',
       segment:    lead.segment  || '',
       platform:   lead.platform || lead.platform_current || '',
       competitor: lead.platform_current || lead.platform || '',
-      score:      lead.score    || 50,
+      score:      parseInt(lead.score) || 50,
       tier:       lead.tier     || 'B',
       status:     'new',
       source:     'ai-hunt',
       hunt_query: lead.hunt_query || lead.query || '',
-      hunt_source_score: lead.score || 50,
+      hunt_source_score: parseInt(lead.score) || 50,
+      events_per_year:   parseInt(lead.events_per_year) || 0,
+      estimated_annual_fees:  parseFloat(String(lead.estimated_annual_fees||'0').replace(/[^0-9.]/g,'')) || 0,
+      estimated_xtix_savings: parseFloat(String(lead.estimated_xtix_savings||lead.estimated_savings||'0').replace(/[^0-9.]/g,'')) || 0,
+      audience_size:     parseInt(lead.audience_size) || 0,
       created_at: now,
       updated_at: now,
       notes: ['נמצא ע"י AI Hunt.', lead.reason||'', validationNotes.join(' | ')].filter(Boolean).join(' '),
@@ -9437,8 +9442,8 @@ window._cleanForFirebase = function _cleanForFirebase(obj) {
         phone_verified:  phoneOk,
         verified_at:     now,
         size_estimate:   lead.size_estimate   || '',
-        events_per_year: lead.events_per_year || '',
-        estimated_annual_fees: lead.estimated_annual_fees || ''
+        events_per_year: parseInt(lead.events_per_year) || 0,
+        estimated_annual_fees: parseFloat(String(lead.estimated_annual_fees||'0').replace(/[^0-9.]/g,'')) || 0
       }
     };
 
