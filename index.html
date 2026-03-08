@@ -3892,7 +3892,7 @@ BP18: Nurture existing customers — repeat customers spend 67% more
     showStorageStatus('loading');
     try {
       // Load from Supabase
-      const rows = await window._sb.get('leads', 'order=id.asc');
+      const rows = await window._sb.get('leads', 'order=created_at.desc&limit=2000');
       leads = rows || [];
       // Reset any 'running' status stuck from previous session
       leads.forEach(function(l) {
@@ -4486,7 +4486,7 @@ window._editLeadSave = function(lid){
   window.resetStorage = async function resetStorage() {
     if (!confirm('למחוק את כל הלידים ולחזור לברירת המחדל?')) return;
     try {
-      const allLeads = await window._sb.get('leads','order=id.asc');
+      const allLeads = await window._sb.get('leads','order=created_at.desc&limit=2000');
       for (const l of allLeads) { await window._sb.delete('leads','id=eq.'+l.id).catch(()=>{}); }
     } catch(e) {}
     localStorage.removeItem(STORAGE_KEY);
@@ -11478,6 +11478,9 @@ var SIGNAL_WEIGHTS = {
   reengaged_after_stale:         +15,
   stale_30d:                     -20,
   status_referred_us_to_other:   +30,
+  // ── Hunt feedback signals ──
+  hunt_feedback_good:            +12,
+  hunt_feedback_bad:             -8,
   no_reply_3d:                   -10,
   no_reply_7d:                   -20,
   no_reply_14d:                  -35,
@@ -12268,6 +12271,23 @@ window._applyAndyRec = function(segEnc, geoEnc) {
   if (typeof showToast === 'function') showToast('🧠 ANDY מילא: '+seg+' — '+geo, 'info');
 };
 
+// ── showToast — global toast notification ──────────────────────
+function showToast(msg, type) {
+  var t = document.createElement('div');
+  var bg = type === 'error' ? 'rgba(239,68,68,0.95)' :
+           type === 'success' ? 'rgba(16,185,129,0.95)' :
+           'rgba(99,102,241,0.95)';
+  t.style.cssText = 'position:fixed;bottom:24px;right:24px;z-index:99999;'+
+    'background:'+bg+';color:#fff;font-size:13px;font-weight:600;'+
+    'padding:10px 18px;border-radius:10px;box-shadow:0 4px 20px rgba(0,0,0,0.4);'+
+    'max-width:320px;animation:_fadeIn 0.2s ease;cursor:pointer;';
+  t.textContent = msg;
+  t.onclick = function(){ t.remove(); };
+  document.body.appendChild(t);
+  setTimeout(function(){ if (t.parentNode) t.remove(); }, 4000);
+}
+window.showToast = showToast;
+
 // ── 3. הצג insight ב-Step 4 ──────────────────────────────────
 window._showAndyInsight = async function(seg, geo) {
   var box  = document.getElementById('andy-insight-box');
@@ -12277,7 +12297,7 @@ window._showAndyInsight = async function(seg, geo) {
   text.textContent  = '⏳ ANDY מחשב...';
   try {
     var rows = await window._sb.get('hunt_learnings',
-      'segment=eq.'+seg+'&limit=1');
+      'segment=eq.'+encodeURIComponent(seg)+'&limit=1');
     if (rows && rows[0]) {
       var r = rows[0];
       var wr = Math.round(r.win_rate||0);
@@ -12321,7 +12341,7 @@ window._huntFeedback = function(idx, type, meta) {
     } else {
       // ללא ליד ספציפי — שמור ב-hunt_learnings feedback counter (async, silent)
       if (window._sb && isGood) {
-        window._sb.get('hunt_learnings', 'segment=eq.'+(meta.segment||'')+'&limit=1')
+        window._sb.get('hunt_learnings', 'segment=eq.'+encodeURIComponent(meta.segment||'')+'&limit=1')
           .then(function(rows) {
             if (rows && rows[0]) {
               var now = new Date().toISOString();
@@ -12637,6 +12657,7 @@ window._huntFromCompetitor = function(compName) {
       document.querySelectorAll('#hunt-competitors input[type=checkbox]').forEach(function(cb) {
         if (cb.value === compName) { cb.checked = true; if(cb.closest('.hunt-chip')) cb.closest('.hunt-chip').style.borderColor = '#a78bfa'; }
       });
+      if (typeof huntGoStep === 'function') huntGoStep(1);
       if (typeof showToast === 'function') showToast('🎯 Hunt לקוחות '+compName+' — בחר שוק ולחץ הפעל', 'info');
     }, 200);
   }, 100);
