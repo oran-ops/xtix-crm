@@ -3863,21 +3863,28 @@ BP18: Nurture existing customers — repeat customers spend 67% more
   // ── Save to Supabase (primary) ──────────────────────────────────────
   async function saveLeads() {
     try {
-      // Upsert all leads to Supabase
-      for (const lead of leads) {
-        const clean = Object.assign({}, lead);
+      var CHUNK = 50;
+      var toSave = leads.map(function(lead) {
+        var clean = Object.assign({}, lead);
         ['_nextId','type','enrichment_raw','days_to_close','url'].forEach(function(f){ delete clean[f]; });
         if (!clean.created_at) clean.created_at = new Date().toISOString();
         clean.updated_at = new Date().toISOString();
-        // Skip leads with old Firebase numeric IDs (not UUID format)
-        const isUUID = clean.id && /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(String(clean.id));
-        if (!isUUID) {
-          delete clean.id; // Let Supabase generate UUID
-        }
-        await window._sb.insert('leads', clean).catch(async (e) => {
-          // If insert fails (duplicate UUID), try update
-          if (isUUID) {
-            await window._sb.update('leads', 'id=eq.' + clean.id, clean).catch(()=>{});
+        // Strip non-UUID ids so Supabase generates them
+        var isUUID = clean.id && /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(String(clean.id));
+        if (!isUUID) delete clean.id;
+        return clean;
+      });
+      // Batch upsert in chunks of 50 (avoids rate-limit + single API call per chunk)
+      for (var ci = 0; ci < toSave.length; ci += CHUNK) {
+        var chunk = toSave.slice(ci, ci + CHUNK);
+        await window._sb.insert('leads', chunk).catch(async function(e) {
+          // Chunk failed — fall back to individual upserts
+          console.warn('[Save] Batch failed, falling back:', e.message);
+          for (var j = 0; j < chunk.length; j++) {
+            var c = chunk[j];
+            await window._sb.insert('leads', c).catch(async function(e2) {
+              if (c.id) await window._sb.update('leads','id=eq.'+c.id, c).catch(function(){});
+            });
           }
         });
       }
@@ -4480,7 +4487,7 @@ window._editLeadSave = function(lid){
     // Render ALL leads dynamically
     var renderFn = typeof window._realRenderSimpleLead === 'function' ? window._realRenderSimpleLead : renderSimpleLead;
     leads.forEach(lead => { try { renderFn(lead); } catch(e) { console.error('renderLead failed:', lead.id, e); } });
-    document.getElementById('total-leads').textContent = leads.length;
+    var _tl = document.getElementById('total-leads'); if (_tl) _tl.textContent = leads.length;
   }
 
   window.resetStorage = async function resetStorage() {
@@ -4671,21 +4678,24 @@ window._editLeadSave = function(lid){
   };
 
   window.switchLeadTab = function switchLeadTab(leadId, tabName, btn) {
-    const body = document.getElementById('body-' + leadId);
-    body.querySelectorAll('.lead-tab').forEach(t => t.classList.remove('active'));
-    body.querySelectorAll('.lead-tab-panel').forEach(p => p.classList.remove('active'));
-    document.getElementById('l' + leadId + '-' + tabName).classList.add('active');
-    btn.classList.add('active');
+    var body = document.getElementById('body-' + leadId);
+    if (!body) return;
+    body.querySelectorAll('.lead-tab').forEach(function(t){ t.classList.remove('active'); });
+    body.querySelectorAll('.lead-tab-panel').forEach(function(p){ p.classList.remove('active'); });
+    var panel = document.getElementById('l' + leadId + '-' + tabName);
+    if (panel) panel.classList.add('active');
+    if (btn) btn.classList.add('active');
   }
 
   window.toggleLead = function toggleLead(id) {
-    const body = document.getElementById('body-' + id);
-    const arrow = document.getElementById('arrow-' + id);
-    const card = document.getElementById('lead-' + id);
-    const isOpen = body.classList.contains('open');
+    var body  = document.getElementById('body-' + id);
+    var arrow = document.getElementById('arrow-' + id);
+    var card  = document.getElementById('lead-' + id);
+    if (!body) return;
+    var isOpen = body.classList.contains('open');
     body.classList.toggle('open', !isOpen);
-    card.classList.toggle('expanded', !isOpen);
-    arrow.textContent = isOpen ? '▼' : '▲';
+    if (card)  card.classList.toggle('expanded', !isOpen);
+    if (arrow) arrow.textContent = isOpen ? '▼' : '▲';
   }
 
   // Helper: deal close via data-lid (avoids UUID in onclick string)
@@ -4793,6 +4803,8 @@ window._editLeadSave = function(lid){
     const uBtn = document.getElementById('mode-url-btn');
     const hBtn = document.getElementById('mode-hunt-btn');
 
+    // Null guard — elements may not exist on all pages
+    if (!formDiv || !urlDiv || !huntDiv) return;
     // Hide all
     formDiv.style.display = 'none'; urlDiv.style.display = 'none'; huntDiv.style.display = 'none';
     [fBtn, uBtn, hBtn].forEach(b => { if(b) { b.style.background='transparent'; b.style.borderColor='var(--border)'; b.style.color='var(--muted)'; }});
@@ -4812,6 +4824,8 @@ window._editLeadSave = function(lid){
         huntState.step = 0; huntState.answers = {};
         huntAskNext();
       }
+      // טען ANDY recommendations
+      if (typeof window._loadAndyRecs === 'function') window._loadAndyRecs();
     }
   }
 
@@ -5584,7 +5598,9 @@ BP6-10: תעדף (פלטפורמה ישנה+דומיין+6+ אירועים), Dis
       hunt_source_score:      rawLead.hunt_source_score     || parseInt(rawLead.score) || 0,
       first_contact_at:       rawLead.first_contact_at      || null,
       win_reason:             rawLead.win_reason            || '',
-      lost_reason:            rawLead.lost_reason           || ''
+      lost_reason:            rawLead.lost_reason           || '',
+      segment:                rawLead.segment               || rawLead.type || '',
+      tier:                   rawLead.tier                  || ''
     }, rawLead);
     // ── Normalize competitor — מגן על empty string ידרוס מ-Object.assign ──
     // rawLead.competitor = '' ידרס את defaults → חשב מחדש תמיד
@@ -9294,6 +9310,8 @@ window._cleanForFirebase = function _cleanForFirebase(obj) {
 
       if (!foundLeads.length) {
         resultsEl.innerHTML = '<div style="text-align:center;padding:24px;color:var(--t3)">לא נמצאו לידים — נסה פרמטרים שונים</div>';
+        if (runBtn) { runBtn.disabled = false; runBtn.style.opacity = '1'; }
+        if (btnText) btnText.innerHTML = '🚀 הפעל AI Hunt';
         return;
       }
 
@@ -9308,6 +9326,7 @@ window._cleanForFirebase = function _cleanForFirebase(obj) {
       html += '</div></div>';
 
       html += '<div style="display:flex;flex-direction:column;gap:10px">';
+      function _e(s){ return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;'); }
       foundLeads.sort(function(a,b){return (b.score||0)-(a.score||0);}).forEach(function(lead, idx) {
         var sc = lead.score||0;
         var sc_c = scoreColor(sc);
@@ -9329,17 +9348,17 @@ window._cleanForFirebase = function _cleanForFirebase(obj) {
         html += '</div>';
         // Info
         html += '<div>';
-        html += '<div style="font-size:13.5px;font-weight:700;color:var(--t1);margin-bottom:4px">'+(lead.name||'')+'</div>';
+        html += '<div style="font-size:13.5px;font-weight:700;color:var(--t1);margin-bottom:4px">'+_e(lead.name)+'</div>';
         html += '<div style="display:flex;flex-wrap:wrap;gap:8px;margin-bottom:5px">';
-        if (lead.domain)          html += '<span style="font-size:11px;color:var(--t3)">🌐 '+lead.domain+'</span>';
-        if (lead.phone)           html += '<span style="font-size:11px;color:var(--t3)">📞 '+lead.phone+'</span>';
-        if (lead.platform_current) html += '<span style="font-size:10px;background:rgba(139,92,246,0.15);border:1px solid rgba(139,92,246,0.3);border-radius:4px;padding:1px 7px;color:#a78bfa">'+lead.platform_current+'</span>';
-        if (lead.size_estimate)   html += '<span style="font-size:10px;color:var(--t3)">👥 '+lead.size_estimate+'</span>';
+        if (lead.domain)          html += '<span style="font-size:11px;color:var(--t3)">🌐 '+_e(lead.domain)+'</span>';
+        if (lead.phone)           html += '<span style="font-size:11px;color:var(--t3)">📞 '+_e(lead.phone)+'</span>';
+        if (lead.platform_current) html += '<span style="font-size:10px;background:rgba(139,92,246,0.15);border:1px solid rgba(139,92,246,0.3);border-radius:4px;padding:1px 7px;color:#a78bfa">'+_e(lead.platform_current)+'</span>';
+        if (lead.size_estimate)   html += '<span style="font-size:10px;color:var(--t3)">👥 '+_e(lead.size_estimate)+'</span>';
         if (lead.events_per_year) html += '<span style="font-size:10px;color:var(--t3)">📅 '+lead.events_per_year+'/שנה</span>';
         if (lead.estimated_annual_fees) html += '<span style="font-size:10px;color:#f59e0b">💰 עמלות: '+lead.estimated_annual_fees+'</span>';
         html += '</div>';
-        if (lead.reason) html += '<div style="font-size:11px;color:#10b981;line-height:1.5;border-right:2px solid rgba(16,185,129,0.4);padding-right:8px">'+lead.reason+'</div>';
-        if (lead.next_action) html += '<div style="font-size:10px;color:#3b82f6;margin-top:4px">→ '+lead.next_action+'</div>';
+        if (lead.reason) html += '<div style="font-size:11px;color:#10b981;line-height:1.5;border-right:2px solid rgba(16,185,129,0.4);padding-right:8px">'+_e(lead.reason)+'</div>';
+        if (lead.next_action) html += '<div style="font-size:10px;color:#3b82f6;margin-top:4px">→ '+_e(lead.next_action)+'</div>';
         html += '</div>';
         // CRM + feedback buttons
         html += '<div style="display:flex;flex-direction:column;gap:6px;align-items:flex-end">';
