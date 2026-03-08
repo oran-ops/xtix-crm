@@ -7709,7 +7709,7 @@ addSalesPlaybookPanel();
   function updateStats() {
     var total = typeof leads !== 'undefined' ? leads.length : 0;
     var contacted = typeof leads !== 'undefined'
-      ? leads.filter(function(l){ return l.status === 'contacted' || l.status === 'demo' || l.status === 'closed'; }).length
+      ? leads.filter(function(l){ return l.status === 'contacted' || l.status === 'negotiation'; }).length
       : 0;
     var el1 = document.getElementById('total-leads');
     var el2 = document.getElementById('contacted-count');
@@ -7832,7 +7832,7 @@ addSalesPlaybookPanel();
     if (!segment) return;
     try {
       var existing = await window._sb.get('hunt_learnings',
-        'segment=eq.'+(segment||'')+'&platform=eq.'+encodeURIComponent(platform||'')+'&geo=eq.ארצי&limit=1'
+        'segment=eq.'+encodeURIComponent(segment||'')+'&platform=eq.'+encodeURIComponent(platform||'')+'&geo=eq.'+encodeURIComponent('ארצי')+'&limit=1'
       ).catch(function(){return [];});
       var now = new Date().toISOString();
       if (existing && existing.length) {
@@ -7846,7 +7846,7 @@ addSalesPlaybookPanel();
       } else {
         await window._sb.insert('hunt_learnings',{
           segment: segment||'', platform: platform||'', geo: 'ארצי',
-          leads_found: 1, avg_lead_score: score||50, last_hunt_at: now
+          leads_found: 1, avg_lead_score: score||50, win_rate: 0, last_hunt_at: now
         }).catch(function(){});
       }
     } catch(e) { console.warn('[Hunt] _huntRecordFound:', e.message); }
@@ -8264,10 +8264,11 @@ addSalesPlaybookPanel();
     var card = document.getElementById('lead-' + id);
     if (card) card.remove();
 
-    // Delete from Firebase
-    if (typeof db !== 'undefined' && db) {
-      try { await window._sb.delete('leads','id=eq.'+id); } catch(e) { console.warn('Firebase delete:', e); }
-    }
+    // Delete from Supabase (always — not Firebase-gated)
+    try {
+      await window._sb.delete('lead_signals', 'lead_id=eq.'+id);
+      await window._sb.delete('leads', 'id=eq.'+id);
+    } catch(e) { console.warn('[CRM] delete failed:', e.message); }
 
     // Delete from localStorage backup
     try {
@@ -8921,12 +8922,11 @@ window._cleanForFirebase = function _cleanForFirebase(obj) {
   // ── Toggle done ─────────────────────────────────────────
   window.toggleTaskDone = function(id, done) {
     var status = done ? 'done' : 'open';
-    if (typeof db !== 'undefined' && db) {
-      window._sb.update('tasks','id=eq.'+id,{status:status,updated_at:new Date().toISOString()}).catch(console.error);
-    } else {
-      var t = _tasks.find(function(x){ return x._id === id; });
-      if (t) { t.status = status; renderTasks(); updateTasksBadge(); }
-    }
+    // Update Supabase (always)
+    window._sb.update('tasks','id=eq.'+id,{status:status,updated_at:new Date().toISOString()}).catch(console.error);
+    // Update local array
+    var t = _tasks.find(function(x){ return (x.id||x._id) === id; });
+    if (t) { t.status = status; renderTasks(); updateTasksBadge(); }
   };
 
   // ── Delete ──────────────────────────────────────────────
@@ -9827,10 +9827,11 @@ window._cleanForFirebase = function _cleanForFirebase(obj) {
     var card = document.getElementById('lead-' + id);
     if (card) card.remove();
 
-    // Delete from Firebase
-    if (typeof db !== 'undefined' && db) {
-      try { await window._sb.delete('leads','id=eq.'+id); } catch(e) { console.warn('Firebase delete:', e); }
-    }
+    // Delete from Supabase (always — not Firebase-gated)
+    try {
+      await window._sb.delete('lead_signals', 'lead_id=eq.'+id);
+      await window._sb.delete('leads', 'id=eq.'+id);
+    } catch(e) { console.warn('[CRM] delete failed:', e.message); }
 
     // Delete from localStorage backup
     try {
@@ -11838,6 +11839,19 @@ window._signalEmailSent = function(leadId, meta) {
 window._checkNoReplySignals = async function() {
   var now = Date.now();
 
+  // ── dedup: אל תשלח אותו signal פעמיים באותו יום ──
+  var _today = new Date().toDateString();
+  var _dedup_key = 'noreply_dedup_' + _today;
+  var _sent = {};
+  try { _sent = JSON.parse(localStorage.getItem(_dedup_key)||'{}'); } catch(e){}
+  function _shouldSignal(leadId, type) {
+    var k = leadId + ':' + type;
+    if (_sent[k]) return false;
+    _sent[k] = 1;
+    try { localStorage.setItem(_dedup_key, JSON.stringify(_sent)); } catch(e){}
+    return true;
+  }
+
   // ── no-reply signals ──
   var leads3d  = leads.filter(function(l) {
     if (!l.last_contacted_at) return false;
@@ -11860,10 +11874,10 @@ window._checkNoReplySignals = async function() {
     return diff >= 30 && l.status !== 'won' && l.status !== 'lost'
         && l.status !== 'not_relevant' && l.status !== 'future_potential';
   });
-  leads3d.forEach(function(l)  { window._signalRecord(l.id, 'no_reply_3d',  { segment: l.segment }); });
-  leads7d.forEach(function(l)  { window._signalRecord(l.id, 'no_reply_7d',  { segment: l.segment }); });
-  leads14d.forEach(function(l) { window._signalRecord(l.id, 'no_reply_14d', { segment: l.segment }); });
-  stale30.forEach(function(l)  { window._signalRecord(l.id, 'stale_30d',    { segment: l.segment }); });
+  leads3d.forEach(function(l)  { if (_shouldSignal(l.id,'no_reply_3d'))  window._signalRecord(l.id, 'no_reply_3d',  { segment: l.segment }); });
+  leads7d.forEach(function(l)  { if (_shouldSignal(l.id,'no_reply_7d'))  window._signalRecord(l.id, 'no_reply_7d',  { segment: l.segment }); });
+  leads14d.forEach(function(l) { if (_shouldSignal(l.id,'no_reply_14d')) window._signalRecord(l.id, 'no_reply_14d', { segment: l.segment }); });
+  stale30.forEach(function(l)  { if (_shouldSignal(l.id,'stale_30d'))    window._signalRecord(l.id, 'stale_30d',    { segment: l.segment }); });
 
   // ── post_analysis_no_action — לא נשלח מייל תוך 7 ימים מהניתוח ──
   var noAction = leads.filter(function(l) {
@@ -11957,7 +11971,7 @@ window._brainBackgroundAnalysis = async function() {
     leads.forEach(function(l) {
       var entry = byLead[l.id];
       if (!entry) return;
-      if (l.status === 'closed' || l.status === 'won')   winners.push({ lead: l, entry: entry });
+      if (l.status === 'won')   winners.push({ lead: l, entry: entry });
       else if (l.status === 'lost' || l.status === 'ghosted') losers.push({ lead: l, entry: entry });
       else if (entry.total_weight > 30) stalled.push({ lead: l, entry: entry });
     });
@@ -12053,7 +12067,7 @@ window._brainBackgroundAnalysis = async function() {
       'נתחת '+signals.length+' סיגנלים מ-'+Object.keys(byLead).length+' לידים ב-30 הימים האחרונים.',
       '',
       'נתונים:',
-      JSON.stringify(summary, null, 2),
+      (function(){ var s=JSON.stringify(summary); return s.length>6000 ? s.substring(0,6000)+'... [truncated]' : s; })(),
       '',
       'נתח ומצא:',
       '1. patterns ב-winners vs losers (מתחרה, steal_score, pitch_angle, contact_title)',
@@ -12136,7 +12150,7 @@ window._brainBackgroundAnalysis = async function() {
         if (!seg.segment || seg.confidence < 0.5) continue;
         try {
           var existing = await window._sb.get('hunt_learnings',
-            'segment=eq.'+(seg.segment||seg)+'&limit=1'
+            'segment=eq.'+encodeURIComponent(typeof seg==='object'?(seg.segment||''):(seg||''))+'&limit=1'
           ).catch(function(){return [];});
           var now2 = new Date().toISOString();
           if (existing && existing.length) {
