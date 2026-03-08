@@ -3780,6 +3780,12 @@ BP18: Nurture existing customers — repeat customers spend 67% more
       // Load from Supabase
       const rows = await window._sb.get('leads', 'order=id.asc');
       leads = rows || [];
+      // Reset any 'running' status stuck from previous session
+      leads.forEach(function(l) {
+        if (l.ai_analysis && l.ai_analysis.status === 'running') {
+          l.ai_analysis.status = 'none'; // will auto-re-analyze on render
+        }
+      });
       // Set nextId
       nextId = leads.length + 1; // UUID-based, nextId not critical
       if (typeof window.initToolbar === 'function') window.initToolbar();
@@ -3962,7 +3968,9 @@ BP18: Nurture existing customers — repeat customers spend 67% more
     list.insertAdjacentHTML('beforeend', html);
     var sel=document.querySelector('.status-select[data-lead-id="'+lead.id+'"]');
     if(sel) sel.addEventListener('change',function(){var l=leads.find(function(x){return x.id===lead.id;});if(l){l.status=this.value;l.updated_at=new Date().toISOString();window._sb.update('leads','id=eq.'+lead.id,{status:l.status,updated_at:l.updated_at}).catch(function(){});updateStats();}});
-    if(aiSt==='none'&&(lead.domain||lead.name)) setTimeout(function(){window.triggerFullAnalysis(lead.id,true);},900);
+    if(aiSt==='none'&&(lead.domain||lead.name)) {
+      setTimeout(function(){window.triggerFullAnalysis(lead.id,true);},900);
+    }
   };
 
   function _ltab_profile(lead,enr,ai){
@@ -5439,14 +5447,13 @@ BP6-10: תעדף (פלטפורמה ישנה+דומיין+6+ אירועים), Dis
       lead.updated_at = new Date().toISOString();
       var idx = leads.findIndex(function(l){return l.id===leadId;});
       if (idx!==-1) leads[idx]=lead;
-      if (typeof db!=='undefined'&&db)
-        // Only update if leadId is a valid UUID (not old Firebase numeric ID)
-        var _isUUID = leadId && /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(String(leadId));
-        if (_isUUID) {
-          window._sb.update('leads','id=eq.'+leadId,lead).catch(function(e){console.warn('[AI Supabase]',e);});
-        } else {
-          console.warn('[AI] Skipping save - non-UUID lead ID:', leadId);
-        }
+      // Save analysis back to Supabase (UUID leads only)
+      var _isUUID = leadId && /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(String(leadId));
+      if (_isUUID) {
+        window._sb.update('leads','id=eq.'+leadId,lead).catch(function(e){console.warn('[AI Supabase]',e);});
+      } else {
+        console.warn('[AI] Skipping save - non-UUID lead ID:', leadId);
+      }
       renderSimpleLead(lead);
       // Show Meta-Judge completion toast
       if (typeof window._showMetaJudgeToast === 'function') {
