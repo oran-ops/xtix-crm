@@ -789,6 +789,9 @@ input::placeholder, textarea::placeholder { color: var(--t3); }
 }
 
 /* Result cards */
+.hunt-step-panel {
+  animation: _fadeIn 0.2s ease;
+}
 .hunt-result-card {
   background: rgba(255,255,255,0.025);
   border: 1px solid rgba(255,255,255,0.08);
@@ -2921,6 +2924,24 @@ document.addEventListener("DOMContentLoaded",function(){
           <!-- AI HUNT MODE -->
           <div id="mode-hunt" style="display:none">
 
+          <!-- ══ ANDY SMART RECOMMENDATIONS ══ -->
+          <div id="andy-recs" style="margin-bottom:18px">
+            <div style="display:flex;align-items:center;gap:8px;margin-bottom:10px">
+              <div style="width:8px;height:8px;border-radius:50%;background:#a78bfa;box-shadow:0 0 8px #a78bfa88;animation:_aip 2s infinite"></div>
+              <span style="font-size:11px;font-weight:700;color:#a78bfa;letter-spacing:1.5px;text-transform:uppercase">ANDY ממליץ — מבוסס למידה</span>
+              <span id="andy-recs-updated" style="font-size:9px;color:var(--t3);margin-right:auto"></span>
+            </div>
+            <div id="andy-recs-cards" style="display:grid;grid-template-columns:repeat(3,1fr);gap:8px">
+              <!-- נטען דינמית מ-hunt_learnings -->
+              <div style="background:rgba(167,139,250,0.05);border:1px solid rgba(167,139,250,0.15);border-radius:10px;padding:12px;text-align:center;color:var(--t3);font-size:11px">
+                <div style="font-size:16px;margin-bottom:4px">⏳</div>טוען המלצות...
+              </div>
+            </div>
+            <div id="andy-recs-empty" style="display:none;font-size:11px;color:var(--t3);padding:10px;text-align:center;background:rgba(255,255,255,0.02);border-radius:8px;border:1px dashed rgba(255,255,255,0.08)">
+              🧠 ANDY לומד מהלידים שלך — לאחר מספר hunts יופיעו כאן המלצות חכמות
+            </div>
+          </div>
+
           <!-- ══ HUNT ENGINE HEADER ══ -->
           <div id="hunt-header" style="margin-bottom:20px">
             <div style="display:flex;align-items:center;gap:12px;margin-bottom:6px">
@@ -3123,6 +3144,12 @@ document.addEventListener("DOMContentLoaded",function(){
                   </label>
                 </div>
               </div>
+            </div>
+
+            <!-- ANDY Insight Box -->
+            <div id="andy-insight-box" style="background:rgba(167,139,250,0.06);border:1px solid rgba(167,139,250,0.2);border-radius:10px;padding:12px 14px;margin-bottom:12px;display:none">
+              <div style="font-size:10px;font-weight:700;color:#a78bfa;letter-spacing:1px;text-transform:uppercase;margin-bottom:6px">🧠 ANDY — למה הגדרות אלה?</div>
+              <div id="andy-insight-text" style="font-size:11.5px;color:var(--t3);line-height:1.7"></div>
             </div>
 
             <!-- Summary of selections -->
@@ -7477,7 +7504,7 @@ addSalesPlaybookPanel();
     if (!segment) return;
     try {
       var existing = await window._sb.get('hunt_learnings',
-        'segment=eq.'+encodeURIComponent(segment||'')+'&platform=eq.'+encodeURIComponent(platform||'')+'&geo=eq.ארצי&limit=1'
+        'segment=eq.'+(segment||'')+'&platform=eq.'+encodeURIComponent(platform||'')+'&geo=eq.ארצי&limit=1'
       ).catch(function(){return [];});
       var now = new Date().toISOString();
       if (existing && existing.length) {
@@ -7504,7 +7531,7 @@ addSalesPlaybookPanel();
     if (!segment) return;
     try {
       var existing = await window._sb.get('hunt_learnings',
-        'segment=eq.'+encodeURIComponent(segment)+'&platform=eq.'+encodeURIComponent(platform)+'&geo=eq.ארצי&limit=1'
+        'segment=eq.'+segment+'&platform=eq.'+encodeURIComponent(platform)+'&geo=eq.ארצי&limit=1'
       ).catch(function(){return [];});
       var now = new Date().toISOString();
       if (existing && existing.length) {
@@ -8999,12 +9026,28 @@ window._cleanForFirebase = function _cleanForFirebase(obj) {
         if (lead.reason) html += '<div style="font-size:11px;color:#10b981;line-height:1.5;border-right:2px solid rgba(16,185,129,0.4);padding-right:8px">'+lead.reason+'</div>';
         if (lead.next_action) html += '<div style="font-size:10px;color:#3b82f6;margin-top:4px">→ '+lead.next_action+'</div>';
         html += '</div>';
-        // CRM button
+        // CRM + feedback buttons
+        html += '<div style="display:flex;flex-direction:column;gap:6px;align-items:flex-end">';
         html += '<button onclick="window.huntAddLead('+JSON.stringify(lead).replace(/"/g,'&quot;')+', this)" ';
-        html += 'style="background:rgba(16,185,129,0.1);border:1px solid rgba(16,185,129,0.3);border-radius:8px;padding:8px 14px;color:#10b981;font-size:11px;font-weight:700;cursor:pointer;font-family:DM Sans,Heebo,sans-serif;white-space:nowrap;align-self:start">➕ CRM</button>';
+        html += 'style="background:rgba(16,185,129,0.1);border:1px solid rgba(16,185,129,0.3);border-radius:8px;padding:8px 14px;color:#10b981;font-size:11px;font-weight:700;cursor:pointer;font-family:DM Sans,Heebo,sans-serif;white-space:nowrap">➕ CRM</button>';
+        html += '<div style="display:flex;gap:4px">';
+        html += '<button onclick="window._huntFeedback('+idx+',\'good\','+JSON.stringify({segment:lead.segment,score:lead.score,tier:lead.tier}).replace(/"/g,'&quot;')+')" title="ליד רלוונטי" ';
+        html += 'style="background:rgba(16,185,129,0.08);border:1px solid rgba(16,185,129,0.2);border-radius:6px;padding:4px 9px;color:#10b981;font-size:12px;cursor:pointer" id="hfb-good-'+idx+'">👍</button>';
+        html += '<button onclick="window._huntFeedback('+idx+',\'bad\','+JSON.stringify({segment:lead.segment,score:lead.score,tier:lead.tier}).replace(/"/g,'&quot;')+')" title="ליד לא רלוונטי" ';
+        html += 'style="background:rgba(239,68,68,0.08);border:1px solid rgba(239,68,68,0.2);border-radius:6px;padding:4px 9px;color:#ef4444;font-size:12px;cursor:pointer" id="hfb-bad-'+idx+'">👎</button>';
+        html += '</div>';
+        html += '</div>';
         html += '</div></div>';
       });
       html += '</div>';
+      // שמור היסטוריה
+      window._huntHistory = window._huntHistory || [];
+      try { window._huntHistory = JSON.parse(localStorage.getItem('xtix_hunt_history') || '[]'); } catch(e){}
+      window._huntHistory.unshift({ ts: new Date().toISOString(), params: getHuntParams(), count: foundLeads.length,
+        leads: foundLeads.map(function(l){return {name:l.name,score:l.score||0,tier:l.tier||'C',segment:l.segment||''};}) });
+      if (window._huntHistory.length > 15) window._huntHistory.length = 15;
+      try { localStorage.setItem('xtix_hunt_history', JSON.stringify(window._huntHistory)); } catch(e){}
+      if (typeof renderHuntHistory === 'function') renderHuntHistory();
       resultsEl.innerHTML = html;
       setLastFoundLeads(foundLeads, getHuntParams());
 
@@ -11239,7 +11282,10 @@ var SIGNAL_WEIGHTS = {
   anomaly_detected:              0,
   // email conversion after analysis
   post_analysis_email_sent:     +35,
-  post_analysis_no_action:      -20
+  post_analysis_no_action:      -20,
+  // Hunt feedback — משתמש מאשר/דוחה לידים
+  hunt_feedback_good:           +15,
+  hunt_feedback_bad:            -10
 };
 
 // ── פונקציה מרכזית — רישום סיגנל ──────────────────────────────
@@ -11548,7 +11594,7 @@ window._brainBackgroundAnalysis = async function() {
         if (!seg.segment || seg.confidence < 0.5) continue;
         try {
           var existing = await window._sb.get('hunt_learnings',
-            'segment=eq.'+encodeURIComponent(seg.segment)+'&limit=1'
+            'segment=eq.'+(seg.segment||seg)+'&limit=1'
           ).catch(function(){return [];});
           var now2 = new Date().toISOString();
           if (existing && existing.length) {
@@ -11603,6 +11649,213 @@ window._brainBackgroundAnalysis = async function() {
   }
   setTimeout(_autoRun, 15000); // 15s after page load
   setInterval(_autoRun, 60*60*1000); // check every hour
+})();
+
+// ══════════════════════════════════════════════════════════════
+// ANDY LEAD FINDER — Smart layer
+// ══════════════════════════════════════════════════════════════
+
+// ── 1. טען המלצות מ-hunt_learnings ──────────────────────────
+window._loadAndyRecs = async function() {
+  var container = document.getElementById('andy-recs-cards');
+  var emptyEl   = document.getElementById('andy-recs-empty');
+  var updatedEl = document.getElementById('andy-recs-updated');
+  if (!container) return;
+  if (!window._sb) return;
+  try {
+    var rows = await window._sb.get('hunt_learnings',
+      'order=win_rate.desc&limit=6&leads_added=gte.2');
+    if (!rows || !rows.length) {
+      container.style.display = 'none';
+      if (emptyEl) emptyEl.style.display = 'block';
+      return;
+    }
+    // צבע לפי win_rate
+    function wrColor(r){ return r>=70?'#10b981':r>=50?'#3b82f6':'#f59e0b'; }
+    function wrLabel(r){ return r>=70?'🔥 חם':r>=50?'✅ טוב':'📈 מתפתח'; }
+    var html = '';
+    rows.slice(0,3).forEach(function(row) {
+      var wr = Math.round(row.win_rate || 0);
+      var c  = wrColor(wr);
+      html += '<div style="background:rgba(167,139,250,0.05);border:1px solid rgba(167,139,250,0.15);border-radius:10px;padding:12px;cursor:pointer;transition:all 0.15s" ';
+      html += 'onmouseenter="this.style.borderColor='rgba(167,139,250,0.4)'" onmouseleave="this.style.borderColor='rgba(167,139,250,0.15)'" ';
+      html += 'onclick="window._applyAndyRec(''+encodeURIComponent(row.segment)+'',''+encodeURIComponent(row.geo||'ארצי')+'')">';
+      html += '<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:6px">';
+      html += '<span style="font-size:12px;font-weight:700;color:var(--t1)">'+(row.segment||'')+'</span>';
+      html += '<span style="font-size:9px;font-weight:700;color:'+c+';background:'+c+'18;border-radius:10px;padding:2px 7px">'+wrLabel(wr)+'</span>';
+      html += '</div>';
+      // win rate bar
+      html += '<div style="height:3px;background:rgba(255,255,255,0.06);border-radius:2px;margin-bottom:7px;overflow:hidden">';
+      html += '<div style="height:100%;width:'+wr+'%;background:'+c+';border-radius:2px;transition:width 0.6s ease"></div></div>';
+      html += '<div style="display:flex;justify-content:space-between;font-size:10px;color:var(--t3)">';
+      html += '<span>win rate <strong style="color:'+c+'">'+wr+'%</strong></span>';
+      html += '<span>'+( row.leads_won||0)+'/'+( row.leads_added||0)+' לידים</span>';
+      html += '</div>';
+      if (row.platform) html += '<div style="font-size:10px;color:rgba(167,139,250,0.7);margin-top:5px">📍 '+row.geo+' · '+row.platform+'</div>';
+      html += '<div style="margin-top:8px;font-size:10px;font-weight:700;color:#a78bfa;text-align:center">Hunt עכשיו →</div>';
+      html += '</div>';
+    });
+    container.innerHTML = html;
+    if (updatedEl) updatedEl.textContent = 'עודכן: '+new Date().toLocaleTimeString('he-IL',{hour:'2-digit',minute:'2-digit'});
+  } catch(e) {
+    container.style.display = 'none';
+    if (emptyEl) emptyEl.style.display = 'block';
+  }
+};
+
+// ── 2. החל המלצה — סמן chips בהתאם ──────────────────────────
+window._applyAndyRec = function(segEnc, geoEnc) {
+  var seg = decodeURIComponent(segEnc);
+  var geo = decodeURIComponent(geoEnc);
+  // סמן segment
+  document.querySelectorAll('#hunt-segments input[type=checkbox]').forEach(function(cb){
+    cb.checked = (cb.value === seg);
+    if (cb.checked) cb.closest('.hunt-chip').style.borderColor = '#a78bfa';
+    else cb.closest('.hunt-chip').style.borderColor = '';
+  });
+  // סמן geo
+  document.querySelectorAll('#hunt-geo input[type=checkbox]').forEach(function(cb){
+    cb.checked = (cb.value === geo || (geo==='ארצי' && cb.value.includes('ארצי')));
+    if (cb.checked) cb.closest('.hunt-chip').style.borderColor = '#a78bfa';
+    else cb.closest('.hunt-chip').style.borderColor = '';
+  });
+  // עדכן insight
+  window._showAndyInsight(seg, geo);
+  // קפוץ לשלב 1
+  if (typeof huntGoStep === 'function') huntGoStep(1);
+  // toast
+  if (typeof showToast === 'function') showToast('🧠 ANDY מילא: '+seg+' — '+geo, 'info');
+};
+
+// ── 3. הצג insight ב-Step 4 ──────────────────────────────────
+window._showAndyInsight = async function(seg, geo) {
+  var box  = document.getElementById('andy-insight-box');
+  var text = document.getElementById('andy-insight-text');
+  if (!box || !text) return;
+  box.style.display = 'block';
+  text.textContent  = '⏳ ANDY מחשב...';
+  try {
+    var rows = await window._sb.get('hunt_learnings',
+      'segment=eq.'+seg+'&limit=1');
+    if (rows && rows[0]) {
+      var r = rows[0];
+      var wr = Math.round(r.win_rate||0);
+      var msg = '';
+      if (wr >= 70) msg = '🔥 הסגמנט הזה מנצח! win rate '+wr+'% — XTIX סגרה '+( r.leads_won||0)+' עסקאות ב'+seg+'.';
+      else if (wr >= 50) msg = '✅ ביצועים טובים ב'+seg+' ('+wr+'% win rate). ';
+      else msg = '📈 פוטנציאל צמיחה ב'+seg+'. ';
+      if (r.platform && r.platform !== 'test') msg += ' הפלטפורמה הדומיננטית: '+r.platform+'.';
+      if (r.leads_added > 5) msg += ' נמצאו '+r.leads_added+' לידים עד כה — שוק פעיל.';
+      text.textContent = msg;
+    } else {
+      text.textContent = '🆕 סגמנט חדש ב-ANDY — אין עדיין היסטוריה. תוצאות ה-Hunt יזינו את הלמידה.';
+    }
+  } catch(e) {
+    box.style.display = 'none';
+  }
+};
+
+// ── 4. Feedback על ליד מה-Hunt ───────────────────────────────
+window._huntFeedback = function(idx, type, meta) {
+  var good = document.getElementById('hfb-good-'+idx);
+  var bad  = document.getElementById('hfb-bad-'+idx);
+  if (!good || !bad) return;
+  var isGood = (type === 'good');
+  // Visual feedback
+  good.style.background  = isGood ? 'rgba(16,185,129,0.3)' : 'rgba(16,185,129,0.08)';
+  good.style.borderColor = isGood ? '#10b981' : 'rgba(16,185,129,0.2)';
+  good.style.opacity     = isGood ? '1' : '0.35';
+  bad.style.background   = !isGood ? 'rgba(239,68,68,0.3)' : 'rgba(239,68,68,0.08)';
+  bad.style.borderColor  = !isGood ? '#ef4444' : 'rgba(239,68,68,0.2)';
+  bad.style.opacity      = !isGood ? '1' : '0.35';
+  // Signal — קשור לליד אם כבר נוסף ל-CRM, אחרת signal גלובלי על segment
+  if (window._signalRecord && meta && meta.segment) {
+    var lastLeads = window._lastFoundLeads || [];
+    var lead = lastLeads[idx] || {};
+    var lid = lead.id || lead._id || null;   // נוסף ל-CRM? יש id
+    var sigType = isGood ? 'hunt_feedback_good' : 'hunt_feedback_bad';
+    var sigMeta = { segment: meta.segment, score: meta.score || 0, tier: meta.tier || '' };
+    if (lid && /^[0-9a-f-]{36}$/i.test(lid)) {
+      window._signalRecord(lid, sigType, sigMeta);
+    } else {
+      // ללא ליד ספציפי — שמור ב-hunt_learnings feedback counter (async, silent)
+      if (window._sb && isGood) {
+        window._sb.get('hunt_learnings', 'segment=eq.'+(meta.segment||'')+'&limit=1')
+          .then(function(rows) {
+            if (rows && rows[0]) {
+              var now = new Date().toISOString();
+              window._sb.update('hunt_learnings', 'id=eq.'+rows[0].id,
+                { feedback_good: (rows[0].feedback_good||0)+1, updated_at: now }).catch(function(){});
+            }
+          }).catch(function(){});
+      }
+    }
+  }
+  var msg = isGood ? '👍 תודה! ANDY ילמד מזה' : '👎 OK, ANDY ירשום שזה לא מתאים';
+  if (typeof showToast === 'function') showToast(msg, 'info');
+};
+
+// ── 5. היסטוריית hunts ───────────────────────────────────────
+window.renderHuntHistory = function() {
+  var panel = document.getElementById('saved-searches-panel');
+  var list  = document.getElementById('saved-searches-list');
+  if (!panel || !list) return;
+  var history = [];
+  try { history = JSON.parse(localStorage.getItem('xtix_hunt_history') || '[]'); } catch(e){}
+  if (!history.length) return;
+  // הוסף כותרת history אם לא קיים
+  var hist = document.getElementById('hunt-history-section');
+  if (!hist) {
+    hist = document.createElement('div');
+    hist.id = 'hunt-history-section';
+    hist.style.cssText = 'margin-top:16px;border-top:1px solid rgba(255,255,255,0.06);padding-top:14px';
+    hist.innerHTML = '<div style="font-size:10px;font-weight:700;color:var(--t3);letter-spacing:1.5px;text-transform:uppercase;margin-bottom:10px">היסטוריית Hunts</div><div id="hunt-history-list"></div>';
+    panel.parentNode.insertBefore(hist, panel.nextSibling);
+  }
+  var histList = document.getElementById('hunt-history-list');
+  if (!histList) return;
+  var html = '';
+  history.slice(0,5).forEach(function(h) {
+    var d   = new Date(h.ts);
+    var dt  = d.toLocaleDateString('he-IL',{day:'numeric',month:'numeric'})+' '+d.toLocaleTimeString('he-IL',{hour:'2-digit',minute:'2-digit'});
+    var top = (h.leads||[]).slice(0,2).map(function(l){return l.name;}).join(', ');
+    var ps  = h.params || {};
+    var seg = [].concat(ps.segments||[]).slice(0,2).join(', ') || '—';
+    html += '<div style="background:var(--surface2);border:1px solid var(--border);border-radius:8px;padding:9px 12px;margin-bottom:6px;font-size:11px">';
+    html += '<div style="display:flex;justify-content:space-between;margin-bottom:3px">';
+    html += '<span style="color:var(--t1);font-weight:600">'+seg+'</span>';
+    html += '<span style="color:var(--t3)">'+dt+'</span></div>';
+    html += '<div style="color:var(--t3)">'+h.count+' לידים נמצאו';
+    if (top) html += ' · <span style="color:var(--t2)">'+top+'...</span>';
+    html += '</div></div>';
+  });
+  histList.innerHTML = html;
+};
+
+// ── 6. טען ANDY recs בעת פתיחת Hunt tab ─────────────────────
+(function() {
+  var origSetMode = window.setLeadMode;
+  window.setLeadMode = function(mode) {
+    if (typeof origSetMode === 'function') origSetMode(mode);
+    if (mode === 'hunt') {
+      setTimeout(function() {
+        if (typeof window._loadAndyRecs === 'function') window._loadAndyRecs();
+        if (typeof window.renderHuntHistory === 'function') window.renderHuntHistory();
+      }, 100);
+    }
+  };
+  // גם ב-Step 4 הצג insight
+  var origGoStep = window.huntGoStep;
+  window.huntGoStep = function(n) {
+    if (typeof origGoStep === 'function') origGoStep(n);
+    if (n === 4) {
+      var segs = [];
+      document.querySelectorAll('#hunt-segments input:checked').forEach(function(cb){ segs.push(cb.value); });
+      var geos = [];
+      document.querySelectorAll('#hunt-geo input:checked').forEach(function(cb){ geos.push(cb.value); });
+      if (segs.length) window._showAndyInsight(segs[0], geos[0]||'ארצי');
+    }
+  };
 })();
 
 // ── חשוף API נקי ───────────────────────────────────────────────
