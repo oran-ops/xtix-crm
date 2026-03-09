@@ -5536,7 +5536,7 @@ ${proxyCtx}
       const data = await res.json();
       const block = Array.isArray(data.content) ? data.content.find(b => b.type === 'text') : null;
       let raw = (block ? block.text : (data.result || data.text || '')).trim();
-      raw = raw.replace(/^```json\s*/,'').replace(/^```\s*/,'').replace(/\s*```$/,'');
+      raw = raw.replace(/^\u0060\u0060\u0060json\s*/,'').replace(/^\u0060\u0060\u0060\s*/,'').replace(/\s*\u0060\u0060\u0060$/,'');
       const s = raw.indexOf('{'), e = raw.lastIndexOf('}');
       if (s !== -1 && e !== -1) raw = raw.substring(s, e+1);
       try { return JSON.parse(raw); } catch(err) {
@@ -6089,7 +6089,7 @@ BP6-10: תעדף (פלטפורמה ישנה+דומיין+6+ אירועים), Dis
         var d = await res.json();
         var blk = Array.isArray(d.content) ? d.content.find(function(b){return b.type==='text';}) : null;
         var raw = (blk?blk.text:(d.result||d.text||'')).trim();
-        raw = raw.replace(/^```json\s*/,'').replace(/^```\s*/,'').replace(/\s*```$/,'');
+        raw = raw.replace(/^\u0060\u0060\u0060json\s*/,'').replace(/^\u0060\u0060\u0060\s*/,'').replace(/\s*\u0060\u0060\u0060$/,'');
         var si=raw.indexOf('{'), ei=raw.lastIndexOf('}');
         if(si!==-1&&ei!==-1) raw=raw.substring(si,ei+1);
         try {
@@ -9021,7 +9021,7 @@ window._cleanForSupabase = function _cleanForSupabase(obj) {
       if (!res.ok) throw new Error('HTTP ' + res.status);
       var data = await res.json();
       var raw = (data.content||[]).map(function(b){return b.text||'';}).join('');
-      raw = raw.replace(/^```json\s*/,'').replace(/^```\s*/,'').replace(/\s*```$/,'');
+      raw = raw.replace(/^\u0060\u0060\u0060json\s*/,'').replace(/^\u0060\u0060\u0060\s*/,'').replace(/\s*\u0060\u0060\u0060$/,'');
       var s = raw.indexOf('{'), e = raw.lastIndexOf('}');
       if (s === -1) throw new Error('No JSON in response');
       return JSON.parse(raw.substring(s, e+1));
