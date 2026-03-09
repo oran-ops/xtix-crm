@@ -4541,27 +4541,26 @@ window._editLeadSave = function(lid){
 
     var html = '<div style="padding:12px">';
 
-    // Info row
     if (hasAnalysis) {
       html += '<div style="background:rgba(108,99,255,0.08);border:1px solid rgba(108,99,255,0.2);border-radius:8px;padding:10px;margin-bottom:12px;font-size:12px;color:var(--t2)">';
-      html += '🎯 <strong>Pitch Angle:</strong> ' + _esc(pitchAngle || '—') + ' &nbsp;|&nbsp; ';
-      html += '🏢 <strong>מתחרה:</strong> ' + _esc(competitor || '—') + ' &nbsp;|&nbsp; ';
-      html += '📊 <strong>Score:</strong> ' + score + '/100';
+      html += '&#127919; <strong>Pitch Angle:</strong> ' + _esc(pitchAngle || '&#8212;') + ' &nbsp;|&nbsp; ';
+      html += '&#127970; <strong>מתחרה:</strong> ' + _esc(competitor || '&#8212;') + ' &nbsp;|&nbsp; ';
+      html += '&#128202; <strong>Score:</strong> ' + score + '/100';
       html += '</div>';
     } else {
-      html += '<div style="background:rgba(255,193,7,0.1);border:1px solid rgba(255,193,7,0.3);border-radius:8px;padding:10px;margin-bottom:12px;font-size:12px;color:#f39c12">';
-      html += '⚠️ מומלץ לנתח את הליד לפני כתיבת פנייה (לחץ "נתח" בפרופיל)';
+      html += '<div style="background:rgba(255,193,7,0.1);border:1px solid rgba(255,193,7,0.3);border-radius:8px;padding:10px;margin-bottom:12px;font-size:13px;color:#f39c12">';
+      html += '<strong>&#9888;&#65039; לפני שכותבים פנייה:</strong><br>';
+      html += 'מומלץ לנתח את הליד תחילה. עבור לטאב <strong>&#128100; פרופיל</strong> ולחץ על כפתור <strong>&#128161; נתח</strong> &#8212; ';
+      html += 'כך ANDY יכתוב פנייה מדויקת יותר עם pitch angle, מתחרה, וזווית מכירה ספציפית לליד זה.';
       html += '</div>';
     }
 
-    // Generate button
     html += '<button id="outreach-btn-' + lid + '" onclick="window.generateOutreach(' + lid + ')" '
-      + 'style="background:linear-gradient(135deg,#6c63ff,#a855f7);color:#fff;border:none;border-radius:8px;'
-      + 'padding:10px 20px;cursor:pointer;font-size:14px;font-weight:600;width:100%;margin-bottom:10px">'
-      + '✉️ כתוב פנייה עם ANDY'
-      + '</button>';
+          + 'style="background:linear-gradient(135deg,#6c63ff,#a855f7);color:#fff;border:none;border-radius:8px;'
+          + 'padding:10px 20px;cursor:pointer;font-size:14px;font-weight:600;width:100%;margin-bottom:10px">'
+          + '&#128140; כתוב פנייה עם ANDY'
+          + '</button>';
 
-    // Output panel
     html += '<div id="outreach-panel-' + lid + '" style="display:none"></div>';
     html += '</div>';
     return html;
