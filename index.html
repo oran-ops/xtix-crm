@@ -1643,7 +1643,7 @@ input::placeholder, textarea::placeholder { color: var(--t3); }
 
 </style>
 
-  <!-- Firebase CDN (compat mode — works without type=module) -->
+  <!-- Supabase Auth — see supabase-client.js -->
   <script src="supabase-client.js"></script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
 <script>
@@ -1664,7 +1664,7 @@ document.addEventListener("DOMContentLoaded",function(){
   <div style="font-size:13px;color:var(--text2);margin-top:-12px">Sales Intelligence Platform</div>
   <div style="background:var(--surface);border:1px solid var(--border);border-radius:16px;padding:36px 40px;text-align:center;max-width:340px;width:90%">
     <div style="font-size:14px;color:var(--text);margin-bottom:8px;font-weight:600">כניסה ל-CRM</div>
-    <div style="font-size:11px;color:rgba(196,196,204,0.75);margin-bottom:24px">הנתונים שלך מאובטחים ב-Firebase</div>
+    <div style="font-size:11px;color:rgba(196,196,204,0.75);margin-bottom:24px">הנתונים שלך מאובטחים ב-Supabase</div>
     <button onclick="googleLogin()" style="display:flex;align-items:center;justify-content:center;gap:10px;width:100%;background:#fff;border:none;border-radius:10px;padding:12px 20px;font-size:13px;font-weight:600;color:#3c4043;cursor:pointer;font-family:'Heebo',sans-serif;box-shadow:0 2px 8px rgba(0,0,0,0.3)">
       <svg width="18" height="18" viewBox="0 0 48 48"><path fill="#EA4335" d="M24 9.5c3.54 0 6.71 1.22 9.21 3.6l6.85-6.85C35.9 2.38 30.47 0 24 0 14.62 0 6.51 5.38 2.56 13.22l7.98 6.19C12.43 13.72 17.74 9.5 24 9.5z"/><path fill="#4285F4" d="M46.98 24.55c0-1.57-.15-3.09-.38-4.55H24v9.02h12.94c-.58 2.96-2.26 5.48-4.78 7.18l7.73 6c4.51-4.18 7.09-10.36 7.09-17.65z"/><path fill="#FBBC05" d="M10.53 28.59c-.48-1.45-.76-2.99-.76-4.59s.27-3.14.76-4.59l-7.98-6.19C.92 16.46 0 20.12 0 24c0 3.88.92 7.54 2.56 10.78l7.97-6.19z"/><path fill="#34A853" d="M24 48c6.48 0 11.93-2.13 15.89-5.81l-7.73-6c-2.18 1.48-4.97 2.34-8.16 2.34-6.26 0-11.57-4.22-13.47-9.91l-7.98 6.19C6.51 42.62 14.62 48 24 48z"/></svg>
       התחבר עם Google
@@ -1773,7 +1773,7 @@ document.addEventListener("DOMContentLoaded",function(){
       <button class="sb-tool-btn" onclick="if(window.exportToExcel)exportToExcel();else if(window.exportLeads)exportLeads();" title="ייצוא Excel">
         📊 <span>ייצוא Excel</span>
       </button>
-      <button class="sb-tool-btn" onclick="if(window.syncFirebase)syncFirebase();else alert('לחץ פעמיים לסנכרון ידני');" title="סנכרון Firebase">
+      <button class="sb-tool-btn" onclick="loadLeadsAsync().then(()=>renderAllLeads())" title="סנכרון Supabase">
         🔄 <span>סנכרון DB</span>
       </button>
     </div>
@@ -3491,27 +3491,8 @@ document.addEventListener("DOMContentLoaded",function(){
 
   window._brainConfig = window._brainConfig || { conflictThreshold: 20 };
 
-  // =================== FIREBASE — AUTH + CLOUD PERSISTENCE (compat) ===================
-  var db = null, auth = null;
-  try {
-    if (false) { // Firebase disabled — using Supabase
-      firebase.initializeApp({
-        apiKey: "AIzaSyCWSvwxK-66wEcmJzs259XuGHuSH6BxPO0",
-        authDomain: "xtix-crm.firebaseapp.com",
-        projectId: "xtix-crm",
-        storageBucket: "xtix-crm.firebasestorage.app",
-        messagingSenderId: "1077421168454",
-        appId: "1:1077421168434:web:11b0d96c45482c6dc0292b"
-      });
-      db   = firebase.firestore();
-      auth = firebase.auth();
-    } else {
-      console.warn("Firebase SDK not loaded — running in offline mode");
-    }
-  } catch(e) {
-    console.warn("Firebase init failed:", e.message);
-  }
-  var provider = (auth && typeof firebase !== "undefined") ? new firebase.auth.GoogleAuthProvider() : null;
+  // =================== SUPABASE — AUTH + CLOUD PERSISTENCE ===================
+  // Auth handled by SupaAuth (supabase-client.js)
 
   // ── Collections ────────────────────────────────────────────────────
   const LEADS_COL      = 'leads';
@@ -3523,7 +3504,7 @@ document.addEventListener("DOMContentLoaded",function(){
 
 
   // ════════════════════════════════════════════════════════════════
-  //  XTIX METHODOLOGY — stored in Firebase, loaded on login
+  //  XTIX METHODOLOGY — stored in Supabase, loaded on login
   //  Sources: XTIX Sales Playbook v2.0 + Salesforce 18 Best Practices
   // ════════════════════════════════════════════════════════════════
 
@@ -3592,7 +3573,7 @@ BP18: Nurture existing customers — repeat customers spend 67% more
 `;
 
   // Methodology — use local copy (Supabase version reads from methodology table)
-  async function ensureMethodologyInFirebase() {
+  async function ensureMethodologyInSupabase() {
     if (_methodologyCache) return _methodologyCache;
     try {
       const rows = await window._sb.get('methodology', 'order=created_at.desc&limit=1');
@@ -3625,8 +3606,8 @@ BP18: Nurture existing customers — repeat customers spend 67% more
     } catch(e) { console.warn('logActivity failed:', e.message); }
   }
 
-  // ── Settings (Firebase) ───────────────────────────────────────────
-  async function saveSettingsToFirebase(settings) {
+  // ── Settings (Supabase) ───────────────────────────────────────────
+  async function saveSettingsToSupabase(settings) {
     try {
       await window._sb.upsert('app_settings', 'key=eq.config', {
         key: 'config',
@@ -3641,7 +3622,7 @@ BP18: Nurture existing customers — repeat customers spend 67% more
     } catch(e) {}
   }
 
-  async function loadSettingsFromFirebase() {
+  async function loadSettingsFromSupabase() {
     try {
       const rows = await window._sb.get('app_settings', 'key=eq.config');
       if (rows && rows.length) return JSON.parse(rows[0].value || '{}');
@@ -3649,8 +3630,8 @@ BP18: Nurture existing customers — repeat customers spend 67% more
     } catch(e) { return null; }
   }
 
-  // ── Reminders (Firebase) ──────────────────────────────────────────
-  async function saveReminderToFirebase(reminder) {
+  // ── Reminders (Supabase) ──────────────────────────────────────────
+  async function saveReminderToSupabase(reminder) {
     try {
       await window._sb.insert('reminders', Object.assign({}, reminder, {
         created_at: new Date().toISOString(),
@@ -3659,20 +3640,20 @@ BP18: Nurture existing customers — repeat customers spend 67% more
     } catch(e) {}
   }
 
-  async function loadRemindersFromFirebase() {
+  async function loadRemindersFromSupabase() {
     try {
       const rows = await window._sb.get('reminders', 'done=eq.false&order=date.asc');
-      return (rows || []).map(r => Object.assign({ firebaseId: r.id }, r));
+      return (rows || []).map(r => Object.assign({ supabaseId: r.id }, r));
     } catch(e) { return []; }
   }
 
-  async function markReminderDoneFirebase(firebaseId) {
+  async function markReminderDoneSupabase(supabaseId) {
     try {
-      await window._sb.update('reminders', 'id=eq.'+firebaseId, { done: true });
+      await window._sb.update('reminders', 'id=eq.'+supabaseId, { done: true });
     } catch(e) {}
   }
 
-  // ── Email History (Firebase) ──────────────────────────────────────
+  // ── Email History (Supabase) ──────────────────────────────────────
   async function logEmailSent(leadId, leadName, to, subject, emailNum) {
     try {
       await window._sb.insert('emails_sent', {
@@ -3846,7 +3827,7 @@ BP18: Nurture existing customers — repeat customers spend 67% more
 
   window.seedDatabase = function(force) { seedAllCollections(force); }
 
-  // ── Competitors (Firebase seed — kept for backward compat) ──────────
+  // ── Competitors (Supabase seed) ──────────────────────────────────────
   async function seedCompetitorsIfEmpty() {
     return seedAllCollections(false);
   }
@@ -3894,7 +3875,7 @@ BP18: Nurture existing customers — repeat customers spend 67% more
     }
   }
 
-  // ── Load from Firebase ──────────────────────────────────────────────
+  // ── Load from Supabase ──────────────────────────────────────────────
   async function loadLeadsAsync() {
     showStorageStatus('loading');
     try {
@@ -3994,10 +3975,10 @@ BP18: Nurture existing customers — repeat customers spend 67% more
     const el = document.getElementById('storage-indicator');
     if (!el) return;
     const map = {
-      firebase:  ['☁️ Firebase', 'var(--green)', 'נתונים נשמרים ב-Firebase Cloud'],
+      supabase:  ['☁️ Supabase', 'var(--green)', 'נתונים נשמרים ב-Supabase Cloud'],
       supabase:  ['🟢 Supabase', 'var(--green)', 'נתונים נשמרים ב-Supabase Cloud'],
       loading:  ['⏳ טוען...', 'var(--muted)', ''],
-      local:    ['💾 localStorage', 'var(--yellow)', 'Firebase לא זמין — גיבוי מקומי'],
+      local:    ['💾 localStorage', 'var(--yellow)', 'Supabase לא זמין — גיבוי מקומי'],
       default:  ['⚪ ברירת מחדל', 'var(--muted)', ''],
     };
     const [txt, color, title] = map[source] || map.default;
@@ -4600,7 +4581,7 @@ SupaAuth.init(async function(user) {
 
       _applyRoleUI(role);
       loadLeadsAsync();
-      ensureMethodologyInFirebase();
+      ensureMethodologyInSupabase();
       if (typeof window.initBrain === 'function') window.initBrain(); else setTimeout(function(){ if(window.initBrain) window.initBrain(); }, 500);
       seedAllCollections(false);
       seedCompetitorsIfEmpty();
@@ -4618,7 +4599,7 @@ SupaAuth.init(async function(user) {
     if (appWrapper)  appWrapper.style.display  = 'none';
   });
 
-  // ── Fallback: if Firebase/Auth not available, load from localStorage or defaults ──
+  // ── Fallback: if Supabase/Auth not available, load from localStorage or defaults ──
   if (!auth) {
     setTimeout(function() {
       var loginScreen = document.getElementById('login-screen');
@@ -5956,15 +5937,15 @@ BP6-10: תעדף (פלטפורמה ישנה+דומיין+6+ אירועים), Dis
   } catch(e){}
 
   // ── Event-driven only — no background polling ──────────────────
-  // Clay/Webhook leads arrive via Firebase onSnapshot (instant, no polling)
+  // Clay/Webhook leads arrive via Supabase realtime (instant, no polling)
   // Manual check available via window.checkForNewLeads()
   // One-time check on login only (catches any leads added while offline)
-  // No automatic polling — Clay pushes via Railway → Firebase onSnapshot (below)
+  // No automatic polling — Clay pushes via Railway → Supabase realtime (below)
   // Manual: window.checkForNewLeads() available in console or button
 
-  // Firebase onSnapshot — instant notification when Clay pushes a lead
+  // Supabase realtime — instant notification when Clay pushes a lead
   // Clay webhook_queue — disabled (Supabase polling instead)
-  // if(false) block intentionally removed — Firebase onSnapshot not used
+  // if(false) block intentionally removed — Supabase realtime not yet implemented
 
   // Manual check — callable from UI or console
   window.checkForNewLeads = function() {
@@ -8253,7 +8234,7 @@ addSalesPlaybookPanel();
     var card = document.getElementById('lead-' + id);
     if (card) card.remove();
 
-    // Delete from Supabase (always — not Firebase-gated)
+    // Delete from Supabase
     try {
       await window._sb.delete('lead_signals', 'lead_id=eq.'+id);
       await window._sb.delete('leads', 'id=eq.'+id);
@@ -8496,13 +8477,13 @@ addSalesPlaybookPanel();
 
 
 <script>
-// Global Firebase helper — always available
-window._cleanForFirebase = function _cleanForFirebase(obj) {
+// Global Supabase helper — always available
+window._cleanForSupabase = function _cleanForSupabase(obj) {
   if (obj === undefined) return null;
   if (obj === null || typeof obj !== 'object') return obj;
-  if (Array.isArray(obj)) return obj.map(window._cleanForFirebase);
+  if (Array.isArray(obj)) return obj.map(window._cleanForSupabase);
   var out = {};
-  Object.keys(obj).forEach(function(k) { out[k] = window._cleanForFirebase(obj[k]); });
+  Object.keys(obj).forEach(function(k) { out[k] = window._cleanForSupabase(obj[k]); });
   return out;
 };
 // ═══════════════════════════════════════════════════════════
@@ -8689,7 +8670,7 @@ window._cleanForFirebase = function _cleanForFirebase(obj) {
 
 <script>
 // ═══════════════════════════════════════════════════════════
-// TASKS ENGINE — Firebase-backed task manager
+// TASKS ENGINE — Supabase-backed task manager
 // ═══════════════════════════════════════════════════════════
 (function() {
 
@@ -8699,7 +8680,7 @@ window._cleanForFirebase = function _cleanForFirebase(obj) {
   var _filter   = 'all';
   var _unsub    = null;
 
-  // ── Firebase realtime sync ──────────────────────────────
+  // ── Supabase realtime sync ──────────────────────────────
   function initTasksListener() {
     if (!window._sb) return;
     if (_unsub) _unsub();
@@ -8956,7 +8937,7 @@ window._cleanForFirebase = function _cleanForFirebase(obj) {
     if (e.key === 'Enter') window.saveTask();
   });
 
-  // ── Init when Firebase is ready ────────────────────────
+  // ── Init when Supabase is ready ────────────────────────
   // initTasksListener — Supabase only, call directly
   setTimeout(function() {
     if (typeof initTasksListener === 'function') initTasksListener();
@@ -9808,7 +9789,7 @@ window._cleanForFirebase = function _cleanForFirebase(obj) {
     var card = document.getElementById('lead-' + id);
     if (card) card.remove();
 
-    // Delete from Supabase (always — not Firebase-gated)
+    // Delete from Supabase
     try {
       await window._sb.delete('lead_signals', 'lead_id=eq.'+id);
       await window._sb.delete('leads', 'id=eq.'+id);
@@ -10246,8 +10227,8 @@ window.methTab = function(tabName) {
 
 
 // ════════════════════════════════════════════════════════════════
-//  AI BRAIN — Triple Engine + Meta-Judge + Firebase Memory
-//  Stage 1: Settings, Key Management, UI, Firebase structure
+//  AI BRAIN — Triple Engine + Meta-Judge + Supabase Memory
+//  Stage 1: Settings, Key Management, UI, Supabase structure
 // ════════════════════════════════════════════════════════════════
 
 const AI_DECISIONS_COL = 'ai_decisions';
@@ -10283,7 +10264,7 @@ window.toggleKeyVisibility = function(inputId, btn) {
   }
 };
 
-// ── Save API Key to Firebase + localStorage ───────────────────
+// ── Save API Key to Supabase + localStorage ───────────────────
 // saveAIKey and testAIKey removed — keys managed on Railway server only
 window.saveAIKey = function() { console.warn("[Brain] saveAIKey disabled — keys are managed server-side"); };
 window.testAIKey = function() { console.warn("[Brain] testAIKey disabled — keys are managed server-side"); };
@@ -10317,7 +10298,7 @@ async function loadBrainConfig() {
     });
   }
 
-  // Load engine mode from Firebase
+  // Load engine mode from Supabase
   try {
     if (typeof db !== 'undefined' && db) {
       var cfgSnap = { exists: false, data: ()=>({}) }; // AI config from local
@@ -10341,7 +10322,7 @@ function _applyBrainConfigToUI() {
   }
 }
 
-// ── Load decisions from Firebase ─────────────────────────────
+// ── Load decisions from Supabase ─────────────────────────────
 async function loadBrainDecisions() {
   var listEl = document.getElementById('brain-decisions-list');
   if (!listEl) return;
@@ -10518,7 +10499,7 @@ window.markDecisionOutcome = async function(decisionId, wasCorrect) {
     outcome_date: now
   };
 
-  // Update Firebase
+  // Update Supabase
   try {
     await window._sb.update('ai_decisions','id=eq.'+decisionId,updateData);
   } catch(e) { console.warn('[Brain] Outcome update failed:', e.message); }
@@ -10602,7 +10583,7 @@ async function loadBrainPerformance() {
   }
 }
 
-// ── Save decision to Firebase (called by Triple Engine later) ─
+// ── Save decision to Supabase (called by Triple Engine later) ─
 window.saveBrainDecision = async function(decision) {
   // Normalize fields — Triple Engine sends: meta_score, claude_score, gpt_score, gemini_score, etc.
   // Brain Panel expects: final_score, claude_raw, gpt_raw, gemini_raw, meta_override, consensus
@@ -10627,7 +10608,7 @@ window.saveBrainDecision = async function(decision) {
 
   var docId = 'dec_' + Date.now();
 
-  // Save to Firebase
+  // Save to Supabase
   try {
     await window._sb.insert('ai_decisions', Object.assign({}, doc, {id: docId})).catch(()=>window._sb.update('ai_decisions','id=eq.'+docId,doc));
   } catch(e) {
@@ -10669,7 +10650,7 @@ window.getBrainHistory = async function(segment, limit) {
       });
   } catch(e) {
     // Fallback: filter from in-memory cache
-    console.warn('[Brain] getBrainHistory Firebase failed, using cache:', e.message);
+    console.warn('[Brain] getBrainHistory Supabase failed, using cache:', e.message);
     results = _brainDecisions
       .filter(function(d) { return !segment || d.lead_segment === segment; })
       .slice(0, limit);
@@ -10785,7 +10766,7 @@ window.markDealClosed = async function(leadId, didClose) {
     outcome_date: new Date().toISOString()
   };
 
-  // Save to Firebase
+  // Save to Supabase
   try {
     await window._sb.update('ai_decisions','id=eq.'+decision.id,updateData);
   } catch(e) { console.warn('[Brain] markDealClosed update failed:', e.message); }
@@ -11046,7 +11027,7 @@ setTimeout(function() {
     try {
       var srv = window.SERVER || 'https://xtix-crm-test.up.railway.app';
 
-      // 1. Collect KB docs from Firebase
+      // 1. Collect KB docs from Supabase
       var kbDocs = [], decisions = [];
       // Load KB and decisions from Supabase (no db check needed)
       if (btn) btn.textContent = '⏳ טוען KB...';
@@ -11073,8 +11054,8 @@ setTimeout(function() {
       var d = await res.json();
 
       if (d.ok && d.insights) {
-        // 3. Client writes insights to Firebase (no SA needed)
-        if (btn) btn.textContent = '⏳ שומר ב-Firebase...';
+        // 3. Client writes insights to Supabase (no SA needed)
+        if (btn) btn.textContent = '⏳ שומר ב-Supabase...';
         // Save to Supabase always
         await window._sb.insert('brain_insights',Object.assign({id:'latest'},d.insights)).catch(()=>window._sb.update('brain_insights',"id=eq.'latest'",d.insights));
           var histId = new Date().toISOString().slice(0,16).replace('T','_').replace(':','');
@@ -11092,7 +11073,7 @@ setTimeout(function() {
     }
   };
 
-  // ── Load insights status from Firebase ──
+  // ── Load insights status from Supabase ──
   window._kbLoadInsightsStatus = async function() {
     var statusEl  = document.getElementById('kb-insights-status');
     var detailsEl = document.getElementById('kb-insights-details');
@@ -11158,7 +11139,7 @@ setTimeout(function() {
       }
     }
 
-    // Check on page load (after 10s to let Firebase connect)
+    // Check on page load (after 10s to let Supabase connect)
     setTimeout(_autoRun, 10000);
     // Then every hour — check if 6h passed
     setInterval(_autoRun, 60 * 60 * 1000);
@@ -11172,7 +11153,7 @@ setTimeout(function() {
   var _kbType_active = 'url';
   var _kbFileData = null;
 
-  // ── Init: load from Firebase ──
+  // ── Init: load from Supabase ──
   window._kbInit = function() {
     window._sb.get('knowledge_base', 'order=created_at.desc')
       .then(function(rows) {
