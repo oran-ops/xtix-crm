@@ -7,7 +7,7 @@ XTIX CRM — Full Stack Server v2.1 — KB /kb/run (no SA)
 עצירה: Ctrl+C
 """
 
-import json, re, ssl, os, csv, io, smtplib, datetime, threading, time, collections, base64, hashlib, hmac
+import json, re, ssl, os, csv, io, smtplib, datetime, threading, time, collections, base64, hashlib, hmac as hmac_mod
 import urllib.request, urllib.parse
 
 # ══════════════════════════════════════════════════════════════════
@@ -16,7 +16,9 @@ import urllib.request, urllib.parse
 #  → returns insights JSON → client writes to Firebase (no SA needed)
 # ══════════════════════════════════════════════════════════════════
 
-FIREBASE_PROJECT_ID = os.environ.get('FIREBASE_PROJECT_ID', 'xtix-crm')
+SUPABASE_URL        = os.environ.get('SUPABASE_URL', 'https://ugluksyfpfgzbpmayodg.supabase.co')
+SUPABASE_ANON_KEY   = os.environ.get('SUPABASE_ANON_KEY', 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InVnbHVrc3lmcGZnemJwbWF5b2RnIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzI4NzYwMTUsImV4cCI6MjA4ODQ1MjAxNX0.p4xVp74f5LaB8cRIm7Zl9BlKmwE7xFPUBcTAmt1Ef-g')
+SUPABASE_JWT_SECRET = os.environ.get('SUPABASE_JWT_SECRET', '')
 
 # In-memory cache — client uploads KB docs + decisions via /kb/run
 _kb_cache = {
@@ -213,31 +215,8 @@ from http.server import HTTPServer, BaseHTTPRequestHandler
 from email.mime.text import MIMEText
 from email.mime.multipart import MIMEMultipart
 
-# ── Firebase Token Verifier ─────────────────────────────────────────────────
-# Verifies Firebase ID Tokens (JWT) using Google's public keys
-# No external dependencies — pure stdlib
-
-FIREBASE_PROJECT_ID = os.environ.get('FIREBASE_PROJECT_ID', 'xtix-crm')
-_google_certs = {}          # cache: {kid: public_key_pem}
-_google_certs_expiry = 0    # unix timestamp
-_certs_lock = threading.Lock()
-
-def _fetch_google_certs():
-    """Fetch Firebase public keys from Google (cached 1 hour)."""
-    global _google_certs, _google_certs_expiry
-    with _certs_lock:
-        if time.time() < _google_certs_expiry:
-            return _google_certs
-        try:
-            url = 'https://www.googleapis.com/robot/v1/metadata/x509/securetoken@system.gserviceaccount.com'
-            req = urllib.request.Request(url)
-            with urllib.request.urlopen(req, context=ssl_ctx, timeout=10) as r:
-                _google_certs = json.loads(r.read().decode('utf-8'))
-                _google_certs_expiry = time.time() + 3600  # cache 1 hour
-                print(f'[Auth] Google certs refreshed ({len(_google_certs)} keys)', flush=True)
-        except Exception as e:
-            print(f'[Auth] Failed to fetch Google certs: {e}', flush=True)
-        return _google_certs
+# ── Supabase Token Verifier ────────────────────────────────────────────────
+# Verifies Supabase JWT tokens — replaces Firebase Auth entirely
 
 def _b64_decode(s):
     """Base64url decode without padding."""
@@ -245,91 +224,69 @@ def _b64_decode(s):
     s += '=' * (4 - len(s) % 4)
     return base64.b64decode(s)
 
-def _verify_firebase_token(id_token):
+def _verify_supabase_token(id_token):
     """
-    Verify Firebase ID Token.
-    Returns (uid, email, decoded_payload) on success.
-    Raises ValueError with reason on failure.
+    Verify Supabase JWT token.
+    Returns: (uid, email, role) on success. Raises ValueError on failure.
     """
-    # Step 1: decode header (no verify yet)
     try:
         parts = id_token.split('.')
         if len(parts) != 3:
             raise ValueError('Invalid JWT format')
-        header  = json.loads(_b64_decode(parts[0]))
         payload = json.loads(_b64_decode(parts[1]))
     except Exception as e:
         raise ValueError(f'JWT decode failed: {e}')
 
-    # Step 2: basic payload checks
     now = time.time()
-    if payload.get('aud') != FIREBASE_PROJECT_ID:
-        raise ValueError(f'Wrong audience: {payload.get("aud")}')
-    if payload.get('iss') != f'https://securetoken.google.com/{FIREBASE_PROJECT_ID}':
-        raise ValueError('Wrong issuer')
     if payload.get('exp', 0) < now:
         raise ValueError('Token expired')
-    if payload.get('iat', 0) > now + 300:
-        raise ValueError('Token issued in future')
     if not payload.get('sub'):
-        raise ValueError('Missing subject (uid)')
+        raise ValueError('Missing sub (uid)')
 
-    # Step 3: verify signature using Google public key
-    try:
-        import cryptography
-        HAS_CRYPTO = True
-    except ImportError:
-        HAS_CRYPTO = False
-
-    if HAS_CRYPTO:
-        try:
-            from cryptography.hazmat.primitives import hashes, serialization
-            from cryptography.hazmat.primitives.asymmetric import padding
-            from cryptography.x509 import load_pem_x509_certificate
-            from cryptography.hazmat.backends import default_backend
-
-            kid = header.get('alg_kid') or header.get('kid')
-            certs = _fetch_google_certs()
-            if kid not in certs:
-                raise ValueError(f'Unknown key id: {kid}')
-
-            cert_pem = certs[kid].encode('utf-8')
-            cert = load_pem_x509_certificate(cert_pem, default_backend())
-            pub_key = cert.public_key()
-
-            msg = f'{parts[0]}.{parts[1]}'.encode('utf-8')
-            sig = _b64_decode(parts[2])
-            pub_key.verify(sig, msg, padding.PKCS1v15(), hashes.SHA256())
-        except Exception as e:
-            raise ValueError(f'Signature verification failed: {e}')
-    else:
-        # Fallback: verify token online via Firebase REST API
-        # (less secure but works without cryptography package)
-        try:
-            verify_url = f'https://identitytoolkit.googleapis.com/v1/accounts:lookup?key={os.environ.get("FIREBASE_WEB_API_KEY","")}'
-            vreq = urllib.request.Request(
-                verify_url,
-                data=json.dumps({'idToken': id_token}).encode('utf-8'),
-                headers={'Content-Type': 'application/json'},
-                method='POST'
-            )
-            with urllib.request.urlopen(vreq, context=ssl_ctx, timeout=10) as r:
-                vdata = json.loads(r.read().decode('utf-8'))
-                if 'error' in vdata:
-                    raise ValueError(vdata['error'].get('message', 'Invalid token'))
-                users = vdata.get('users', [])
-                if not users:
-                    raise ValueError('User not found')
-        except ValueError:
-            raise
-        except Exception as e:
-            raise ValueError(f'Online verification failed: {e}')
+    iss = payload.get('iss', '')
+    if 'supabase' not in iss and SUPABASE_URL.split('//')[1].split('.')[0] not in iss:
+        raise ValueError(f'Wrong issuer: {iss}')
 
     uid   = payload.get('sub')
     email = payload.get('email', '')
-    return uid, email, payload
+
+    # Signature verify with JWT secret
+    if SUPABASE_JWT_SECRET:
+        try:
+            header_payload = f'{parts[0]}.{parts[1]}'.encode('utf-8')
+            secret = SUPABASE_JWT_SECRET.encode('utf-8')
+            expected_sig = base64.urlsafe_b64encode(
+                hmac_mod.new(secret, header_payload, hashlib.sha256).digest()
+            ).rstrip(b'=').decode('utf-8')
+            if not hmac_mod.compare_digest(expected_sig, parts[2]):
+                raise ValueError('Invalid signature')
+        except Exception as e:
+            raise ValueError(f'Signature verify failed: {e}')
+
+    # Get role from Supabase users table
+    role = _fetch_user_role_from_supabase(uid, id_token)
+    return uid, email, role or 'sales'
+
+def _fetch_user_role_from_supabase(uid, id_token):
+    """Fetch user role from Supabase users table."""
+    try:
+        url = f'{SUPABASE_URL}/rest/v1/users?id=eq.{uid}&select=role'
+        req = urllib.request.Request(url, headers={
+            'apikey':        SUPABASE_ANON_KEY,
+            'Authorization': 'Bearer ' + id_token,
+        })
+        with urllib.request.urlopen(req, context=ssl_ctx, timeout=8) as r:
+            data = json.loads(r.read().decode('utf-8'))
+            if data and len(data) > 0:
+                role = data[0].get('role', '')
+                print(f'[Auth] Role={role} uid={uid}', flush=True)
+                return role
+    except Exception as e:
+        print(f'[Auth] Role fetch failed: {e}', flush=True)
+    return None
 
 # Token cache — avoid verifying same token repeatedly (tokens valid 60 min)
+
 _token_cache = {}   # token_hash -> (uid, email, role, expiry)
 _token_cache_lock = threading.Lock()
 
@@ -687,14 +644,14 @@ class Handler(BaseHTTPRequestHandler):
         else:
             # Verify token
             try:
-                uid, email, _ = _verify_firebase_token(id_token)
+                uid, email, role_from_token = _verify_supabase_token(id_token)
             except ValueError as e:
                 print(f'[Auth] Token invalid: {e}', flush=True)
                 self.json_out({'error': 'Token לא תקף — נסה להתנתק ולהתחבר מחדש', 'code': 'invalid_token'}, 401)
                 return None
 
-            # Fetch role from Firestore
-            role = _fetch_user_role_from_firestore(uid, id_token)
+            # Role already fetched in _verify_supabase_token
+            role = role_from_token
             if not role:
                 self.json_out({'error': 'אין גישה — פנה למנהל', 'code': 'no_role'}, 403)
                 return None
