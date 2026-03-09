@@ -3590,6 +3590,177 @@ BP18: Nurture existing customers — repeat customers spend 67% more
     return _methodologyCache;
   }
 
+  // ════════════════════════════════════════════════════════════════
+  //  generateOutreach(lead) — Sprint 1 — Outreach Engine
+  //  מייצר פנייה מותאמת אישית מ-3 מקורות:
+  //  1. ניתוח הליד (ai_analysis, score, competitor)
+  //  2. KB — מתודולוגיית המכירה (ensureMethodologyInSupabase)
+  //  3. Learning Patterns — מה הצליח על לידים דומים
+  // ════════════════════════════════════════════════════════════════
+
+  window.generateOutreach = async function(leadId) {
+    var lead = (typeof leads !== 'undefined' ? leads : []).find(function(l){ return l.id == leadId; });
+    if (!lead) { alert('ליד לא נמצא'); return; }
+
+    // UI — show loading state
+    var btn = document.getElementById('outreach-btn-' + leadId);
+    var panel = document.getElementById('outreach-panel-' + leadId);
+    if (btn) { btn.disabled = true; btn.textContent = '⏳ ANDY כותב...'; }
+    if (panel) { panel.innerHTML = '<div style="color:var(--t2);font-size:13px;padding:12px">⏳ ANDY מנתח וכותב פנייה מותאמת...</div>'; panel.style.display = 'block'; }
+
+    try {
+      // 1. KB — מתודולוגיה
+      var kb = await ensureMethodologyInSupabase();
+
+      // 2. Learning patterns — לידים דומים שנסגרו
+      var patterns = [];
+      try {
+        var lpRows = await window._sb.get('learning_patterns',
+          'order=created_at.desc&limit=50'
+        );
+        var seg = lead.segment || lead.type || '';
+        patterns = (lpRows || []).filter(function(lp){
+          return (lp.outcome === 'closed' || lp.outcome === 'won') &&
+                 (!seg || (lp.segment || '').indexOf(seg) >= 0 || seg.indexOf(lp.segment||'') >= 0);
+        }).slice(0, 10);
+      } catch(e) {}
+
+      // 3. בנה prompt
+      var ai = lead.ai_analysis || {};
+      var e  = lead.enrichment  || {};
+      var prompt = `אתה ANDY — מומחה מכירות B2B של XTIX. כתוב פנייה ראשונה אישית ל${lead.name || 'הליד'}.
+
+=== פרטי הליד ===
+שם: ${lead.name || '?'}
+דומיין: ${lead.domain || '?'}
+סגמנט: ${lead.segment || lead.type || '?'}
+פלטפורמה נוכחית: ${lead.platform || e.platform || ai.platform_current || '?'}
+Score: ${lead.score || 0}/100
+Tier: ${lead.tier || ai.tier || '?'}
+מתחרה: ${lead.competitor || ai.competitor || '?'}
+Pitch Angle מומלץ: ${lead.pitch_angle || ai.pitch_angle || '?'}
+Pain Points: ${(ai.pain_points || []).join(', ') || '?'}
+Summary: ${ai.summary || e.summary || ''}
+
+=== KB — מתודולוגיה ===
+${kb.substring(0, 1500)}
+
+=== Learning Patterns (לידים דומים שנסגרו) ===
+${patterns.length ? patterns.map(function(lp){
+  return '- ' + (lp.segment||'') + ' | pitch: ' + (lp.pitch_angle_used||'') + ' | outcome: ' + lp.outcome + (lp.email_subject_won ? ' | subject שעבד: ' + lp.email_subject_won : '');
+}).join('\n') : 'אין עדיין patterns — זו אחת הפניות הראשונות'}
+
+=== הנחיות ===
+- כתוב בעברית, סגנון אנושי וישיר
+- 3-4 משפטים בגוף המייל (לא רשימות)
+- התייחס לפלטפורמה הנוכחית שלהם בשם
+- הצג ערך אחד קונקרטי (ROI / data / brand)
+- סיים בשאלה אחת פשוטה שדורשת כן/לא
+- Subject line: קצר, ספציפי, מעורר סקרנות
+
+החזר JSON בלבד (ללא markdown):
+{"subject":"...","body":"...","channel":"email","reasoning":"..."}`;
+
+      // 4. קרא ל-Claude דרך Railway
+      var resp = await fetch(window.SERVER + '/ai', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': 'Bearer ' + (window.currentToken || '')
+        },
+        body: JSON.stringify({ prompt: prompt, max_tokens: 800 })
+      });
+      if (!resp.ok) throw new Error('Railway /ai error: ' + resp.status);
+      var data = await resp.json();
+      var raw = (data.result || data.text || data.content || '').trim();
+      // נקה markdown אם יש
+      raw = raw.replace(/^```json\s*/,'').replace(/^```\s*/,'').replace(/\s*```$/,'').trim();
+      var outreach = JSON.parse(raw);
+
+      // 5. שמור ב-outreach_queue
+      var queueRow = {
+        lead_id:      lead.id,
+        channel:      outreach.channel || 'email',
+        subject:      outreach.subject || '',
+        body:         outreach.body    || '',
+        reasoning:    outreach.reasoning || '',
+        scheduled_at: new Date().toISOString(),
+        status:       'pending_approval'
+      };
+      await window._sb.insert('outreach_queue', queueRow).catch(function(err){
+        console.warn('outreach_queue insert failed:', err);
+      });
+
+      // 6. הצג Preview UI
+      if (panel) {
+        panel.innerHTML =
+          '<div style="background:var(--card2,#1e1e2e);border:1px solid var(--border);border-radius:10px;padding:14px;font-size:13px">' +
+            '<div style="font-weight:600;color:var(--accent);margin-bottom:8px">✉️ ' + _esc(outreach.subject) + '</div>' +
+            '<div style="color:var(--text);line-height:1.7;white-space:pre-wrap;margin-bottom:10px">' + _esc(outreach.body) + '</div>' +
+            '<div style="background:rgba(108,99,255,0.1);border-radius:6px;padding:8px;color:var(--t2);font-size:12px;margin-bottom:10px">' +
+              '🧠 <strong>למה ANDY בחר גישה זו:</strong> ' + _esc(outreach.reasoning) +
+            '</div>' +
+            '<div style="display:flex;gap:8px;flex-wrap:wrap">' +
+              '<button onclick="window.approveOutreach(' + leadId + ',\'' + _esc(outreach.subject).replace(/'/g,"\\'") + '\')" ' +
+                'style="background:var(--green,#27ae60);color:#fff;border:none;border-radius:6px;padding:7px 16px;cursor:pointer;font-size:13px">' +
+                '✅ אשר ושלח' +
+              '</button>' +
+              '<button onclick="window.generateOutreach(' + leadId + ')" ' +
+                'style="background:var(--accent);color:#fff;border:none;border-radius:6px;padding:7px 14px;cursor:pointer;font-size:13px">' +
+                '🔄 נסה שוב' +
+              '</button>' +
+              '<button onclick="document.getElementById(\'outreach-panel-' + leadId + '\').style.display=\'none\'" ' +
+                'style="background:var(--card);color:var(--t2);border:1px solid var(--border);border-radius:6px;padding:7px 12px;cursor:pointer;font-size:13px">' +
+                '✕ סגור' +
+              '</button>' +
+            '</div>' +
+          '</div>';
+        panel.style.display = 'block';
+      }
+
+      if (btn) { btn.disabled = false; btn.textContent = '✉️ כתוב פנייה'; }
+
+    } catch(err) {
+      console.error('generateOutreach failed:', err);
+      if (panel) {
+        panel.innerHTML = '<div style="color:#e74c3c;font-size:13px;padding:10px">❌ שגיאה: ' + _esc(err.message) + '</div>';
+        panel.style.display = 'block';
+      }
+      if (btn) { btn.disabled = false; btn.textContent = '✉️ כתוב פנייה'; }
+    }
+  };
+
+  // אשר ושלח — קורא ל-sendRealEmail
+  window.approveOutreach = async function(leadId, subject) {
+    var panel = document.getElementById('outreach-panel-' + leadId);
+    var lead  = (typeof leads !== 'undefined' ? leads : []).find(function(l){ return l.id == leadId; });
+    if (!lead || !lead.email) { alert('אין כתובת מייל לליד זה'); return; }
+
+    // קבל body מה-panel
+    var bodyEl = panel ? panel.querySelector('div[style*="white-space"]') : null;
+    var body   = bodyEl ? bodyEl.textContent : '';
+    if (!body) { alert('לא נמצא גוף המייל'); return; }
+
+    // עדכן סטטוס ב-outreach_queue
+    await window._sb.update('outreach_queue',
+      'lead_id=eq.' + leadId + '&status=eq.pending_approval',
+      { status: 'approved', approved_by: window.currentUser ? window.currentUser.email : 'user', sent_at: new Date().toISOString() }
+    ).catch(function(){});
+
+    // שלח מייל
+    if (window.sendRealEmail) {
+      await window.sendRealEmail(lead.email, subject, body, leadId, null);
+      if (panel) panel.innerHTML = '<div style="color:var(--green,#27ae60);font-size:13px;padding:10px">✅ המייל נשלח!</div>';
+    } else {
+      alert('sendRealEmail לא זמין');
+    }
+
+    // logActivity
+    if (typeof logActivity === 'function') {
+      logActivity('outreach_sent', { lead_id: leadId, channel: 'email', subject: subject });
+    }
+  };
+
   const SERVER = window.SERVER = 'https://xtix-crm-test.up.railway.app';
 
   // ── Authenticated fetch — handled by supabase-client.js ──
@@ -4078,10 +4249,12 @@ BP18: Nurture existing customers — repeat customers spend 67% more
       +"<button class=\"lead-tab active\" onclick=\"switchLeadTab('"+lead.id+"','profile',this)\">👤 פרופיל</button>"
       +"<button class=\"lead-tab\" onclick=\"switchLeadTab('"+lead.id+"','metajudge',this)\">🧠 Meta-Judge</button>"
       +"<button class=\"lead-tab\" onclick=\"switchLeadTab('"+lead.id+"','emails',this)\">✉️ מיילים</button>"
+      +"<button class=\"lead-tab\" onclick=\"switchLeadTab('"+lead.id+"','outreach',this)\">🤖 ANDY</button>"
       +'</div>'
       +'<div class="lead-tab-panel active" id="l'+lead.id+'-profile">'+_ltab_profile(lead,enr,ai)+'</div>'
       +'<div class="lead-tab-panel" id="l'+lead.id+'-metajudge">'+_ltab_metajudge(lead,ai,enr)+'</div>'
       +'<div class="lead-tab-panel" id="l'+lead.id+'-emails">'+_ltab_emails(lead,ai,enr)+'</div>'
+      +'<div class="lead-tab-panel" id="l'+lead.id+'-outreach">'+_ltab_outreach(lead,ai,enr)+'</div>'
       +'</div></div>';
     list.insertAdjacentHTML('beforeend', html);
     var sel=document.querySelector('.status-select[data-lead-id="'+lead.id+'"]');
@@ -4358,6 +4531,42 @@ window._editLeadSave = function(lid){
 
     return out;
   }
+
+  function _ltab_outreach(lead,ai,enr) {
+    var lid = lead.id;
+    var hasAnalysis = lead.ai_analysis && lead.ai_analysis.status === 'done';
+    var pitchAngle = lead.pitch_angle || (ai && ai.pitch_angle) || '';
+    var competitor = lead.competitor || (ai && ai.competitor) || '';
+    var score = lead.score || 0;
+
+    var html = '<div style="padding:12px">';
+
+    // Info row
+    if (hasAnalysis) {
+      html += '<div style="background:rgba(108,99,255,0.08);border:1px solid rgba(108,99,255,0.2);border-radius:8px;padding:10px;margin-bottom:12px;font-size:12px;color:var(--t2)">';
+      html += '🎯 <strong>Pitch Angle:</strong> ' + _esc(pitchAngle || '—') + ' &nbsp;|&nbsp; ';
+      html += '🏢 <strong>מתחרה:</strong> ' + _esc(competitor || '—') + ' &nbsp;|&nbsp; ';
+      html += '📊 <strong>Score:</strong> ' + score + '/100';
+      html += '</div>';
+    } else {
+      html += '<div style="background:rgba(255,193,7,0.1);border:1px solid rgba(255,193,7,0.3);border-radius:8px;padding:10px;margin-bottom:12px;font-size:12px;color:#f39c12">';
+      html += '⚠️ מומלץ לנתח את הליד לפני כתיבת פנייה (לחץ "נתח" בפרופיל)';
+      html += '</div>';
+    }
+
+    // Generate button
+    html += '<button id="outreach-btn-' + lid + '" onclick="window.generateOutreach(' + lid + ')" '
+      + 'style="background:linear-gradient(135deg,#6c63ff,#a855f7);color:#fff;border:none;border-radius:8px;'
+      + 'padding:10px 20px;cursor:pointer;font-size:14px;font-weight:600;width:100%;margin-bottom:10px">'
+      + '✉️ כתוב פנייה עם ANDY'
+      + '</button>';
+
+    // Output panel
+    html += '<div id="outreach-panel-' + lid + '" style="display:none"></div>';
+    html += '</div>';
+    return html;
+  }
+
 
   function _ltab_metajudge(lead,ai,enr){
     var a=ai||{}, e=enr||{};
