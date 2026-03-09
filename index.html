@@ -3705,7 +3705,7 @@ ${patterns.length ? patterns.map(function(lp){
                 'style="background:var(--green,#27ae60);color:#fff;border:none;border-radius:6px;padding:7px 16px;cursor:pointer;font-size:13px">' +
                 '&#10003; אשר ושלח' +
               '</button>' +
-              '<button onclick="window.generateOutreach(' + leadId + ')" ' +
+              '<button onclick="window.generateOutreach(\'' + leadId + '\')" ' +
                 'style="background:var(--accent);color:#fff;border:none;border-radius:6px;padding:7px 14px;cursor:pointer;font-size:13px">' +
                 '&#8635; נסה שוב' +
               '</button>' +
@@ -4555,7 +4555,7 @@ window._editLeadSave = function(lid){
       html += '</div>';
     }
 
-    html += '<button id="outreach-btn-' + lid + '" onclick="window.generateOutreach(' + lid + ')" '
+    html += '<button id="outreach-btn-' + lid + '" onclick="window.generateOutreach(\'' + lid + '\')" '
           + 'style="background:linear-gradient(135deg,#6c63ff,#a855f7);color:#fff;border:none;border-radius:8px;'
           + 'padding:10px 20px;cursor:pointer;font-size:14px;font-weight:600;width:100%;margin-bottom:10px">'
           + '&#128140; כתוב פנייה עם ANDY'
