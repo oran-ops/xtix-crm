@@ -226,44 +226,46 @@ def _b64_decode(s):
 
 def _verify_supabase_token(id_token):
     """
-    Verify Supabase JWT token.
+    Verify Supabase JWT token via Supabase REST API.
     Returns: (uid, email, role) on success. Raises ValueError on failure.
     """
+    # Step 1: Decode payload locally (no signature check — Supabase API confirms validity)
     try:
-        parts = id_token.split('.')
+        parts = id_token.strip().split('.')
         if len(parts) != 3:
-            raise ValueError('Invalid JWT format')
+            raise ValueError(f'Invalid JWT format — got {len(parts)} parts')
         payload = json.loads(_b64_decode(parts[1]))
     except Exception as e:
         raise ValueError(f'JWT decode failed: {e}')
 
+    # Step 2: Basic expiry check
     now = time.time()
     if payload.get('exp', 0) < now:
         raise ValueError('Token expired')
     if not payload.get('sub'):
         raise ValueError('Missing sub (uid)')
 
-    iss = payload.get('iss', '')
-    if 'supabase' not in iss and SUPABASE_URL.split('//')[1].split('.')[0] not in iss:
-        raise ValueError(f'Wrong issuer: {iss}')
-
     uid   = payload.get('sub')
     email = payload.get('email', '')
 
-    # Signature verify with JWT secret
-    if SUPABASE_JWT_SECRET:
-        try:
-            header_payload = f'{parts[0]}.{parts[1]}'.encode('utf-8')
-            secret = SUPABASE_JWT_SECRET.encode('utf-8')
-            expected_sig = base64.urlsafe_b64encode(
-                hmac_mod.new(secret, header_payload, hashlib.sha256).digest()
-            ).rstrip(b'=').decode('utf-8')
-            if not hmac_mod.compare_digest(expected_sig, parts[2]):
-                raise ValueError('Invalid signature')
-        except Exception as e:
-            raise ValueError(f'Signature verify failed: {e}')
+    # Step 3: Verify token is valid by calling Supabase /auth/v1/user
+    try:
+        url = f'{SUPABASE_URL}/auth/v1/user'
+        req = urllib.request.Request(url, headers={
+            'apikey':        SUPABASE_ANON_KEY,
+            'Authorization': 'Bearer ' + id_token,
+        })
+        with urllib.request.urlopen(req, context=ssl_ctx, timeout=8) as r:
+            user_data = json.loads(r.read().decode('utf-8'))
+            if not user_data.get('id'):
+                raise ValueError('Supabase user not found')
+            print(f'[Auth] Supabase verified: {user_data.get("email","?")} id={uid}', flush=True)
+    except urllib.error.HTTPError as e:
+        raise ValueError(f'Supabase auth rejected: HTTP {e.code}')
+    except Exception as e:
+        raise ValueError(f'Supabase verify failed: {e}')
 
-    # Get role from Supabase users table
+    # Step 4: Get role from users table
     role = _fetch_user_role_from_supabase(uid, id_token)
     return uid, email, role or 'sales'
 
