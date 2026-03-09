@@ -4543,8 +4543,7 @@ window._editLeadSave = function(lid){
     if (loginScreen) loginScreen.style.display = 'flex';
   }
 
-  SupaAuth.onAuthStateChange(async function(event, session) {
-    const user = session?.user;
+SupaAuth.init(async function(user) {
     const loginScreen = document.getElementById('login-screen');
     const appWrapper  = document.getElementById('app-wrapper');
     const userInfo    = document.getElementById('user-info');
@@ -4612,6 +4611,11 @@ window._editLeadSave = function(lid){
       if (loginScreen) loginScreen.style.display = 'flex';
       if (appWrapper)  appWrapper.style.display  = 'none';
     }
+}, async function() {
+    var loginScreen = document.getElementById('login-screen');
+    var appWrapper  = document.getElementById('app-wrapper');
+    if (loginScreen) loginScreen.style.display = 'flex';
+    if (appWrapper)  appWrapper.style.display  = 'none';
   });
 
   // ── Fallback: if Firebase/Auth not available, load from localStorage or defaults ──
