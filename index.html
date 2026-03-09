@@ -4543,7 +4543,8 @@ window._editLeadSave = function(lid){
     if (loginScreen) loginScreen.style.display = 'flex';
   }
 
-  if (auth) auth.onAuthStateChanged(async function(user) {
+  SupaAuth.onAuthStateChange(async function(event, session) {
+    const user = session?.user;
     const loginScreen = document.getElementById('login-screen');
     const appWrapper  = document.getElementById('app-wrapper');
     const userInfo    = document.getElementById('user-info');
