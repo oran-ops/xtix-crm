@@ -4481,13 +4481,21 @@ window._editLeadSave = function(lid){
 
   // ── Google Auth ────────────────────────────────────────────────────
   window.googleLogin = function() {
-    if(auth) auth.signInWithPopup(provider).catch(err => {
+    SupaAuth.signInWithGoogle().catch(function(err) {
       alert('שגיאת התחברות: ' + err.message);
     });
   };
 
   window.googleLogout = function() {
-    if (confirm('להתנתק?')) if(auth) auth.signOut();
+    if (confirm('להתנתק?')) {
+      SupaAuth.signOut().then(function() {
+        window.currentUser = null;
+        var loginScreen = document.getElementById('login-screen');
+        var appWrapper  = document.getElementById('app-wrapper');
+        if (loginScreen) loginScreen.style.display = 'flex';
+        if (appWrapper)  appWrapper.style.display  = 'none';
+      });
+    }
   };
 
   // ── Role helpers ───────────────────────────────────────────────────
