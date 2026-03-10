@@ -3666,11 +3666,16 @@ ${patterns.length ? patterns.map(function(lp){
       var resp = await window._authFetch(window.SERVER + '/ai', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ prompt: prompt, max_tokens: 800 })
+        body: JSON.stringify({
+          model: 'claude-sonnet-4-6',
+          max_tokens: 1000,
+          system: 'אתה מומחה מכירות B2B. החזר JSON נקי בלבד ללא markdown.',
+          messages: [{ role: 'user', content: prompt }]
+        })
       });
       if (!resp.ok) throw new Error('Railway /ai error: ' + resp.status);
       var data = await resp.json();
-      var raw = (data.result || data.text || data.content || '').trim();
+      var raw = (data.content ? data.content.map(function(b){ return b.text||''; }).join('') : (data.result || data.text || '')).trim();
       // נקה markdown אם יש
       raw = raw.replace(/^\u0060\u0060\u0060json\s*/,'').replace(/^\u0060\u0060\u0060\s*/,'').replace(/\s*\u0060\u0060\u0060$/,'').trim();
       var outreach = JSON.parse(raw);
