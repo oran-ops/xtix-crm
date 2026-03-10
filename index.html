@@ -3598,10 +3598,12 @@ BP18: Nurture existing customers — repeat customers spend 67% more
   //  3. Learning Patterns — מה הצליח על לידים דומים
   // ════════════════════════════════════════════════════════════════
 
+  // Helper גלובלי — escape HTML
+  function _esc(s){ return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;'); }
+
   window.generateOutreach = async function(leadId) {
     var lead = (typeof leads !== 'undefined' ? leads : []).find(function(l){ return l.id == leadId; });
     if (!lead) { alert('ליד לא נמצא'); return; }
-    function _esc(s){ return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;'); }
 
     // UI — show loading state
     var btn = document.getElementById('outreach-btn-' + leadId);
