@@ -613,7 +613,9 @@ def send_sendgrid(to_email, subject, body_html, body_text='', from_email='norepl
             method='POST'
         )
         with urllib.request.urlopen(req, context=ssl_ctx, timeout=30) as r:
-            print(f'  [SENDGRID] SUCCESS status={r.status} to={to_email}', flush=True)
+            # SendGrid returns 202 Accepted with empty body on success
+            status = r.status
+            print(f'  [SENDGRID] SUCCESS status={status} to={to_email}', flush=True)
             return {'ok': True, 'message': f'נשלח ל-{to_email} דרך SendGrid', 'provider': 'sendgrid'}
     except urllib.error.HTTPError as e:
         err = e.read().decode('utf-8')

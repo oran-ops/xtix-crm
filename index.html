@@ -3783,12 +3783,10 @@ ${patterns.length ? patterns.map(function(lp){
       if (panel) panel.innerHTML = '<div style="color:#e74c3c;font-size:13px;padding:10px">&#10007; שגיאה: ' + _esc(sendErr.message) + '</div>';
     }
 
-    // logActivity — non-blocking, לא עוצר את הפונקציה
-    try {
-      if (typeof logActivity === 'function') {
-        logActivity('outreach_sent', { lead_id: leadId, subject: subject });
-      }
-    } catch(e) { console.warn('logActivity error:', e); }
+    // logActivity — non-blocking, רק שדות שקיימים בטבלה
+    if (typeof logActivity === 'function') {
+      logActivity('outreach_sent', { lead_id: leadId, lead_name: lead.name || '' });
+    }
   };
 
   const SERVER = window.SERVER = 'https://xtix-crm-test.up.railway.app';
