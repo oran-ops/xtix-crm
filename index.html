@@ -3906,7 +3906,7 @@ ${patterns.length ? patterns.map(function(lp){
       var query = 'order=created_at.desc&limit=100';
       if (filter !== 'all') query += '&status=eq.' + filter;
 
-      var rows = await window._sb.select('outreach_queue', query);
+      var rows = await window._sb.get('outreach_queue', query);
       _outreachData = rows || [];
       window._outreachRender();
       window._outreachUpdateBadge();
@@ -4018,7 +4018,7 @@ ${patterns.length ? patterns.map(function(lp){
     // ── Badge update ──────────────────────────────────────────────
   window._outreachUpdateBadge = async function() {
     try {
-      var rows = await window._sb.select('outreach_queue', 'status=eq.pending_approval');
+      var rows = await window._sb.get('outreach_queue', 'status=eq.pending_approval');
       var count = (rows||[]).length;
       var overdue = (rows||[]).filter(function(r){
         return r.created_at && (Date.now() - new Date(r.created_at).getTime()) > 24*60*60*1000;
