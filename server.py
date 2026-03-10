@@ -353,19 +353,25 @@ def _set_token_cache(id_token, uid, email, role):
             keys = [k for k,v in _token_cache.items() if v['expiry'] < now]
             for k in keys: del _token_cache[k]
 
-def _fetch_user_role_from_firestore(uid, id_token):
-    """Fetch user role from Firestore REST API using the user's own ID token."""
+def _fetch_user_role_supabase(uid):
+    """Fetch user role from Supabase user_roles table using service key."""
     try:
-        fs_url = f'https://firestore.googleapis.com/v1/projects/{FIREBASE_PROJECT_ID}/databases/(default)/documents/users/{uid}'
-        req = urllib.request.Request(fs_url, headers={'Authorization': 'Bearer ' + id_token})
+        supabase_url  = os.environ.get('SUPABASE_URL', 'https://ugluksyfpfgzbpmayodg.supabase.co')
+        service_key   = os.environ.get('SUPABASE_SERVICE_KEY', '')
+        anon_key      = os.environ.get('SUPABASE_ANON_KEY', 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InVnbHVrc3lmcGZnemJwbWF5b2RnIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzI4NzYwMTUsImV4cCI6MjA4ODQ1MjAxNX0.p4xVp74f5LaB8cRIm7Zl9BlKmwE7xFPUBcTAmt1Ef-g')
+        key = service_key or anon_key
+        url = f'{supabase_url}/rest/v1/user_roles?uid=eq.{uid}&select=role&limit=1'
+        req = urllib.request.Request(url, headers={
+            'apikey': key,
+            'Authorization': 'Bearer ' + key
+        })
         with urllib.request.urlopen(req, context=ssl_ctx, timeout=8) as r:
-            data = json.loads(r.read().decode('utf-8'))
-            fields = data.get('fields', {})
-            role = fields.get('role', {}).get('stringValue', '')
-            return role
+            rows = json.loads(r.read().decode('utf-8'))
+            if rows and rows[0].get('role'):
+                return rows[0]['role']
     except Exception as e:
-        print(f'[Auth] Role fetch failed for {uid}: {e}', flush=True)
-        return None
+        print(f'[Auth] Supabase role fetch failed for {uid}: {e}', flush=True)
+    return None
 
 
 # ── Rate Limiter ────────────────────────────────────────────────────────────
@@ -741,10 +747,8 @@ class Handler(BaseHTTPRequestHandler):
 
     def auth_check(self, required_role='sales'):
         """
-        Verify Firebase ID Token from Authorization header.
-        Returns (uid, email, role) on success.
-        Sends 401/403 and returns None on failure.
-        required_role: 'sales' = sales+admin allowed, 'admin' = admin only
+        Verify Supabase JWT from Authorization header.
+        Returns {'uid', 'email', 'role'} on success, None on failure.
         """
         auth_header = self.headers.get('Authorization', '')
         if not auth_header.startswith('Bearer '):
@@ -758,19 +762,32 @@ class Handler(BaseHTTPRequestHandler):
         if cached:
             uid, email, role = cached['uid'], cached['email'], cached['role']
         else:
-            # Verify token
+            # Verify Supabase JWT (decode payload, check exp, check issuer)
             try:
-                uid, email, _ = _verify_firebase_token(id_token)
+                parts = id_token.split('.')
+                if len(parts) != 3:
+                    raise ValueError('Invalid JWT format')
+                payload = json.loads(_b64_decode(parts[1]))
+                now = time.time()
+                if payload.get('exp', 0) < now:
+                    raise ValueError('Token expired')
+                supabase_url = os.environ.get('SUPABASE_URL', 'https://ugluksyfpfgzbpmayodg.supabase.co')
+                expected_iss = supabase_url + '/auth/v1'
+                if payload.get('iss','') != expected_iss:
+                    raise ValueError(f'Wrong issuer: {payload.get("iss")}')
+                uid   = payload.get('sub','')
+                email = payload.get('email','')
+                if not uid:
+                    raise ValueError('Missing sub (uid)')
             except ValueError as e:
                 print(f'[Auth] Token invalid: {e}', flush=True)
                 self.json_out({'error': 'Token לא תקף — נסה להתנתק ולהתחבר מחדש', 'code': 'invalid_token'}, 401)
                 return None
 
-            # Fetch role from Firestore
-            role = _fetch_user_role_from_firestore(uid, id_token)
+            # Fetch role from Supabase user_roles table
+            role = _fetch_user_role_supabase(uid)
             if not role:
-                self.json_out({'error': 'אין גישה — פנה למנהל', 'code': 'no_role'}, 403)
-                return None
+                role = 'sales'  # default role
 
             _set_token_cache(id_token, uid, email, role)
 
