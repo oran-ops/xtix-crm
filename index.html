@@ -3783,9 +3783,9 @@ ${patterns.length ? patterns.map(function(lp){
       if (panel) panel.innerHTML = '<div style="color:#e74c3c;font-size:13px;padding:10px">&#10007; שגיאה: ' + _esc(sendErr.message) + '</div>';
     }
 
-    // logActivity — non-blocking, רק שדות שקיימים בטבלה
+    // logActivity — non-blocking
     if (typeof logActivity === 'function') {
-      logActivity('outreach_sent', { lead_id: leadId, lead_name: lead.name || '' });
+      logActivity('outreach_sent', { lead_id: leadId, lead_name: lead.name || '', description: subject, channel: 'email' });
     }
   };
 
@@ -3797,11 +3797,16 @@ ${patterns.length ? patterns.map(function(lp){
 
   // ── Activity Logger ────────────────────────────────────────────────
   async function logActivity(type, data) {
+    // עמודות קיימות: id,type,description,lead_id,lead_name,user_email,meta,created_at,email,role,name,timestamp,user,channel
+    var VALID = {type:1,description:1,lead_id:1,lead_name:1,user_email:1,meta:1,email:1,role:1,name:1,timestamp:1,user:1,channel:1};
+    var row = { type: type, timestamp: new Date().toISOString(), user: window.currentUser ? window.currentUser.email : 'unknown' };
+    if (data) {
+      Object.keys(data).forEach(function(k) {
+        if (VALID[k]) row[k] = data[k];
+      });
+    }
     try {
-      await window._sb.insert('activities', Object.assign({ type }, data, {
-        timestamp: new Date().toISOString(),
-        user: window.currentUser ? window.currentUser.email : 'unknown'
-      }));
+      await window._sb.insert('activities', row);
     } catch(e) { console.warn('logActivity failed:', e.message); }
   }
 
