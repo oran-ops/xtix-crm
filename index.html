@@ -3726,6 +3726,10 @@ ${patterns.length ? patterns.map(function(lp){
         panel.style.display = 'block';
       }
 
+      // שמור body לשימוש כפתור WhatsApp
+      window._lastOutreachBody = window._lastOutreachBody || {};
+      window._lastOutreachBody[leadId] = outreach.body || '';
+
       if (btn) { btn.disabled = false; btn.textContent = 'כתוב פנייה'; }
 
     } catch(err) {
@@ -3806,6 +3810,35 @@ ${patterns.length ? patterns.map(function(lp){
   };
 
   // ── WhatsApp Outreach ─────────────────────────────────────────────
+  // כפתור "פתח שיחה ידנית" — פותח wa.me עם הטקסט מוכן
+  window.openWhatsApp = async function(leadId) {
+    var lead = (typeof leads !== 'undefined' ? leads : []).find(function(l){ return l.id == leadId; });
+    if (!lead) { alert('ליד לא נמצא'); return; }
+    var phone = lead.phone || (lead.enrichment && lead.enrichment.phone) || '';
+    if (!phone) { alert('אין מספר טלפון לליד זה'); return; }
+    var panel = document.getElementById('outreach-panel-' + leadId);
+
+    // נסה לקחת טקסט שכבר נוצר, אחרת צור קצר
+    var body = window._lastOutreachBody && window._lastOutreachBody[leadId]
+      ? window._lastOutreachBody[leadId]
+      : 'היי ' + (lead.contact_name || lead.name || '') + ', אני אורן מ-XTIX.AI. ראיתי את ' + (lead.domain || 'האתר שלכם') + ' ויש לי משהו קצר שרלוונטי עבורכם. 2 דקות?';
+
+    var cleanPhone = phone.replace(/[\s\-\(\)]/g, '');
+    if (!cleanPhone.startsWith('+')) cleanPhone = '+972' + cleanPhone.replace(/^0/, '');
+    var waText = body.length > 1000 ? body.substring(0, 997) + '...' : body;
+    var url = 'https://wa.me/' + cleanPhone.replace('+','') + '?text=' + encodeURIComponent(waText);
+    window.open(url, '_blank');
+
+    if (typeof logActivity === 'function') {
+      logActivity('outreach_sent', { lead_id: leadId, lead_name: lead.name || '', description: 'WhatsApp opened', channel: 'whatsapp' });
+    }
+    if (panel) {
+      panel.style.display = 'block';
+      panel.innerHTML = '<div style="color:#25d366;font-size:13px;padding:10px">&#128242; WhatsApp נפתח עם הטקסט מוכן ל-' + _esc(phone) + '</div>';
+    }
+  };
+
+  // כפתור "שלח WA עם ANDY" — שולח אוטומטית דרך Twilio
   window.sendWhatsAppOutreach = async function(leadId) {
     var lead = (typeof leads !== 'undefined' ? leads : []).find(function(l){ return l.id == leadId; });
     if (!lead) { alert('ליד לא נמצא'); return; }
@@ -3814,29 +3847,25 @@ ${patterns.length ? patterns.map(function(lp){
     var panel = document.getElementById('outreach-panel-' + leadId);
     if (panel) { panel.innerHTML = '<div style="color:var(--t2);font-size:13px;padding:12px">ANDY כותב הודעת WhatsApp...</div>'; panel.style.display = 'block'; }
 
-    // קבל את הפנייה האחרונה מה-panel או צור חדשה
-    var bodyEl = panel ? panel.querySelector('div[style*="white-space"]') : null;
-    var body = bodyEl ? bodyEl.textContent : '';
+    var body = window._lastOutreachBody && window._lastOutreachBody[leadId]
+      ? window._lastOutreachBody[leadId]
+      : 'היי ' + (lead.contact_name || lead.name || '') + ', אני אורן מ-XTIX.AI. ראיתי את ' + (lead.domain || 'האתר שלכם') + ' ויש לי משהו קצר שרלוונטי עבורכם. 2 דקות?';
 
-    if (!body) {
-      // אין פנייה — צור קצרה
-      body = 'היי ' + (lead.contact_name || lead.name || '') + ', אני אורן מ-XTIX.AI. ראיתי את ' + (lead.domain || 'האתר שלכם') + ' ויש לי משהו קצר שרלוונטי עבורכם. 2 דקות?';
-    }
-
-    // קצר ל-WhatsApp (מקסימום 300 תווים)
-    var waBody = body.length > 300 ? body.substring(0, 297) + '...' : body;
+    var cleanPhone = phone.replace(/[\s\-\(\)]/g, '');
+    if (!cleanPhone.startsWith('+')) cleanPhone = '+972' + cleanPhone.replace(/^0/, '');
+    var waBody = body.length > 1000 ? body.substring(0, 997) + '...' : body;
 
     try {
       var resp = await window._authFetch(window.SERVER + '/send-whatsapp', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ to: phone, body: waBody })
+        body: JSON.stringify({ to: cleanPhone, body: waBody })
       });
       var data = await resp.json();
       if (data.ok) {
         if (panel) panel.innerHTML = '<div style="color:#25d366;font-size:13px;padding:10px">&#10003; WhatsApp נשלח ל-' + _esc(phone) + '!</div>';
         if (typeof logActivity === 'function') {
-          logActivity('outreach_sent', { lead_id: leadId, lead_name: lead.name || '', description: 'WhatsApp', channel: 'whatsapp' });
+          logActivity('outreach_sent', { lead_id: leadId, lead_name: lead.name || '', description: 'WhatsApp via Twilio', channel: 'whatsapp' });
         }
       } else {
         if (panel) panel.innerHTML = '<div style="color:#e74c3c;font-size:13px;padding:10px">&#10007; שגיאה: ' + _esc(data.error || 'שגיאה לא ידועה') + '</div>';
@@ -4651,16 +4680,25 @@ window._editLeadSave = function(lid){
           + '&#128140; כתוב פנייה עם ANDY (מייל)'
           + '</button>';
 
-    // WhatsApp button — רק אם יש מספר טלפון
+    // WhatsApp buttons — רק אם יש מספר טלפון
     var phone = lead.phone || (enr && enr.phone) || '';
     if (phone) {
-      html += '<button onclick="window.sendWhatsAppOutreach(\'' + lid + '\')" '
+      var phoneClean = phone.replace(/[^0-9+]/g, '').replace(/^0/, '972');
+      html += '<div style="display:flex;gap:8px;margin-bottom:8px">'
+            // כפתור 1: ANDY שולח אוטומטית דרך Twilio
+            + '<button onclick="window.sendWhatsAppOutreach(\'' + lid + '\')" '
             + 'style="background:linear-gradient(135deg,#25d366,#128c7e);color:#fff;border:none;border-radius:8px;'
-            + 'padding:10px 20px;cursor:pointer;font-size:14px;font-weight:600;width:100%;margin-bottom:8px">'
-            + '&#128242; שלח WhatsApp עם ANDY'
-            + '</button>';
+            + 'padding:10px 14px;cursor:pointer;font-size:13px;font-weight:600;flex:1">'
+            + '&#129302; שלח WA עם ANDY</button>'
+            // כפתור 2: פותח WhatsApp אפליקציה/Web ידנית
+            + '<a href="https://wa.me/' + phoneClean + '" target="_blank" '
+            + 'style="background:rgba(37,211,102,0.12);border:1px solid rgba(37,211,102,0.35);color:#25d366;border-radius:8px;'
+            + 'padding:10px 14px;font-size:13px;font-weight:600;flex:1;text-align:center;text-decoration:none;'
+            + 'display:flex;align-items:center;justify-content:center;box-sizing:border-box">'
+            + '&#128172; פתח שיחה ידנית</a>'
+            + '</div>';
     } else {
-      html += '<div style="font-size:11px;color:var(--t2);text-align:center;padding:4px 0 8px">&#128242; WhatsApp — הוסף מספר טלפון לפרופיל להפעלה</div>';
+      html += '<div style="font-size:11px;color:var(--t2);text-align:center;padding:6px;border:1px dashed rgba(255,255,255,0.1);border-radius:8px;margin-bottom:8px">&#128242; WhatsApp — הוסף מספר טלפון לפרופיל להפעלה</div>';
     }
 
     html += '<div id="outreach-panel-' + lid + '" style="display:none"></div>';
