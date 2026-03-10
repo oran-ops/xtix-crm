@@ -1734,6 +1734,11 @@ document.addEventListener("DOMContentLoaded",function(){
       <span class="nav-icon"><svg width="14" height="14" viewBox="0 0 14 14" fill="none"><rect x="2" y="2" width="10" height="10" rx="2" stroke="currentColor" stroke-width="1.3"/><path d="M5 7l2 2 4-3.5" stroke="currentColor" stroke-width="1.3" stroke-linecap="round" stroke-linejoin="round" opacity=".6"/></svg></span><span class="nav-label">משימות</span>
       <span id="tasks-badge" style="display:none;background:var(--accent-blue);color:#fff;border-radius:10px;padding:1px 7px;font-size:9px;font-weight:700;margin-right:auto">0</span>
     </button>
+    <button class="nav-btn" data-panel="outreach" onclick="switchMainTab('outreach',this);setTimeout(window._outreachInit,50)" id="nav-outreach">
+      <span class="nav-icon"><svg width="14" height="14" viewBox="0 0 14 14" fill="none"><path d="M2 2.5h10c.6 0 1 .4 1 1v6c0 .6-.4 1-1 1H2c-.6 0-1-.4-1-1v-6c0-.6.4-1 1-1z" stroke="currentColor" stroke-width="1.3"/><path d="M1 3l6 4 6-4" stroke="currentColor" stroke-width="1.3" stroke-linecap="round"/></svg></span>
+      <span class="nav-label">תור פניות</span>
+      <span id="outreach-badge" style="display:none;background:linear-gradient(135deg,#e74c3c,#c0392b);color:#fff;border-radius:10px;padding:1px 7px;font-size:9px;font-weight:700;margin-right:auto">0</span>
+    </button>
     <button class="nav-btn" data-panel="users" onclick="switchMainTab('users',this);setTimeout(window.loadUsers,50);" id="nav-users" style="display:none" data-role="admin">
       <span class="nav-icon"><svg width="14" height="14" viewBox="0 0 14 14" fill="none"><circle cx="5" cy="4.5" r="2" stroke="currentColor" stroke-width="1.3"/><path d="M1 12c0-2.2 1.8-4 4-4s4 1.8 4 4" stroke="currentColor" stroke-width="1.3" stroke-linecap="round"/><circle cx="10.5" cy="4.5" r="1.5" stroke="currentColor" stroke-width="1.2" opacity=".6"/><path d="M12 10.5c0-1.1-.5-2-1.5-2.5" stroke="currentColor" stroke-width="1.2" stroke-linecap="round" opacity=".6"/></svg></span><span class="nav-label">משתמשים</span>
     </button>
@@ -3881,7 +3886,275 @@ ${patterns.length ? patterns.map(function(lp){
   const STORAGE_KEY  = 'xtix_crm_leads';
   const STORAGE_NEXTID = 'xtix_crm_nextid';
 
-  // ── Activity Logger ────────────────────────────────────────────────
+  // ══════════════════════════════════════════════════════════════
+  //  SPRINT 2 — תור פניות
+  // ══════════════════════════════════════════════════════════════
+
+  var _outreachData = [];
+
+  window._outreachInit = async function() {
+    await window._outreachLoad();
+  };
+
+  window._outreachLoad = async function() {
+    var listEl  = document.getElementById('outreach-list');
+    var statsEl = document.getElementById('outreach-stats');
+    if (listEl) listEl.innerHTML = '<div style="color:var(--text2);text-align:center;padding:40px;font-size:13px">טוען...</div>';
+
+    try {
+      var filter = (document.getElementById('outreach-filter') || {}).value || 'pending_approval';
+      var query = 'order=created_at.desc&limit=100';
+      if (filter !== 'all') query += '&status=eq.' + filter;
+
+      var rows = await window._sb.select('outreach_queue', query);
+      _outreachData = rows || [];
+      window._outreachRender();
+      window._outreachUpdateBadge();
+    } catch(e) {
+      if (listEl) listEl.innerHTML = '<div style="color:#e74c3c;text-align:center;padding:40px">שגיאה בטעינה: ' + _esc(e.message) + '</div>';
+    }
+  };
+
+  window._outreachRender = function() {
+    var filter  = (document.getElementById('outreach-filter') || {}).value || 'pending_approval';
+    var listEl  = document.getElementById('outreach-list');
+    var statsEl = document.getElementById('outreach-stats');
+    if (!listEl) return;
+
+    var data = _outreachData;
+    if (filter !== 'all') data = data.filter(function(r){ return r.status === filter; });
+
+    // Stats
+    var pending  = _outreachData.filter(function(r){ return r.status==='pending_approval'; }).length;
+    var approved = _outreachData.filter(function(r){ return r.status==='approved'; }).length;
+    var rejected = _outreachData.filter(function(r){ return r.status==='rejected'; }).length;
+    var overdue  = _outreachData.filter(function(r){
+      return r.status==='pending_approval' && r.created_at && (Date.now() - new Date(r.created_at).getTime()) > 24*60*60*1000;
+    }).length;
+
+    if (statsEl) statsEl.innerHTML =
+      _statChip('⏳ ממתינים', pending, 'rgba(108,99,255,0.15)', '#a78bfa') +
+      _statChip('✅ אושרו', approved, 'rgba(16,185,129,0.12)', '#10b981') +
+      _statChip('❌ נדחו', rejected, 'rgba(239,68,68,0.1)', '#f87171') +
+      (overdue > 0 ? _statChip('🚨 איחור >24h', overdue, 'rgba(239,68,68,0.18)', '#ef4444') : '');
+
+    if (!data.length) {
+      listEl.innerHTML = '<div style="color:var(--text2);text-align:center;padding:40px;font-size:13px">אין פניות להצגה</div>';
+      return;
+    }
+
+    listEl.innerHTML = data.map(function(row){ return _outreachRow(row); }).join('');
+  };
+
+  function _statChip(label, count, bg, color) {
+    return '<div style="background:' + bg + ';border:1px solid ' + color + '33;border-radius:10px;padding:8px 16px;font-size:12px;color:' + color + ';font-weight:700">'
+      + label + ' <span style="font-size:18px;display:block;margin-top:2px">' + count + '</span></div>';
+  }
+
+  function _outreachRow(row) {
+    var isOverdue = row.status==='pending_approval' && row.created_at &&
+      (Date.now() - new Date(row.created_at).getTime()) > 24*60*60*1000;
+    var lead = (typeof leads !== 'undefined' ? leads : []).find(function(l){ return l.id == row.lead_id; });
+    var leadName = lead ? lead.name : (row.lead_id ? row.lead_id.substring(0,8)+'...' : '—');
+    var created  = row.created_at ? new Date(row.created_at).toLocaleDateString('he-IL',{day:'2-digit',month:'2-digit',hour:'2-digit',minute:'2-digit'}) : '';
+    var scheduled = row.scheduled_at ? new Date(row.scheduled_at).toLocaleDateString('he-IL',{day:'2-digit',month:'2-digit',hour:'2-digit',minute:'2-digit'}) : '';
+    var channelIcon = row.channel==='whatsapp' ? '📱' : '📧';
+    var statusColor = {pending_approval:'#a78bfa', approved:'#10b981', rejected:'#f87171'}[row.status] || '#888';
+    var statusLabel = {pending_approval:'ממתין', approved:'אושר', rejected:'נדחה'}[row.status] || row.status;
+
+    var border = isOverdue ? '1px solid rgba(239,68,68,0.5)' : '1px solid var(--border)';
+    var overdueTag = isOverdue ? '<span style="background:rgba(239,68,68,0.15);color:#ef4444;border-radius:4px;padding:2px 8px;font-size:10px;font-weight:700;margin-right:8px">🚨 +24h</span>' : '';
+
+    return '<div style="background:var(--surface2);border:' + border + ';border-radius:12px;padding:16px;transition:all .2s" id="orow-' + row.id + '">' +
+
+      // Row header
+      '<div style="display:flex;align-items:flex-start;gap:12px;margin-bottom:12px">' +
+        '<div style="flex:1;min-width:0">' +
+          '<div style="display:flex;align-items:center;flex-wrap:wrap;gap:6px;margin-bottom:6px">' +
+            overdueTag +
+            '<span style="font-weight:700;font-size:13px;color:var(--text)">' + _esc(leadName) + '</span>' +
+            '<span style="color:var(--text2);font-size:12px">·</span>' +
+            '<span style="font-size:12px;color:var(--text2)">' + channelIcon + ' ' + _esc(row.channel||'email') + '</span>' +
+            '<span style="color:var(--text2);font-size:12px">·</span>' +
+            '<span style="font-size:11px;color:var(--text2)">' + created + '</span>' +
+          '</div>' +
+          '<div style="font-size:13px;font-weight:600;color:var(--text);margin-bottom:6px">📌 ' + _esc(row.subject||'—') + '</div>' +
+        '</div>' +
+        '<span style="background:' + statusColor + '22;color:' + statusColor + ';border-radius:6px;padding:3px 10px;font-size:11px;font-weight:700;white-space:nowrap">' + statusLabel + '</span>' +
+      '</div>' +
+
+      // Body preview
+      '<div style="font-size:12px;color:var(--text2);line-height:1.7;margin-bottom:12px;padding:10px;background:var(--surface3);border-radius:8px;max-height:80px;overflow:hidden;position:relative">' +
+        _esc((row.body||'').substring(0,200)) + ((row.body||'').length>200?'...':'') +
+      '</div>' +
+
+      // Reasoning
+      (row.reasoning ? '<div style="font-size:11px;color:var(--accent);margin-bottom:12px;padding:6px 10px;background:rgba(108,99,255,0.08);border-radius:6px;border-right:2px solid var(--accent)">💡 ' + _esc(row.reasoning.substring(0,120)) + '</div>' : '') +
+
+      // Scheduled time
+      '<div style="display:flex;align-items:center;gap:8px;margin-bottom:12px;font-size:11px;color:var(--text2)">' +
+        '📅 תזמון: <strong style="color:var(--text)">' + scheduled + '</strong>' +
+        (isOverdue ? '<span style="color:#ef4444;font-weight:600"> — מאחר!</span>' : '') +
+        '<button onclick="window._outreachSchedule('' + row.id + '')" style="margin-right:auto;background:transparent;border:1px dashed var(--border);border-radius:6px;padding:2px 8px;color:var(--text2);font-size:10px;cursor:pointer">✏️ שנה תזמון</button>' +
+      '</div>' +
+
+      // Action buttons — only for pending
+      (row.status === 'pending_approval' ?
+        '<div style="display:flex;gap:8px">' +
+          '<button onclick="window._outreachApprove('' + row.id + '','' + _esc(row.lead_id) + '','' + _esc(row.subject||'').replace(/'/g,"\'") + '')" style="flex:1;background:linear-gradient(135deg,rgba(16,185,129,0.2),rgba(16,185,129,0.1));border:1px solid rgba(16,185,129,0.4);border-radius:8px;padding:9px;color:#10b981;font-size:13px;font-weight:700;cursor:pointer">✅ אשר ושלח</button>' +
+          '<button onclick="window._outreachEdit('' + row.id + '')" style="flex:1;background:rgba(108,99,255,0.1);border:1px solid rgba(108,99,255,0.3);border-radius:8px;padding:9px;color:#a78bfa;font-size:13px;font-weight:700;cursor:pointer">✏️ ערוך</button>' +
+          '<button onclick="window._outreachReject('' + row.id + '')" style="background:rgba(239,68,68,0.1);border:1px solid rgba(239,68,68,0.3);border-radius:8px;padding:9px 14px;color:#f87171;font-size:13px;cursor:pointer">❌</button>' +
+        '</div>'
+      : '') +
+
+    '</div>';
+  }
+
+  // ── Badge update ──────────────────────────────────────────────
+  window._outreachUpdateBadge = async function() {
+    try {
+      var rows = await window._sb.select('outreach_queue', 'status=eq.pending_approval');
+      var count = (rows||[]).length;
+      var overdue = (rows||[]).filter(function(r){
+        return r.created_at && (Date.now() - new Date(r.created_at).getTime()) > 24*60*60*1000;
+      }).length;
+      var badge = document.getElementById('outreach-badge');
+      if (badge) {
+        if (count > 0) {
+          badge.style.display = '';
+          badge.textContent = overdue > 0 ? count + ' 🚨' : count;
+          badge.style.background = overdue > 0
+            ? 'linear-gradient(135deg,#ef4444,#dc2626)'
+            : 'linear-gradient(135deg,#7c3aed,#a78bfa)';
+        } else {
+          badge.style.display = 'none';
+        }
+      }
+    } catch(e) {}
+  };
+
+  // ── Approve ───────────────────────────────────────────────────
+  window._outreachApprove = async function(rowId, leadId, subject) {
+    var row = _outreachData.find(function(r){ return r.id == rowId; });
+    if (!row) return;
+    var lead = (typeof leads !== 'undefined' ? leads : []).find(function(l){ return l.id == leadId; });
+    var email = lead ? (lead.email || '') : '';
+    if (!email) { alert('אין כתובת מייל לליד זה'); return; }
+
+    var btn = document.querySelector('#orow-' + rowId + ' button');
+    if (btn) btn.textContent = 'שולח...';
+
+    // Build HTML email
+    var contactName = lead.contact_name || lead.name || '';
+    var bodyLines = (row.body||'').split('\n').filter(function(l){ return l.trim(); });
+    if (bodyLines.length && /^(היי|שלום|הי)\b/i.test(bodyLines[0])) bodyLines.shift();
+    var htmlBody =
+      '<div dir="rtl" style="font-family:Arial,sans-serif;font-size:15px;line-height:1.8;color:#222;max-width:560px">' +
+      '<p style="margin:0 0 16px">היי ' + _esc(contactName) + ',</p>' +
+      bodyLines.map(function(l){ return '<p style="margin:0 0 12px">' + _esc(l) + '</p>'; }).join('') +
+      '<p style="margin:16px 0 4px">בברכה,</p>' +
+      '<p style="margin:0"><strong>אורן</strong><br><a href="https://xtix.ai" style="color:#6c63ff;text-decoration:none">xtix.ai</a></p>' +
+      '</div>';
+
+    try {
+      var resp = await window._authFetch(window.SERVER + '/send-email', {
+        method: 'POST', headers: {'Content-Type':'application/json'},
+        body: JSON.stringify({ to: email, subject: subject, html: htmlBody, text: row.body })
+      });
+      var data = await resp.json();
+      if (data.ok) {
+        await window._sb.update('outreach_queue', 'id=eq.' + rowId, {
+          status: 'approved',
+          approved_by: window.currentUser ? window.currentUser.email : 'user',
+          sent_at: new Date().toISOString()
+        }).catch(function(){});
+        // Update local data
+        var idx = _outreachData.findIndex(function(r){ return r.id==rowId; });
+        if (idx>=0) _outreachData[idx].status = 'approved';
+        window._outreachRender();
+        window._outreachUpdateBadge();
+        if (typeof logActivity==='function') logActivity('outreach_sent',{lead_id:leadId,lead_name:lead.name||'',description:subject,channel:'email'});
+      } else {
+        alert('שגיאה בשליחה: ' + (data.error||'שגיאה לא ידועה'));
+        if (btn) btn.textContent = '✅ אשר ושלח';
+      }
+    } catch(e) {
+      alert('שגיאה: ' + e.message);
+      if (btn) btn.textContent = '✅ אשר ושלח';
+    }
+  };
+
+  // ── Reject ────────────────────────────────────────────────────
+  window._outreachReject = async function(rowId) {
+    if (!confirm('לדחות פנייה זו?')) return;
+    try {
+      await window._sb.update('outreach_queue', 'id=eq.' + rowId, { status: 'rejected' });
+      var idx = _outreachData.findIndex(function(r){ return r.id==rowId; });
+      if (idx>=0) _outreachData[idx].status = 'rejected';
+      window._outreachRender();
+      window._outreachUpdateBadge();
+    } catch(e) { alert('שגיאה: ' + e.message); }
+  };
+
+  // ── Edit ──────────────────────────────────────────────────────
+  window._outreachEdit = function(rowId) {
+    var row = _outreachData.find(function(r){ return r.id==rowId; });
+    if (!row) return;
+    var rowEl = document.getElementById('orow-' + rowId);
+    if (!rowEl) return;
+
+    // Replace body preview with editable textarea
+    var bodyEl = rowEl.querySelector('div[style*="max-height:80px"]');
+    if (!bodyEl) return;
+
+    var originalBody = row.body || '';
+    bodyEl.innerHTML =
+      '<textarea id="edit-body-' + rowId + '" style="width:100%;min-height:120px;background:var(--surface3);border:1px solid var(--accent);border-radius:8px;padding:8px;color:var(--text);font-size:12px;resize:vertical;box-sizing:border-box;direction:rtl;font-family:Heebo,sans-serif">' +
+      _esc(originalBody) + '</textarea>' +
+      '<div style="display:flex;gap:8px;margin-top:8px">' +
+      '<button onclick="window._outreachSaveEdit('' + rowId + '')" style="flex:1;background:rgba(108,99,255,0.2);border:1px solid rgba(108,99,255,0.4);border-radius:6px;padding:6px;color:#a78bfa;font-size:12px;cursor:pointer">💾 שמור</button>' +
+      '<button onclick="window._outreachRender()" style="background:transparent;border:1px solid var(--border);border-radius:6px;padding:6px 12px;color:var(--text2);font-size:12px;cursor:pointer">ביטול</button>' +
+      '</div>';
+    bodyEl.style.maxHeight = 'none';
+    bodyEl.style.overflow = 'visible';
+  };
+
+  window._outreachSaveEdit = async function(rowId) {
+    var ta = document.getElementById('edit-body-' + rowId);
+    if (!ta) return;
+    var newBody = ta.value;
+    try {
+      await window._sb.update('outreach_queue', 'id=eq.' + rowId, { body: newBody });
+      var idx = _outreachData.findIndex(function(r){ return r.id==rowId; });
+      if (idx>=0) _outreachData[idx].body = newBody;
+      window._outreachRender();
+    } catch(e) { alert('שגיאה בשמירה: ' + e.message); }
+  };
+
+  // ── Schedule ──────────────────────────────────────────────────
+  window._outreachSchedule = function(rowId) {
+    var row = _outreachData.find(function(r){ return r.id==rowId; });
+    if (!row) return;
+    var current = row.scheduled_at ? row.scheduled_at.substring(0,16) : new Date().toISOString().substring(0,16);
+    var newVal = prompt('תזמון שליחה (YYYY-MM-DDTHH:MM):', current);
+    if (!newVal) return;
+    window._sb.update('outreach_queue', 'id=eq.' + rowId, { scheduled_at: new Date(newVal).toISOString() })
+      .then(function(){
+        var idx = _outreachData.findIndex(function(r){ return r.id==rowId; });
+        if (idx>=0) _outreachData[idx].scheduled_at = new Date(newVal).toISOString();
+        window._outreachRender();
+      }).catch(function(e){ alert('שגיאה: ' + e.message); });
+  };
+
+  // ── Auto-refresh badge every 2 min ───────────────────────────
+  setInterval(window._outreachUpdateBadge, 2*60*1000);
+
+  // ── Initial badge load ────────────────────────────────────────
+  setTimeout(window._outreachUpdateBadge, 3000);
+
+  // ══════════════════════════════════════════════════════════════
+
+    // ── Activity Logger ────────────────────────────────────────────────
   async function logActivity(type, data) {
     // עמודות קיימות: id,type,description,lead_id,lead_name,user_email,meta,created_at,email,role,name,timestamp,user,channel
     var VALID = {type:1,description:1,lead_id:1,lead_name:1,user_email:1,meta:1,email:1,role:1,name:1,timestamp:1,user:1,channel:1};
@@ -7676,7 +7949,38 @@ addSalesPlaybookPanel();
 
 </div> <!-- end container -->
   <!-- ═══ TASKS PANEL ═══ -->
-  <div class="panel" id="tab-tasks">
+  <div class="panel" id="tab-outreach">
+  <div style="padding:20px;max-width:900px;margin:0 auto">
+
+    <!-- Header -->
+    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:20px">
+      <div>
+        <h2 style="margin:0;font-size:20px;font-weight:700;color:var(--text)">📬 תור פניות</h2>
+        <div style="font-size:12px;color:var(--text2);margin-top:4px">פניות שנוצרו על ידי ANDY וממתינות לאישורך</div>
+      </div>
+      <div style="display:flex;gap:8px;align-items:center">
+        <select id="outreach-filter" onchange="window._outreachRender()" style="background:var(--surface2);border:1px solid var(--border);border-radius:8px;padding:6px 12px;color:var(--text);font-size:12px;cursor:pointer">
+          <option value="pending_approval">⏳ ממתינים לאישור</option>
+          <option value="approved">✅ אושרו</option>
+          <option value="rejected">❌ נדחו</option>
+          <option value="all">📋 הכל</option>
+        </select>
+        <button onclick="window._outreachInit()" style="background:var(--surface2);border:1px solid var(--border);border-radius:8px;padding:6px 12px;color:var(--text2);font-size:12px;cursor:pointer">🔄 רענן</button>
+      </div>
+    </div>
+
+    <!-- Stats row -->
+    <div id="outreach-stats" style="display:flex;gap:12px;margin-bottom:20px"></div>
+
+    <!-- List -->
+    <div id="outreach-list" style="display:flex;flex-direction:column;gap:10px">
+      <div style="color:var(--text2);text-align:center;padding:40px;font-size:13px">טוען...</div>
+    </div>
+
+  </div>
+</div>
+
+<div class="panel" id="tab-tasks">
     <div id="tasks-root" style="max-width:900px;margin:0 auto;padding:8px 0">
 
       <!-- Header -->
