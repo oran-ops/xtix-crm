@@ -5873,7 +5873,7 @@ BP6-10: תעדף (פלטפורמה ישנה+דומיין+6+ אירועים), Dis
         (prevScore ? ' · ציון <strong style="color:var(--accent)">' + prevScore + '</strong>' : '') + '</div>'
       : '<div style="font-size:11px;color:rgba(196,196,204,0.75);margin-bottom:16px">ליד ללא ניתוח קודם</div>';
     var tripleBtn = hasTriple
-      ? '<button onclick="closeAnalysisChoice();window.triggerFullAnalysisMode(' + leadId + ',\'triple\')" style="width:100%;background:linear-gradient(135deg,rgba(124,58,237,0.2),rgba(59,130,246,0.15));border:1px solid rgba(124,58,237,0.4);border-radius:10px;padding:14px 16px;cursor:pointer;font-family:Heebo,sans-serif;text-align:right;margin-bottom:10px">' +
+      ? '<button onclick="closeAnalysisChoice();window.triggerFullAnalysisMode(\'' + leadId + '\',\'triple\')" style="width:100%;background:linear-gradient(135deg,rgba(124,58,237,0.2),rgba(59,130,246,0.15));border:1px solid rgba(124,58,237,0.4);border-radius:10px;padding:14px 16px;cursor:pointer;font-family:Heebo,sans-serif;text-align:right;margin-bottom:10px">' +
           '<div style="font-size:13px;font-weight:800;color:#a78bfa;margin-bottom:4px">&#x26A1; Meta-Judge &#x2014; Triple Engine</div>' +
           '<div style="font-size:11px;color:rgba(196,196,204,0.75)">Claude + ' + (hasGPT?'GPT-4o':'') + (hasGPT&&hasGemini?' + ':'') + (hasGemini?'Gemini':'') + ' במקביל · Meta-Judge מחליט · שומר לזיכרון</div>' +
         '</button>'
@@ -5889,7 +5889,7 @@ BP6-10: תעדף (פלטפורמה ישנה+דומיין+6+ אירועים), Dis
         '</div>' +
         '<div style="font-size:13px;font-weight:600;color:var(--text);margin-bottom:8px">' + (lead.name||'ליד') + '</div>' +
         prevBadge + tripleBtn +
-        '<button onclick="closeAnalysisChoice();window.triggerFullAnalysisMode(' + leadId + ',\'claude\')" style="width:100%;background:rgba(245,158,11,0.1);border:1px solid rgba(245,158,11,0.3);border-radius:10px;padding:14px 16px;cursor:pointer;font-family:Heebo,sans-serif;text-align:right">' +
+        '<button onclick="closeAnalysisChoice();window.triggerFullAnalysisMode(\'' + leadId + '\',\'claude\')" style="width:100%;background:rgba(245,158,11,0.1);border:1px solid rgba(245,158,11,0.3);border-radius:10px;padding:14px 16px;cursor:pointer;font-family:Heebo,sans-serif;text-align:right">' +
           '<div style="font-size:13px;font-weight:800;color:#F59E0B;margin-bottom:4px">&#x1F9E0; Claude בלבד</div>' +
           '<div style="font-size:11px;color:rgba(196,196,204,0.75)">ניתוח מעמיק · 3 שלבים · מהיר יותר · ללא Meta-Judge</div>' +
         '</button>' +
