@@ -589,10 +589,14 @@ def send_gmail(cfg, to_email, subject, body_html, body_text=''):
         return {'ok':False,'error':str(e)}
 
 # ── SendGrid ───────────────────────────────────────────────────────────────
-def send_sendgrid(to_email, subject, body_html, body_text='', from_email='noreply@xtix.ai', from_name='XTIX'):
+def send_sendgrid(to_email, subject, body_html, body_text='', from_email=None, from_name='XTIX'):
     api_key = os.environ.get('SENDGRID_API_KEY', '')
     if not api_key:
         return {'ok': False, 'error': 'SENDGRID_API_KEY not set in Railway Variables'}
+    # Use configured sender or env variable
+    if not from_email:
+        from_email = os.environ.get('SENDGRID_FROM_EMAIL', 'oran@xtix.ai')
+    print(f'  [SENDGRID] Sending to={to_email} from={from_email} subject={subject[:50]}', flush=True)
     payload = json.dumps({
         'personalizations': [{'to': [{'email': to_email}]}],
         'from': {'email': from_email, 'name': from_name},
@@ -613,16 +617,21 @@ def send_sendgrid(to_email, subject, body_html, body_text='', from_email='norepl
             method='POST'
         )
         with urllib.request.urlopen(req, context=ssl_ctx, timeout=30) as r:
-            # SendGrid returns 202 Accepted with empty body on success
             status = r.status
             print(f'  [SENDGRID] SUCCESS status={status} to={to_email}', flush=True)
             return {'ok': True, 'message': f'נשלח ל-{to_email} דרך SendGrid', 'provider': 'sendgrid'}
     except urllib.error.HTTPError as e:
         err = e.read().decode('utf-8')
-        print(f'  [SENDGRID] HTTP Error {e.code}: {err[:200]}', flush=True)
-        return {'ok': False, 'error': f'SendGrid error {e.code}: {err[:150]}'}
+        print(f'  [SENDGRID] HTTP Error {e.code}: {err[:300]}', flush=True)
+        # Parse SendGrid error for friendly message
+        try:
+            err_json = json.loads(err)
+            msg = '; '.join([x.get('message','') for x in err_json.get('errors',[])])
+        except:
+            msg = err[:200]
+        return {'ok': False, 'error': f'SendGrid {e.code}: {msg}'}
     except Exception as e:
-        print(f'  [SENDGRID] Error: {e}', flush=True)
+        print(f'  [SENDGRID] Error: {type(e).__name__}: {e}', flush=True)
         return {'ok': False, 'error': str(e)}
 
 # ── Twilio WhatsApp ─────────────────────────────────────────────────────────
