@@ -855,12 +855,43 @@ class Handler(BaseHTTPRequestHandler):
         elif p.path=='/health':
             self.json_out({
                 'status': 'ok',
-                'claude':  bool(os.environ.get('ANTHROPIC_API_KEY','')),
-                'openai':  bool(os.environ.get('OPENAI_API_KEY','')),
-                'gemini':  bool(os.environ.get('GEMINI_API_KEY','')),
-                'gmail':   bool(cfg.get('gmail_user','')),
-                'hubspot': bool(cfg.get('hubspot_token','')),
+                'claude':     bool(os.environ.get('ANTHROPIC_API_KEY','')),
+                'openai':     bool(os.environ.get('OPENAI_API_KEY','')),
+                'gemini':     bool(os.environ.get('GEMINI_API_KEY','')),
+                'sendgrid':   bool(os.environ.get('SENDGRID_API_KEY','')),
+                'twilio':     bool(os.environ.get('TWILIO_ACCOUNT_SID','')),
+                'gmail':      bool(cfg.get('gmail_user','')),
+                'hubspot':    bool(cfg.get('hubspot_token','')),
             })
+        elif p.path=='/debug-network':
+            # בדיקת נגישות רשת מ-Railway
+            results = {}
+            hosts = [
+                ('sendgrid', 'https://api.sendgrid.com/v3/mail/send'),
+                ('anthropic', 'https://api.anthropic.com'),
+                ('gmail_smtp', 'smtp.gmail.com'),
+                ('twilio', 'https://api.twilio.com'),
+            ]
+            import socket
+            for name, url in hosts:
+                try:
+                    if url.startswith('https://'):
+                        host = url.replace('https://','').split('/')[0]
+                    else:
+                        host = url
+                    socket.setdefaulttimeout(5)
+                    socket.getaddrinfo(host, 443)
+                    # Try actual TCP connect
+                    s = socket.create_connection((host, 443), timeout=5)
+                    s.close()
+                    results[name] = 'reachable'
+                except socket.timeout:
+                    results[name] = 'timeout'
+                except OSError as e:
+                    results[name] = f'error: {e}'
+                except Exception as e:
+                    results[name] = f'error: {e}'
+            self.json_out({'network': results})
         elif p.path=='/analyze':
             if not self.auth_check('sales'): return
             if not self.rate_check('/analyze'): return
