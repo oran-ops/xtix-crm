@@ -3601,6 +3601,7 @@ BP18: Nurture existing customers — repeat customers spend 67% more
   window.generateOutreach = async function(leadId) {
     var lead = (typeof leads !== 'undefined' ? leads : []).find(function(l){ return l.id == leadId; });
     if (!lead) { alert('ליד לא נמצא'); return; }
+    function _esc(s){ return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;'); }
 
     // UI — show loading state
     var btn = document.getElementById('outreach-btn-' + leadId);
@@ -3662,12 +3663,9 @@ ${patterns.length ? patterns.map(function(lp){
 {"subject":"...","body":"...","channel":"email","reasoning":"..."}`;
 
       // 4. קרא ל-Claude דרך Railway
-      var resp = await fetch(window.SERVER + '/ai', {
+      var resp = await window._authFetch(window.SERVER + '/ai', {
         method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': 'Bearer ' + (window.currentToken || '')
-        },
+        headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ prompt: prompt, max_tokens: 800 })
       });
       if (!resp.ok) throw new Error('Railway /ai error: ' + resp.status);
