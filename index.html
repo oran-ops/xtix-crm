@@ -3774,10 +3774,12 @@ ${patterns.length ? patterns.map(function(lp){
       if (panel) panel.innerHTML = '<div style="color:#e74c3c;font-size:13px;padding:10px">&#10007; שגיאה: ' + _esc(sendErr.message) + '</div>';
     }
 
-    // logActivity
-    if (typeof logActivity === 'function') {
-      logActivity('outreach_sent', { lead_id: leadId, channel: 'email', subject: subject });
-    }
+    // logActivity — non-blocking, לא עוצר את הפונקציה
+    try {
+      if (typeof logActivity === 'function') {
+        logActivity('outreach_sent', { lead_id: leadId, subject: subject });
+      }
+    } catch(e) { console.warn('logActivity error:', e); }
   };
 
   const SERVER = window.SERVER = 'https://xtix-crm-test.up.railway.app';
@@ -5916,9 +5918,48 @@ BP6-10: תעדף (פלטפורמה ישנה+דומיין+6+ אירועים), Dis
   };
   window.triggerFullAnalysisMode = async function(leadId, mode) {
     window._forceAnalysisMode = mode;
+    if (mode === 'triple') _showEngineStatusPanel(leadId);
     try { await window.triggerFullAnalysis(leadId, false); }
-    finally { window._forceAnalysisMode = null; }
+    finally { window._forceAnalysisMode = null; _hideEngineStatusPanel(); }
   };
+
+  function _showEngineStatusPanel(leadId) {
+    var existing = document.getElementById('engine-status-panel');
+    if (existing) existing.remove();
+    var panel = document.createElement('div');
+    panel.id = 'engine-status-panel';
+    panel.style.cssText = 'position:fixed;bottom:24px;left:24px;background:#141418;border:1px solid rgba(124,58,237,0.4);border-radius:14px;padding:16px 20px;z-index:9999;min-width:240px;box-shadow:0 8px 32px rgba(0,0,0,0.6)';
+    panel.innerHTML =
+      '<div style="font-size:12px;font-weight:800;color:#a78bfa;margin-bottom:12px;letter-spacing:.5px">&#x26A1; META-JUDGE RUNNING</div>' +
+      '<div style="display:flex;align-items:center;gap:10px;margin-bottom:8px">' +
+        '<span id="ep-dot-claude" style="width:8px;height:8px;border-radius:50%;background:#a78bfa;display:inline-block"></span>' +
+        '<span style="font-size:12px;color:var(--text,#e2e2e8)">&#x1F9E0; Claude</span>' +
+        '<span id="ep-status-claude" style="font-size:11px;color:rgba(196,196,204,0.6);margin-right:auto">מנתח...</span>' +
+      '</div>' +
+      '<div style="display:flex;align-items:center;gap:10px;margin-bottom:8px">' +
+        '<span id="ep-dot-gpt" style="width:8px;height:8px;border-radius:50%;background:rgba(16,185,129,0.3);display:inline-block"></span>' +
+        '<span style="font-size:12px;color:var(--text,#e2e2e8)">&#x1F7E2; GPT-4o</span>' +
+        '<span id="ep-status-gpt" style="font-size:11px;color:rgba(196,196,204,0.6);margin-right:auto">ממתין...</span>' +
+      '</div>' +
+      '<div style="display:flex;align-items:center;gap:10px;margin-bottom:12px">' +
+        '<span id="ep-dot-gemini" style="width:8px;height:8px;border-radius:50%;background:rgba(59,130,246,0.3);display:inline-block"></span>' +
+        '<span style="font-size:12px;color:var(--text,#e2e2e8)">&#x1F535; Gemini</span>' +
+        '<span id="ep-status-gemini" style="font-size:11px;color:rgba(196,196,204,0.6);margin-right:auto">ממתין...</span>' +
+      '</div>' +
+      '<div style="height:3px;background:rgba(255,255,255,0.06);border-radius:2px;overflow:hidden">' +
+        '<div id="ep-bar" style="height:100%;width:10%;background:linear-gradient(90deg,#a78bfa,#3b82f6);border-radius:2px;transition:width 3s ease"></div>' +
+      '</div>';
+    document.body.appendChild(panel);
+    setTimeout(function(){ var b=document.getElementById('ep-bar'); if(b) b.style.width='55%'; }, 200);
+    setTimeout(function(){ var d=document.getElementById('ep-dot-gpt'); var s=document.getElementById('ep-status-gpt'); if(d) d.style.background='#10b981'; if(s) s.textContent='מנתח...'; }, 1500);
+    setTimeout(function(){ var d=document.getElementById('ep-dot-gemini'); var s=document.getElementById('ep-status-gemini'); if(d) d.style.background='#3b82f6'; if(s) s.textContent='מנתח...'; }, 2500);
+    setTimeout(function(){ var b=document.getElementById('ep-bar'); if(b) b.style.width='85%'; }, 5000);
+  }
+
+  function _hideEngineStatusPanel() {
+    var panel = document.getElementById('engine-status-panel');
+    if (panel) { panel.style.transition='opacity .5s'; panel.style.opacity='0'; setTimeout(function(){ if(panel.parentNode) panel.remove(); }, 500); }
+  }
 
   var _aiInProgress = {};
 
