@@ -3737,14 +3737,23 @@ ${patterns.length ? patterns.map(function(lp){
 
   // אשר ושלח — קורא ל-sendRealEmail
   window.approveOutreach = async function(leadId, subject) {
+    console.log('[approveOutreach] leadId=', leadId, 'subject=', subject);
     var panel = document.getElementById('outreach-panel-' + leadId);
     var lead  = (typeof leads !== 'undefined' ? leads : []).find(function(l){ return l.id == leadId; });
-    if (!lead || !lead.email) { alert('אין כתובת מייל לליד זה'); return; }
+    console.log('[approveOutreach] lead=', lead ? lead.name : 'NOT FOUND', 'email=', lead ? lead.email : 'N/A');
+    if (!lead) { alert('ליד לא נמצא'); return; }
+    if (!lead.email) {
+      // נסה לקחת מייל מ-enrichment
+      var email = (lead.enrichment && lead.enrichment.email) || lead.contact_email || '';
+      if (!email) { alert('אין כתובת מייל לליד זה — הוסף מייל בפרופיל'); return; }
+      lead.email = email;
+    }
 
     // קבל body מה-panel
     var bodyEl = panel ? panel.querySelector('div[style*="white-space"]') : null;
     var body   = bodyEl ? bodyEl.textContent : '';
-    if (!body) { alert('לא נמצא גוף המייל'); return; }
+    console.log('[approveOutreach] body length=', body.length);
+    if (!body) { alert('לא נמצא גוף המייל — נסה לייצר פנייה מחדש'); return; }
 
     // עדכן סטטוס ב-outreach_queue
     await window._sb.update('outreach_queue',
