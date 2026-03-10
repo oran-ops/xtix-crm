@@ -3752,12 +3752,26 @@ ${patterns.length ? patterns.map(function(lp){
       { status: 'approved', approved_by: window.currentUser ? window.currentUser.email : 'user', sent_at: new Date().toISOString() }
     ).catch(function(){});
 
-    // שלח מייל
-    if (window.sendRealEmail) {
-      await window.sendRealEmail(lead.email, subject, body, leadId, null);
-      if (panel) panel.innerHTML = '<div style="color:var(--green,#27ae60);font-size:13px;padding:10px">המייל נשלח!</div>';
-    } else {
-      alert('sendRealEmail לא זמין');
+    // שלח מייל ישירות דרך Railway /send-email
+    try {
+      var sendResp = await window._authFetch(window.SERVER + '/send-email', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          to:      lead.email,
+          subject: subject,
+          html:    body.replace(/\n/g, '<br>'),
+          text:    body
+        })
+      });
+      var sendData = await sendResp.json();
+      if (sendData.ok) {
+        if (panel) panel.innerHTML = '<div style="color:var(--green,#27ae60);font-size:13px;padding:10px">&#10003; המייל נשלח דרך ' + (sendData.provider || 'email') + '!</div>';
+      } else {
+        if (panel) panel.innerHTML = '<div style="color:#e74c3c;font-size:13px;padding:10px">&#10007; שגיאה בשליחה: ' + _esc(sendData.error || 'שגיאה לא ידועה') + '</div>';
+      }
+    } catch(sendErr) {
+      if (panel) panel.innerHTML = '<div style="color:#e74c3c;font-size:13px;padding:10px">&#10007; שגיאה: ' + _esc(sendErr.message) + '</div>';
     }
 
     // logActivity
