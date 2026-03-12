@@ -3922,6 +3922,17 @@ ${patterns.length ? patterns.map(function(lp){
     }, 15000);
   };
 
+  // טעינה אוטומטית כשה-auth מוכן והתור פתוח
+  var _outreachAutoInit = setInterval(function() {
+    if (window.currentUser && window._sb && window.SERVER) {
+      clearInterval(_outreachAutoInit);
+      var outreachTab = document.getElementById('outreach-list');
+      if (outreachTab && outreachTab.offsetParent !== null) {
+        window._outreachLoad();
+      }
+    }
+  }, 1000);
+
   window._outreachLoad = async function() {
     var listEl  = document.getElementById('outreach-list');
     var statsEl = document.getElementById('outreach-stats');
