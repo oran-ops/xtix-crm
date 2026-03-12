@@ -3717,9 +3717,9 @@ ${patterns.length ? patterns.map(function(lp){
               '&#129504; <strong>למה ANDY בחר גישה זו:</strong> ' + _esc(outreach.reasoning) +
             '</div>' +
             '<div style="display:flex;gap:8px;flex-wrap:wrap">' +
-              '<button onclick="window.approveOutreach(\'' + leadId + '\',\'' + _esc(outreach.subject).replace(/'/g,"\\'") + '\')" ' +
+              '<button onclick="window._outreachAddToQueue(\'' + leadId + '\');this.closest(\'div[style]\').innerHTML=\'<span style=\\\"color:#10b981;font-size:13px\\\">✅ הפנייה נוספה לתור — עבור לטאב פניות לאישור</span>\'" ' +
                 'style="background:var(--green,#27ae60);color:#fff;border:none;border-radius:6px;padding:7px 16px;cursor:pointer;font-size:13px">' +
-                '&#10003; אשר ושלח' +
+                '&#10003; הוסף לתור פניות' +
               '</button>' +
               '<button onclick="window.generateOutreach(\'' + leadId + '\')" ' +
                 'style="background:var(--accent);color:#fff;border:none;border-radius:6px;padding:7px 14px;cursor:pointer;font-size:13px">' +
@@ -3748,6 +3748,12 @@ ${patterns.length ? patterns.map(function(lp){
       }
       if (btn) { btn.disabled = false; btn.textContent = 'כתוב פנייה'; }
     }
+  };
+
+  // הוסף לתור — הפנייה כבר ב-DB כ-pending_approval, רק רענן פאנל
+  window._outreachAddToQueue = function(leadId) {
+    if (typeof window._outreachLoad === 'function') setTimeout(window._outreachLoad, 300);
+    if (typeof window._outreachUpdateBadge === 'function') window._outreachUpdateBadge();
   };
 
   // אשר ושלח — קורא ל-sendRealEmail
