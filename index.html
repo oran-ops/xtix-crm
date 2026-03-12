@@ -11763,7 +11763,7 @@ setTimeout(function() {
         // 3. Client writes insights to Supabase (no SA needed)
         if (btn) btn.textContent = '⏳ שומר ב-Supabase...';
         // Save to Supabase always
-        await window._sb.insert('brain_insights',Object.assign({id:'latest'},d.insights)).catch(()=>window._sb.update('brain_insights',"id=eq.'latest'",d.insights));
+        await window._sb.update('brain_insights','is_latest=eq.true',Object.assign({},d.insights,{generated_at:new Date().toISOString(),version:((await window._sb.get('brain_insights','is_latest=eq.true&limit=1').catch(()=>[{}]))[0]||{version:0}).version+1})).catch(()=>window._sb.insert('brain_insights',Object.assign({},d.insights,{is_latest:true,generated_at:new Date().toISOString(),version:1})));
           var histId = new Date().toISOString().slice(0,16).replace('T','_').replace(':','');
         window._sb.insert('brain_insights',Object.assign({},d.insights,{history_id:histId})).catch(function(){});
         if (btn) btn.textContent = '✅ הסתיים!';
