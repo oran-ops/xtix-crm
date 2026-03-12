@@ -3937,7 +3937,7 @@ ${patterns.length ? patterns.map(function(lp){
     if (listEl && !listEl.children.length) listEl.innerHTML = '<div style="color:var(--text2);text-align:center;padding:40px;font-size:13px">טוען...</div>';
 
     try {
-      var filter = (document.getElementById('outreach-filter') || {}).value || 'pending_approval';
+      var filter = (document.getElementById('outreach-filter') || {}).value || 'all';
       var query = 'order=created_at.desc&limit=100';
       if (filter === 'pending_approval') {
         query += '&status=in.(pending_approval,chain_draft)';
@@ -3957,7 +3957,7 @@ ${patterns.length ? patterns.map(function(lp){
   };
 
   window._outreachRender = function() {
-    var filter  = (document.getElementById('outreach-filter') || {}).value || 'pending_approval';
+    var filter  = (document.getElementById('outreach-filter') || {}).value || 'all';
     var listEl  = document.getElementById('outreach-list');
     var statsEl = document.getElementById('outreach-stats');
     if (!listEl) return;
@@ -8182,7 +8182,7 @@ addSalesPlaybookPanel();
           <option value="scheduled">📅 מתוזמנים</option>
           <option value="approved">✅ אושרו</option>
           <option value="rejected">❌ נדחו</option>
-          <option value="all">📋 הכל</option>
+          <option value="all" selected>📋 הכל</option>
         </select>
         <button onclick="window._outreachInit()" style="background:var(--surface2);border:1px solid var(--border);border-radius:8px;padding:6px 12px;color:var(--text2);font-size:12px;cursor:pointer">🔄 רענן</button>
       </div>
