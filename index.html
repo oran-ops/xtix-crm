@@ -5102,6 +5102,22 @@ window._editLeadSave = function(lid){
 
     html += '<div id="outreach-panel-' + lid + '" style="display:none"></div>';
     html += '</div>';
+
+    // טען שרשרת אוטומטית אם קיימת
+    setTimeout(async function() {
+      if (typeof window._sb === 'undefined') return;
+      try {
+        var chainRows = await window._sb.get('outreach_queue',
+          'lead_id=eq.' + lid + '&status=eq.chain_draft&limit=1'
+        );
+        if (chainRows && chainRows.length && typeof window._renderChainInAndyTab === 'function') {
+          var p = document.getElementById('outreach-panel-' + lid);
+          if (p) p.style.display = 'block';
+          window._renderChainInAndyTab(lid);
+        }
+      } catch(e) {}
+    }, 200);
+
     return html;
   }
 
