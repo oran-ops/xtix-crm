@@ -3933,7 +3933,9 @@ ${patterns.length ? patterns.map(function(lp){
       var query = 'order=created_at.desc&limit=100';
       if (filter === 'pending_approval') {
         query += '&status=in.(pending_approval,chain_draft)';
-      } else if (filter !== 'all') {
+      } else if (filter === 'all') {
+        // הכל — ללא פילטר סטטוס
+      } else {
         query += '&status=eq.' + filter;
       }
 
@@ -8167,8 +8169,9 @@ addSalesPlaybookPanel();
         <div style="font-size:12px;color:var(--text2);margin-top:4px">פניות שנוצרו על ידי ANDY וממתינות לאישורך</div>
       </div>
       <div style="display:flex;gap:8px;align-items:center">
-        <select id="outreach-filter" onchange="window._outreachRender()" style="background:var(--surface2);border:1px solid var(--border);border-radius:8px;padding:6px 12px;color:var(--text);font-size:12px;cursor:pointer">
+        <select id="outreach-filter" onchange="window._outreachLoad()" style="background:var(--surface2);border:1px solid var(--border);border-radius:8px;padding:6px 12px;color:var(--text);font-size:12px;cursor:pointer">
           <option value="pending_approval">⏳ ממתינים לאישור</option>
+          <option value="scheduled">📅 מתוזמנים</option>
           <option value="approved">✅ אושרו</option>
           <option value="rejected">❌ נדחו</option>
           <option value="all">📋 הכל</option>
