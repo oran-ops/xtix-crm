@@ -6613,6 +6613,10 @@ BP6-10: תעדף (פלטפורמה ישנה+דומיין+6+ אירועים), Dis
           setTimeout(function(){if(c)c.style.boxShadow='';},2500);}
       },100);
       updateStats();
+      // ── צור שרשרת מיילים אוטומטית אחרי ניתוח ──
+      if (typeof window.andyGenerateChain === 'function') {
+        setTimeout(function() { window.andyGenerateChain(leadId); }, 1500);
+      }
     } catch(err) {
       console.error('[AI] pipeline:', err);
       lead.ai_analysis = lead.ai_analysis || {};
@@ -13499,5 +13503,6 @@ console.log('[Signal Engine] ✅ Loaded — '+Object.keys(SIGNAL_WEIGHTS).length
 
 </script>
 <script src="andy-cadence.js"></script>
+<script src="andy-chain.js"></script>
 </body>
 </html>
