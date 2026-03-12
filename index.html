@@ -3922,14 +3922,11 @@ ${patterns.length ? patterns.map(function(lp){
     }, 15000);
   };
 
-  // טעינה אוטומטית כשה-auth מוכן והתור פתוח
+  // טעינה אוטומטית כשה-auth מוכן — תמיד, גם אם הפאנל סגור
   var _outreachAutoInit = setInterval(function() {
     if (window.currentUser && window._sb && window.SERVER) {
       clearInterval(_outreachAutoInit);
-      var outreachTab = document.getElementById('outreach-list');
-      if (outreachTab && outreachTab.offsetParent !== null) {
-        window._outreachLoad();
-      }
+      window._outreachLoad();
     }
   }, 1000);
 
