@@ -1,0 +1,371 @@
+{
+  "_meta": {
+    "project": "ANDY.AI CRM — XTIX Events",
+    "main_file": "index.html",
+    "total_lines": 13382,
+    "server": "https://xtix-crm-test.up.railway.app",
+    "server_var": "window.SERVER (defined L3883)",
+    "auth_fetch": "window._authFetch(url, opts) — wraps fetch with Supabase JWT",
+    "supabase_client": "window._sb — defined in supabase-client.js",
+    "generated": "2026-03-11",
+    "CRITICAL_RULE": "Always check DUPLICATES section before editing ANY function. Both instances must be updated.",
+    "script_blocks": {
+      "block_2":  "L3412-L6690  — Core CRM: outreach, enrichment, analysis, auth",
+      "block_3":  "L7452-L7629  — Lead scoring / URL analyzer",
+      "block_4":  "L7642-L7903  — Lead management helpers",
+      "block_5":  "L8268-L9099  — Hunt Engine v1 + UI helpers (OLDER)",
+      "block_6":  "L9185-L9374  — AI Chat + _callAIFast",
+      "block_7":  "L9377-L10643 — Hunt Engine v2 (NEWER — use this one)",
+      "block_8":  "L10908-L11692 — Brain tab: config, decisions, performance",
+      "block_9":  "L11694-L12110 — KB tab: ingestion, scheduler",
+      "block_10": "L12112-L13381 — Signal Engine + Brain BG + feedback"
+    }
+  },
+
+  "DUPLICATES": {
+    "WARNING": "These functions are defined TWICE. ALWAYS update BOTH lines.",
+    "critical_pairs": [
+      { "name": "patchCard",           "lines": [8756, 10310], "note": "Lead card DOM patcher — must update both" },
+      { "name": "renderSimpleLead",    "lines": [4559, 7734, 8747, 10301], "note": "4 definitions — L10301 is the active one in Hunt context" },
+      { "name": "newHuntSearch",       "lines": [8730, 9673],  "note": "L9673 is v2 (active), L8730 is v1 (legacy)" },
+      { "name": "huntAddLeadFromSaved","lines": [8708, 9651],  "note": "L9651 is v2 (active)" },
+      { "name": "huntGoStep",          "lines": [9693, 13102], "note": "L9693 is v2 core, L13102 is feedback context" },
+      { "name": "_autoRun",            "lines": [11834, 12853],"note": "L11834 = KB scheduler, L12853 = Brain BG scheduler — different purposes" },
+      { "name": "_kbInit",             "lines": [11810, 11863],"note": "L11863 is the active one" },
+      { "name": "addLead",             "lines": [3465, 7751],  "note": "L7751 is the active full version" },
+      { "name": "_markRan",            "lines": [11830, 12850],"note": "L11830 = KB, L12850 = BrainBG — different schedulers" },
+      { "name": "renderHuntHistory",   "lines": [13052, 13096],"note": "L13096 is in tab-open handler, L13052 is the renderer" },
+      { "name": "switchMainTab",       "lines": [5271, 9359],  "note": "L9359 overrides L5271" },
+      { "name": "setLeadMode",         "lines": [5414, 13091], "note": "L13091 overrides L5414" }
+    ]
+  },
+
+  "segments": {
+
+    "HUNT": {
+      "description": "AI Hunt — autonomous lead search engine",
+      "status": "v2 active (block_7), v1 legacy (block_5)",
+      "new_file_target": "js/andy-hunt.js",
+      "primary_block": "block_7 (L9377-L10643)",
+      "functions": [
+        { "name": "runHuntSearch",       "line": 9755,  "type": "primary", "note": "Main entry — generates queries, calls Serper, returns leads" },
+        { "name": "huntAddLead",         "line": 10063, "type": "primary", "note": "Adds Hunt result to CRM — deduplication here" },
+        { "name": "getHuntParams",       "line": 9732,  "type": "helper",  "note": "Reads UI checkboxes → returns params object" },
+        { "name": "huntBuildSummary",    "line": 9715,  "type": "helper",  "note": "Builds text summary of hunt params" },
+        { "name": "closeHuntResults",    "line": 9689,  "type": "ui",      "note": "Closes results panel" },
+        { "name": "_huntRecordFound",    "line": 8497,  "type": "learning","note": "Records that a segment was found via Hunt → hunt_learnings" },
+        { "name": "_huntRecordOutcome",  "line": 8521,  "type": "learning","note": "Updates hunt_learnings win_rate after outcome" },
+        { "name": "_huntLoadLearnings",  "line": 8554,  "type": "learning","note": "Loads hunt_learnings sorted by win_rate — feeds Hunt queries" },
+        { "name": "_huntFeedback",       "line": 13012, "type": "feedback","note": "User approves/rejects Hunt lead → updates hunt_learnings" },
+        { "name": "renderHuntHistory",   "line": 13052, "type": "ui",      "note": "Renders past Hunt runs" },
+        { "name": "_huntFromCompetitor", "line": 13341, "type": "ui",      "note": "Launch Hunt pre-filled with competitor params from Intel tab" }
+      ],
+      "supabase_tables": ["hunt_learnings", "leads"],
+      "server_endpoints": ["/hunt (POST)", "/ai (POST)"],
+      "globals_read":  ["window.SERVER", "window._sb", "window._authFetch", "leads"],
+      "globals_write": ["window._huntHistory", "window._lastHuntParams", "window._lastFoundLeads"],
+      "v4_additions": ["buildHuntStrategy()", "updateHuntStrategyFromOutcome()", "_huntPreScore()"],
+      "v4_new_tables": ["hunt_strategy"],
+      "edit_rules": [
+        "runHuntSearch is the ONLY entry point — all Hunt changes start here",
+        "huntAddLead does dedup by domain — preserve this",
+        "_huntLoadLearnings result feeds query generation — critical path",
+        "Do NOT edit block_5 hunt functions — they are legacy"
+      ]
+    },
+
+    "META_JUDGE": {
+      "description": "3-engine AI analysis + vote + outreach generation",
+      "status": "v1 active — single Claude engine, GPT/Gemini optional",
+      "new_file_target": "js/andy-meta.js",
+      "primary_block": "block_2 (L6180-L6690) + block_8 (L10908-L11692)",
+      "functions": [
+        { "name": "triggerFullAnalysis",  "line": 6374,  "type": "primary",  "note": "Main entry — enriches + analyzes + saves. Called from lead card Analyze button" },
+        { "name": "saveBrainDecision",    "line": 11293, "type": "primary",  "note": "Writes to ai_decisions + hunt_learnings + outreach_queue. CRITICAL — all outcome hooks here" },
+        { "name": "loadBrainDecisions",   "line": 11032, "type": "data",     "note": "Loads ai_decisions for Brain tab display" },
+        { "name": "loadBrainConfig",      "line": 10979, "type": "data",     "note": "Loads brain config from Supabase app_settings" },
+        { "name": "loadBrainPerformance", "line": 11231, "type": "data",     "note": "Loads performance stats for Brain tab" },
+        { "name": "_applyBrainConfigToUI","line": 11020, "type": "ui",       "note": "Applies brain_config values to UI elements" },
+        { "name": "_renderDecisionsList", "line": 11053, "type": "ui",       "note": "Renders list of past decisions in Brain tab" },
+        { "name": "_updateBrainStats",    "line": 11097, "type": "ui",       "note": "Updates Brain tab stats bar" },
+        { "name": "_engineBlock",         "line": 11174, "type": "ui",       "note": "Renders single engine result block in Brain tab" },
+        { "name": "markDecisionOutcome",  "line": 11197, "type": "outcome",  "note": "Oran marks a decision as correct/incorrect in Brain tab" },
+        { "name": "_setLeadOutcome",      "line": 11372, "type": "outcome",  "note": "Sets lead outcome from Brain tab" },
+        { "name": "_showMetaJudgeToast",  "line": 11398, "type": "ui",       "note": "Shows Meta-Judge result toast (DUPLICATE at L6475 — update both)" },
+        { "name": "_ltab_metajudge",      "line": 4990,  "type": "ui",       "note": "Renders Meta-Judge tab inside lead modal" },
+        { "name": "_callAI",              "line": 6510,  "type": "helper",   "note": "Claude API call with retry — used by triggerFullAnalysis" },
+        { "name": "_callAIFast",          "line": 9499,  "type": "helper",   "note": "Fast Claude call — used by AI Chat and quick analysis" }
+      ],
+      "supabase_tables": ["ai_decisions", "outreach_queue", "brain_insights", "app_settings", "brain_memory"],
+      "server_endpoints": ["/ai (POST)", "/gpt (POST)", "/gemini (POST)"],
+      "globals_read":  ["window.SERVER", "window._sb", "window._authFetch", "leads", "window._brainConfig"],
+      "globals_write": ["window._metaJudgeRunning"],
+      "v4_additions": ["runMetaJudge()", "_metaVote()", "_metaSelfAnalysis()", "_metaKBAlignment()", "_metaBuildOutreach()"],
+      "v4_new_tables": ["brain_memory (already exists)", "hunt_strategy"],
+      "edit_rules": [
+        "saveBrainDecision at L11293 is the OUTCOME hub — add all hooks here",
+        "_showMetaJudgeToast exists at L6475 AND L11398 — update both",
+        "triggerFullAnalysis calls autoEnrichLead first — enrichment always precedes analysis",
+        "outreach_queue insert happens inside generateOutreach (L3609) NOT in triggerFullAnalysis"
+      ]
+    },
+
+    "ENRICHMENT": {
+      "description": "Lead data enrichment — Claude extracts structured data from web",
+      "status": "fully implemented",
+      "new_file_target": "no new file — extend existing",
+      "primary_block": "block_2 (L5928-L6690)",
+      "functions": [
+        { "name": "autoEnrichLead",  "line": 5928,  "type": "primary", "note": "Main enrichment — single Claude call, returns enriched lead object" },
+        { "name": "callAI",          "line": 5943,  "type": "inner",   "note": "Inner helper INSIDE autoEnrichLead — not accessible globally" },
+        { "name": "_enqueue",        "line": 6120,  "type": "queue",   "note": "Adds lead to analysis queue — prevents parallel overload" },
+        { "name": "_processQueue",   "line": 6135,  "type": "queue",   "note": "Processes queue one lead at a time" },
+        { "name": "_pbShow",         "line": 6070,  "type": "ui",      "note": "Shows progress bar at bottom of screen" },
+        { "name": "_pbUpdate",       "line": 6095,  "type": "ui",      "note": "Updates progress bar %" },
+        { "name": "reEnrichLead",    "line": 6633,  "type": "action",  "note": "Re-runs enrichment on existing lead" },
+        { "name": "analyzeUrl",      "line": 5713,  "type": "action",  "note": "Analyzes URL via /analyze server endpoint" }
+      ],
+      "supabase_tables": ["leads"],
+      "server_endpoints": ["/ai (POST)", "/analyze (GET)"],
+      "globals_read":  ["window.SERVER", "window._sb", "window._authFetch", "leads"],
+      "globals_write": ["window._analysisQueue", "window._analysisRunning"],
+      "v4_additions": ["inject kb_context from brain_insights into system prompt"],
+      "edit_rules": [
+        "callAI at L5943 is a closure INSIDE autoEnrichLead — not a global",
+        "Queue system prevents parallel analysis — never bypass _enqueue",
+        "autoEnrichLead returns the enriched lead object — caller must save to Supabase"
+      ]
+    },
+
+    "SIGNAL_ENGINE": {
+      "description": "~120-signal event tracking system — DNA of learning",
+      "status": "fully implemented — no changes needed",
+      "new_file_target": "no new file — extend SIGNAL_WEIGHTS only",
+      "primary_block": "block_10 (L12112-L13381)",
+      "functions": [
+        { "name": "_signalRecord",         "line": 12316, "type": "primary", "note": "Core signal writer → lead_signals table. Always async." },
+        { "name": "_signalOnStatusChange", "line": 12334, "type": "hook",    "note": "Fires when lead.status changes — called from renderSimpleLead dropdown" },
+        { "name": "_signalOnAnalysis",     "line": 12445, "type": "hook",    "note": "Fires after AI analysis completes — called from triggerFullAnalysis" },
+        { "name": "_signalEmailSent",      "line": 12462, "type": "hook",    "note": "Fires when email is sent" }
+      ],
+      "supabase_tables": ["lead_signals"],
+      "server_endpoints": [],
+      "globals_read":  ["window._sb", "leads", "SIGNAL_WEIGHTS"],
+      "globals_write": [],
+      "signal_weights_location": "L12121 — SIGNAL_WEIGHTS object",
+      "v4_additions": [
+        "Add to SIGNAL_WEIGHTS at L12121: hunt_strategy_updated, kb_uploaded, outcome_reason_recorded, re_engage_scheduled"
+      ],
+      "edit_rules": [
+        "SIGNAL_WEIGHTS is defined at L12121 — add new signals there only",
+        "_signalRecord is fire-and-forget — never await it in critical path",
+        "Signals are append-only — never delete from lead_signals"
+      ]
+    },
+
+    "BRAIN_BACKGROUND": {
+      "description": "Scheduled deep analysis — every 6h, finds patterns across all data",
+      "status": "implemented — scheduler + Claude synthesis",
+      "new_file_target": "js/andy-brain-bg.js (additions only)",
+      "primary_block": "block_10 (L12840-L13381) + block_9 (L11819-L11863)",
+      "functions": [
+        { "name": "_brainBGScheduler",      "line": 12840, "type": "scheduler","note": "Runs every 6h — calls _brainBackgroundAnalysis" },
+        { "name": "_brainBackgroundAnalysis","line": 12599, "type": "primary",  "note": "Core analysis — loads signals, decisions, competes, writes brain_memory" },
+        { "name": "_autoRun (BrainBG)",      "line": 12853, "type": "inner",    "note": "Inner _autoRun inside _brainBGScheduler — NOT same as KB _autoRun at L11834" },
+        { "name": "_markRan (BrainBG)",      "line": 12850, "type": "inner",    "note": "Marks last run time in localStorage — NOT same as KB _markRan at L11830" },
+        { "name": "_kbAutoScheduler",        "line": 11819, "type": "scheduler","note": "KB scheduler — separate from BrainBG scheduler, runs /kb/run on server" },
+        { "name": "_autoRun (KB)",           "line": 11834, "type": "inner",    "note": "Inner _autoRun inside _kbAutoScheduler" }
+      ],
+      "supabase_tables": ["brain_memory", "brain_insights", "ai_decisions", "lead_signals", "hunt_learnings"],
+      "server_endpoints": ["/kb/run (POST)"],
+      "globals_read":  ["window._sb", "window.SERVER", "window._authFetch"],
+      "globals_write": [],
+      "localStorage_keys": ["andyBrainBGLastRun", "andyKBLastRun"],
+      "v4_additions": ["analyzeLossReasons()", "recalibrateEngineWeights()"],
+      "edit_rules": [
+        "Two SEPARATE schedulers: _kbAutoScheduler (KB/server) and _brainBGScheduler (local analysis)",
+        "_autoRun and _markRan exist in BOTH schedulers as closures — they are NOT the same function",
+        "BrainBG writes to brain_memory; KB scheduler writes to brain_insights — different tables",
+        "Never merge the two schedulers"
+      ]
+    },
+
+    "KB_INGESTION": {
+      "description": "Knowledge Base — manual uploads + auto-learning",
+      "status": "basic implemented — missing URL/GitHub/file full pipeline",
+      "new_file_target": "js/andy-kb.js",
+      "primary_block": "block_9 (L11694-L12110)",
+      "functions": [
+        { "name": "_kbInit",          "line": 11863, "type": "primary", "note": "Initializes KB tab — loads docs, renders. ACTIVE version (L11810 is stub)" },
+        { "name": "_kbRender",        "line": 11874, "type": "ui",      "note": "Renders KB doc list" },
+        { "name": "_kbSave",          "line": 11996, "type": "write",   "note": "Saves new KB doc — currently handles text + file" },
+        { "name": "_kbFetchContent",  "line": 12049, "type": "fetch",   "note": "Fetches URL content via server /analyze — EXTEND for /kb/fetch-url" },
+        { "name": "_kbFetchGithub",   "line": 12063, "type": "fetch",   "note": "Fetches GitHub README via raw URL — EXISTS but extend for /kb/fetch-github" },
+        { "name": "_kbFilter",        "line": 11921, "type": "ui",      "note": "Filters KB list by type/search" },
+        { "name": "_kbShowAdd",       "line": 11934, "type": "ui",      "note": "Shows add-doc modal" },
+        { "name": "_kbCloseModal",    "line": 11948, "type": "ui",      "note": "Closes modal" },
+        { "name": "_kbSetType",       "line": 11954, "type": "ui",      "note": "Switches input type in modal (file/url/text/github)" },
+        { "name": "_kbFileSelected",  "line": 11967, "type": "handler", "note": "File input handler — reads file to base64/text" },
+        { "name": "_kbTriggerJob",    "line": 11730, "type": "action",  "note": "Manually triggers /kb/run on server" },
+        { "name": "_kbLoadInsightsStatus","line": 11783,"type": "data", "note": "Loads brain_insights status for KB tab header" },
+        { "name": "_kbRefresh",       "line": 12087, "type": "action",  "note": "Refreshes KB list from Supabase" },
+        { "name": "_kbDelete",        "line": 12100, "type": "write",   "note": "Deletes KB doc" }
+      ],
+      "supabase_tables": ["knowledge_base", "brain_insights"],
+      "server_endpoints": ["/kb/run (POST)", "/kb/fetch-url (POST — NEW)", "/kb/fetch-github (POST — NEW)", "/kb/status (GET)", "/kb/poll (GET)"],
+      "globals_read":  ["window._sb", "window.SERVER", "window._authFetch"],
+      "globals_write": ["window._kbDocs"],
+      "v4_additions": ["kbIngestContent() pipeline", "Stream B auto-learn from WON", "kb_ingestion_log writes"],
+      "v4_new_tables": ["kb_ingestion_log"],
+      "edit_rules": [
+        "_kbInit has TWO definitions (L11810 stub + L11863 active) — edit only L11863",
+        "_kbFetchGithub already exists at L12063 — extend, don't rewrite",
+        "_kbFetchContent at L12049 calls /analyze — redirect to /kb/fetch-url for v4",
+        "KB docs need status='ready' to be used by Brain BG — always set status on save"
+      ]
+    },
+
+    "OUTREACH_QUEUE": {
+      "description": "Outreach approval queue — Oran approves/edits/rejects outreach before send",
+      "status": "fully implemented",
+      "new_file_target": "no new file",
+      "primary_block": "block_2 (L3609-L4162)",
+      "functions": [
+        { "name": "generateOutreach",   "line": 3609,  "type": "primary", "note": "Generates email/WA outreach via Claude — inserts to outreach_queue" },
+        { "name": "_outreachInit",      "line": 3895,  "type": "init",    "note": "Initializes Outreach tab" },
+        { "name": "_outreachLoad",      "line": 3899,  "type": "data",    "note": "Loads pending_approval rows from outreach_queue" },
+        { "name": "_outreachRender",    "line": 3918,  "type": "ui",      "note": "Renders outreach list" },
+        { "name": "_outreachRow",       "line": 3954,  "type": "ui",      "note": "Renders single outreach row" },
+        { "name": "_outreachApprove",   "line": 4042,  "type": "action",  "note": "Approve → send email/WA → update status='sent'" },
+        { "name": "_outreachReject",    "line": 4095,  "type": "action",  "note": "Reject → update status='rejected'" },
+        { "name": "_outreachEdit",      "line": 4107,  "type": "action",  "note": "Opens edit mode for outreach body" },
+        { "name": "_outreachSaveEdit",  "line": 4129,  "type": "action",  "note": "Saves edited body back to outreach_queue" },
+        { "name": "_outreachSchedule",  "line": 4142,  "type": "action",  "note": "Sets scheduled_at datetime on outreach row" },
+        { "name": "_outreachUpdateBadge","line": 4019, "type": "ui",      "note": "Updates pending count badge on Outreach tab" },
+        { "name": "approveOutreach",    "line": 3751,  "type": "legacy",  "note": "Older approve fn — may be called from lead modal" },
+        { "name": "sendWhatsAppOutreach","line": 3847, "type": "action",  "note": "Sends WhatsApp via Twilio" }
+      ],
+      "supabase_tables": ["outreach_queue", "emails_sent"],
+      "server_endpoints": ["/send-email (POST)", "/send-whatsapp (POST)"],
+      "globals_read":  ["window.SERVER", "window._sb", "window._authFetch", "leads"],
+      "globals_write": [],
+      "edit_rules": [
+        "outreach_queue rows: status flow = pending_approval → sent | rejected | scheduled",
+        "_outreachApprove calls /send-email which tries SendGrid first, Gmail fallback",
+        "generateOutreach writes to outreach_queue — NOT saveBrainDecision",
+        "Meta-Judge v4 will generate outreach in Step 4 and call generateOutreach-equivalent"
+      ]
+    },
+
+    "OUTCOME_TAXONOMY": {
+      "description": "Outcome recording — 6 reason types with downstream actions",
+      "status": "partial — only won/lost recorded, no reason types",
+      "new_file_target": "js/andy-outcomes.js",
+      "primary_block": "block_8 (L11197, L11372)",
+      "functions": [
+        { "name": "markDecisionOutcome", "line": 11197, "type": "existing", "note": "Current outcome recorder — only won/not-won. EXTEND this." },
+        { "name": "_setLeadOutcome",     "line": 11372, "type": "existing", "note": "Sets lead outcome from Brain tab" }
+      ],
+      "supabase_tables": ["ai_decisions", "leads", "reminders"],
+      "server_endpoints": [],
+      "globals_read":  ["window._sb", "leads"],
+      "globals_write": [],
+      "v4_additions": [
+        "showOutcomeModal(leadId) — 6-button reason selector",
+        "recordOutcome(leadId, reason, subReason, reEngageDate)",
+        "OUTCOME_REASONS constant with 6 types",
+        "Auto re-engage scheduling for 'not_now'",
+        "Auto KB learn for 'won'",
+        "updateHuntStrategyFromOutcome() hook"
+      ],
+      "v4_new_tables": ["outcome_reasons"],
+      "edit_rules": [
+        "Outcome modal should appear when lead status changes to 'closed' or 'lost'",
+        "recordOutcome MUST call saveBrainDecision AND updateHuntStrategyFromOutcome",
+        "Won outcome MUST trigger kbAutoLearnFromWin()"
+      ]
+    },
+
+    "AUTH_SUPABASE": {
+      "description": "Authentication + Supabase client wrapper",
+      "status": "fully implemented — do not touch",
+      "primary_block": "supabase-client.js (external) + block_2 L5110-L5290",
+      "functions": [
+        { "name": "_applyRoleUI",      "line": 5136, "type": "auth", "note": "Hides/shows UI based on role (sales/admin)" },
+        { "name": "_showAccessDenied", "line": 5151, "type": "auth", "note": "Shows access denied screen" },
+        { "name": "saveLeads",         "line": 4415, "type": "data", "note": "Bulk saves leads array to Supabase" },
+        { "name": "loadLeadsAsync",    "line": 4449, "type": "data", "note": "Loads all leads from Supabase on startup" },
+        { "name": "logActivity",       "line": 4165, "type": "data", "note": "Writes to activities table" },
+        { "name": "_cleanForSupabase", "line": 9187, "type": "util", "note": "Removes undefined/function values before insert" }
+      ],
+      "supabase_tables": ["leads", "users", "activities", "reminders", "app_settings"],
+      "globals_read":  ["window._sb"],
+      "globals_write": ["window._authFetch", "window.SERVER"],
+      "edit_rules": [
+        "window._sb is initialized in supabase-client.js — never redefine",
+        "window._authFetch wraps fetch with Bearer JWT — always use this, never raw fetch",
+        "window.SERVER = 'https://xtix-crm-test.up.railway.app' (L3883) — single source of truth",
+        "_cleanForSupabase must be called before every insert/update to Supabase"
+      ]
+    },
+
+    "SERVER_PY": {
+      "description": "Python HTTP server — API proxy + email + KB + auth",
+      "file": "server.py",
+      "total_lines": 1348,
+      "endpoints": {
+        "GET": [
+          { "path": "/", "auth": "none",  "note": "Serves index.html" },
+          { "path": "/ping", "auth": "none", "note": "Health check" },
+          { "path": "/health", "auth": "none", "note": "Shows which API keys are set" },
+          { "path": "/analyze", "auth": "sales", "note": "Analyzes URL — scrapes HTML, detects platform/social" },
+          { "path": "/leads", "auth": "sales", "note": "Returns local leads JSON file" },
+          { "path": "/reminders", "auth": "sales", "note": "Returns reminders" },
+          { "path": "/kb/insights", "auth": "sales", "note": "Returns latest brain_insights from memory" },
+          { "path": "/kb/poll", "auth": "sales", "note": "Poll for KB job completion" },
+          { "path": "/kb/status", "auth": "sales", "note": "KB cache status" }
+        ],
+        "POST": [
+          { "path": "/ai", "auth": "sales", "note": "Proxy → Anthropic Claude API" },
+          { "path": "/gpt", "auth": "sales", "note": "Proxy → OpenAI GPT API" },
+          { "path": "/gemini", "auth": "sales", "note": "Proxy → Google Gemini API" },
+          { "path": "/send-email", "auth": "sales", "note": "Send via SendGrid (Gmail fallback)" },
+          { "path": "/send-whatsapp", "auth": "sales", "note": "Send via Twilio WhatsApp" },
+          { "path": "/kb/run", "auth": "sales", "note": "Trigger KB synthesis — Claude reads KB docs + decisions → insights" },
+          { "path": "/hunt", "auth": "sales", "note": "Hunt search via Serper.dev" },
+          { "path": "/webhook/lead", "auth": "none", "note": "Universal lead intake — Clay/Zapier/API" },
+          { "path": "/hubspot/sync", "auth": "sales", "note": "Sync single lead to HubSpot" },
+          { "path": "/hubspot/sync-all", "auth": "sales", "note": "Bulk sync to HubSpot" }
+        ],
+        "v4_new": [
+          { "path": "/kb/fetch-url", "auth": "sales", "note": "Fetch URL → strip HTML → return text for KB" },
+          { "path": "/kb/fetch-github", "auth": "sales", "note": "Fetch GitHub README → return markdown" },
+          { "path": "/hunt/strategy", "auth": "sales", "note": "Meta-Judge synthesizes 3 engine Hunt recommendations → strategy JSON" }
+        ]
+      },
+      "env_vars_required": [
+        "ANTHROPIC_API_KEY", "OPENAI_API_KEY", "GEMINI_API_KEY",
+        "SENDGRID_API_KEY", "TWILIO_ACCOUNT_SID", "TWILIO_AUTH_TOKEN",
+        "SUPABASE_URL", "SUPABASE_ANON_KEY", "SERP_API_KEY",
+        "FIREBASE_PROJECT_ID", "SENDGRID_FROM_EMAIL"
+      ],
+      "edit_rules": [
+        "All new endpoints follow pattern: auth_check → rate_check → logic → json_out",
+        "Add new endpoints in do_POST() or do_GET() before the final else 404",
+        "Rate limits are in RATE_LIMITS dict — add new endpoint limits there",
+        "All Claude calls from server use _call_claude_background() — not /ai endpoint"
+      ]
+    }
+  },
+
+  "new_js_files_template": {
+    "header": "// ╔══════════════════════════════════════════╗\n// ║  andy-{name}.js — {description}         ║\n// ║  Depends: {globals}                      ║\n// ║  Writes:  {tables}                       ║\n// ║  Hooks into index.html: L{line}          ║\n// ║  Last updated: {date}                    ║\n// ╚══════════════════════════════════════════╝",
+    "add_to_index_html": "Add <script src=\"js/andy-{name}.js\"></script> at END of index.html, before </body>",
+    "served_by": "server.py serves *.js files automatically (L~500 in server.py)"
+  },
+
+  "supabase_all_tables": {
+    "existing": ["leads", "ai_decisions", "knowledge_base", "outreach_queue", "competitors", "hunt_learnings", "lead_signals", "users", "activities", "reminders", "emails_sent", "tasks", "app_settings", "methodology", "email_templates", "email_cadences", "brain_insights", "brain_memory", "learning_patterns", "brain_analysis_log"],
+    "new_v4":   ["brain_memory (already exists)", "brain_insights (already exists)", "hunt_strategy (NEW)", "kb_ingestion_log (NEW)", "outcome_reasons (NEW)"]
+  }
+}

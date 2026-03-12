@@ -1,0 +1,567 @@
+<!DOCTYPE html>
+<html lang="he" dir="rtl">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>ANDY Brain v4 — עברית</title>
+<link href="https://fonts.googleapis.com/css2?family=Heebo:wght@300;400;600;700;900&family=JetBrains+Mono:wght@400;700&display=swap" rel="stylesheet">
+<style>
+
+  :root {
+    --bg:#060a14; --bg2:#0c1220;
+    --blue:#1a8fff; --cyan:#00d4ff;
+    --green:#00e88f; --green-dim:#00743f;
+    --orange:#ff7c2a; --purple:#a855f7;
+    --red:#ff4444; --gold:#ffd700; --teal:#00c9b1;
+    --text:#e8f0fe; --text-dim:#7a90b8;
+    --border:rgba(26,143,255,.13);
+  }
+  *{box-sizing:border-box;margin:0;padding:0;}
+  body{background:var(--bg);color:var(--text);font-family:'Heebo',sans-serif;min-height:100vh;}
+  body::before{content:'';position:fixed;inset:0;pointer-events:none;z-index:0;
+    background-image:linear-gradient(rgba(26,143,255,.022) 1px,transparent 1px),linear-gradient(90deg,rgba(26,143,255,.022) 1px,transparent 1px);
+    background-size:44px 44px;}
+  .page{position:relative;z-index:1;max-width:1120px;margin:0 auto;padding:40px 20px 80px;}
+  .hdr{text-align:center;margin-bottom:48px;}
+  .hdr-lbl{font-family:'JetBrains Mono',monospace;font-size:10px;color:var(--cyan);letter-spacing:4px;text-transform:uppercase;margin-bottom:10px;}
+  .hdr h1{font-size:clamp(30px,5vw,56px);font-weight:900;background:linear-gradient(135deg,#1a8fff,#00d4ff,#00e88f);-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;margin-bottom:8px;}
+  .hdr-sub{color:var(--text-dim);font-size:14px;font-weight:300;}
+  .vbadge{display:inline-block;margin-top:10px;font-family:'JetBrains Mono',monospace;font-size:10px;padding:4px 14px;border-radius:20px;background:rgba(0,232,143,.1);border:1px solid rgba(0,232,143,.3);color:var(--green);}
+  .flow{display:flex;flex-direction:column;align-items:center;}
+  .sdiv{font-size:9px;font-weight:700;letter-spacing:3px;text-transform:uppercase;color:var(--text-dim);display:flex;align-items:center;gap:8px;width:100%;max-width:840px;padding:16px 0 5px;}
+  .sdiv::before,.sdiv::after{content:'';flex:1;height:1px;background:var(--border);}
+  .node{width:100%;max-width:840px;border-radius:14px;padding:18px 22px;animation:fadeUp .4s ease both;transition:transform .2s;}
+  .node:hover{transform:translateY(-2px);}
+  .n-hunt{background:linear-gradient(135deg,rgba(255,215,0,.1),rgba(255,124,42,.05));border:2px solid rgba(255,215,0,.35);box-shadow:0 0 22px rgba(255,215,0,.1);}
+  .n-kb-ing{background:linear-gradient(135deg,rgba(0,201,177,.13),rgba(0,232,143,.05));border:2px solid rgba(0,201,177,.45);box-shadow:0 0 22px rgba(0,201,177,.12);}
+  .n-in{background:linear-gradient(135deg,rgba(0,212,255,.08),rgba(26,143,255,.04));border:1px solid rgba(0,212,255,.26);}
+  .n-enr{background:linear-gradient(135deg,rgba(26,143,255,.09),rgba(26,143,255,.03));border:1px solid rgba(26,143,255,.22);}
+  .n-ai{background:linear-gradient(135deg,rgba(168,85,247,.12),rgba(168,85,247,.04));border:1px solid rgba(168,85,247,.28);}
+  .n-jdg{background:linear-gradient(135deg,rgba(168,85,247,.18),rgba(0,212,255,.07));border:2px solid rgba(168,85,247,.5);box-shadow:0 0 28px rgba(168,85,247,.18);}
+  .n-kb{background:linear-gradient(135deg,rgba(0,201,177,.1),rgba(0,201,177,.03));border:1px solid rgba(0,201,177,.28);}
+  .n-out{background:linear-gradient(135deg,rgba(255,124,42,.1),rgba(255,124,42,.03));border:1px solid rgba(255,124,42,.28);}
+  .n-hum{background:linear-gradient(135deg,rgba(255,215,0,.08),rgba(255,165,0,.03));border:1px solid rgba(255,215,0,.26);}
+  .n-trk{background:linear-gradient(135deg,rgba(26,143,255,.08),rgba(26,143,255,.02));border:1px solid rgba(26,143,255,.18);}
+  .n-lrn{background:linear-gradient(135deg,rgba(0,232,143,.13),rgba(0,232,143,.04));border:2px solid rgba(0,232,143,.4);box-shadow:0 0 24px rgba(0,232,143,.12);}
+  .badge{font-family:'JetBrains Mono',monospace;font-size:9px;font-weight:700;letter-spacing:2px;text-transform:uppercase;padding:3px 8px;border-radius:4px;display:inline-block;margin-bottom:9px;}
+  .bc{background:rgba(0,212,255,.13);color:var(--cyan);}
+  .bb{background:rgba(26,143,255,.13);color:var(--blue);}
+  .bp{background:rgba(168,85,247,.17);color:var(--purple);}
+  .bt{background:rgba(0,201,177,.13);color:var(--teal);}
+  .bo{background:rgba(255,124,42,.16);color:var(--orange);}
+  .bg{background:rgba(0,232,143,.13);color:var(--green);}
+  .bgo{background:rgba(255,215,0,.13);color:var(--gold);}
+  .bhunt{background:rgba(255,215,0,.15);color:var(--gold);}
+  .bkb{background:rgba(0,201,177,.18);color:var(--teal);}
+  .ntitle{font-size:17px;font-weight:700;display:flex;align-items:center;gap:9px;margin-bottom:5px;}
+  .nic{font-size:20px;line-height:1;}
+  .ndesc{font-size:13px;color:var(--text-dim);line-height:1.6;font-weight:300;}
+  .tags{display:flex;flex-wrap:wrap;gap:5px;margin-top:10px;}
+  .tag{font-family:'JetBrains Mono',monospace;font-size:10px;padding:2px 7px;border-radius:20px;background:rgba(255,255,255,.04);border:1px solid rgba(255,255,255,.08);color:var(--text-dim);}
+  .arr{display:flex;flex-direction:column;align-items:center;padding:3px 0;}
+  .aline{width:2px;height:26px;background:linear-gradient(to bottom,rgba(26,143,255,.35),var(--blue));position:relative;}
+  .aline::after{content:'';position:absolute;bottom:-6px;left:50%;transform:translateX(-50%);border-left:5px solid transparent;border-right:5px solid transparent;border-top:7px solid var(--blue);}
+  .ag .aline{background:linear-gradient(to bottom,rgba(0,232,143,.4),var(--green));}
+  .ag .aline::after{border-top-color:var(--green);}
+  .ap .aline{background:linear-gradient(to bottom,rgba(168,85,247,.4),var(--purple));}
+  .ap .aline::after{border-top-color:var(--purple);}
+  .agold .aline{background:linear-gradient(to bottom,rgba(255,215,0,.4),var(--gold));}
+  .agold .aline::after{border-top-color:var(--gold);}
+  .at .aline{background:linear-gradient(to bottom,rgba(0,201,177,.4),var(--teal));}
+  .at .aline::after{border-top-color:var(--teal);}
+  .pw{width:100%;max-width:840px;display:flex;flex-direction:column;align-items:center;}
+  .plbl{font-family:'JetBrains Mono',monospace;font-size:10px;letter-spacing:1px;margin-bottom:8px;}
+  .pr{display:flex;gap:10px;width:100%;}
+  .pr .node{flex:1;max-width:none;}
+  .spl{width:100%;max-width:840px;display:flex;flex-direction:column;align-items:center;padding:5px 0;}
+  .spl-bar{height:2px;width:74%;position:relative;margin:0 auto;}
+  .spl-bar.gold{background:linear-gradient(to right,transparent,var(--gold),transparent);}
+  .spl-bar.purple{background:linear-gradient(to right,transparent,var(--purple),transparent);}
+  .spl-bar.teal{background:linear-gradient(to right,transparent,var(--teal),transparent);}
+  .spl-bar::before,.spl-bar::after,.spl-mid{content:'';position:absolute;bottom:-5px;border-left:5px solid transparent;border-right:5px solid transparent;}
+  .spl-bar.gold::before,.spl-bar.gold::after,.spl-bar.gold .spl-mid{border-top:6px solid var(--gold);}
+  .spl-bar.purple::before,.spl-bar.purple::after,.spl-bar.purple .spl-mid{border-top:6px solid var(--purple);}
+  .spl-bar.teal::before,.spl-bar.teal::after,.spl-bar.teal .spl-mid{border-top:6px solid var(--teal);}
+  .spl-bar::before{left:10%;transform:translateX(-50%);}
+  .spl-bar::after{right:10%;transform:translateX(50%);}
+  .spl-mid{left:50%;transform:translateX(-50%);}
+  .mrg{width:100%;max-width:840px;display:flex;flex-direction:column;align-items:center;padding:10px 0 3px;}
+  .mrg-bar{height:2px;width:74%;}
+  .mrg-bar.gold{background:linear-gradient(to right,transparent,var(--gold),transparent);}
+  .mrg-bar.purple{background:linear-gradient(to right,transparent,var(--purple),transparent);}
+  .mrg-bar.green{background:linear-gradient(to right,transparent,var(--green),transparent);}
+  .mrg-bar.teal{background:linear-gradient(to right,transparent,var(--teal),transparent);}
+  .mrg-line{width:2px;height:18px;position:relative;margin-top:4px;}
+  .mrg-line.gold{background:linear-gradient(to bottom,var(--gold),rgba(255,215,0,.3));}
+  .mrg-line.purple{background:linear-gradient(to bottom,var(--purple),rgba(168,85,247,.3));}
+  .mrg-line.green{background:linear-gradient(to bottom,var(--green),var(--green-dim));}
+  .mrg-line.teal{background:linear-gradient(to bottom,var(--teal),rgba(0,201,177,.3));}
+  .mrg-line::after{content:'';position:absolute;bottom:-6px;left:50%;transform:translateX(-50%);border-left:5px solid transparent;border-right:5px solid transparent;}
+  .mrg-line.gold::after{border-top:7px solid var(--gold);}
+  .mrg-line.purple::after{border-top:7px solid var(--purple);}
+  .mrg-line.green::after{border-top:7px solid var(--green);}
+  .mrg-line.teal::after{border-top:7px solid var(--teal);}
+  .kbalways{width:100%;max-width:840px;border:1px dashed rgba(0,201,177,.32);border-radius:14px;padding:13px 18px;margin:5px 0;background:rgba(0,201,177,.03);display:flex;align-items:flex-start;gap:12px;}
+  .kbalways-text{font-size:12px;color:var(--teal);line-height:1.6;font-family:'JetBrains Mono',monospace;}
+  .kbalways-text strong{color:#fff;}
+  .evtbanner{width:100%;max-width:840px;border:1px dashed rgba(255,68,68,.3);border-radius:10px;padding:10px 16px;background:rgba(255,68,68,.04);margin:5px 0;display:flex;align-items:center;gap:10px;}
+  .evtbanner-text{font-family:'JetBrains Mono',monospace;font-size:11px;color:var(--red);line-height:1.6;}
+  .evtbanner-text strong{color:#fff;}
+  .hunt-strategy{display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px;margin-top:12px;}
+  .hs-cell{background:rgba(255,215,0,.06);border:1px solid rgba(255,215,0,.18);border-radius:8px;padding:10px 12px;}
+  .hs-title{font-family:'JetBrains Mono',monospace;font-size:9px;color:var(--gold);margin-bottom:5px;letter-spacing:1px;}
+  .kb-ing-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-top:12px;}
+  .ki-cell{background:rgba(0,201,177,.06);border:1px solid rgba(0,201,177,.18);border-radius:8px;padding:10px 12px;text-align:center;}
+  .ki-icon{font-size:22px;margin-bottom:5px;}
+  .ki-label{font-family:'JetBrains Mono',monospace;font-size:9px;color:var(--teal);margin-bottom:4px;letter-spacing:1px;}
+  .kb-process{display:grid;grid-template-columns:repeat(4,1fr);gap:7px;margin-top:12px;}
+  .kp-cell{background:rgba(0,232,143,.06);border:1px solid rgba(0,232,143,.15);border-radius:8px;padding:8px 10px;}
+  .kp-title{font-family:'JetBrains Mono',monospace;font-size:9px;color:var(--green);margin-bottom:3px;}
+  .outcome-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;width:100%;max-width:840px;}
+  .oc{border-radius:12px;padding:13px 12px;text-align:center;}
+  .oc-title{font-weight:700;font-size:13px;margin-bottom:5px;}
+  .oc-sub{font-size:11px;color:var(--text-dim);line-height:1.5;font-family:'JetBrains Mono',monospace;}
+  .oc-learn{font-size:10px;margin-top:8px;padding:5px 7px;border-radius:6px;font-family:'JetBrains Mono',monospace;}
+  .oc-won{background:rgba(0,232,143,.08);border:1px solid rgba(0,232,143,.3);}
+  .oc-noreply{background:rgba(255,124,42,.07);border:1px solid rgba(255,124,42,.28);}
+  .oc-later{background:rgba(0,212,255,.06);border:1px solid rgba(0,212,255,.22);}
+  .oc-price{background:rgba(255,215,0,.06);border:1px solid rgba(255,215,0,.22);}
+  .oc-tech{background:rgba(168,85,247,.07);border:1px solid rgba(168,85,247,.25);}
+  .oc-noneed{background:rgba(255,68,68,.07);border:1px solid rgba(255,68,68,.25);}
+  .lrn-won{background:rgba(0,232,143,.11);color:var(--green);}
+  .lrn-noreply{background:rgba(255,124,42,.11);color:var(--orange);}
+  .lrn-later{background:rgba(0,212,255,.09);color:var(--cyan);}
+  .lrn-price{background:rgba(255,215,0,.09);color:var(--gold);}
+  .lrn-tech{background:rgba(168,85,247,.11);color:var(--purple);}
+  .lrn-noneed{background:rgba(255,68,68,.09);color:var(--red);}
+  .loopbox{width:100%;max-width:840px;border:1px dashed rgba(0,232,143,.26);border-radius:14px;padding:13px 18px;display:flex;align-items:flex-start;gap:12px;background:rgba(0,232,143,.022);margin:5px 0;}
+  .loopbox-text{font-size:12px;color:var(--green);line-height:1.6;font-family:'JetBrains Mono',monospace;}
+  .loopbox-text strong{color:#fff;}
+  .feedbackbox{width:100%;max-width:840px;border:1px solid rgba(255,68,68,.2);border-radius:14px;padding:13px 18px;background:rgba(255,68,68,.04);display:flex;gap:12px;margin:5px 0;}
+  .fb-text{font-size:12px;color:var(--text-dim);line-height:1.6;}
+  .fb-text strong{color:#fff;}
+  @keyframes fadeUp{from{opacity:0;transform:translateY(14px)}to{opacity:1;transform:translateY(0)}}
+  @keyframes pulse{0%,100%{opacity:1}50%{opacity:.4}}
+  .pulse{animation:pulse 2.2s ease-in-out infinite;}
+  @keyframes huntglow{0%,100%{box-shadow:0 0 22px rgba(255,215,0,.1)}50%{box-shadow:0 0 38px rgba(255,215,0,.24)}}
+  .huntglow{animation:huntglow 3s ease-in-out infinite;}
+  @keyframes kbglow{0%,100%{box-shadow:0 0 18px rgba(0,201,177,.1)}50%{box-shadow:0 0 32px rgba(0,201,177,.25)}}
+  .kbglow{animation:kbglow 3.5s ease-in-out infinite;}
+  .legend{display:flex;flex-wrap:wrap;gap:10px;justify-content:center;margin-top:52px;padding:16px;border:1px solid var(--border);border-radius:12px;background:var(--bg2);}
+  .li{display:flex;align-items:center;gap:7px;font-size:11px;color:var(--text-dim);}
+  .ld{width:10px;height:10px;border-radius:3px;}
+
+  body { font-family: 'Heebo', sans-serif; }
+</style>
+</head>
+<body>
+<div class="page">
+
+  <div class="hdr">
+    <div class="hdr-lbl">architecture diagram v4</div>
+    <h1>ANDY Brain</h1>
+    <p class="hdr-sub">תרשים זרימה סופי — v4 עם KB Ingestion</p>
+    <span class="vbadge">v4.0 — KB Ingestion · Hunt 3-engine · event-driven · outcome taxonomy</span>
+  </div>
+
+  <div class="flow">
+
+    <!-- KB ALWAYS ON -->
+    <div class="sdiv" style="color:var(--teal);">KB — פעיל תמיד לאורך כל הפייפליין</div>
+    <div class="kbalways">
+      <div style="font-size:22px;flex-shrink:0;margin-top:2px;" class="pulse">📚</div>
+      <div class="kbalways-text">
+        <strong>KB Background Analyzer — מזין כל שלב, כל הזמן</strong><br>
+        SPIN · MEDDIC · Challenger · segment playbooks · competitor intel · won templates · pain points · timing patterns · Hunt learnings
+      </div>
+    </div>
+
+    <div class="arr at"><div class="aline"></div></div>
+
+    <!-- KB INGESTION -->
+    <div class="sdiv" style="color:var(--teal);">KB Ingestion — ידע שאתה מעלה ישירות</div>
+    <div class="node n-kb-ing kbglow">
+      <span class="badge bkb">KB INGESTION — MANUAL + AUTO</span>
+      <div class="ntitle"><span class="nic">📥</span>זרם א: העלאה ידנית — כל פורמט</div>
+      <div class="ndesc" style="margin-bottom:11px;">כל מה שאתה מעלה מנותח, מובנה, ומיד זמין לכל המנועים.</div>
+      <div class="kb-ing-grid">
+        <div class="ki-cell">
+          <div class="ki-icon">📄</div>
+          <div class="ki-label">FILE</div>
+          <div style="font-size:11px;color:var(--text-dim);white-space:pre-line;">PDF · Word · Excel
+מחירונים · מצגות · case studies</div>
+        </div>
+        <div class="ki-cell">
+          <div class="ki-icon">🌐</div>
+          <div class="ki-label">URL</div>
+          <div style="font-size:11px;color:var(--text-dim);white-space:pre-line;">אתר מתחרה · כתבה · דף מוצר</div>
+        </div>
+        <div class="ki-cell">
+          <div class="ki-icon">💬</div>
+          <div class="ki-label">FREE TEXT</div>
+          <div style="font-size:11px;color:var(--text-dim);white-space:pre-line;">תובנה מפגישה
+"גילינו שתיאטראות תמיד שואלים על X"</div>
+        </div>
+        <div class="ki-cell">
+          <div class="ki-icon">💻</div>
+          <div class="ki-label">GITHUB</div>
+          <div style="font-size:11px;color:var(--text-dim);white-space:pre-line;">קוד · docs טכניות · API refs</div>
+        </div>
+        <div class="ki-cell">
+          <div class="ki-icon">🎙️</div>
+          <div class="ki-label">TRANSCRIPT</div>
+          <div style="font-size:11px;color:var(--text-dim);white-space:pre-line;">תמלול שיחת מכירה · הקלטה</div>
+        </div>
+        <div class="ki-cell">
+          <div class="ki-icon">🔗</div>
+          <div class="ki-label">INTEGRATION</div>
+          <div style="font-size:11px;color:var(--text-dim);white-space:pre-line;">HubSpot deals · Salesforce notes</div>
+        </div></div>
+      <div style="margin-top:14px;padding:10px 14px;background:rgba(0,232,143,.04);border:1px solid rgba(0,232,143,.13);border-radius:8px;">
+        <div style="font-family:'JetBrains Mono',monospace;font-size:9px;color:var(--green);margin-bottom:7px;letter-spacing:1px;">זרם ב: למידה אוטומטית מהמערכת</div>
+        <div class="tags"><span class="tag" style="background:rgba(0,201,177,.08);border-color:rgba(0,201,177,.2);color:var(--teal);">WIN: כל WON → פנייה שסגרה נכנסת ל-KB</span><span class="tag" style="background:rgba(0,201,177,.08);border-color:rgba(0,201,177,.2);color:var(--teal);">ANALYSIS: ניתוחים מדויקים של Meta-Judge → נשמרים כ-reference</span><span class="tag" style="background:rgba(0,201,177,.08);border-color:rgba(0,201,177,.2);color:var(--teal);">HUNT: Hunt learnings → מה query עבד/לא עבד</span></div>
+      </div>
+      <div style="margin-top:11px;">
+        <div style="font-family:'JetBrains Mono',monospace;font-size:9px;color:var(--teal);margin-bottom:7px;letter-spacing:1px;">מה KB עושה עם מה שמעלים:</div>
+        <div class="kb-process"><div class="kp-cell"><div class="kp-title">PARSE</div><div style="font-size:11px;color:var(--text-dim);">מחלץ pain points, objections, competitor data</div></div><div class="kp-cell"><div class="kp-title">STRUCTURE</div><div style="font-size:11px;color:var(--text-dim);">ממפה לסגמנטים, מתודולוגיות, טמפלייטים</div></div><div class="kp-cell"><div class="kp-title">ENRICH</div><div style="font-size:11px;color:var(--text-dim);">מצליב עם ידע קיים, מזהה פערים</div></div><div class="kp-cell"><div class="kp-title">DISTRIBUTE</div><div style="font-size:11px;color:var(--text-dim);">מיד זמין לכל המנועים בניתוח הבא</div></div></div>
+      </div>
+    </div>
+
+    <div class="arr at"><div class="aline"></div></div>
+
+    <!-- AI HUNT -->
+    <div class="sdiv" style="color:var(--gold);">AI Hunt — חיפוש לידים אוטונומי</div>
+    <div class="evtbanner">
+      <div style="font-size:18px;flex-shrink:0;">⚡</div>
+      <div class="evtbanner-text"><strong>Event-Driven:</strong> כל outcome חדש → Hunt Strategy מתעדכנת מיד</div>
+    </div>
+
+    <div class="pw">
+      <div class="spl"><div style="width:2px;height:16px;background:linear-gradient(to bottom,rgba(255,215,0,.3),var(--gold));"></div><div class="spl-bar gold"><div class="spl-mid"></div></div></div>
+      <div class="plbl" style="color:var(--gold);margin-top:14px;">שלב א — כל מנוע קורא את ה-DB בנפרד</div>
+      <div class="pr">
+        <div class="node n-ai" style="padding:13px 11px;">
+          <span class="badge bp">CLAUDE — DB READ</span>
+          <div style="font-size:18px;text-align:center;margin:6px 0;">🧠</div>
+          <div style="font-weight:700;font-size:13px;text-align:center;margin-bottom:7px;">Win Pattern Analyst</div>
+          <div style="font-size:11px;color:var(--text-dim);line-height:1.7;white-space:pre-line;">קורא: ai_decisions, brain_memory
+→ אילו segments סגרו?
+→ פרופיל ה-WON האידיאלי</div>
+          <div style="margin-top:8px;background:rgba(255,215,0,.08);border-radius:6px;padding:5px 8px;font-family:'JetBrains Mono',monospace;font-size:10px;color:var(--gold);">"תחפש עוד מהסוג הזה"</div>
+        </div>
+        <div class="node n-ai" style="padding:13px 11px;">
+          <span class="badge bp">GPT — DB READ</span>
+          <div style="font-size:18px;text-align:center;margin:6px 0;">🤖</div>
+          <div style="font-weight:700;font-size:13px;text-align:center;margin-bottom:7px;">Loss Pattern Analyst</div>
+          <div style="font-size:11px;color:var(--text-dim);line-height:1.7;white-space:pre-line;">קורא: leads, outcomes, reasons
+→ מה הוזנח? מה נדחה?
+→ פרמטרים שחוזרים LOST</div>
+          <div style="margin-top:8px;background:rgba(255,215,0,.08);border-radius:6px;padding:5px 8px;font-family:'JetBrains Mono',monospace;font-size:10px;color:var(--gold);">"הימנע מהפרמטרים האלה"</div>
+        </div>
+        <div class="node n-ai" style="padding:13px 11px;">
+          <span class="badge bp">GEMINI — DB READ</span>
+          <div style="font-size:18px;text-align:center;margin:6px 0;">✨</div>
+          <div style="font-weight:700;font-size:13px;text-align:center;margin-bottom:7px;">Gap + Market Analyst</div>
+          <div style="font-size:11px;color:var(--text-dim);line-height:1.7;white-space:pre-line;">קורא: segments ב-DB + web
+→ אילו segments לא ניסינו?
+→ הזדמנויות עיוורות</div>
+          <div style="margin-top:8px;background:rgba(255,215,0,.08);border-radius:6px;padding:5px 8px;font-family:'JetBrains Mono',monospace;font-size:10px;color:var(--gold);">"הנה blindspots שפספסנו"</div>
+        </div></div>
+    </div>
+
+    <div class="mrg"><div class="mrg-bar gold"></div><div style="height:5px;"></div><div class="mrg-line gold"></div><div style="height:4px;width:2px;background:rgba(0,0,0,.1);"></div></div>
+
+    <div class="node n-hunt huntglow">
+      <span class="badge bhunt">META-JUDGE — HUNT STRATEGY SYNTHESIS</span>
+      <div class="ntitle"><span class="nic">🎯</span>שלב ב — Meta-Judge: Hunt Strategy</div>
+      <div class="hunt-strategy">
+        <div class="hs-cell"><div class="hs-title">SEEK — חפש</div><div style="font-size:11px;color:var(--text-dim);">לפי Claude: segments + profiles עם win_rate גבוה</div></div>
+        <div class="hs-cell"><div class="hs-title">AVOID — הימנע</div><div style="font-size:11px;color:var(--text-dim);">לפי GPT: פרמטרים שחוזרים LOST/הוזנחו</div></div>
+        <div class="hs-cell"><div class="hs-title">EXPLORE — גלה</div><div style="font-size:11px;color:var(--text-dim);">לפי Gemini: segments שלא ניסינו + market now</div></div>
+      </div>
+      <div class="tags" style="margin-top:11px;">
+        <span class="tag">hunt_strategy updated</span><span class="tag">query_weights recalculated</span>
+        <span class="tag">segment_priority reordered</span><span class="tag">→ immediately after every outcome</span>
+      </div>
+    </div>
+
+    <div class="arr agold"><div class="aline"></div></div>
+
+    <div class="node n-hunt" style="border-style:solid;animation:none;">
+      <span class="badge bhunt">AI HUNT — EXECUTION + PRE-SCORING GATE</span>
+      <div class="ntitle"><span class="nic">🕵️</span>שלב ג — Execution + Pre-Scoring Gate</div>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:10px;">
+        <div style="background:rgba(255,215,0,.07);border:1px solid rgba(255,215,0,.16);border-radius:8px;padding:9px 12px;">
+          <div style="font-family:'JetBrains Mono',monospace;font-size:9px;color:var(--gold);margin-bottom:4px;">SEARCH SOURCES</div>
+          <div style="font-size:11px;color:var(--text-dim);">LinkedIn · web scraping · Apollo · Bombora · Clay · news triggers</div>
+        </div>
+        <div style="background:rgba(255,215,0,.07);border:1px solid rgba(255,215,0,.16);border-radius:8px;padding:9px 12px;">
+          <div style="font-family:'JetBrains Mono',monospace;font-size:9px;color:var(--gold);margin-bottom:4px;">PRE-SCORING GATE</div>
+          <div style="font-size:11px;color:var(--text-dim);">סינון מהיר לפני CRM. מתחת ל-threshold → נדחה.</div>
+        </div>
+      </div>
+    </div>
+
+    <div class="arr agold"><div class="aline"></div></div>
+
+    <!-- CRM ENTRY -->
+    <div class="sdiv">כניסה ל-CRM — כל מקור</div>
+    <div class="node n-in">
+      <span class="badge bc">INPUT INTO CRM</span>
+      <div class="ntitle"><span class="nic">📥</span>כניסה ל-CRM — כל מקור</div>
+      <div class="ndesc">Hunt הוא המקור האוטונומי הראשי — כל מקור אחר עובר אותו פייפליין</div>
+      <div class="tags">
+        <span class="tag">🔍 AI Hunt ← primary</span><span class="tag">🧱 Clay</span>
+        <span class="tag">🔗 HubSpot/Salesforce</span><span class="tag">📄 CSV</span>
+        <span class="tag">✋ Manual</span><span class="tag">🔔 Webhook</span>
+      </div>
+    </div>
+
+    <div class="arr "><div class="aline"></div></div>
+
+    <!-- ENRICHMENT -->
+    <div class="sdiv">העשרת נתונים</div>
+    <div class="node n-enr">
+      <span class="badge bb">ENRICHMENT — autoEnrichLead</span>
+      <div class="ntitle"><span class="nic">🔎</span>העשרת נתונים</div>
+      <div class="ndesc">Perplexity API (real-time web) + Apollo/Clearbit. מייצר פרופיל מלא לפני הניתוח.</div>
+      <div class="tags">
+        <span class="tag">platform_type</span><span class="tag">events_per_year</span>
+        <span class="tag">tech_stack</span><span class="tag">pain_points[]</span>
+        <span class="tag">competitor_in_use</span><span class="tag">buying_signals</span>
+      </div>
+    </div>
+
+    <div class="arr ap"><div class="aline"></div></div>
+
+    <!-- 3 ENGINES ANALYSIS -->
+    <div class="sdiv" style="color:var(--purple);">ניתוח ליד — 3 מנועים מקביליים</div>
+    <div class="pw">
+      <div class="spl"><div style="width:2px;height:16px;background:linear-gradient(to bottom,rgba(255,215,0,.3),var(--purple));"></div><div class="spl-bar purple"><div class="spl-mid"></div></div></div>
+      <div class="plbl" style="color:var(--purple);margin-top:14px;">⚡ Promise.all() — אותו קלט, ניתוח עצמאי לחלוטין</div>
+      <div class="pr">
+        <div class="node n-ai" style="padding:13px 11px;">
+          <span class="badge bp">CLAUDE</span>
+          <div style="font-weight:700;font-size:13px;text-align:center;margin:7px 0 6px;">Deep Reasoning</div>
+          <div style="font-size:11px;color:var(--text-dim);line-height:1.75;">• score 0-100<br>• tier A/B/C<br>• pitch_angle<br>• pain match<br>• confidence 0-100</div>
+        </div>
+        <div class="node n-ai" style="padding:13px 11px;">
+          <span class="badge bp">GPT</span>
+          <div style="font-weight:700;font-size:13px;text-align:center;margin:7px 0 6px;">Validation + Angle</div>
+          <div style="font-size:11px;color:var(--text-dim);line-height:1.75;">• score validation<br>• competitor angle<br>• objection map<br>• timeline est.<br>• confidence 0-100</div>
+        </div>
+        <div class="node n-ai" style="padding:13px 11px;">
+          <span class="badge bp">GEMINI</span>
+          <div style="font-weight:700;font-size:13px;text-align:center;margin:7px 0 6px;">Check + Context</div>
+          <div style="font-size:11px;color:var(--text-dim);line-height:1.75;">• data validation<br>• risk flags<br>• market context<br>• timing signals<br>• confidence 0-100</div>
+        </div></div>
+      <div style="font-family:'JetBrains Mono',monospace;font-size:10px;color:var(--text-dim);margin-top:8px;text-align:center;">weights מתחילים 33/33/33 → מתעדכנים אוטומטית לפי accuracy אמיתי (50+ decisions)</div>
+    </div>
+
+    <div class="mrg"><div class="mrg-bar purple"></div><div style="height:5px;"></div><div class="mrg-line purple"></div><div style="height:4px;width:2px;background:rgba(0,0,0,.1);"></div></div>
+
+    <!-- META-JUDGE -->
+    <div class="node n-jdg">
+      <span class="badge bp">META-JUDGE — ANALYSIS + BUILD OUTREACH</span>
+      <div class="ntitle"><span class="nic">⚖️</span>Vote → Self-Analysis → KB Alignment → Build Outreach</div>
+      <div class="ndesc" style="margin-bottom:11px;">מקבל 3 ניתוחים, מצליב עם KB, מבצע self-analysis ברקע, ובונה את הפנייה בעצמו.</div>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:7px;">
+        <div style="background:rgba(0,0,0,.15);border:1px solid rgba(255,255,255,.07);border-radius:8px;padding:9px 11px;">
+          <div style="font-family:'JetBrains Mono',monospace;font-size:9px;color:var(--purple);margin-bottom:4px;">STEP 1 — VOTE</div>
+          <div style="font-size:11px;color:var(--text-dim);">Weighted confidence. conflict resolution אם הפרש >30.</div>
+        </div>
+        <div style="background:rgba(0,0,0,.15);border:1px solid rgba(255,255,255,.07);border-radius:8px;padding:9px 11px;">
+          <div style="font-family:'JetBrains Mono',monospace;font-size:9px;color:var(--cyan);margin-bottom:4px;">STEP 2 — SELF ANALYSIS</div>
+          <div style="font-size:11px;color:var(--text-dim);">ברקע: הגיוני? עקבי עם brain_memory? red flags?</div>
+        </div>
+        <div style="background:rgba(0,0,0,.15);border:1px solid rgba(255,255,255,.07);border-radius:8px;padding:9px 11px;">
+          <div style="font-family:'JetBrains Mono',monospace;font-size:9px;color:var(--teal);margin-bottom:4px;">STEP 3 — KB ALIGNMENT</div>
+          <div style="font-size:11px;color:var(--text-dim);">pitch_angle מול מתודולוגיה + template שעבד בעבר.</div>
+        </div>
+        <div style="background:rgba(0,0,0,.15);border:1px solid rgba(255,255,255,.07);border-radius:8px;padding:9px 11px;">
+          <div style="font-family:'JetBrains Mono',monospace;font-size:9px;color:var(--orange);margin-bottom:4px;">STEP 4 — BUILD OUTREACH</div>
+          <div style="font-size:11px;color:var(--text-dim);">Meta-Judge כותב את הפנייה בעצמו — עם כל ה-context.</div>
+        </div></div>
+      <div class="tags" style="margin-top:11px;">
+        <span class="tag">saveBrainDecision()</span><span class="tag">final_score</span>
+        <span class="tag">final_pitch_angle</span><span class="tag">methodology_match</span><span class="tag">confidence_level</span>
+      </div>
+    </div>
+
+    <div class="arr "><div class="aline"></div></div>
+
+    <!-- SIGNAL ENGINE -->
+    <div class="sdiv">Signal Engine</div>
+    <div class="node n-trk">
+      <span class="badge bb">SIGNAL ENGINE — 98 SIGNALS</span>
+      <div class="ntitle"><span class="nic">📡</span>כל שלב → signals — ה-DNA של הלמידה</div>
+      <div class="tags">
+        <span class="tag">pain_critical +30</span><span class="tag">tier_a +25</span>
+        <span class="tag">kb_match_high +20</span><span class="tag">3engines_agree +15</span><span class="tag">judge_conflict -10</span>
+      </div>
+    </div>
+
+    <div class="arr "><div class="aline"></div></div>
+
+    <!-- HUMAN -->
+    <div class="sdiv">אישור אנושי</div>
+    <div class="node n-hum">
+      <span class="badge bgo">HUMAN IN THE LOOP</span>
+      <div class="ntitle"><span class="nic">👤</span>Oran — Approve / Edit / Reject / Schedule</div>
+      <div class="ndesc">פנייה + נימוק + pitch_angle + KB alignment + confidence.</div>
+    </div>
+
+    <div class="arr "><div class="aline"></div></div>
+
+    <!-- SEND -->
+    <div class="sdiv">שליחה</div>
+    <div class="pw">
+      <div class="plbl" style="color:var(--orange);">📤 channel לפי אסטרטגיה</div>
+      <div class="pr">
+        <div class="node n-out" style="text-align:center;padding:13px 10px;">
+          <div style="font-size:22px;margin-bottom:5px;">📧</div>
+          <div style="font-weight:700;font-size:13px;">Email</div>
+          <div style="font-size:11px;color:var(--text-dim);margin-top:4px;">SendGrid</div>
+        </div>
+        <div class="node n-out" style="text-align:center;padding:13px 10px;">
+          <div style="font-size:22px;margin-bottom:5px;">💬</div>
+          <div style="font-weight:700;font-size:13px;">WhatsApp</div>
+          <div style="font-size:11px;color:var(--text-dim);margin-top:4px;">Twilio → WA Business</div>
+        </div>
+        <div class="node n-out" style="text-align:center;padding:13px 10px;opacity:.45;">
+          <div style="font-size:22px;margin-bottom:5px;">💼</div>
+          <div style="font-weight:700;font-size:13px;">LinkedIn</div>
+          <div style="font-size:11px;color:var(--text-dim);margin-top:4px;">Phase 3</div>
+        </div>
+      </div>
+    </div>
+
+    <div class="arr ag"><div class="aline"></div></div>
+
+    <!-- TRACKING -->
+    <div class="sdiv">מעקב + Follow-up</div>
+    <div class="node n-trk">
+      <span class="badge bb">RESPONSE TRACKING</span>
+      <div class="ntitle"><span class="nic">📊</span>כל אינטראקציה → signal + follow-up אוטונומי</div>
+      <div class="tags">
+        <span class="tag">opened +10</span><span class="tag">replied +25</span>
+        <span class="tag">no_reply_3d -15</span><span class="tag">×2 → pitch change</span><span class="tag">×3 → outcome</span>
+      </div>
+    </div>
+
+    <div class="arr ag"><div class="aline"></div></div>
+
+    <!-- OUTCOMES -->
+    <div class="sdiv" style="color:var(--green);">תוצאה — כל סיבה מלמדת חלק אחר של המוח</div>
+    <div class="outcome-grid">
+        <div class="oc oc-won">
+          <div style="font-size:24px;margin-bottom:4px;">🏆</div>
+          <div class="oc-title">WON</div>
+          <div class="oc-sub">עסקה נסגרה</div>
+          <div class="oc-learn lrn-won" style="white-space:pre-line;">KB: שמור template
+Hunt: segment ✓
+Brain: WIN pattern</div>
+        </div>
+        <div class="oc oc-noreply">
+          <div style="font-size:24px;margin-bottom:4px;">🔇</div>
+          <div class="oc-title">NO REPLY ×3</div>
+          <div class="oc-sub">שתיקה מוחלטת</div>
+          <div class="oc-learn lrn-noreply" style="white-space:pre-line;">Hunt: query quality?
+Brain: timing/channel
+→ re-engage future</div>
+        </div>
+        <div class="oc oc-later">
+          <div style="font-size:24px;margin-bottom:4px;">📅</div>
+          <div class="oc-title">לא עכשיו</div>
+          <div class="oc-sub">"חזור ב-Q3"</div>
+          <div class="oc-learn lrn-later" style="white-space:pre-line;">Hunt: ליד טוב — timing
+Brain: תזמן re-engage
+→ pipeline עתידי</div>
+        </div>
+        <div class="oc oc-price">
+          <div style="font-size:24px;margin-bottom:4px;">💰</div>
+          <div class="oc-title">יקר מדי</div>
+          <div class="oc-sub">ROI לא ברור</div>
+          <div class="oc-learn lrn-price" style="white-space:pre-line;">KB: ROI framing
+Meta-Judge: ROI first
+Hunt: tier C → re-angle</div>
+        </div>
+        <div class="oc oc-tech">
+          <div style="font-size:24px;margin-bottom:4px;">⚙️</div>
+          <div class="oc-title">טכנולוגיה לא מספיקה</div>
+          <div class="oc-sub">פתרון לא מתאים</div>
+          <div class="oc-learn lrn-tech" style="white-space:pre-line;">Enrich: missed signal
+KB: update segment
+Hunt: remove param</div>
+        </div>
+        <div class="oc oc-noneed">
+          <div style="font-size:24px;margin-bottom:4px;">🚫</div>
+          <div class="oc-title">אין צורך</div>
+          <div class="oc-sub">לא רואים ערך</div>
+          <div class="oc-learn lrn-noneed" style="white-space:pre-line;">Brain: wrong ICP
+Hunt: remove query
+→ strong segment signal</div>
+        </div></div>
+
+    <div style="height:11px;width:2px;background:linear-gradient(to bottom,rgba(255,68,68,.5),transparent);margin:4px 0;"></div>
+    <div class="feedbackbox">
+      <div style="font-size:22px;flex-shrink:0;margin-top:2px;">🔁</div>
+      <div class="fb-text"><strong>Hunt Feedback Loop — event-driven, מיידי</strong><br>כל outcome → Hunt Strategy מתעדכנת מיד. WON → 3 המנועים מחפשים עוד מהסוג הזה. LOST + סיבה → query מסומן, פרמטר מסונן. הלמידה היא <strong>ברמת מקור הליד</strong>.</div>
+    </div>
+
+    <div class="mrg"><div class="mrg-bar green"></div><div style="height:5px;"></div><div class="mrg-line green"></div><div style="height:4px;width:2px;background:rgba(0,0,0,.1);"></div></div>
+
+    <!-- BRAIN BG -->
+    <div class="sdiv" style="color:var(--green);">Brain Background — ניתוח עמוק כל 6 שעות</div>
+    <div class="node n-lrn">
+      <span class="badge bg pulse">🧬 BRAIN BACKGROUND — patterns שצריכים הרבה data</span>
+      <div class="ntitle"><span class="nic">🌀</span>Self-Learning Engine — מה ה-event-driven לא מספיק לו</div>
+      <div class="ndesc" style="margin-bottom:11px;">ה-event-driven מטפל בתגובות מיידיות. Brain BG עושה העבודה העמוקה: patterns שנראים רק אחרי הרבה data, engine weights, KB gaps.</div>
+      <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:7px;"><div style="background:rgba(0,232,143,.07);border:1px solid rgba(0,232,143,.14);border-radius:8px;padding:8px 10px;"><div style="font-family:'JetBrains Mono',monospace;font-size:9px;color:var(--green);margin-bottom:3px;">WIN PATTERNS</div><div style="font-size:11px;color:var(--text-dim);">segment + angle + timing שסגרו</div></div><div style="background:rgba(0,232,143,.07);border:1px solid rgba(0,232,143,.14);border-radius:8px;padding:8px 10px;"><div style="font-family:'JetBrains Mono',monospace;font-size:9px;color:var(--green);margin-bottom:3px;">LOSS REASONS</div><div style="font-size:11px;color:var(--text-dim);">patterns עמוקים לפי סיבה</div></div><div style="background:rgba(0,232,143,.07);border:1px solid rgba(0,232,143,.14);border-radius:8px;padding:8px 10px;"><div style="font-family:'JetBrains Mono',monospace;font-size:9px;color:var(--green);margin-bottom:3px;">ENGINE ACCURACY</div><div style="font-size:11px;color:var(--text-dim);">מי מדויק → weights auto</div></div><div style="background:rgba(0,232,143,.07);border:1px solid rgba(0,232,143,.14);border-radius:8px;padding:8px 10px;"><div style="font-family:'JetBrains Mono',monospace;font-size:9px;color:var(--green);margin-bottom:3px;">KB GAPS</div><div style="font-size:11px;color:var(--text-dim);">מה חסר, מה מיושן</div></div></div>
+    </div>
+
+    <div class="arr ag"><div class="aline"></div></div>
+
+    <div class="pw">
+      <div class="plbl" style="color:var(--green);">🔄 outputs מזינים את כל המערכת</div>
+      <div class="pr">
+        <div class="node n-hunt" style="padding:12px 10px;animation:none;">
+          <div style="font-size:18px;margin-bottom:4px;text-align:center;">🎯</div>
+          <div style="font-weight:700;font-size:13px;text-align:center;margin-bottom:4px;">Hunt Strategy</div>
+          <div style="font-size:11px;color:var(--text-dim);">עדכון עמוק מעבר ל-event-driven</div>
+        </div>
+        <div class="node n-kb" style="padding:12px 10px;">
+          <div style="font-size:18px;margin-bottom:4px;text-align:center;">📚</div>
+          <div style="font-weight:700;font-size:13px;text-align:center;margin-bottom:4px;">KB מתעדכן</div>
+          <div style="font-size:11px;color:var(--text-dim);">WON templates + failed angles</div>
+        </div>
+        <div class="node n-ai" style="padding:12px 10px;">
+          <div style="font-size:18px;margin-bottom:4px;text-align:center;">⚖️</div>
+          <div style="font-weight:700;font-size:13px;text-align:center;margin-bottom:4px;">Weights</div>
+          <div style="font-size:11px;color:var(--text-dim);">engine accuracy → auto update</div>
+        </div>
+        <div class="node n-lrn" style="padding:12px 10px;">
+          <div style="font-size:18px;margin-bottom:4px;text-align:center;">🔮</div>
+          <div style="font-weight:700;font-size:13px;text-align:center;margin-bottom:4px;">Re-engage Queue</div>
+          <div style="font-size:11px;color:var(--text-dim);">"לא עכשיו" → תזמון אוטו</div>
+        </div></div>
+    </div>
+
+    <div style="height:13px;width:2px;background:linear-gradient(to bottom,var(--green),transparent);margin:5px 0;"></div>
+    <div class="loopbox">
+      <div style="font-size:22px;flex-shrink:0;margin-top:2px;" class="pulse">♻️</div>
+      <div class="loopbox-text">
+        <strong>הלולאה הגדולה — אינסופית ומשתפרת</strong><br>
+        Hunt (×3 DB read) → Strategy → Search → Pre-Score → CRM → Enrich → Analyze (×3) → Meta-Judge → Signal → Outreach → Track → Outcome+Reason → <strong style='color:var(--gold)'>Hunt מתעדכן מיד</strong> → ...<br><br>
+        <strong style="color:var(--cyan);">כל WON מחזק את מה שעבד. כל LOST+סיבה מסנן מה לא לחפש. כל ידע שמועלה ל-KB מיד מזין את המוח. המוח לעולם לא עומד.</strong>
+      </div>
+    </div>
+
+  </div>
+
+  <div class="legend"><div class="li"><div class="ld" style="background:rgba(0,201,177,.5);border:1px solid var(--teal);"></div>KB Ingestion</div><div class="li"><div class="ld" style="background:rgba(255,215,0,.5);border:1px solid var(--gold);"></div>AI Hunt</div><div class="li"><div class="ld" style="background:rgba(0,212,255,.5);border:1px solid var(--cyan);"></div>Input / Data</div><div class="li"><div class="ld" style="background:rgba(26,143,255,.5);border:1px solid var(--blue);"></div>Process</div><div class="li"><div class="ld" style="background:rgba(168,85,247,.5);border:1px solid var(--purple);"></div>AI Engines + Meta-Judge</div><div class="li"><div class="ld" style="background:rgba(0,201,177,.4);border:1px solid var(--teal);"></div>KB — always active</div><div class="li"><div class="ld" style="background:rgba(0,232,143,.5);border:1px solid var(--green);"></div>Brain / Learning</div><div class="li"><div class="ld" style="background:rgba(255,124,42,.5);border:1px solid var(--orange);"></div>Action</div><div class="li"><div class="ld" style="background:rgba(255,215,0,.4);border:1px solid var(--gold);"></div>Human</div><div class="li"><div class="ld" style="background:rgba(255,68,68,.4);border:1px solid var(--red);"></div>Feedback Loop</div></div>
+  <div style="text-align:center;margin-top:24px;font-family:'JetBrains Mono',monospace;font-size:10px;color:var(--text-dim);">ANDY.AI Brain v4.0 · XTIX Events · KB Ingestion · Hunt autonomous phase · event-driven learning</div>
+
+</div>
+</body>
+</html>

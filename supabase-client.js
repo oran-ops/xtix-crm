@@ -27,16 +27,42 @@
   let _authToken = null; // set after login
 
   async function sbFetch(method, path, body, useService) {
-    const headers = {
+    const makeHeaders = () => ({
       'Content-Type':  'application/json',
       'apikey':        SUPABASE_ANON,
       'Authorization': 'Bearer ' + (_authToken || SUPABASE_ANON),
-      'Prefer':        method === 'POST' ? 'return=representation' : 'return=representation',
-    };
+      'Prefer':        'return=representation',
+    });
     const url = SUPABASE_URL + '/rest/v1/' + path;
-    const opts = { method, headers };
+    const opts = { method, headers: makeHeaders() };
     if (body) opts.body = JSON.stringify(body);
-    const res = await fetch(url, opts);
+    let res = await fetch(url, opts);
+
+    // Auto-refresh on 401 (JWT expired)
+    if (res.status === 401) {
+      try {
+        const stored = localStorage.getItem('sb_session');
+        if (stored) {
+          const session = JSON.parse(stored);
+          if (session.refresh_token) {
+            const refreshRes = await fetch(SUPABASE_URL + '/auth/v1/token?grant_type=refresh_token', {
+              method: 'POST',
+              headers: { 'apikey': SUPABASE_ANON, 'Content-Type': 'application/json' },
+              body: JSON.stringify({ refresh_token: session.refresh_token })
+            });
+            const refreshData = await refreshRes.json();
+            if (refreshData.access_token) {
+              _authToken = refreshData.access_token;
+              localStorage.setItem('sb_session', JSON.stringify(refreshData));
+              // Retry original request with new token
+              opts.headers = makeHeaders();
+              res = await fetch(url, opts);
+            }
+          }
+        }
+      } catch(e) { console.warn('[sbFetch] Token refresh failed:', e); }
+    }
+
     if (!res.ok) {
       const err = await res.text();
       throw new Error(`Supabase ${method} ${path}: ${err}`);
