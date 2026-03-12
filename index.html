@@ -3810,6 +3810,17 @@ ${patterns.length ? patterns.map(function(lp){
       var sendData = await sendResp.json();
       if (sendData.ok) {
         if (panel) panel.innerHTML = '<div style="color:var(--green,#27ae60);font-size:13px;padding:10px">&#10003; המייל נשלח דרך ' + (sendData.provider || 'email') + '!</div>';
+        // הפעל cadence אוטומטי — מיילים 2/3/4
+        if (typeof window.andyCadenceStart === 'function') {
+          var sentRow = null;
+          try {
+            var qRows = await window._sb.get('outreach_queue',
+              'lead_id=eq.' + leadId + '&status=eq.approved&order=created_at.desc&limit=1'
+            );
+            sentRow = (qRows || [])[0] || null;
+          } catch(e) {}
+          setTimeout(function() { window.andyCadenceStart(leadId, sentRow); }, 1000);
+        }
       } else {
         if (panel) panel.innerHTML = '<div style="color:#e74c3c;font-size:13px;padding:10px">&#10007; שגיאה בשליחה: ' + _esc(sendData.error || 'שגיאה לא ידועה') + '</div>';
       }
@@ -13395,5 +13406,6 @@ console.log('[Signal Engine] ✅ Loaded — '+Object.keys(SIGNAL_WEIGHTS).length
 })(); // end Signal Engine IIFE
 
 </script>
+<script src="js/andy-cadence.js"></script>
 </body>
 </html>
