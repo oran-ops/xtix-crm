@@ -3717,7 +3717,7 @@ ${patterns.length ? patterns.map(function(lp){
               '&#129504; <strong>למה ANDY בחר גישה זו:</strong> ' + _esc(outreach.reasoning) +
             '</div>' +
             '<div style="display:flex;gap:8px;flex-wrap:wrap">' +
-              '<button onclick="window._outreachAddToQueue(\'' + leadId + '\');this.closest(\'div[style]\').innerHTML=\'<span style=\\\"color:#10b981;font-size:13px\\\">✅ הפנייה נוספה לתור — עבור לטאב פניות לאישור</span>\'" ' +
+              '<button onclick="window._outreachAddToQueue(\'' + leadId + '\');this.textContent=\'✅ נוסף לתור!\';this.disabled=true;this.style.opacity=0.7" ' +
                 'style="background:var(--green,#27ae60);color:#fff;border:none;border-radius:6px;padding:7px 16px;cursor:pointer;font-size:13px">' +
                 '&#10003; הוסף לתור פניות' +
               '</button>' +
