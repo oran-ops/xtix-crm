@@ -3914,7 +3914,8 @@ ${patterns.length ? patterns.map(function(lp){
   window._outreachLoad = async function() {
     var listEl  = document.getElementById('outreach-list');
     var statsEl = document.getElementById('outreach-stats');
-    if (listEl) listEl.innerHTML = '<div style="color:var(--text2);text-align:center;padding:40px;font-size:13px">טוען...</div>';
+    // אל תמחק את הרשימה הקיימת בזמן טעינה
+    if (listEl && !listEl.children.length) listEl.innerHTML = '<div style="color:var(--text2);text-align:center;padding:40px;font-size:13px">טוען...</div>';
 
     try {
       var filter = (document.getElementById('outreach-filter') || {}).value || 'pending_approval';
