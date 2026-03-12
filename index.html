@@ -4894,75 +4894,161 @@ window._editLeadSave = function(lid){
     return html||'<div style="color:var(--text2);padding:12px">אין נתוני ניתוח</div>';}
 
   function _ltab_emails(lead,ai,enr){
-    var a=ai||{},e=enr||{};
-    var emails=a.email_sequence||e.email_sequence||[];
-    var cadence=a.recommended_cadence||'warm';
-    var cadenceLabel={'hot':'🔴 Hot','warm':'🟡 Warm','cool':'🔵 Cool'};
-    var typeLabel={'curiosity':'סקרנות','roi':'ROI','social_proof':'Social Proof','breakup':'Break-up','cold outreach':'Cold','value add':'ערך','cold':'Cold'};
+    // Cadence Dashboard — טוען מ-outreach_queue ב-Supabase
+    var containerId = 'cadence-dash-' + lead.id;
 
-    if(!emails.length){
-      var isDone=a.status==='done';
-      var isDeepPending=isDone&&!!(a.triple_engine)&&!(a.email_sequence);
-      if(isDone&&isDeepPending){
-        return('<div style="padding:28px;text-align:center">'+
-          '<div style="width:36px;height:36px;border:3px solid var(--accent);border-top-color:transparent;border-radius:50%;animation:spin 1s linear infinite;margin:0 auto 14px"></div>'+
-          '<div style="font-size:13px;color:var(--text);font-weight:700;margin-bottom:6px">&#9993; מיילים בייצור ברקע...</div>'+
-          '<div style="font-size:11px;color:rgba(196,196,204,0.75);margin-bottom:16px">המוח כותב 4 מיילים מותאמים לליד הזה</div>'+
-          '<button onclick="window.showAnalysisChoice(\''+lead.id+'\')" style="background:rgba(108,99,255,0.15);border:1px solid rgba(108,99,255,0.3);border-radius:8px;padding:8px 20px;font-size:12px;color:var(--accent);cursor:pointer;font-family:Heebo,sans-serif;font-weight:700">⚡ צור עכשיו</button>'+
-        '</div>');
+    // טעינה אסינכרונית
+    setTimeout(async function() {
+      var el = document.getElementById(containerId);
+      if (!el) return;
+      try {
+        var rows = await window._sb.get('outreach_queue',
+          'lead_id=eq.' + lead.id + '&order=created_at.asc&limit=20'
+        ).catch(function(){ return []; });
+
+        if (!rows || !rows.length) {
+          el.innerHTML =
+            '<div style="padding:24px;text-align:center">' +
+            '<div style="font-size:36px;margin-bottom:10px">✉️</div>' +
+            '<div style="font-size:13px;color:var(--text2);margin-bottom:14px">טרם נשלחו פניות לליד זה</div>' +
+            '<div style="font-size:12px;color:var(--t2)">עבור לטאב ANDY כדי לכתוב פנייה ראשונה</div>' +
+            '</div>';
+          return;
+        }
+
+        var statusIcon = { pending_approval:'⏳', approved:'✅', rejected:'❌', scheduled:'📅', auto_ready:'🤖', send_failed:'⚠️', ghosted:'👻' };
+        var statusLabel = { pending_approval:'ממתין לאישור', approved:'נשלח', rejected:'נדחה', scheduled:'מתוכנן', auto_ready:'מוכן לשליחה', send_failed:'שליחה נכשלה', ghosted:'ללא תגובה' };
+
+        var html = '<div style="padding:10px">';
+
+        // סטטוס cadence כללי
+        var sent = rows.filter(function(r){ return r.status==='approved'; }).length;
+        var pending = rows.filter(function(r){ return r.status==='pending_approval'||r.status==='auto_ready'; }).length;
+        var scheduled = rows.filter(function(r){ return r.status==='scheduled'; }).length;
+
+        html += '<div style="display:flex;gap:8px;margin-bottom:14px;flex-wrap:wrap">' +
+          _statChipSmall('✅ נשלחו', sent) +
+          _statChipSmall('⏳ ממתינים', pending) +
+          _statChipSmall('📅 מתוכננים', scheduled) +
+          '</div>';
+
+        // ציר זמן
+        rows.forEach(function(row, i) {
+          var icon = statusIcon[row.status] || '📧';
+          var label = statusLabel[row.status] || row.status;
+          var seqLabel = row.sequence_num ? 'מייל ' + row.sequence_num : (row.auto_generated ? 'Re-engagement' : 'פנייה');
+          var dateStr = row.sent_at ? new Date(row.sent_at).toLocaleDateString('he-IL') :
+                        row.send_after ? 'מתוכנן: ' + new Date(row.send_after).toLocaleDateString('he-IL') :
+                        row.created_at ? new Date(row.created_at).toLocaleDateString('he-IL') : '?';
+
+          var isLast = i === rows.length - 1;
+          var borderColor = row.status==='approved' ? '#10b981' : row.status==='rejected' ? '#ef4444' : row.status==='scheduled' ? '#6366f1' : '#a78bfa';
+
+          html += '<div style="border:1px solid ' + borderColor + '33;border-radius:10px;padding:12px;margin-bottom:10px;background:rgba(255,255,255,0.02)">';
+
+          // כותרת שורה
+          html += '<div style="display:flex;align-items:center;gap:8px;margin-bottom:6px">' +
+            '<span style="font-size:16px">' + icon + '</span>' +
+            '<span style="font-weight:700;font-size:13px;color:var(--text)">' + seqLabel + '</span>' +
+            '<span style="font-size:11px;color:' + borderColor + ';background:' + borderColor + '22;border-radius:4px;padding:2px 7px">' + label + '</span>' +
+            '<span style="margin-right:auto;font-size:11px;color:var(--t2)">' + dateStr + '</span>' +
+            '</div>';
+
+          // נושא
+          if (row.subject) {
+            html += '<div style="font-size:12px;color:var(--accent);margin-bottom:4px">📌 ' + _esc(row.subject) + '</div>';
+          }
+
+          // גוף — מתקפל
+          if (row.body) {
+            var bodyId = 'cadence-body-' + row.id;
+            html += '<div style="font-size:12px;color:var(--t2);margin-bottom:6px;cursor:pointer" onclick="var b=document.getElementById(\'' + bodyId + '\');b.style.display=b.style.display===\'none\'?\'block\':\'none\'">' +
+              '👁 הצג/הסתר תוכן</div>' +
+              '<div id="' + bodyId + '" style="display:none;font-size:12px;color:var(--text);line-height:1.6;background:rgba(0,0,0,0.2);border-radius:6px;padding:10px;margin-bottom:8px;white-space:pre-wrap">' +
+              _esc(row.body) + '</div>';
+          }
+
+          // Reasoning
+          if (row.reasoning && row.status !== 'scheduled') {
+            html += '<div style="font-size:11px;color:var(--t2);font-style:italic">🧠 ' + _esc(row.reasoning.substring(0,120)) + '</div>';
+          }
+
+          // תגובת ליד — אם נשלח
+          if (row.status === 'approved') {
+            var replyId = 'reply-' + row.id;
+            var hasReply = row.lead_reply;
+            html += '<div style="margin-top:8px;border-top:1px solid rgba(255,255,255,0.06);padding-top:8px">';
+            if (hasReply) {
+              html += '<div style="font-size:12px;color:#10b981;margin-bottom:4px">💬 תגובת הליד:</div>' +
+                '<div style="font-size:12px;color:var(--text);background:rgba(16,185,129,0.08);border-radius:6px;padding:8px">' + _esc(row.lead_reply) + '</div>';
+            } else {
+              html += '<div style="font-size:11px;color:var(--t2);margin-bottom:4px">💬 הליד ענה? הכנס תגובה:</div>' +
+                '<div style="display:flex;gap:6px">' +
+                '<input id="' + replyId + '" type="text" placeholder="תוכן התגובה..." style="flex:1;background:rgba(255,255,255,0.05);border:1px solid rgba(255,255,255,0.1);border-radius:6px;padding:6px 10px;font-size:12px;color:var(--text);font-family:Heebo,sans-serif">' +
+                '<button onclick="window._cadenceSaveReply(\'' + row.id + '\',\'' + lead.id + '\',\'' + replyId + '\')" style="background:#10b981;color:#fff;border:none;border-radius:6px;padding:6px 12px;font-size:12px;cursor:pointer">שמור</button>' +
+                '</div>';
+            }
+            html += '</div>';
+          }
+
+          html += '</div>';
+        });
+
+        html += '</div>';
+        el.innerHTML = html;
+      } catch(e) {
+        var el2 = document.getElementById(containerId);
+        if (el2) el2.innerHTML = '<div style="color:#ef4444;padding:16px;font-size:13px">שגיאה בטעינה: ' + _esc(e.message) + '</div>';
       }
-      // אם יש ai_analysis אבל email_sequence ריק — הצג כפתור יצירת פנייה
-      var hasAnalysis = !!(a.summary || a.pitch_angle || a.pain_points);
-      return('<div style="padding:24px;text-align:center">'+
-        '<div style="font-size:40px;margin-bottom:12px">✉️</div>'+
-        (hasAnalysis
-          ? '<div style="font-size:13px;color:var(--text2);margin-bottom:16px">הליד נותח — לחץ כדי שANDY יכתוב פנייה</div>'+
-            '<button onclick="window.generateOutreach(\''+lead.id+'\')" style="background:var(--accent);color:#fff;border:none;border-radius:8px;padding:10px 24px;font-size:13px;font-weight:700;cursor:pointer;font-family:Heebo,sans-serif">✉️ כתוב פנייה עם ANDY</button>'
-          : '<div style="font-size:13px;color:var(--text2);margin-bottom:16px">המיילים ייווצרו לאחר ניתוח AI — לחץ Analyze בשורת הליד</div>'
-        )+
-      '</div>');
-    }
+    }, 100);
 
-    var out='<div style="background:rgba(255,255,255,0.03);border:1px solid var(--border);border-radius:8px;padding:10px 14px;margin-bottom:12px;display:flex;align-items:center;gap:12px">'+
-      '<span style="font-size:11px;color:rgba(196,196,204,0.75)">Cadence:</span>'+
-      '<span style="font-weight:700;font-size:12px;color:var(--text)">'+(cadenceLabel[cadence]||cadence)+'</span>'+
-      '<span style="font-size:11px;color:rgba(196,196,204,0.75)">·</span>'+
-      '<span style="font-size:11px;color:rgba(196,196,204,0.75)">4 מיילים לפי Blueprint XTIX</span>'+
-      (a.pitch_angle?'<span style="margin-right:auto;background:rgba(108,99,255,0.15);border-radius:4px;padding:2px 8px;font-size:10px;color:var(--accent)">'+a.pitch_angle+'</span>':'')+
-      '</div>';
-
-    out+=emails.map(function(em,i){
-      var typeColor={'curiosity':'rgba(108,99,255,0.15)','roi':'rgba(16,185,129,0.15)','social_proof':'rgba(245,158,11,0.15)','breakup':'rgba(239,68,68,0.12)','cold outreach':'rgba(108,99,255,0.1)','value add':'rgba(16,185,129,0.1)','cold':'rgba(108,99,255,0.1)'};
-      var tc=typeColor[em.type]||'rgba(255,255,255,0.05)';
-
-      var researchHtml='';
-      if(Array.isArray(em.research_done)&&em.research_done.length){
-        researchHtml='<div style="margin-bottom:8px;padding:8px 10px;background:rgba(0,0,0,0.2);border-radius:6px;border-right:2px solid var(--accent)">'+
-          '<div style="font-size:10px;color:var(--accent);font-weight:700;margin-bottom:4px">📚 מה חקרתי לפני השליחה:</div>'+
-          em.research_done.map(function(r){return '<div style="font-size:11px;color:var(--text)">▸ '+r+'</div>';}).join('')+
-          (em.what_i_concluded?'<div style="font-size:11px;color:#F59E0B;margin-top:4px;font-weight:700">→ מסקנה: '+em.what_i_concluded+'</div>':'')+
-        '</div>';
-      }
-
-      return '<div style="border:1px solid var(--border);border-radius:10px;margin-bottom:10px;overflow:hidden">'+
-        '<div onclick="var b=this.nextElementSibling;b.classList.toggle(\'open\')" style="display:flex;align-items:center;gap:10px;padding:10px 14px;cursor:pointer;background:'+tc+'">'+
-          '<span style="background:var(--accent);color:#fff;border-radius:50%;width:24px;height:24px;display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:800;flex-shrink:0">'+(i+1)+'</span>'+
-          '<div style="flex:1">'+
-            '<div style="font-weight:700;font-size:12px;color:var(--text)">'+(em.subject||'מייל '+(i+1))+'</div>'+
-            '<div style="font-size:10px;color:var(--muted)">יום '+(em.day||'')+' · '+(typeLabel[em.type]||em.type||'')+'</div>'+
-          '</div>'+
-          '<button data-lid="'+lead.id+'" data-idx="'+i+'" onclick="event.stopPropagation();window._ce(this)" style="background:rgba(16,185,129,0.12);border:1px solid rgba(16,185,129,0.25);border-radius:5px;padding:3px 9px;font-size:10px;color:#10b981;cursor:pointer;font-family:Heebo,sans-serif">📋 העתק</button>'+
-        '</div>'+
-        '<div class="email-body" style="padding:12px 14px">'+
-          researchHtml+
-          '<div style="font-size:12px;color:var(--text);line-height:1.8;white-space:pre-wrap;margin-bottom:8px">'+(em.body||'')+'</div>'+
-          (em.cta?'<div style="font-size:11px;color:#10b981;font-weight:700;border-top:1px solid rgba(255,255,255,0.06);padding-top:8px;margin-top:4px">→ CTA: '+em.cta+'</div>':'')+
-        '</div>'+
-      '</div>';
-    }).join('');
-
-    return out;
+    return '<div id="' + containerId + '" style="min-height:80px"><div style="padding:20px;text-align:center;color:var(--t2);font-size:13px">טוען...</div></div>';
   }
+
+  function _statChipSmall(label, count) {
+    return '<div style="background:rgba(255,255,255,0.05);border:1px solid rgba(255,255,255,0.08);border-radius:6px;padding:4px 10px;font-size:11px;color:var(--text2)">' +
+      label + ': <strong style="color:var(--text)">' + count + '</strong></div>';
+  }
+
+  // שמירת תגובת ליד + עצירת cadence
+  window._cadenceSaveReply = async function(rowId, leadId, inputId) {
+    var input = document.getElementById(inputId);
+    var reply = input ? input.value.trim() : '';
+    if (!reply) return;
+    try {
+      // שמור תגובה על המייל
+      await window._sb.update('outreach_queue', 'id=eq.' + rowId, {
+        lead_reply: reply,
+        lead_replied_at: new Date().toISOString()
+      });
+      // עצור cadence — בטל כל מייל scheduled
+      await window._sb.update('outreach_queue',
+        'lead_id=eq.' + leadId + '&status=eq.scheduled',
+        { status: 'cancelled_reply' }
+      ).catch(function(){});
+      // עדכן ליד
+      await window._sb.update('leads', 'id=eq.' + leadId, {
+        cadence_active: false,
+        status: 'contacted'
+      }).catch(function(){});
+      // רענן תצוגה
+      var dash = document.getElementById('cadence-dash-' + leadId);
+      if (dash) {
+        dash.innerHTML = '<div style="padding:20px;text-align:center;color:var(--t2);font-size:13px">מרענן...</div>';
+        // טריגר רענון ע"י סגירה ופתיחה מחדש
+        var tab = document.getElementById('l' + leadId + '-emails');
+        var lead = (typeof leads !== 'undefined' ? leads : []).find(function(l){ return l.id === leadId; });
+        if (tab && lead) {
+          tab.innerHTML = _ltab_emails(lead, lead.ai_analysis, lead.enrichment);
+        }
+      }
+      alert('✅ תגובה נשמרה — ה-cadence עצר');
+    } catch(e) {
+      alert('שגיאה: ' + e.message);
+    }
+  };
+
+
 
   function _ltab_outreach(lead,ai,enr) {
     var lid = lead.id;
