@@ -3703,6 +3703,9 @@ ${patterns.length ? patterns.map(function(lp){
       await window._sb.insert('outreach_queue', queueRow).catch(function(err){
         console.warn('outreach_queue insert failed:', err);
       });
+      // רענן פאנל פניות אוטומטית
+      if (typeof window._outreachLoad === 'function') setTimeout(window._outreachLoad, 500);
+      window._outreachUpdateBadge && window._outreachUpdateBadge();
 
       // 6. הצג Preview UI
       if (panel) {
@@ -3892,8 +3895,14 @@ ${patterns.length ? patterns.map(function(lp){
 
   var _outreachData = [];
 
+  var _outreachPollInterval = null;
   window._outreachInit = async function() {
     await window._outreachLoad();
+    if (_outreachPollInterval) clearInterval(_outreachPollInterval);
+    _outreachPollInterval = setInterval(function() {
+      var outreachTab = document.getElementById('outreach-list');
+      if (outreachTab && outreachTab.offsetParent !== null) window._outreachLoad();
+    }, 15000);
   };
 
   window._outreachLoad = async function() {
