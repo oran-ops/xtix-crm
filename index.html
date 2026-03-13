@@ -6809,12 +6809,36 @@ BP6-10: תעדף (פלטפורמה ישנה+דומיין+6+ אירועים), Dis
     return { consensus: consensus, reviewFlags: reviewFlags };
   }
 
-  // Meta-Judge — קריאה לClaude עם 3 התוצאות
+  // Meta-Judge — קריאה לClaude עם 3 התוצאות + KB + Insights
   async function _metaJudgeCall(lead, claudeR, gptR, geminiR, consensus) {
-    var system = 'אתה מנהל מכירות בכיר ומומחה לניתוח לידים B2B בשוק הטיקטינג הישראלי. ' +
-      'קיבלת 3 ניתוחים עצמאיים של אותו ליד ממנועי AI שונים. ' +
-      'תפקידך לשפוט את הניתוחים, לנמק מדוע אתה מסכים/לא מסכים עם כל אחד, ' +
-      'ולהחזיר פסיקה סופית. ענה רק ב-JSON תקני ללא backticks.';
+
+    // טען KB ו-insights
+    var kb = '';
+    try {
+      if (typeof ensureMethodologyInSupabase === 'function') {
+        kb = await ensureMethodologyInSupabase();
+      }
+    } catch(e) {}
+    if (!kb) kb = '';
+
+    var insightsText = '';
+    try {
+      var ins = window._getInsights ? window._getInsights() : null;
+      if (ins && ins.total_won > 0) {
+        insightsText = 'Win rate: '+ins.overall_win_rate+'%\n';
+        if (ins.best_segments && ins.best_segments.length)
+          insightsText += 'Segments מנצחים: '+ins.best_segments.slice(0,3).map(function(s){return s.segment+' '+s.winRate+'%';}).join(', ')+'\n';
+        if (ins.best_pitches && ins.best_pitches.length)
+          insightsText += 'Pitches שעבדו: '+ins.best_pitches.slice(0,2).map(function(p){return p.pitch;}).join(' | ')+'\n';
+        if (ins.avg_days_to_close)
+          insightsText += 'ממוצע ימים לסגירה: '+ins.avg_days_to_close;
+      }
+    } catch(e) {}
+
+    var system = 'אתה Meta-Judge — מנהל מכירות בכיר של XTIX ומומחה לניתוח לידים B2B בשוק הטיקטינג הישראלי. ' +
+      'קיבלת 3 ניתוחים עצמאיים של אותו ליד ממנועי AI שונים, בנוסף למתודולוגיית המכירה של XTIX ולנתוני למידה מעסקאות קודמות. ' +
+      'תפקידך: (1) לשפוט את הניתוחים ולהחליט על פסיקה סופית, (2) להתאים את הציון והאסטרטגיה למתודולוגיית XTIX, ' +
+      '(3) להגדיר את הצעד הבא המדויק לפי ה-Playbook. ענה רק ב-JSON תקני ללא backticks.';
 
     var user = 'ליד: ' + JSON.stringify({
       name: lead.name, company: lead.company,
@@ -6824,7 +6848,9 @@ BP6-10: תעדף (פלטפורמה ישנה+דומיין+6+ אירועים), Dis
     'GPT-4o אמר: ' + JSON.stringify({ score: gptR.score, platform: gptR.platform_current, pain: gptR.pain_point, fees: gptR.annual_fees, pitch: gptR.pitch_angle }) + '\n' +
     'Gemini אמר: ' + JSON.stringify({ score: geminiR.score, platform: geminiR.platform_current, pain: geminiR.pain_point, fees: geminiR.annual_fees, pitch: geminiR.pitch_angle }) + '\n' +
     'Consensus מחושב: ' + JSON.stringify(consensus) + '\n\n' +
-    'החזר JSON עם שדות: meta_score (0-100), final_platform, final_pain_point, final_annual_fees, final_pitch_angle, meta_reasoning (עברית, 2-3 משפטים שמסבירים את ההחלטה), meta_action (הצעד הבא המומלץ בעברית).';
+    (kb ? '=== XTIX Sales Playbook ===\n' + kb.substring(0, 2000) + '\n\n' : '') +
+    (insightsText ? '=== נתוני למידה מעסקאות קודמות ===\n' + insightsText + '\n\n' : '') +
+    'החזר JSON עם שדות: meta_score (0-100 לפי Scoring Matrix של XTIX), final_platform, final_pain_point, final_annual_fees, final_pitch_angle, recommended_cadence (hot/warm/cool לפי Playbook), meta_reasoning (עברית, 2-3 משפטים), meta_action (הצעד הבא המדויק לפי ה-Playbook בעברית).';
 
     var payload = {
       model: 'claude-sonnet-4-20250514',
@@ -6921,8 +6947,9 @@ BP6-10: תעדף (פלטפורמה ישנה+דומיין+6+ אירועים), Dis
       if (metaResult.final_platform)    finalResult.platform_current = metaResult.final_platform;
       if (metaResult.final_pain_point)  finalResult.pain_point       = metaResult.final_pain_point;
       if (metaResult.final_annual_fees) finalResult.annual_fees      = metaResult.final_annual_fees;
-      if (metaResult.final_pitch_angle) finalResult.pitch_angle      = metaResult.final_pitch_angle;
-      if (metaResult.meta_action)       finalResult.meta_action      = metaResult.meta_action;
+      if (metaResult.final_pitch_angle)    finalResult.pitch_angle          = metaResult.final_pitch_angle;
+      if (metaResult.meta_action)          finalResult.meta_action          = metaResult.meta_action;
+      if (metaResult.recommended_cadence)  finalResult.recommended_cadence  = metaResult.recommended_cadence;
     }
 
     finalResult.meta_score      = finalScore;
