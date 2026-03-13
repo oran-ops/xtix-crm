@@ -6817,7 +6817,7 @@ BP6-10: תעדף (פלטפורמה ישנה+דומיין+6+ אירועים), Dis
       system: system,
       messages: [{ role: 'user', content: user }]
     };
-    var resp = await window._authFetch(window.SERVER + '/claude', {
+    var resp = await window._authFetch(window.SERVER + '/ai', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(payload),
