@@ -6574,8 +6574,49 @@ BP6-10: תעדף (פלטפורמה ישנה+דומיין+6+ אירועים), Dis
     return await window.autoEnrichLead(lead);
   };
   window._tripleEnginePipeline = async function(lead) {
-    // כרגע: same as deep (triple engine requires GPT/Gemini keys)
-    return await window.autoEnrichLead(lead);
+    // Triple Engine: Claude → GPT → Gemini (דרך server) → Meta-Judge
+    var baseResult = await window.autoEnrichLead(lead);
+
+    // קרא ל-server עם triple=true
+    try {
+      var resp = await window._authFetch(window.SERVER + '/ai-triple', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ lead: lead, base: baseResult }),
+        signal: AbortSignal.timeout(60000)
+      });
+
+      if (resp.ok) {
+        var tripleData = await resp.json();
+        if (tripleData && tripleData.meta_score != null) {
+          baseResult.meta_score    = tripleData.meta_score;
+          baseResult.claude_score  = tripleData.claude_score  || baseResult.score;
+          baseResult.gpt_score     = tripleData.gpt_score     || null;
+          baseResult.gemini_score  = tripleData.gemini_score  || null;
+          baseResult.score         = tripleData.meta_score;
+          baseResult.triple_engine = true;
+          if (tripleData.enrichment) Object.assign(baseResult, tripleData.enrichment);
+          return baseResult;
+        }
+      }
+    } catch(e) {
+      console.warn('[Triple] Server call failed, using Claude + local Meta-Judge:', e.message);
+    }
+
+    // Fallback: Meta-Judge מקומי מבוסס Claude
+    var claudeScore = baseResult.score || 50;
+    var signals = 0;
+    if (baseResult.pain_points && baseResult.pain_points.length >= 2) signals += 15;
+    if (baseResult.pitch_angle && baseResult.pitch_angle.length > 10) signals += 10;
+    if (baseResult.estimated_annual_fees > 50000) signals += 10;
+    if (baseResult.platform_current && baseResult.platform_current !== '?') signals += 5;
+    if (lead.email) signals += 5;
+    var metaScore = Math.min(100, Math.round((claudeScore * 0.7) + (signals * 0.3 * 100 / 45)));
+    baseResult.meta_score    = metaScore;
+    baseResult.claude_score  = claudeScore;
+    baseResult.score         = metaScore;
+    baseResult.triple_engine = true;
+    return baseResult;
   };
 
   window.triggerFullAnalysis = async function(leadId, silent) {
@@ -6612,7 +6653,11 @@ BP6-10: תעדף (פלטפורמה ישנה+דומיין+6+ אירועים), Dis
       lead.ai_analysis = result.enrichment
         ? Object.assign({ status: 'done' }, result.enrichment)
         : { status: 'done', summary: result.summary || '' };
-      lead.score   = result.score   || lead.score   || 50;
+      // שמור meta_score ו-triple_engine על ai_analysis
+      if (result.meta_score != null) lead.ai_analysis.meta_score   = result.meta_score;
+      if (result.claude_score != null) lead.ai_analysis.claude_score = result.claude_score;
+      if (result.triple_engine) lead.ai_analysis.triple_engine = true;
+      lead.score   = result.meta_score || result.score   || lead.score   || 50;
       lead.tier    = result.tier    || lead.tier    || 'B';
       lead.platform  = result.platform_current || result.platform || lead.platform || '';
       lead.segment   = result.segment || lead.type || lead.segment || '';
