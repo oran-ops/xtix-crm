@@ -6605,7 +6605,8 @@ BP6-10: תעדף (פלטפורמה ישנה+דומיין+6+ אירועים), Dis
     try {
       var hasExtra  = (_brainKeys && (_brainKeys.gpt || _brainKeys.gemini));
       var forceMode = window._forceAnalysisMode;
-      var useTriple = forceMode === 'triple' ? true : forceMode === 'claude' ? false : hasExtra;
+      var savedMode = localStorage.getItem('xtix_engine_mode') || _engineMode || 'claude_only';
+      var useTriple = forceMode === 'triple' ? true : forceMode === 'claude' ? false : (hasExtra && savedMode === 'triple');
       var result = await (useTriple ? window._tripleEnginePipeline(lead) : window._deepAIPipeline(lead));
       // ai_analysis = enrichment בלבד (לא כל result עם כפילויות)
       lead.ai_analysis = result.enrichment
@@ -11239,6 +11240,17 @@ function _applyBrainConfigToUI() {
     modeStatus.textContent = '🔺 Triple Engine פעיל';
   }
 }
+
+window.saveEngineMode = function() {
+  var radio = document.querySelector('input[name="engine_mode"]:checked');
+  if (!radio) return;
+  _engineMode = radio.value;
+  localStorage.setItem('xtix_engine_mode', _engineMode);
+  _applyBrainConfigToUI();
+  var btn = document.querySelector('.brain-save-btn');
+  if (btn) { btn.textContent = '✅ נשמר!'; setTimeout(function(){ btn.textContent = '💾 שמור מצב'; }, 2000); }
+  console.log('[Brain] Engine mode saved:', _engineMode);
+};
 
 // ── Load decisions from Supabase ─────────────────────────────
 async function loadBrainDecisions() {
