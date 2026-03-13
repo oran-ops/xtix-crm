@@ -6945,7 +6945,8 @@ BP6-10: תעדף (פלטפורמה ישנה+דומיין+6+ אירועים), Dis
       if(crd) crd.classList.add('expanded');
       if(arr) arr.textContent='▲';
       var tabs=document.querySelectorAll('#lead-'+leadId+' .lead-tab');
-      if(tabs[1]) switchLeadTab(leadId,'metajudge',tabs[1]);
+      var mjBtn = Array.from(tabs).find(function(t){ return t.textContent.indexOf('Meta-Judge') !== -1; });
+      if(mjBtn) setTimeout(function(){ switchLeadTab(leadId,'metajudge',mjBtn); }, 100);
     }
 
     try {
@@ -7048,10 +7049,10 @@ BP6-10: תעדף (פלטפורמה ישנה+דומיין+6+ אירועים), Dis
         var arr2=document.getElementById('arrow-'+leadId);
         if(crd2) crd2.classList.add('expanded');
         if(arr2) arr2.textContent='▲';
-        // Switch to Meta-Judge tab (tab index 2)
+        // Switch to Meta-Judge tab by name
         var tabs2=document.querySelectorAll('#lead-'+leadId+' .lead-tab');
-        if(tabs2[2]) switchLeadTab(leadId,'metajudge',tabs2[2]);
-        else if(tabs2[1]) switchLeadTab(leadId,'metajudge',tabs2[1]);
+        var mjBtn2 = Array.from(tabs2).find(function(t){ return t.textContent.indexOf('Meta-Judge') !== -1; });
+        if(mjBtn2) setTimeout(function(){ switchLeadTab(leadId,'metajudge',mjBtn2); }, 100);
       }
       setTimeout(function(){
         var c=document.getElementById('lead-'+leadId);
