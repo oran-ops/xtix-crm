@@ -4748,11 +4748,13 @@ ${patterns.length ? patterns.map(function(lp){
       +"<button class=\"lead-tab\" onclick=\"switchLeadTab('"+lead.id+"','metajudge',this)\">🧠 Meta-Judge</button>"
       +"<button class=\"lead-tab\" onclick=\"switchLeadTab('"+lead.id+"','emails',this)\">&#9993; מיילים</button>"
       +"<button class=\"lead-tab\" onclick=\"switchLeadTab('"+lead.id+"','outreach',this)\">🤖 ANDY</button>"
+      +(ai&&ai.review_flags&&ai.review_flags.length?"<button class=\"lead-tab\" style=\"color:#f59e0b\" onclick=\"switchLeadTab('"+lead.id+"','review',this)\">&#x26A0;&#xFE0F; Review ("+ai.review_flags.length+")</button>":"")
       +'</div>'
       +'<div class="lead-tab-panel active" id="l'+lead.id+'-profile">'+_ltab_profile(lead,enr,ai)+'</div>'
       +'<div class="lead-tab-panel" id="l'+lead.id+'-metajudge">'+_ltab_metajudge(lead,ai,enr)+'</div>'
       +'<div class="lead-tab-panel" id="l'+lead.id+'-emails">'+_ltab_emails(lead,ai,enr)+'</div>'
       +'<div class="lead-tab-panel" id="l'+lead.id+'-outreach">'+_ltab_outreach(lead,ai,enr)+'</div>'
+      +(ai&&ai.review_flags&&ai.review_flags.length?'<div class="lead-tab-panel" id="l'+lead.id+'-review">'+_ltab_review(lead,ai)+'</div>':'')
       +'</div></div>';
     list.insertAdjacentHTML('beforeend', html);
     var sel=document.querySelector('.status-select[data-lead-id="'+lead.id+'"]');
@@ -5286,6 +5288,92 @@ window._editLeadSave = function(lid){
   window.saveSummary = function(leadId){var l=leads.find(function(x){return x.id===leadId;});var ta=document.getElementById('summary-text-'+leadId);if(!l||!ta)return;if(!l.ai_analysis)l.ai_analysis={};l.ai_analysis.internal_summary=ta.value;l.updated_at=new Date().toISOString();if(l.ai_analysis)window._sb.update('leads','id=eq.'+leadId,{ai_analysis:l.ai_analysis,updated_at:l.updated_at}).catch(function(){});ta.style.borderColor='#10b981';setTimeout(function(){ta.style.borderColor='';},1500);};
   window.pushSummaryToHubspot = async function(leadId){var l=leads.find(function(x){return x.id===leadId;});if(!l)return;var ta=document.getElementById('summary-text-'+leadId);var txt=ta?ta.value:((l.ai_analysis&&l.ai_analysis.internal_summary)||'');if(!txt){alert('אין סיכום');return;}var tok='';try{if(typeof db!=='undefined'&&db){tok=localStorage.getItem('hs_token')||'';}}catch(e){}tok=tok||localStorage.getItem('hs_token')||'';if(!tok){alert('נא להגדיר HubSpot Token');return;}try{var sr=await fetch('https://api.hubapi.com/crm/v3/objects/contacts/search',{method:'POST',headers:{'Content-Type':'application/json','Authorization':'Bearer '+tok},body:JSON.stringify({filterGroups:[{filters:[{propertyName:'email',operator:'EQ',value:l.email||''}]}],properties:['hs_object_id']})});var sd=await sr.json();var cid=sd.results&&sd.results[0]&&sd.results[0].id;if(!cid){alert('לא נמצא Contact: '+(l.email||''));return;}await fetch('https://api.hubapi.com/crm/v3/objects/notes',{method:'POST',headers:{'Content-Type':'application/json','Authorization':'Bearer '+tok},body:JSON.stringify({properties:{hs_note_body:'📊 XTIX AI\n\n'+txt,hs_timestamp:Date.now()},associations:[{to:{id:cid},types:[{associationCategory:'HUBSPOT_DEFINED',associationTypeId:202}]}]})});window._sb.update('leads','id=eq.'+leadId,{hubspot_contact_id:cid}).catch(function(){});alert('✅ נשלח ל-HubSpot #'+cid);}catch(err){alert('שגיאה: '+err.message);}};
 
+
+  function _ltab_review(lead, ai) {
+    var a = ai || {};
+    var flags = a.review_flags || [];
+    var C = { border:'rgba(255,255,255,0.07)', text:'#e2e8f0', muted:'rgba(226,232,240,0.45)' };
+
+    if (!a.triple_engine) {
+      return '<div style="padding:48px 24px;text-align:center">'
+        +'<div style="font-size:40px;margin-bottom:12px;opacity:0.5">⚠️</div>'
+        +'<div style="font-size:13px;color:'+C.muted+'">טאב Review זמין רק אחרי ניתוח Triple Engine</div>'
+        +'<div style="font-size:11px;color:'+C.muted+';margin-top:8px">השתמש במנוע Meta-Judge לניתוח</div>'
+        +'</div>';
+    }
+
+    var html = '<div style="padding:16px">';
+
+    // כותרת + scores
+    html += '<div style="margin-bottom:16px;padding-bottom:14px;border-bottom:1px solid '+C.border+'">'
+      +'<div style="font-size:11px;color:#f59e0b;text-transform:uppercase;letter-spacing:1px;margin-bottom:10px">⚖️ השוואת מנועים</div>'
+      +'<div style="display:flex;gap:8px;flex-wrap:wrap">';
+
+    var engines = [
+      { label:'Claude', score: a.claude_score, color:'#a78bfa' },
+      { label:'GPT-4o', score: a.gpt_score,    color:'#10b981' },
+      { label:'Gemini', score: a.gemini_score,  color:'#3b82f6' },
+      { label:'Meta-Judge', score: a.meta_score, color:'#f59e0b' }
+    ];
+    engines.forEach(function(e){
+      if (e.score == null) return;
+      html += '<div style="background:rgba(255,255,255,0.04);border:1px solid '+C.border+';border-radius:8px;padding:8px 12px;text-align:center;min-width:70px">'
+        +'<div style="font-size:9px;color:'+e.color+';text-transform:uppercase;letter-spacing:.8px;margin-bottom:3px">'+e.label+'</div>'
+        +'<div style="font-size:22px;font-weight:800;color:'+e.color+';font-family:monospace">'+e.score+'</div>'
+        +'</div>';
+    });
+    html += '</div>';
+
+    // Meta reasoning
+    if (a.meta_reasoning) {
+      html += '<div style="margin-top:10px;font-size:12px;color:'+C.muted+';line-height:1.7;background:rgba(245,158,11,0.05);border-right:2px solid #f59e0b;padding:8px 10px;border-radius:4px">'
+        +'<span style="color:#f59e0b;font-weight:700">נימוק Meta-Judge: </span>'+a.meta_reasoning+'</div>';
+    }
+    html += '</div>';
+
+    // Review flags
+    if (!flags.length) {
+      html += '<div style="padding:24px;text-align:center">'
+        +'<div style="font-size:32px;margin-bottom:8px">✅</div>'
+        +'<div style="font-size:13px;color:#34d399">כל המנועים הסכימו — אין שדות לבדיקה ידנית</div>'
+        +'</div>';
+    } else {
+      html += '<div style="font-size:11px;color:#f59e0b;text-transform:uppercase;letter-spacing:1px;margin-bottom:10px">'
+        +'⚠️ שדות לבדיקה ידנית ('+flags.length+')</div>';
+
+      var fieldLabels = {
+        score:'ציון', platform_current:'פלטפורמה', pain_point:'כאב עיקרי',
+        annual_fees:'עמלות שנתיות', segment:'סגמנט', pitch_angle:'זווית פיץ׳'
+      };
+
+      flags.forEach(function(flag) {
+        html += '<div style="background:rgba(245,158,11,0.06);border:1px solid rgba(245,158,11,0.2);border-radius:10px;padding:12px 14px;margin-bottom:8px">'
+          +'<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px">'
+          +'<div style="font-size:12px;font-weight:700;color:#fbbf24">'+(fieldLabels[flag.field]||flag.field)+'</div>'
+          +'<div style="font-size:10px;color:'+C.muted+'">'+flag.reason+'</div>'
+          +'</div>'
+          +'<div style="display:flex;gap:6px;flex-wrap:wrap">';
+
+        var vals = [
+          { label:'Claude', val:flag.claude, color:'#a78bfa' },
+          { label:'GPT-4o', val:flag.gpt,    color:'#10b981' },
+          { label:'Gemini', val:flag.gemini,  color:'#3b82f6' }
+        ];
+        vals.forEach(function(v){
+          if (v.val == null) return;
+          html += '<div style="background:rgba(255,255,255,0.04);border:1px solid '+C.border+';border-radius:6px;padding:4px 10px;font-size:11px">'
+            +'<span style="color:'+v.color+';font-weight:700">'+v.label+':</span> '
+            +'<span style="color:'+C.text+'">'+v.val+'</span>'
+            +'</div>';
+        });
+
+        html += '</div></div>';
+      });
+    }
+
+    html += '</div>';
+    return html;
+  }
 
   function renderAllLeads() {
     const list = document.getElementById('leads-list');
@@ -6573,50 +6661,267 @@ BP6-10: תעדף (פלטפורמה ישנה+דומיין+6+ אירועים), Dis
   window._deepAIPipeline = async function(lead) {
     return await window.autoEnrichLead(lead);
   };
-  window._tripleEnginePipeline = async function(lead) {
-    // Triple Engine: Claude → GPT → Gemini (דרך server) → Meta-Judge
-    var baseResult = await window.autoEnrichLead(lead);
+  // ── Triple Engine helpers ──────────────────────────────────────────
 
-    // קרא ל-server עם triple=true
+  // משקולות per-field לפי חוזק כל מודל
+  var _FIELD_WEIGHTS = {
+    score:            { claude: 0.34, gpt: 0.33, gemini: 0.33 },
+    platform_current: { claude: 0.40, gpt: 0.30, gemini: 0.30 },
+    pain_point:       { claude: 0.40, gpt: 0.30, gemini: 0.30 },
+    annual_fees:      { claude: 0.30, gpt: 0.40, gemini: 0.30 },
+    segment:          { claude: 0.30, gpt: 0.30, gemini: 0.40 },
+    pitch_angle:      { claude: 0.35, gpt: 0.35, gemini: 0.30 }
+  };
+
+  // קריאה ל-GPT דרך /gpt proxy
+  async function _callGPT(systemPrompt, userPrompt) {
+    var payload = {
+      model: 'gpt-4o',
+      max_tokens: 1200,
+      temperature: 0.3,
+      messages: [
+        { role: 'system', content: systemPrompt },
+        { role: 'user',   content: userPrompt }
+      ]
+    };
+    var resp = await window._authFetch(window.SERVER + '/gpt', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(payload),
+      signal: AbortSignal.timeout(45000)
+    });
+    if (!resp.ok) throw new Error('GPT ' + resp.status);
+    var data = await resp.json();
+    var text = data.choices && data.choices[0] && data.choices[0].message && data.choices[0].message.content;
+    if (!text) throw new Error('GPT empty response');
     try {
-      var resp = await window._authFetch(window.SERVER + '/ai-triple', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ lead: lead, base: baseResult }),
-        signal: AbortSignal.timeout(60000)
-      });
+      var clean = text.replace(/```json|```/g,'').trim();
+      return JSON.parse(clean);
+    } catch(e) { throw new Error('GPT JSON parse failed'); }
+  }
 
-      if (resp.ok) {
-        var tripleData = await resp.json();
-        if (tripleData && tripleData.meta_score != null) {
-          baseResult.meta_score    = tripleData.meta_score;
-          baseResult.claude_score  = tripleData.claude_score  || baseResult.score;
-          baseResult.gpt_score     = tripleData.gpt_score     || null;
-          baseResult.gemini_score  = tripleData.gemini_score  || null;
-          baseResult.score         = tripleData.meta_score;
-          baseResult.triple_engine = true;
-          if (tripleData.enrichment) Object.assign(baseResult, tripleData.enrichment);
-          return baseResult;
+  // קריאה ל-Gemini דרך /gemini proxy
+  async function _callGemini(prompt) {
+    var payload = {
+      model: 'gemini-2.0-flash',
+      contents: [{ parts: [{ text: prompt }] }],
+      generationConfig: { temperature: 0.3, maxOutputTokens: 1200 }
+    };
+    var resp = await window._authFetch(window.SERVER + '/gemini', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(payload),
+      signal: AbortSignal.timeout(45000)
+    });
+    if (!resp.ok) throw new Error('Gemini ' + resp.status);
+    var data = await resp.json();
+    var text = data.candidates && data.candidates[0] && data.candidates[0].content &&
+               data.candidates[0].content.parts && data.candidates[0].content.parts[0] &&
+               data.candidates[0].content.parts[0].text;
+    if (!text) throw new Error('Gemini empty response');
+    try {
+      var clean = text.replace(/```json|```/g,'').trim();
+      return JSON.parse(clean);
+    } catch(e) { throw new Error('Gemini JSON parse failed'); }
+  }
+
+  // Consensus Engine — ממזג per-field, מזהה disagreement
+  function _consensusEngine(claudeR, gptR, geminiR) {
+    var fields = ['score','platform_current','pain_point','annual_fees','segment','pitch_angle'];
+    var consensus = {};
+    var reviewFlags = [];
+
+    fields.forEach(function(field) {
+      var w = _FIELD_WEIGHTS[field] || { claude:0.34, gpt:0.33, gemini:0.33 };
+      var vals = [
+        { src: 'claude', val: claudeR[field], w: w.claude },
+        { src: 'gpt',    val: gptR[field],    w: w.gpt    },
+        { src: 'gemini', val: geminiR[field],  w: w.gemini }
+      ].filter(function(v){ return v.val != null && v.val !== '' && v.val !== '?'; });
+
+      if (!vals.length) { consensus[field] = claudeR[field] || null; return; }
+
+      // שדות מספריים — ממוצע משוקלל + זיהוי disagreement
+      if (field === 'score' || field === 'annual_fees') {
+        var nums = vals.map(function(v){
+          if (field === 'annual_fees') {
+            var n = parseFloat(String(v.val).replace(/[^0-9.]/g,''));
+            return isNaN(n) ? null : n;
+          }
+          return typeof v.val === 'number' ? v.val : parseFloat(v.val);
+        }).filter(function(n){ return n != null && !isNaN(n); });
+
+        if (!nums.length) { consensus[field] = claudeR[field] || null; return; }
+        var weighted = 0, wSum = 0;
+        vals.forEach(function(v,i){
+          if (nums[i] == null) return;
+          weighted += nums[i] * v.w; wSum += v.w;
+        });
+        consensus[field] = Math.round(weighted / wSum);
+
+        // disagreement: סטיית תקן גבוהה
+        var mean = nums.reduce(function(a,b){return a+b;},0) / nums.length;
+        var std  = Math.sqrt(nums.reduce(function(a,n){return a+(n-mean)*(n-mean);},0)/nums.length);
+        var threshold = field === 'score' ? 12 : mean * 0.3;
+        if (std > threshold && nums.length >= 2) {
+          reviewFlags.push({
+            field: field,
+            reason: 'מחלוקת בין המנועים — סטיית תקן: ' + Math.round(std),
+            claude: claudeR[field],
+            gpt:    gptR[field],
+            gemini: geminiR[field]
+          });
+        }
+
+      } else {
+        // שדות טקסטואליים — בחר לפי המשקל הגבוה ביותר, flag אם אין הסכמה
+        var winner = vals.reduce(function(a,b){ return a.w >= b.w ? a : b; });
+        consensus[field] = winner.val;
+        var uniqueVals = vals.map(function(v){ return String(v.val).toLowerCase().trim(); });
+        var allSame = uniqueVals.every(function(v){ return v === uniqueVals[0]; });
+        if (!allSame && vals.length >= 2) {
+          reviewFlags.push({
+            field: field,
+            reason: 'חוסר הסכמה בין המנועים',
+            claude: claudeR[field],
+            gpt:    gptR[field],
+            gemini: geminiR[field]
+          });
         }
       }
+    });
+
+    return { consensus: consensus, reviewFlags: reviewFlags };
+  }
+
+  // Meta-Judge — קריאה לClaude עם 3 התוצאות
+  async function _metaJudgeCall(lead, claudeR, gptR, geminiR, consensus) {
+    var system = 'אתה מנהל מכירות בכיר ומומחה לניתוח לידים B2B בשוק הטיקטינג הישראלי. ' +
+      'קיבלת 3 ניתוחים עצמאיים של אותו ליד ממנועי AI שונים. ' +
+      'תפקידך לשפוט את הניתוחים, לנמק מדוע אתה מסכים/לא מסכים עם כל אחד, ' +
+      'ולהחזיר פסיקה סופית. ענה רק ב-JSON תקני ללא backticks.';
+
+    var user = 'ליד: ' + JSON.stringify({
+      name: lead.name, company: lead.company,
+      email: lead.email, segment: lead.segment || lead.type
+    }) + '\n\n' +
+    'Claude אמר: ' + JSON.stringify({ score: claudeR.score, platform: claudeR.platform_current, pain: claudeR.pain_point, fees: claudeR.annual_fees, pitch: claudeR.pitch_angle }) + '\n' +
+    'GPT-4o אמר: ' + JSON.stringify({ score: gptR.score, platform: gptR.platform_current, pain: gptR.pain_point, fees: gptR.annual_fees, pitch: gptR.pitch_angle }) + '\n' +
+    'Gemini אמר: ' + JSON.stringify({ score: geminiR.score, platform: geminiR.platform_current, pain: geminiR.pain_point, fees: geminiR.annual_fees, pitch: geminiR.pitch_angle }) + '\n' +
+    'Consensus מחושב: ' + JSON.stringify(consensus) + '\n\n' +
+    'החזר JSON עם שדות: meta_score (0-100), final_platform, final_pain_point, final_annual_fees, final_pitch_angle, meta_reasoning (עברית, 2-3 משפטים שמסבירים את ההחלטה), meta_action (הצעד הבא המומלץ בעברית).';
+
+    var payload = {
+      model: 'claude-sonnet-4-20250514',
+      max_tokens: 800,
+      system: system,
+      messages: [{ role: 'user', content: user }]
+    };
+    var resp = await window._authFetch(window.SERVER + '/claude', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(payload),
+      signal: AbortSignal.timeout(30000)
+    });
+    if (!resp.ok) throw new Error('Meta-Judge ' + resp.status);
+    var data = await resp.json();
+    var text = data.content && data.content[0] && data.content[0].text;
+    if (!text) throw new Error('Meta-Judge empty');
+    var clean = text.replace(/```json|```/g,'').trim();
+    return JSON.parse(clean);
+  }
+
+  window._tripleEnginePipeline = async function(lead) {
+    // ── שלב 1: Claude במקביל עם GPT + Gemini ──
+    var _ep = function(id, status, color) {
+      var dot = document.getElementById('ep-dot-'+id);
+      var st  = document.getElementById('ep-status-'+id);
+      if (dot && color) dot.style.background = color;
+      if (st)  st.textContent = status;
+    };
+
+    // הפעל Claude (autoEnrichLead) ו-GPT ו-Gemini במקביל
+    var leadContext = 'שם: '+(lead.name||'')+', חברה: '+(lead.company||'')+
+      ', אתר: '+(lead.website||'')+', סגמנט: '+(lead.segment||lead.type||'')+
+      ', אימייל: '+(lead.email||'')+', טלפון: '+(lead.phone||'')+
+      ', הערות: '+(lead.notes||'');
+
+    var gptSystem = 'אתה מומחה מכירות B2B המתמחה בתמחור ו-ROI בשוק הטיקטינג הישראלי. ' +
+      'נתח את הליד ותן דגש על עמלות שנתיות צפויות וROI. ענה רק ב-JSON ללא backticks.';
+    var gptUser   = 'נתח ליד זה: ' + leadContext +
+      '\nהחזר JSON: { "score":0-100, "platform_current":"", "pain_point":"", "annual_fees":"₪XX,XXX", "segment":"", "pitch_angle":"", "roi_analysis":"", "confidence":0-1 }';
+
+    var geminiPrompt = 'נתח ליד טיקטינג ישראלי ותן דגש על patterns וסגמנט תעשייה. ' +
+      'ליד: ' + leadContext +
+      '\nהחזר JSON בלבד ללא backticks: { "score":0-100, "platform_current":"", "pain_point":"", "annual_fees":"₪XX,XXX", "segment":"", "pitch_angle":"", "industry_pattern":"", "confidence":0-1 }';
+
+    _ep('claude','מנתח...','#a78bfa');
+    _ep('gpt','מנתח...','#10b981');
+    _ep('gemini','מנתח...','#3b82f6');
+
+    var claudePromise = window.autoEnrichLead(lead).catch(function(e){
+      console.warn('[Triple] Claude failed:', e.message);
+      return { score: 50, triple_engine: false, _failed: true };
+    });
+    var gptPromise = _callGPT(gptSystem, gptUser).catch(function(e){
+      console.warn('[Triple] GPT failed:', e.message);
+      return { score: 50, _failed: true };
+    });
+    var geminiPromise = _callGemini(geminiPrompt).catch(function(e){
+      console.warn('[Triple] Gemini failed:', e.message);
+      return { score: 50, _failed: true };
+    });
+
+    var results = await Promise.all([claudePromise, gptPromise, geminiPromise]);
+    var claudeR = results[0];
+    var gptR    = results[1];
+    var geminiR = results[2];
+
+    _ep('claude', claudeR._failed ? '❌ נכשל' : '✅ הושלם', claudeR._failed ? '#ef4444' : '#a78bfa');
+    _ep('gpt',    gptR._failed    ? '❌ נכשל' : '✅ הושלם', gptR._failed    ? '#ef4444' : '#10b981');
+    _ep('gemini', geminiR._failed ? '❌ נכשל' : '✅ הושלם', geminiR._failed ? '#ef4444' : '#3b82f6');
+
+    var bar = document.getElementById('ep-bar');
+    if (bar) bar.style.width = '75%';
+
+    // ── שלב 2: Consensus Engine ──
+    var consensusData = _consensusEngine(claudeR, gptR, geminiR);
+
+    // ── שלב 3: Meta-Judge ──
+    var metaResult = null;
+    try {
+      metaResult = await _metaJudgeCall(lead, claudeR, gptR, geminiR, consensusData.consensus);
     } catch(e) {
-      console.warn('[Triple] Server call failed, using Claude + local Meta-Judge:', e.message);
+      console.warn('[Triple] Meta-Judge failed, using consensus:', e.message);
     }
 
-    // Fallback: Meta-Judge מקומי מבוסס Claude
-    var claudeScore = baseResult.score || 50;
-    var signals = 0;
-    if (baseResult.pain_points && baseResult.pain_points.length >= 2) signals += 15;
-    if (baseResult.pitch_angle && baseResult.pitch_angle.length > 10) signals += 10;
-    if (baseResult.estimated_annual_fees > 50000) signals += 10;
-    if (baseResult.platform_current && baseResult.platform_current !== '?') signals += 5;
-    if (lead.email) signals += 5;
-    var metaScore = Math.min(100, Math.round((claudeScore * 0.7) + (signals * 0.3 * 100 / 45)));
-    baseResult.meta_score    = metaScore;
-    baseResult.claude_score  = claudeScore;
-    baseResult.score         = metaScore;
-    baseResult.triple_engine = true;
-    return baseResult;
+    if (bar) bar.style.width = '100%';
+
+    // ── שלב 4: בנה תוצאה סופית ──
+    var finalScore = (metaResult && metaResult.meta_score) || consensusData.consensus.score || claudeR.score || 50;
+
+    // מזג את claudeR (הבסיס המלא) עם תוצאות המנועים
+    var finalResult = Object.assign({}, claudeR);
+    if (metaResult) {
+      if (metaResult.final_platform)    finalResult.platform_current = metaResult.final_platform;
+      if (metaResult.final_pain_point)  finalResult.pain_point       = metaResult.final_pain_point;
+      if (metaResult.final_annual_fees) finalResult.annual_fees      = metaResult.final_annual_fees;
+      if (metaResult.final_pitch_angle) finalResult.pitch_angle      = metaResult.final_pitch_angle;
+      if (metaResult.meta_action)       finalResult.meta_action      = metaResult.meta_action;
+    }
+
+    finalResult.meta_score      = finalScore;
+    finalResult.score           = finalScore;
+    finalResult.claude_score    = claudeR.score || 50;
+    finalResult.gpt_score       = gptR._failed  ? null : (gptR.score    || null);
+    finalResult.gemini_score    = geminiR._failed? null : (geminiR.score || null);
+    finalResult.meta_reasoning  = metaResult && metaResult.meta_reasoning || '';
+    finalResult.review_flags    = consensusData.reviewFlags;
+    finalResult.gpt_analysis    = gptR._failed   ? null : gptR;
+    finalResult.gemini_analysis = geminiR._failed ? null : geminiR;
+    finalResult.triple_engine   = true;
+
+    return finalResult;
   };
 
   window.triggerFullAnalysis = async function(leadId, silent) {
@@ -6654,9 +6959,16 @@ BP6-10: תעדף (פלטפורמה ישנה+דומיין+6+ אירועים), Dis
         ? Object.assign({ status: 'done' }, result.enrichment)
         : { status: 'done', summary: result.summary || '' };
       // שמור meta_score ו-triple_engine על ai_analysis
-      if (result.meta_score != null) lead.ai_analysis.meta_score   = result.meta_score;
-      if (result.claude_score != null) lead.ai_analysis.claude_score = result.claude_score;
-      if (result.triple_engine) lead.ai_analysis.triple_engine = true;
+      if (result.meta_score != null)    lead.ai_analysis.meta_score      = result.meta_score;
+      if (result.claude_score != null)  lead.ai_analysis.claude_score    = result.claude_score;
+      if (result.gpt_score != null)     lead.ai_analysis.gpt_score       = result.gpt_score;
+      if (result.gemini_score != null)  lead.ai_analysis.gemini_score    = result.gemini_score;
+      if (result.meta_reasoning)        lead.ai_analysis.meta_reasoning  = result.meta_reasoning;
+      if (result.meta_action)           lead.ai_analysis.meta_action     = result.meta_action;
+      if (result.review_flags && result.review_flags.length) lead.ai_analysis.review_flags = result.review_flags;
+      if (result.gpt_analysis)          lead.ai_analysis.gpt_analysis    = result.gpt_analysis;
+      if (result.gemini_analysis)       lead.ai_analysis.gemini_analysis = result.gemini_analysis;
+      if (result.triple_engine)         lead.ai_analysis.triple_engine   = true;
       lead.score   = result.meta_score || result.score   || lead.score   || 50;
       lead.tier    = result.tier    || lead.tier    || 'B';
       lead.platform  = result.platform_current || result.platform || lead.platform || '';
