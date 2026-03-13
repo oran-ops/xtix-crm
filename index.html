@@ -3658,6 +3658,21 @@ ${patterns.length ? patterns.map(function(lp){
   return '- ' + (lp.segment||'') + ' | pitch: ' + (lp.pitch_angle_used||'') + ' | outcome: ' + lp.outcome + (lp.email_subject_won ? ' | subject שעבד: ' + lp.email_subject_won : '');
 }).join('\n') : 'אין עדיין patterns — זו אחת הפניות הראשונות'}
 
+=== ANDY Insights (מה עובד בפועל) ===
+${(function(){
+  var ins = window._getInsights ? window._getInsights() : null;
+  if (!ins || !ins.total_won) return 'אין עדיין insights — המערכת לומדת';
+  var lines = [];
+  lines.push('Win rate כללי: '+ins.overall_win_rate+'% ('+ins.total_won+'/'+ins.total_leads+' לידים)');
+  if (ins.best_segments && ins.best_segments.length)
+    lines.push('Segments מנצחים: '+ins.best_segments.slice(0,3).map(function(s){return s.segment+' ('+s.winRate+'%)';}).join(', '));
+  if (ins.best_pitches && ins.best_pitches.length)
+    lines.push('Pitch angles שעבדו: '+ins.best_pitches.slice(0,2).map(function(p){return p.pitch;}).join(' | '));
+  if (ins.avg_days_to_close)
+    lines.push('זמן סגירה ממוצע: '+ins.avg_days_to_close+' ימים');
+  return lines.join('\n');
+})()}
+
 === הנחיות ===
 - כתוב בעברית, סגנון אנושי וישיר
 - 3-4 משפטים בגוף המייל (לא רשימות)
@@ -13959,6 +13974,118 @@ window._signals = {
 console.log('[Signal Engine] ✅ Loaded — '+Object.keys(SIGNAL_WEIGHTS).length+' signal types registered');
 
 })(); // end Signal Engine IIFE
+
+// ══════════════════════════════════════════════════════════════
+// ANDY Learn Loop — מנתח learning_patterns ומסיק insights
+// ══════════════════════════════════════════════════════════════
+(function() {
+
+  // ── נתח patterns וצור insights ──────────────────────────────
+  window._learnFromPatterns = async function() {
+    if (!window._sb) return null;
+    try {
+      var rows = await window._sb.get('learning_patterns', 'order=created_at.desc&limit=200');
+      if (!rows || !rows.length) return null;
+
+      var won  = rows.filter(function(r){ return r.outcome === 'closed' || r.outcome === 'won'; });
+      var lost = rows.filter(function(r){ return r.outcome === 'lost'; });
+      var total = rows.length;
+
+      // ── Win rate per segment ──
+      var segStats = {};
+      rows.forEach(function(r) {
+        var seg = r.segment || 'unknown';
+        if (!segStats[seg]) segStats[seg] = { won:0, lost:0, scores:[] };
+        if (r.outcome==='closed'||r.outcome==='won') segStats[seg].won++;
+        else segStats[seg].lost++;
+        if (r.ai_score) segStats[seg].scores.push(r.ai_score);
+      });
+      var segRanked = Object.keys(segStats).map(function(seg) {
+        var s = segStats[seg];
+        var total = s.won + s.lost;
+        var winRate = total ? Math.round((s.won/total)*100) : 0;
+        var avgScore = s.scores.length ? Math.round(s.scores.reduce(function(a,b){return a+b;},0)/s.scores.length) : 0;
+        return { segment:seg, won:s.won, lost:s.lost, total:total, winRate:winRate, avgScore:avgScore };
+      }).sort(function(a,b){ return b.winRate - a.winRate; });
+
+      // ── Best pitch angles (מה עבד בwon) ──
+      var pitchCount = {};
+      won.forEach(function(r) {
+        var p = (r.pitch_angle_used||'').trim();
+        if (p) pitchCount[p] = (pitchCount[p]||0) + 1;
+      });
+      var bestPitches = Object.keys(pitchCount)
+        .sort(function(a,b){ return pitchCount[b]-pitchCount[a]; })
+        .slice(0,5)
+        .map(function(p){ return { pitch:p, count:pitchCount[p] }; });
+
+      // ── Competitors easy to steal from ──
+      var compStats = {};
+      rows.forEach(function(r) {
+        var c = r.competitor || r.platform || 'unknown';
+        if (!compStats[c]) compStats[c] = { won:0, lost:0 };
+        if (r.outcome==='closed'||r.outcome==='won') compStats[c].won++;
+        else compStats[c].lost++;
+      });
+      var compRanked = Object.keys(compStats).map(function(c) {
+        var s = compStats[c];
+        var t = s.won+s.lost;
+        return { competitor:c, won:s.won, lost:s.lost, winRate: t?Math.round((s.won/t)*100):0 };
+      }).sort(function(a,b){ return b.winRate-a.winRate; }).slice(0,8);
+
+      // ── AI score accuracy ──
+      var correct = rows.filter(function(r){ return r.was_correct; }).length;
+      var accuracy = total ? Math.round((correct/total)*100) : 0;
+
+      // ── Avg days to close ──
+      var daysArr = won.filter(function(r){ return r.days_to_close>0; }).map(function(r){ return r.days_to_close; });
+      var avgDays = daysArr.length ? Math.round(daysArr.reduce(function(a,b){return a+b;},0)/daysArr.length) : null;
+
+      // ── Email subjects שעבדו ──
+      var subjects = won.filter(function(r){ return r.email_subject_won; })
+        .map(function(r){ return r.email_subject_won; }).slice(0,5);
+
+      var insights = {
+        generated_at:   new Date().toISOString(),
+        total_leads:    total,
+        total_won:      won.length,
+        total_lost:     lost.length,
+        overall_win_rate: total ? Math.round((won.length/total)*100) : 0,
+        ai_accuracy:    accuracy,
+        avg_days_to_close: avgDays,
+        best_segments:  segRanked.slice(0,5),
+        best_pitches:   bestPitches,
+        competitor_steal: compRanked,
+        winning_subjects: subjects
+      };
+
+      // שמור ב-localStorage לגישה מהירה
+      try { localStorage.setItem('andy_insights', JSON.stringify(insights)); } catch(e){}
+      console.log('[Learn] ✅ Insights generated — win rate:', insights.overall_win_rate+'%',
+        '| accuracy:', insights.ai_accuracy+'%', '| segments:', segRanked.length);
+      return insights;
+    } catch(e) {
+      console.warn('[Learn] Failed:', e.message);
+      return null;
+    }
+  };
+
+  // ── טען insights שמורים ──────────────────────────────────────
+  window._getInsights = function() {
+    try {
+      var raw = localStorage.getItem('andy_insights');
+      return raw ? JSON.parse(raw) : null;
+    } catch(e) { return null; }
+  };
+
+  // ── הרץ Learn Loop כל 30 דקות אוטומטית ──────────────────────
+  setTimeout(function() {
+    window._learnFromPatterns();
+    setInterval(function() { window._learnFromPatterns(); }, 30 * 60 * 1000);
+  }, 5000);
+
+  console.log('[Learn Loop] ✅ Loaded');
+})();
 
 </script>
 <script src="andy-cadence.js"></script>
