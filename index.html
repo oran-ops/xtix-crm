@@ -3850,68 +3850,77 @@ ${(function(){
   };
 
   // ── WhatsApp Outreach ─────────────────────────────────────────────
-  // כפתור "פתח שיחה ידנית" — פותח wa.me עם הטקסט מוכן
+  // ── יצירת הודעת WhatsApp מבוססת AI ──────────────────────────
+  window._generateWhatsAppMessage = async function(lead) {
+    var ai  = lead.ai_analysis || {};
+    var enr = lead.enrichment  || {};
+    var kb  = '';
+    try { if (typeof ensureMethodologyInSupabase === 'function') kb = await ensureMethodologyInSupabase(); } catch(e) {}
+    var ins = window._getInsights ? window._getInsights() : null;
+    var insText = ins && ins.best_pitches && ins.best_pitches.length ? 'Pitch שעבד: ' + ins.best_pitches[0].pitch : '';
+    var system = 'אתה ANDY — מומחה מכירות B2B של XTIX. כתוב הודעת WhatsApp ראשונה קצרה ואנושית. כללים: מקסימום 2-3 משפטים קצרים, אל תמכור — עורר סקרנות בלבד, אל תזכיר AI או CRM, סיים בשאלה אחת פשוטה. ענה רק ב-JSON ללא backticks.';
+    var user = 'ליד: '+(lead.name||'')+', חברה: '+(lead.company||lead.domain||'')+
+      ', פלטפורמה: '+(ai.platform_current||lead.platform||'?')+
+      ', כאב: '+(ai.pain_point||(ai.pain_points&&ai.pain_points[0])||'?')+
+      ', pitch: '+(ai.pitch_angle||enr.pitch_angle||'?')+
+      (insText?'\n'+insText:'')+
+      (kb?'\n\nמתודולוגיה:\n'+kb.substring(0,600):'')+
+      '\n\nהחזר JSON: { "message": "הודעת WhatsApp בעברית, 2-3 משפטים, מקסימום 280 תווים" }';
+    var payload = { model:'claude-sonnet-4-20250514', max_tokens:300, system:system, messages:[{role:'user',content:user}] };
+    var resp = await window._authFetch(window.SERVER+'/ai',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(payload),signal:AbortSignal.timeout(20000)});
+    if (!resp.ok) throw new Error('AI '+resp.status);
+    var data = await resp.json();
+    var text = data.content&&data.content[0]&&data.content[0].text;
+    if (!text) throw new Error('empty');
+    var parsed = JSON.parse(text.replace(/```json|```/g,'').trim());
+    return parsed.message || '';
+  };
+
+  // כפתור "פתח שיחה ידנית" — פותח wa.me עם טקסט AI
   window.openWhatsApp = async function(leadId) {
     var lead = (typeof leads !== 'undefined' ? leads : []).find(function(l){ return l.id == leadId; });
     if (!lead) { alert('ליד לא נמצא'); return; }
     var phone = lead.phone || (lead.enrichment && lead.enrichment.phone) || '';
     if (!phone) { alert('אין מספר טלפון לליד זה'); return; }
     var panel = document.getElementById('outreach-panel-' + leadId);
-
-    // נסה לקחת טקסט שכבר נוצר, אחרת צור קצר
-    var body = window._lastOutreachBody && window._lastOutreachBody[leadId]
-      ? window._lastOutreachBody[leadId]
-      : 'היי ' + (lead.contact_name || lead.name || '') + ', אני אורן מ-XTIX.AI. ראיתי את ' + (lead.domain || 'האתר שלכם') + ' ויש לי משהו קצר שרלוונטי עבורכם. 2 דקות?';
-
-    var cleanPhone = phone.replace(/[\s\-\(\)]/g, '');
-    if (!cleanPhone.startsWith('+')) cleanPhone = '+972' + cleanPhone.replace(/^0/, '');
-    var waText = body.length > 1000 ? body.substring(0, 997) + '...' : body;
-    var url = 'https://wa.me/' + cleanPhone.replace('+','') + '?text=' + encodeURIComponent(waText);
-    window.open(url, '_blank');
-
-    if (typeof logActivity === 'function') {
-      logActivity('outreach_sent', { lead_id: leadId, lead_name: lead.name || '', description: 'WhatsApp opened', channel: 'whatsapp' });
-    }
-    if (panel) {
-      panel.style.display = 'block';
-      panel.innerHTML = '<div style="color:#25d366;font-size:13px;padding:10px">&#128242; WhatsApp נפתח עם הטקסט מוכן ל-' + _esc(phone) + '</div>';
-    }
+    if (panel) { panel.style.display='block'; panel.innerHTML='<div style="color:#25d366;font-size:13px;padding:10px">ANDY כותב הודעת WhatsApp...</div>'; }
+    var body;
+    try { body = await window._generateWhatsAppMessage(lead); }
+    catch(e) { body = 'היי '+(lead.contact_name||lead.name||'')+', אני אורן מ-XTIX.AI. ראיתי את '+(lead.domain||'האתר שלכם')+' ויש לי משהו קצר שרלוונטי עבורכם. 2 דקות?'; }
+    var cleanPhone = phone.replace(/[\s\-\(\)]/g,'');
+    if (!cleanPhone.startsWith('+')) cleanPhone = '+972'+cleanPhone.replace(/^0/,'');
+    window.open('https://wa.me/'+cleanPhone.replace('+','')+'?text='+encodeURIComponent(body),'_blank');
+    if (typeof logActivity==='function') logActivity('outreach_sent',{lead_id:leadId,lead_name:lead.name||'',description:'WhatsApp opened (AI)',channel:'whatsapp'});
+    if (window._signalRecord) window._signalRecord(leadId,'whatsapp_sent',{method:'manual'});
+    if (panel) panel.innerHTML='<div style="color:#25d366;font-size:13px;padding:10px">📱 WhatsApp נפתח עם הודעת AI ל-'+_esc(phone)+'</div>';
   };
 
-  // כפתור "שלח WA עם ANDY" — שולח אוטומטית דרך Twilio
+  // כפתור "שלח WA עם ANDY" — שולח אוטומטית דרך Twilio עם הודעת AI
   window.sendWhatsAppOutreach = async function(leadId) {
     var lead = (typeof leads !== 'undefined' ? leads : []).find(function(l){ return l.id == leadId; });
     if (!lead) { alert('ליד לא נמצא'); return; }
     var phone = lead.phone || (lead.enrichment && lead.enrichment.phone) || '';
     if (!phone) { alert('אין מספר טלפון לליד זה'); return; }
     var panel = document.getElementById('outreach-panel-' + leadId);
-    if (panel) { panel.innerHTML = '<div style="color:var(--t2);font-size:13px;padding:12px">ANDY כותב הודעת WhatsApp...</div>'; panel.style.display = 'block'; }
-
-    var body = window._lastOutreachBody && window._lastOutreachBody[leadId]
-      ? window._lastOutreachBody[leadId]
-      : 'היי ' + (lead.contact_name || lead.name || '') + ', אני אורן מ-XTIX.AI. ראיתי את ' + (lead.domain || 'האתר שלכם') + ' ויש לי משהו קצר שרלוונטי עבורכם. 2 דקות?';
-
-    var cleanPhone = phone.replace(/[\s\-\(\)]/g, '');
-    if (!cleanPhone.startsWith('+')) cleanPhone = '+972' + cleanPhone.replace(/^0/, '');
-    var waBody = body.length > 1000 ? body.substring(0, 997) + '...' : body;
-
+    if (panel) { panel.innerHTML='<div style="color:var(--t2);font-size:13px;padding:12px">ANDY כותב הודעת WhatsApp...</div>'; panel.style.display='block'; }
+    var body;
+    try { body = await window._generateWhatsAppMessage(lead); }
+    catch(e) { body = 'היי '+(lead.contact_name||lead.name||'')+', אני אורן מ-XTIX.AI. ראיתי את '+(lead.domain||'האתר שלכם')+' ויש לי משהו קצר שרלוונטי עבורכם. 2 דקות?'; }
+    var cleanPhone = phone.replace(/[\s\-\(\)]/g,'');
+    if (!cleanPhone.startsWith('+')) cleanPhone = '+972'+cleanPhone.replace(/^0/,'');
+    var waBody = body.length>1000?body.substring(0,997)+'...':body;
     try {
-      var resp = await window._authFetch(window.SERVER + '/send-whatsapp', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ to: cleanPhone, body: waBody })
-      });
+      var resp = await window._authFetch(window.SERVER+'/send-whatsapp',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({to:cleanPhone,body:waBody})});
       var data = await resp.json();
       if (data.ok) {
-        if (panel) panel.innerHTML = '<div style="color:#25d366;font-size:13px;padding:10px">&#10003; WhatsApp נשלח ל-' + _esc(phone) + '!</div>';
-        if (typeof logActivity === 'function') {
-          logActivity('outreach_sent', { lead_id: leadId, lead_name: lead.name || '', description: 'WhatsApp via Twilio', channel: 'whatsapp' });
-        }
+        if (panel) panel.innerHTML='<div style="color:#25d366;font-size:13px;padding:10px">✓ WhatsApp AI נשלח ל-'+_esc(phone)+'!</div>';
+        if (typeof logActivity==='function') logActivity('outreach_sent',{lead_id:leadId,lead_name:lead.name||'',description:'WhatsApp via Twilio (AI)',channel:'whatsapp'});
+        if (window._signalRecord) window._signalRecord(leadId,'whatsapp_sent',{method:'twilio'});
       } else {
-        if (panel) panel.innerHTML = '<div style="color:#e74c3c;font-size:13px;padding:10px">&#10007; שגיאה: ' + _esc(data.error || 'שגיאה לא ידועה') + '</div>';
+        if (panel) panel.innerHTML='<div style="color:#e74c3c;font-size:13px;padding:10px">✗ שגיאה: '+_esc(data.error||'שגיאה לא ידועה')+'</div>';
       }
     } catch(err) {
-      if (panel) panel.innerHTML = '<div style="color:#e74c3c;font-size:13px;padding:10px">&#10007; שגיאה: ' + _esc(err.message) + '</div>';
+      if (panel) panel.innerHTML='<div style="color:#e74c3c;font-size:13px;padding:10px">✗ שגיאה: '+_esc(err.message)+'</div>';
     }
   };
 
