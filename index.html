@@ -4954,7 +4954,7 @@ window._editLeadSave = function(lid){
   var lead = (typeof leads!=='undefined'?leads:[]).find(function(l){return l.id===lid;});
   if(!lead) return;
   var status=document.getElementById('ledit-status-'+lid);
-  var fields=['name','domain','email','phone','address','platform','type','notes'];
+  var fields=['name','domain','email','phone','address','platform','notes','segment'];
   var updates={updated_at:new Date().toISOString()};
   fields.forEach(function(k){
     var el=document.getElementById('ledit-'+k+'-'+lid);
