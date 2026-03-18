@@ -11853,64 +11853,115 @@ window.markDecisionOutcome = async function(decisionId, wasCorrect) {
 
 // ── Performance tab ───────────────────────────────────────────
 async function loadBrainPerformance() {
-  await loadBrainDecisions();
-  var decided = _brainDecisions.filter(d => d.outcome !== null && d.outcome !== undefined);
-  var total = _brainDecisions.length;
+  // ── טען insights מ-Learn Loop ──
+  var ins = window._getInsights ? window._getInsights() : null;
 
-  // Accuracy
-  var perfAcc = document.getElementById('perf-accuracy-val');
+  // אם אין insights עדכניים — הרץ learn loop עכשיו
+  if (!ins && window._learnFromPatterns) {
+    ins = await window._learnFromPatterns();
+  }
+
+  // ── KPI Cards ──
+  var perfAcc    = document.getElementById('perf-accuracy-val');
   var perfAccSub = document.getElementById('perf-accuracy-sub');
-  if (decided.length > 0) {
-    var correct = decided.filter(d => d.was_correct).length;
-    var pct = Math.round((correct / decided.length) * 100);
-    if (perfAcc) perfAcc.textContent = pct + '%';
-    if (perfAccSub) perfAccSub.textContent = correct + ' מתוך ' + decided.length + ' החלטות מוחלטות';
-  } else {
-    if (perfAcc) perfAcc.textContent = '—';
-    if (perfAccSub) perfAccSub.textContent = 'ממתין לאישור תוצאות';
-  }
-
-  // Consensus
-  var perfCons = document.getElementById('perf-consensus-val');
-  var perfConsSub = document.getElementById('perf-consensus-sub');
-  if (total > 0) {
-    var high = _brainDecisions.filter(d => d.consensus === 'high').length;
-    if (perfCons) perfCons.textContent = Math.round((high/total)*100) + '%';
-    if (perfConsSub) perfConsSub.textContent = high + ' מתוך ' + total + ' ניתוחים עם הסכמה גבוהה';
-  }
-
-  // Overrides
-  var perfOvr = document.getElementById('perf-overrides-val');
+  var perfCons   = document.getElementById('perf-consensus-val');
+  var perfConsSub= document.getElementById('perf-consensus-sub');
+  var perfOvr    = document.getElementById('perf-overrides-val');
   var perfOvrSub = document.getElementById('perf-overrides-sub');
-  var overrides = _brainDecisions.filter(d => d.meta_override).length;
-  if (perfOvr) perfOvr.textContent = total > 0 ? overrides : '—';
-  if (perfOvrSub) perfOvrSub.textContent = total > 0
-    ? overrides + ' פעמים Meta-Judge החליט נגד הרוב'
-    : 'ממתין לנתונים';
 
-  // Segment breakdown
-  var segEl = document.getElementById('brain-segment-breakdown');
-  if (segEl && _brainDecisions.length > 0) {
-    var segs = {};
-    _brainDecisions.forEach(function(d) {
-      var seg = d.lead_segment || 'כללי';
-      if (!segs[seg]) segs[seg] = { total: 0, correct: 0 };
-      segs[seg].total++;
-      if (d.was_correct) segs[seg].correct++;
-    });
-    var segHtml = Object.entries(segs).map(function(kv) {
-      var seg = kv[0], data = kv[1];
-      var pct = data.total > 0 ? Math.round((data.correct/data.total)*100) : null;
-      var color = pct === null ? 'var(--muted)' : pct >= 70 ? '#10b981' : pct >= 50 ? '#F59E0B' : '#ef4444';
-      return '<div style="display:flex;align-items:center;gap:10px;padding:8px 0;border-bottom:1px solid rgba(255,255,255,0.04)">' +
-        '<div style="flex:1;font-size:12px;color:var(--text)">' + seg + '</div>' +
-        '<div style="font-size:11px;color:rgba(196,196,204,0.75)">' + data.total + ' ניתוחים</div>' +
-        '<div style="font-size:12px;font-weight:700;color:' + color + ';min-width:40px;text-align:left">' +
-          (pct !== null ? pct + '%' : '—') + '</div>' +
-        '</div>';
-    }).join('');
-    segEl.innerHTML = segHtml || '<div style="color:var(--muted);font-size:12px;text-align:center;padding:16px">ממתין לנתונים מספיקים</div>';
+  if (!ins || !ins.total_leads) {
+    // אין data — הצג placeholders
+    if (perfAcc)     perfAcc.textContent    = '—';
+    if (perfAccSub)  perfAccSub.textContent  = 'ממתין לנתונים';
+    if (perfCons)    perfCons.textContent    = '—';
+    if (perfConsSub) perfConsSub.textContent = 'ממתין לנתונים';
+    if (perfOvr)     perfOvr.textContent     = '—';
+    if (perfOvrSub)  perfOvrSub.textContent  = 'ממתין לנתונים';
+
+    var segEl = document.getElementById('brain-segment-breakdown');
+    if (segEl) segEl.innerHTML = '<div style="color:var(--muted);font-size:12px;text-align:center;padding:32px">אין עדיין נתונים — סגור עסקה ראשונה כדי להתחיל ללמוד</div>';
+    return;
   }
+
+  // ── Win Rate (דיוק כולל) ──
+  var winColor = ins.overall_win_rate >= 60 ? '#10b981' : ins.overall_win_rate >= 40 ? '#F59E0B' : '#ef4444';
+  if (perfAcc) { perfAcc.textContent = ins.overall_win_rate + '%'; perfAcc.style.color = winColor; }
+  if (perfAccSub) perfAccSub.textContent = ins.total_won + ' עסקאות נסגרו מתוך ' + ins.total_leads;
+
+  // ── AI Accuracy ──
+  var aiColor = ins.ai_accuracy >= 70 ? '#10b981' : ins.ai_accuracy >= 50 ? '#F59E0B' : '#ef4444';
+  if (perfCons) { perfCons.textContent = ins.ai_accuracy + '%'; perfCons.style.color = aiColor; }
+  if (perfConsSub) perfConsSub.textContent = 'דיוק ניתוח AI (score ≥70 ← won)';
+
+  // ── Avg Days to Close ──
+  if (perfOvr) perfOvr.textContent = ins.avg_days_to_close ? ins.avg_days_to_close + 'd' : '—';
+  if (perfOvrSub) perfOvrSub.textContent = ins.avg_days_to_close ? 'ממוצע ימים לסגירה' : 'ממתין לנתונים';
+
+  // ── Segment Breakdown ──
+  var segEl = document.getElementById('brain-segment-breakdown');
+  if (segEl) {
+    var segHtml = '';
+
+    // Best segments
+    if (ins.best_segments && ins.best_segments.length) {
+      segHtml += '<div style="font-size:11px;color:var(--muted);text-transform:uppercase;letter-spacing:.8px;margin-bottom:8px">🏆 Segments מנצחים</div>';
+      ins.best_segments.forEach(function(s) {
+        var pct = s.winRate;
+        var color = pct >= 60 ? '#10b981' : pct >= 40 ? '#F59E0B' : '#ef4444';
+        var barW  = Math.max(4, pct);
+        segHtml += '<div style="display:flex;align-items:center;gap:10px;padding:7px 0;border-bottom:1px solid rgba(255,255,255,0.04)">'
+          + '<div style="flex:1;font-size:12px;color:var(--text)">' + s.segment + '</div>'
+          + '<div style="font-size:11px;color:var(--muted)">' + s.won + '/' + s.total + '</div>'
+          + '<div style="width:80px;height:5px;background:rgba(255,255,255,0.06);border-radius:3px;overflow:hidden">'
+          +   '<div style="height:100%;width:'+barW+'%;background:'+color+';border-radius:3px"></div>'
+          + '</div>'
+          + '<div style="font-size:12px;font-weight:700;color:'+color+';min-width:36px;text-align:right">' + pct + '%</div>'
+          + '</div>';
+      });
+    }
+
+    // Best pitches
+    if (ins.best_pitches && ins.best_pitches.length) {
+      segHtml += '<div style="font-size:11px;color:var(--muted);text-transform:uppercase;letter-spacing:.8px;margin:16px 0 8px">🎯 Pitch Angles שעבדו</div>';
+      ins.best_pitches.forEach(function(p) {
+        segHtml += '<div style="display:flex;align-items:center;gap:10px;padding:6px 0;border-bottom:1px solid rgba(255,255,255,0.04)">'
+          + '<div style="flex:1;font-size:12px;color:var(--text)">' + p.pitch + '</div>'
+          + '<div style="font-size:11px;background:rgba(99,102,241,0.12);border:1px solid rgba(99,102,241,0.25);border-radius:6px;padding:2px 8px;color:#a5b4fc">' + p.count + 'x</div>'
+          + '</div>';
+      });
+    }
+
+    // Competitor steal rates
+    if (ins.competitor_steal && ins.competitor_steal.length) {
+      segHtml += '<div style="font-size:11px;color:var(--muted);text-transform:uppercase;letter-spacing:.8px;margin:16px 0 8px">🏁 מתחרים — שיעור גניבה</div>';
+      ins.competitor_steal.slice(0,5).forEach(function(c) {
+        var color = c.winRate >= 60 ? '#10b981' : c.winRate >= 40 ? '#F59E0B' : '#ef4444';
+        segHtml += '<div style="display:flex;align-items:center;gap:10px;padding:6px 0;border-bottom:1px solid rgba(255,255,255,0.04)">'
+          + '<div style="flex:1;font-size:12px;color:var(--text)">' + c.competitor + '</div>'
+          + '<div style="font-size:11px;color:var(--muted)">' + c.won + '/' + (c.won+c.lost) + '</div>'
+          + '<div style="font-size:12px;font-weight:700;color:'+color+'">' + c.winRate + '%</div>'
+          + '</div>';
+      });
+    }
+
+    // Winning subjects
+    if (ins.winning_subjects && ins.winning_subjects.length) {
+      segHtml += '<div style="font-size:11px;color:var(--muted);text-transform:uppercase;letter-spacing:.8px;margin:16px 0 8px">✉️ Subject Lines שעבדו</div>';
+      ins.winning_subjects.forEach(function(s) {
+        segHtml += '<div style="padding:6px 10px;background:rgba(16,185,129,0.05);border:1px solid rgba(16,185,129,0.12);border-radius:6px;font-size:12px;color:var(--text);margin-bottom:5px">' + s + '</div>';
+      });
+    }
+
+    // Last updated
+    if (ins.generated_at) {
+      segHtml += '<div style="margin-top:12px;font-size:10px;color:var(--muted);text-align:left">עודכן: '+new Date(ins.generated_at).toLocaleString('he-IL',{day:'2-digit',month:'2-digit',hour:'2-digit',minute:'2-digit'})+'</div>';
+    }
+
+    segEl.innerHTML = segHtml || '<div style="color:var(--muted);font-size:12px;text-align:center;padding:24px">ממתין לנתונים</div>';
+  }
+
+  // ── legacy brain decisions (אם קיימים) ──
+  await loadBrainDecisions();
 }
 
 // ── Save decision to Supabase (called by Triple Engine later) ─
