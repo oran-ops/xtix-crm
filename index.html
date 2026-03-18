@@ -4964,16 +4964,10 @@ window._editLeadSave = function(lid){
     window._sb.update('leads','id=eq.'+lid,updates)
       .then(function(){
         if(status){status.textContent='✅ נשמר';setTimeout(function(){status.textContent='';},2000);}
-        // רענן את כרטיס הליד בDOM
-        var card=document.getElementById('lead-'+lid);
-        if(card){
-          var nameEl=card.querySelector('.lead-name,.lead-title');
-          if(nameEl) nameEl.textContent=lead.name||'';
-        }
         window._editLeadCancel(lid);
-        // רענן תצוגת פרופיל
-        var body=document.getElementById('body-'+lid);
-        if(body&&typeof _renderLeadTabs==='function') _renderLeadTabs(lead,body);
+        // רענן את כרטיס הליד בDOM
+        if(typeof renderSimpleLead==='function') renderSimpleLead(lead);
+        else if(typeof window._realRenderSimpleLead==='function') window._realRenderSimpleLead(lead);
       })
       .catch(function(err){
         if(status) status.textContent='❌ שגיאה';
