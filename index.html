@@ -4853,15 +4853,15 @@ ${(function(){
     '<div id="lview-'+lid+'">' +
       '<div class="info-grid">'+viewGrid+'</div>' +
       '<div style="margin-top:10px;display:flex;gap:8px;align-items:center;flex-wrap:wrap">' +
-        '<button onclick="window._editLeadOpen('+lid+')" style="'+btnStyle+' rgba(108,99,255,0.3);background:rgba(108,99,255,0.12);color:var(--accent)">✏️ ערוך פרטים</button>' +
-        '<button onclick="window._exportLeadExcel('+lid+')" style="'+btnStyle+' rgba(16,185,129,0.3);background:rgba(16,185,129,0.1);color:#10b981">📊 ייצוא Excel</button>' +
+        '<button onclick="window._editLeadOpen(\''+lid+'\')" style="'+btnStyle+' rgba(108,99,255,0.3);background:rgba(108,99,255,0.12);color:var(--accent)">✏️ ערוך פרטים</button>' +
+        '<button onclick="window._exportLeadExcel(\''+lid+'\')" style="'+btnStyle+' rgba(16,185,129,0.3);background:rgba(16,185,129,0.1);color:#10b981">📊 ייצוא Excel</button>' +
       '</div>' +
     '</div>' +
     '<div id="ledit-'+lid+'" style="display:none">' +
       '<div class="info-grid">'+editGrid+'</div>' +
       '<div style="margin-top:10px;display:flex;gap:8px;align-items:center">' +
-        '<button onclick="window._editLeadSave('+lid+')" style="'+btnStyle+' rgba(16,185,129,0.4);background:rgba(16,185,129,0.15);color:#10b981">💾 שמור</button>' +
-        '<button onclick="window._editLeadCancel('+lid+')" style="'+btnStyle+' var(--border);background:none;color:var(--text2)">ביטול</button>' +
+        '<button onclick="window._editLeadSave(\''+lid+'\')" style="'+btnStyle+' rgba(16,185,129,0.4);background:rgba(16,185,129,0.15);color:#10b981">💾 שמור</button>' +
+        '<button onclick="window._editLeadCancel(\''+lid+'\')" style="'+btnStyle+' var(--border);background:none;color:var(--text2)">ביטול</button>' +
         '<span id="ledit-status-'+lid+'" style="font-size:11px;color:rgba(196,196,204,0.75)"></span>' +
       '</div>' +
     '</div>';
