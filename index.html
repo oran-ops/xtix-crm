@@ -4802,33 +4802,33 @@ ${(function(){
   // שדות ישירים על lead
   var directFields=[
     {k:'name',    label:'Name',          val:lead.name||'',            type:'text'},
-    {k:'domain',  label:'אתר',         val:lead.domain||'',          type:'text'},
-    {k:'email',   label:'מייל',        val:lead.email||'',           type:'text'},
-    {k:'phone',   label:'טלפון',       val:lead.phone||'',           type:'text'},
-    {k:'address', label:'כתובת',       val:lead.address||e.address||a.address||'', type:'text'},
+    {k:'domain',  label:'Website',         val:lead.domain||'',          type:'text'},
+    {k:'email',   label:'Email',        val:lead.email||'',           type:'text'},
+    {k:'phone',   label:'Phone',       val:lead.phone||'',           type:'text'},
+    {k:'address', label:'Address',       val:lead.address||e.address||a.address||'', type:'text'},
     {k:'platform',label:'Platform',    val:lead.platform||e.platform_current||a.platform_current||'', type:'text'},
     {k:'type',    label:'Segment',       val:lead.type||lead.segment||e.segment||a.segment||'', type:'text'},
     {k:'notes',   label:'Notes',       val:lead.notes||'',           type:'textarea'}
   ];
   // שדות enrichment (read-only)
   var enrichFields=[
-    ['קהל יעד',       e.target_audience||a.target_audience],
+    ['Target Audience',       e.target_audience||a.target_audience],
     ['Current Competitor',   lead.competitor || e.platform_current||a.platform_current],
-    ['עמלה נוכחית',   lead.competitor_fee_pct ? lead.competitor_fee_pct+'%' : null],
-    ['עלות שנתית',    lead.estimated_annual_fees ? '₪'+lead.estimated_annual_fees.toLocaleString() : null],
-    ['חיסכון ב-XTIX', lead.estimated_xtix_savings ? '₪'+lead.estimated_xtix_savings.toLocaleString()+'/שנה' : null],
+    ['Current Fee %',   lead.competitor_fee_pct ? lead.competitor_fee_pct+'%' : null],
+    ['Annual Cost',    lead.estimated_annual_fees ? '₪'+lead.estimated_annual_fees.toLocaleString() : null],
+    ['XTIX Savings', lead.estimated_xtix_savings ? '₪'+lead.estimated_xtix_savings.toLocaleString()+'/שנה' : null],
     ['Steal Score',   lead.steal_score ? lead.steal_score+'%' : null],
     ['Pitch Angle',   lead.pitch_angle || e.pitch_angle || a.pitch_angle],
-    ['איש קשר',       lead.contact_name || e.contact_name || a.contact_name],
-    ['תפקיד',         lead.contact_title || e.contact_title || a.contact_title],
-    ['אזור גיאוגרפי', lead.geographic_area || e.geographic_area || a.geographic_area],
+    ['Contact Name',       lead.contact_name || e.contact_name || a.contact_name],
+    ['Title',         lead.contact_title || e.contact_title || a.contact_title],
+    ['Geographic Area', lead.geographic_area || e.geographic_area || a.geographic_area],
     ['Subject Email 1', lead.first_email_subject ? lead.first_email_subject.substring(0,50) : null],
-    ['מתחרים',        (e.competitors_used||a.competitors_used||[]).join(', ')],
+    ['Competitors',        (e.competitors_used||a.competitors_used||[]).join(', ')],
     ['Events/Year',   lead.events_per_year||e.events_per_year||a.events_per_year],
-    ['גודל מקום',     e.venue_size||a.venue_size],
-    ['מחירי כרטיסים', e.ticket_price_range||a.ticket_price_range],
-    ['עמלות נוכחיות', e.estimated_annual_fees||a.estimated_annual_fees],
-    ['חיסכון XTIX',   e.estimated_savings||e.estimated_xtix_savings||a.estimated_xtix_savings]
+    ['Venue Size',     e.venue_size||a.venue_size],
+    ['Ticket Price Range', e.ticket_price_range||a.ticket_price_range],
+    ['Current Fees', e.estimated_annual_fees||a.estimated_annual_fees],
+    ['XTIX Saving',   e.estimated_savings||e.estimated_xtix_savings||a.estimated_xtix_savings]
   ];
 
   // מצב צפייה: info-boxes עם כפתור עריכה
@@ -5035,7 +5035,7 @@ window._editLeadSave = function(lid){
         rows.forEach(function(row, i) {
           var icon = statusIcon[row.status] || '📧';
           var label = statusLabel[row.status] || row.status;
-          var seqLabel = row.sequence_num ? 'מייל ' + row.sequence_num : (row.auto_generated ? 'Re-engagement' : 'Contact');
+          var seqLabel = row.sequence_num ? 'Email ' + row.sequence_num : (row.auto_generated ? 'Re-engagement' : 'Contact');
           var dateStr = row.sent_at ? new Date(row.sent_at).toLocaleDateString('he-IL') :
                         row.send_after ? 'Scheduled: ' + new Date(row.send_after).toLocaleDateString('he-IL') :
                         row.created_at ? new Date(row.created_at).toLocaleDateString('he-IL') : '?';
@@ -8523,7 +8523,7 @@ window.calcRoiV4 = function() {
   var rev=t*p,cur=rev*f/100,xtix=rev*2.5/100,sav=cur-xtix;
   var el=document.getElementById('roi-res-v4');if(!el)return;
   el.innerHTML='<div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px">'
-    +[['הכנסה שנתית','₪'+rev.toLocaleString('he-IL'),'#6C63FF'],['עמלה נוכחית ('+f+'%)','₪'+Math.round(cur).toLocaleString('he-IL'),'#EF4444'],['חיסכון ב-XTIX','₪'+Math.round(sav).toLocaleString('he-IL'),'#10B981']]
+    +[['הכנסה שנתית','₪'+rev.toLocaleString('he-IL'),'#6C63FF'],['עמלה נוכחית ('+f+'%)','₪'+Math.round(cur).toLocaleString('he-IL'),'#EF4444'],['XTIX Savings','₪'+Math.round(sav).toLocaleString('he-IL'),'#10B981']]
     .map(function(r){return '<div style="background:var(--surface2);border-radius:8px;padding:9px 12px;border:1px solid var(--border);text-align:center"><div style="font-size:10px;color:var(--muted);margin-bottom:3px">'+r[0]+'</div><div style="font-size:15px;font-weight:700;color:'+r[2]+'">'+r[1]+'</div></div>';}).join('')+'</div>';
 };
 
