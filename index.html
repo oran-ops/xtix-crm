@@ -12334,8 +12334,9 @@ window.loadUsers = async function() {
   if (!list || !window.isAdmin()) return;
   list.innerHTML = '<div style="font-size:12px;color:var(--muted);text-align:center;padding:40px">Loading...</div>';
   try {
-    var usersSnap = { docs: (await window._sb.get('users','order=created_at.desc')||[]).map(r=>({id:r.id,data:()=>r})) };
-    var pendingSnap = { docs: [] };
+    var _usersDocs = (await window._sb.get('users','order=created_at.desc')||[]).map(r=>({id:r.id,data:()=>r}));
+    var usersSnap = { docs: _usersDocs, empty: _usersDocs.length===0, forEach: function(fn){ _usersDocs.forEach(fn); } };
+    var pendingSnap = { docs: [], empty: true, forEach: function(fn){ } };
 
     function makeUserRow(uid, u) {
       var isSelf = window.currentUser && uid === window.currentUser.uid;
