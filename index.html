@@ -2716,7 +2716,7 @@ document.addEventListener("DOMContentLoaded",function(){
       </div>
       <div class="card" style="text-align:center;padding:14px">
         <div id="intel-avg-steal" style="font-size:28px;font-weight:800;color:#10b981">—%</div>
-        <div style="font-size:10px;color:var(--t3);margin-top:2px">ממוצע "קל לגזול"</div>
+        <div style="font-size:10px;color:var(--t3);margin-top:2px">ממוצע "קל to steal"</div>
       </div>
       <div class="card" style="text-align:center;padding:14px">
         <div id="intel-hot-count" style="font-size:28px;font-weight:800;color:#f59e0b">—</div>
@@ -4635,9 +4635,9 @@ ${(function(){
           'סיכום AI': e.summary || '',
           'חולשת Platform': e.platform_weakness || '',
           'Notes': l.notes || '',
-          'תאריך יצירה': l.created_at ? new Date(l.created_at).toLocaleDateString('he-IL') : '',
-          'תאריך עדכון': l.updated_at ? new Date(l.updated_at).toLocaleDateString('he-IL') : '',
-          'תאריך ניתוח': e.enriched_at ? new Date(e.enriched_at).toLocaleDateString('he-IL') : ''
+          'תאריך יצירה': l.created_at ? new Date(l.created_at).toLocaleDateString('en-GB') : '',
+          'תאריך עדכון': l.updated_at ? new Date(l.updated_at).toLocaleDateString('en-GB') : '',
+          'תאריך ניתוח': e.enriched_at ? new Date(e.enriched_at).toLocaleDateString('en-GB') : ''
         };
       });
 
@@ -4654,7 +4654,7 @@ ${(function(){
       var wb = XLSX.utils.book_new();
       XLSX.utils.book_append_sheet(wb, ws, 'leads XTIX');
 
-      var date = new Date().toLocaleDateString('he-IL').replace(/\//g, '-');
+      var date = new Date().toLocaleDateString('en-GB').replace(/\//g, '-');
       XLSX.writeFile(wb, 'XTIX-Leads-' + date + '.xlsx');
 
       // Feedback
@@ -4726,7 +4726,7 @@ ${(function(){
       ? '<span class="_lbar-tag comp-tag" style="background:'+(_comp?_comp.bg:'rgba(107,114,128,0.12)')+';color:'+(_comp?_comp.color:'#9ca3af')+';border-color:'+(_comp?_comp.color+'55':'rgba(107,114,128,0.3)')+'">'+_plat+'</span>'
       : '';
     var stealTag = (_plat && _comp && _comp.steal >= 50)
-      ? '<span class="_lbar-tag" style="background:rgba(16,185,129,0.1);color:#10b981;border-color:rgba(16,185,129,0.25);font-size:9px">🎯 '+_comp.steal+'% לגזול</span>'
+      ? '<span class="_lbar-tag" style="background:rgba(16,185,129,0.1);color:#10b981;border-color:rgba(16,185,129,0.25);font-size:9px">🎯 '+_comp.steal+'% to steal</span>'
       : '';
 
     var aiChip = aiSt==='done'
@@ -4945,7 +4945,7 @@ window._exportLeadExcel = function(lid){
   var wb = XLSX.utils.book_new();
   XLSX.utils.book_append_sheet(wb, ws, lead.name ? lead.name.substring(0,30) : 'ליד');
 
-  var fname = 'XTIX-' + (lead.name||'lead').replace(/[^֐-׿a-zA-Z0-9]/g,'_') + '-' + new Date().toLocaleDateString('he-IL').replace(/\//g,'-') + '.xlsx';
+  var fname = 'XTIX-' + (lead.name||'lead').replace(/[^֐-׿a-zA-Z0-9]/g,'_') + '-' + new Date().toLocaleDateString('en-GB').replace(/\//g,'-') + '.xlsx';
   XLSX.writeFile(wb, fname);
 
   var t=document.createElement('div');
@@ -5036,9 +5036,9 @@ window._editLeadSave = function(lid){
           var icon = statusIcon[row.status] || '📧';
           var label = statusLabel[row.status] || row.status;
           var seqLabel = row.sequence_num ? 'Email ' + row.sequence_num : (row.auto_generated ? 'Re-engagement' : 'Contact');
-          var dateStr = row.sent_at ? new Date(row.sent_at).toLocaleDateString('he-IL') :
-                        row.send_after ? 'Scheduled: ' + new Date(row.send_after).toLocaleDateString('he-IL') :
-                        row.created_at ? new Date(row.created_at).toLocaleDateString('he-IL') : '?';
+          var dateStr = row.sent_at ? new Date(row.sent_at).toLocaleDateString('en-GB') :
+                        row.send_after ? 'Scheduled: ' + new Date(row.send_after).toLocaleDateString('en-GB') :
+                        row.created_at ? new Date(row.created_at).toLocaleDateString('en-GB') : '?';
 
           var isLast = i === rows.length - 1;
           var borderColor = row.status==='approved' ? '#10b981' : row.status==='rejected' ? '#ef4444' : row.status==='scheduled' ? '#6366f1' : '#a78bfa';
@@ -5367,7 +5367,7 @@ window._editLeadSave = function(lid){
         +'⚠️ Manual Review Required ('+flags.length+')</div>';
 
       var fieldLabels = {
-        score:'Score', platform_current:'Platform', pain_point:'כאב עיקרי',
+        score:'Score', platform_current:'Platform', pain_point:'Main Pain Point',
         annual_fees:'Annual Fees', segment:'Segment', pitch_angle:'Pitch Angle'
       };
 
@@ -5414,7 +5414,7 @@ window._editLeadSave = function(lid){
   }
 
   window.resetStorage = async function resetStorage() {
-    if (!confirm('למחוק את כל הleads ולחזור לברירת המחדל?')) return;
+    if (!confirm('Delete all leads and reset to default?')) return;
     try {
       const allLeads = await window._sb.get('leads','order=created_at.desc&limit=2000');
       for (const l of allLeads) { await window._sb.delete('leads','id=eq.'+l.id).catch(()=>{}); }
@@ -8841,7 +8841,7 @@ addSalesPlaybookPanel();
         </div>
         <div id="kb-lead-select-wrap" style="display:none;margin-top:10px">
           <select id="kb-lead-select" style="width:100%;background:var(--surface2);border:1px solid var(--border);border-radius:8px;padding:9px 12px;font-size:12px;color:var(--text);font-family:Heebo,sans-serif;outline:none">
-            <option value="">בחר ליד...</option>
+            <option value="">Select lead...</option>
           </select>
         </div>
       </div>
@@ -9309,7 +9309,7 @@ addSalesPlaybookPanel();
     }
     var ans = window._lastHuntParams || huntState.answers || {};
     var params = [ans.segment, ans.location, ans.size, ans.platform].filter(Boolean).join(' · ');
-    var label = prompt('שם לרשימה זו:', params || ('חיפוש ' + new Date().toLocaleDateString('he-IL')));
+    var label = prompt('שם לרשימה זו:', params || ('חיפוש ' + new Date().toLocaleDateString('en-GB')));
     if (label === null) return;
     var searches = loadSavedSearches();
     searches.unshift({
@@ -9418,7 +9418,7 @@ addSalesPlaybookPanel();
       var wrap = document.createElement('label');
       wrap.className = 'chk-wrap';
       wrap.style.cssText = 'display:flex;align-items:center;justify-content:center;width:22px;height:22px;border-radius:6px;border:1.5px solid rgba(255,255,255,0.15);cursor:pointer;flex-shrink:0;transition:all 0.2s;background:transparent;margin-left:10px;margin-right:2px';
-      wrap.title = 'בחר ליד';
+      wrap.title = 'Select lead';
       wrap.onclick = function(e){ e.stopPropagation(); };
       var chk = document.createElement('input');
       chk.type = 'checkbox'; chk.className = 'v3chk'; chk.dataset.id = lead.id;
@@ -9438,12 +9438,12 @@ addSalesPlaybookPanel();
     var meta=card.querySelector('.lead-meta');
     if (meta && !meta.querySelector('.v3meta')) {
       var icons={clay:'🤖',manual:'✍️',hunt:'🎯',csv:'📥'};
-      var dateStr=new Date(lead.created_at).toLocaleDateString('he-IL');
+      var dateStr=new Date(lead.created_at).toLocaleDateString('en-GB');
 
       // XTIX ID — click to copy
       var idBadge=document.createElement('span');
       idBadge.className='v3meta';
-      idBadge.title='XTIX Lead ID — לחץ להעתקה';
+      idBadge.title='XTIX Lead ID — click to copy';
       idBadge.style.cssText='color:var(--accent);font-size:10px;font-family:Space Mono,monospace;background:rgba(108,99,255,0.1);border:1px solid rgba(108,99,255,0.25);border-radius:4px;padding:1px 6px;cursor:pointer;letter-spacing:0.5px;white-space:nowrap';
       idBadge.textContent=lead.xtix_id||'XT-????????';
       idBadge.onclick=function(e){e.stopPropagation();navigator.clipboard.writeText(this.textContent).then(function(){idBadge.style.background='rgba(0,230,118,0.2)';setTimeout(function(){idBadge.style.background='rgba(108,99,255,0.1)';},700);});};
@@ -10893,7 +10893,7 @@ window._cleanForSupabase = function _cleanForSupabase(obj) {
     }
     var ans = window._lastHuntParams || huntState.answers || {};
     var params = [ans.segment, ans.location, ans.size, ans.platform].filter(Boolean).join(' · ');
-    var label = prompt('שם לרשימה זו:', params || ('חיפוש ' + new Date().toLocaleDateString('he-IL')));
+    var label = prompt('שם לרשימה זו:', params || ('חיפוש ' + new Date().toLocaleDateString('en-GB')));
     if (label === null) return;
     var searches = loadSavedSearches();
     searches.unshift({
@@ -10972,7 +10972,7 @@ window._cleanForSupabase = function _cleanForSupabase(obj) {
       var wrap = document.createElement('label');
       wrap.className = 'chk-wrap';
       wrap.style.cssText = 'display:flex;align-items:center;justify-content:center;width:22px;height:22px;border-radius:6px;border:1.5px solid rgba(255,255,255,0.15);cursor:pointer;flex-shrink:0;transition:all 0.2s;background:transparent;margin-left:10px;margin-right:2px';
-      wrap.title = 'בחר ליד';
+      wrap.title = 'Select lead';
       wrap.onclick = function(e){ e.stopPropagation(); };
       var chk = document.createElement('input');
       chk.type = 'checkbox'; chk.className = 'v3chk'; chk.dataset.id = lead.id;
@@ -10992,12 +10992,12 @@ window._cleanForSupabase = function _cleanForSupabase(obj) {
     var meta=card.querySelector('.lead-meta');
     if (meta && !meta.querySelector('.v3meta')) {
       var icons={clay:'🤖',manual:'✍️',hunt:'🎯',csv:'📥'};
-      var dateStr=new Date(lead.created_at).toLocaleDateString('he-IL');
+      var dateStr=new Date(lead.created_at).toLocaleDateString('en-GB');
 
       // XTIX ID — click to copy
       var idBadge=document.createElement('span');
       idBadge.className='v3meta';
-      idBadge.title='XTIX Lead ID — לחץ להעתקה';
+      idBadge.title='XTIX Lead ID — click to copy';
       idBadge.style.cssText='color:var(--accent);font-size:10px;font-family:Space Mono,monospace;background:rgba(108,99,255,0.1);border:1px solid rgba(108,99,255,0.25);border-radius:4px;padding:1px 6px;cursor:pointer;letter-spacing:0.5px;white-space:nowrap';
       idBadge.textContent=lead.xtix_id||'XT-????????';
       idBadge.onclick=function(e){e.stopPropagation();navigator.clipboard.writeText(this.textContent).then(function(){idBadge.style.background='rgba(0,230,118,0.2)';setTimeout(function(){idBadge.style.background='rgba(108,99,255,0.1)';},700);});};
@@ -11757,7 +11757,7 @@ function _renderDecisionsList() {
         ? '<span class="brain-outcome-correct">✅ נכון</span>'
         : '<span class="brain-outcome-wrong">❌ טעות</span>';
     var enginesUsed = [d.claude_raw ? '🟣' : '', d.gpt_raw ? '🟢' : '', d.gemini_raw ? '🔵' : ''].filter(Boolean).join('');
-    var date = d.timestamp ? new Date(d.timestamp).toLocaleDateString('he-IL') : '';
+    var date = d.timestamp ? new Date(d.timestamp).toLocaleDateString('en-GB') : '';
 
     html += '<div class="brain-decision-row" data-did="' + d.id + '" onclick="showDecisionDetail(this.dataset.did)">' +
       '<div><div class="brain-decision-name">' + (d.lead_name || 'ליד') + '</div><div class="brain-decision-date">' + date + '</div></div>' +
@@ -11801,7 +11801,7 @@ window.showDecisionDetail = function(decisionId) {
   var disagreementsHtml = '';
   if (d.disagreements && d.disagreements.length) {
     disagreementsHtml = '<div style="background:rgba(245,158,11,0.06);border:1px solid rgba(245,158,11,0.2);border-radius:8px;padding:10px 14px;margin-bottom:12px">' +
-      '<div style="font-size:11px;font-weight:700;color:#F59E0B;margin-bottom:6px">⚠️ נקודות מחלוקת</div>' +
+      '<div style="font-size:11px;font-weight:700;color:#F59E0B;margin-bottom:6px">⚠️ Conflict Points</div>' +
       d.disagreements.map(function(dis) {
         return '<div style="font-size:11px;color:var(--text);margin-bottom:3px">▸ ' + dis + '</div>';
       }).join('') + '</div>';
@@ -12519,13 +12519,16 @@ setTimeout(function() {
 
       if (d.ok && d.insights) {
         // 3. Client writes insights to Supabase (no SA needed)
-        if (btn) btn.textContent = '⏳ שומר ב-Supabase...';
+        if (btn) btn.textContent = '⏳ Saving to Supabase...';
+        var _allowedCols = ['summary','segments','competitors','signals','recommendations','top_pitch_angles','win_patterns','loss_patterns','score_distribution'];
+        var _safeInsights = {};
+        _allowedCols.forEach(function(k){ if (d.insights[k] !== undefined) _safeInsights[k] = d.insights[k]; });
         // Save to Supabase always
-        await window._sb.update('brain_insights','is_latest=eq.true',Object.assign({},d.insights,{generated_at:new Date().toISOString(),version:((await window._sb.get('brain_insights','is_latest=eq.true&limit=1').catch(()=>[{}]))[0]||{version:0}).version+1})).catch(()=>window._sb.insert('brain_insights',Object.assign({},d.insights,{is_latest:true,generated_at:new Date().toISOString(),version:1})));
+        await window._sb.update('brain_insights','is_latest=eq.true',Object.assign({},_safeInsights,{generated_at:new Date().toISOString(),version:((await window._sb.get('brain_insights','is_latest=eq.true&limit=1').catch(()=>[{}]))[0]||{version:0}).version+1})).catch(()=>window._sb.insert('brain_insights',Object.assign({},_safeInsights,{is_latest:true,generated_at:new Date().toISOString(),version:1})));
           var histId = new Date().toISOString().slice(0,16).replace('T','_').replace(':','');
-        window._sb.insert('brain_insights',Object.assign({},d.insights,{history_id:histId})).catch(function(){});
-        if (btn) btn.textContent = '✅ הסתיים!';
-        setTimeout(function(){ if(btn){btn.textContent='🧠 הרץ למידה';btn.disabled=false;} window._kbLoadInsightsStatus(); }, 2000);
+        window._sb.insert('brain_insights',Object.assign({},_safeInsights,{history_id:histId})).catch(function(){});
+        if (btn) btn.textContent = '✅ Done!';
+        setTimeout(function(){ if(btn){btn.textContent='🧠 Run Learning';btn.disabled=false;} window._kbLoadInsightsStatus(); }, 2000);
       } else {
         if (btn) { btn.textContent = '❌ ' + (d.error||'שגיאה'); btn.disabled = false; }
         setTimeout(function(){ if(btn) btn.textContent = '🧠 הרץ למידה'; }, 4000);
@@ -12693,7 +12696,7 @@ setTimeout(function() {
     // Populate lead select
     var sel = document.getElementById('kb-lead-select');
     if (sel && typeof leads !== 'undefined') {
-      sel.innerHTML = '<option value="">בחר ליד...</option>' +
+      sel.innerHTML = '<option value="">Select lead...</option>' +
         leads.map(function(l){return '<option value="'+l.id+'">'+l.name+'</option>';}).join('');
     }
     // Radio listeners
@@ -13481,7 +13484,7 @@ window._brainBackgroundAnalysis = async function() {
       '',
       'נתח ומצא:',
       '1. patterns ב-winners vs losers (מתחרה, steal_score, pitch_angle, contact_title)',
-      '2. איזה מתחרה הכי קל לגזול — לפי win_rate האמיתי מהנתונים',
+      '2. איזה מתחרה הכי קל to steal — לפי win_rate האמיתי מהנתונים',
       '3. איזה pitch_angle עבד הכי טוב per מתחרה (savings/widget/analytics)',
       '4. איזה contact_title להגיע אליו קודם (מנהל/בעלים/שיווק)',
       '5. איזה subject מייל הביא הכי הרבה won (מ-email_subject_won)',
