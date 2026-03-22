@@ -4140,6 +4140,7 @@ ${(function(){
 
     // ── Badge update ──────────────────────────────────────────────
   window._outreachUpdateBadge = async function() {
+    if (!window.currentUser) return; // אל תקרא לפני auth
     try {
       var rows = await window._sb.get('outreach_queue', 'status=eq.pending_approval');
       var count = (rows||[]).length;
