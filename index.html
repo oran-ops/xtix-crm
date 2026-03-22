@@ -1784,7 +1784,7 @@ document.addEventListener("DOMContentLoaded",function(){
     <button class="nav-btn" data-panel="methodology" onclick="switchMainTab('market',this);setTimeout(function(){window.methTab&&window.methTab('methodology');},80)">
       <span class="nav-icon"><svg width="14" height="14" viewBox="0 0 14 14" fill="none"><path d="M2 3.5h10M2 7h10M2 10.5h6" stroke="currentColor" stroke-width="1.3" stroke-linecap="round"/></svg></span><span class="nav-label">Methodology</span>
     </button>
-    <button class="nav-btn" data-panel="hubspot" onclick="switchMainTab('hubspot',this)">
+    <button class="nav-btn" data-panel="hubspot" onclick="switchMainTab('hubspot',this);setTimeout(function(){if(typeof initHSLeadSelector==='function')initHSLeadSelector();var tok=localStorage.getItem('hs_token');if(tok){var inp=document.getElementById('hs-api-key');if(inp&&!inp.value)inp.value=tok;var st=document.getElementById('hs-token-status');if(st)st.textContent='✅ Token loaded';}},200)">
       <span class="nav-icon"><svg width="14" height="14" viewBox="0 0 14 14" fill="none"><path d="M7 1.5l4.5 2.5v5L7 12.5 2.5 9v-5z" stroke="currentColor" stroke-width="1.3" stroke-linejoin="round"/></svg></span><span class="nav-label">HubSpot</span>
     </button>
     <button class="nav-btn" data-panel="aibrain" onclick="switchMainTab('aibrain',this)">
@@ -2847,6 +2847,7 @@ document.addEventListener("DOMContentLoaded",function(){
                   <code class="hs-scope">crm.objects.contacts.read</code>
                   <code class="hs-scope">crm.objects.companies.write</code>
                   <code class="hs-scope">crm.objects.deals.write</code>
+                  <code class="hs-scope">crm.objects.notes.write</code>
                 </div>
               </div>
             </div>
@@ -2862,9 +2863,10 @@ document.addEventListener("DOMContentLoaded",function(){
           <div class="hs-field-group">
             <label class="hs-label">HubSpot Private App Token</label>
             <div class="hs-input-row">
-              <input class="hs-input" id="hs-api-key" type="password" placeholder="pat-na1-xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx">
+              <input class="hs-input" id="hs-api-key" type="password" placeholder="pat-na1-xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx" onchange="if(this.value.startsWith('pat-')){try{localStorage.setItem('hs_token',this.value)}catch(e){};document.getElementById('hs-token-status').textContent='✅ Token saved';document.getElementById('hs-token-status').style.color='#10b981'}">
               <button class="hs-toggle-btn" id="toggle-vis-btn" onclick="toggleTokenVisibility()">👁 Show</button>
             </div>
+            <div id="hs-token-status" style="font-size:11px;margin-top:4px;color:var(--muted)"></div>
           </div>
           <div class="hs-field-group">
             <label class="hs-label">Select leads to push</label>
