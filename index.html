@@ -3441,17 +3441,26 @@ document.addEventListener("DOMContentLoaded",function(){
     // ───── Business Categories ─────
     'Enterprise':       { i:'🏢', bg:'rgba(59,130,246,0.15)',  border:'rgba(59,130,246,0.3)',  color:'#93c5fd' },
     'SMB':              { i:'🏪', bg:'rgba(16,185,129,0.13)',  border:'rgba(16,185,129,0.28)', color:'#6ee7b7' },
+    'Small Business':   { i:'🏪', bg:'rgba(16,185,129,0.13)',  border:'rgba(16,185,129,0.28)', color:'#6ee7b7' },
     'עסקים קטנים':      { i:'🏪', bg:'rgba(16,185,129,0.13)',  border:'rgba(16,185,129,0.28)', color:'#6ee7b7' },
+    'Business':         { i:'💼', bg:'rgba(99,102,241,0.13)',  border:'rgba(99,102,241,0.28)', color:'#a5b4fc' },
     'עסקי':             { i:'💼', bg:'rgba(99,102,241,0.13)',  border:'rgba(99,102,241,0.28)', color:'#a5b4fc' },
     // ───── Event Categories ─────
+    'Conferences':      { i:'🎤', bg:'rgba(245,158,11,0.13)',  border:'rgba(245,158,11,0.28)', color:'#fcd34d' },
     'כנסים':            { i:'🎤', bg:'rgba(245,158,11,0.13)',  border:'rgba(245,158,11,0.28)', color:'#fcd34d' },
+    'Event Discovery':  { i:'🔍', bg:'rgba(139,92,246,0.13)',  border:'rgba(139,92,246,0.28)', color:'#c4b5fd' },
     'גילוי אירועים':    { i:'🔍', bg:'rgba(139,92,246,0.13)',  border:'rgba(139,92,246,0.28)', color:'#c4b5fd' },
+    'Distribution':     { i:'📡', bg:'rgba(20,184,166,0.13)',  border:'rgba(20,184,166,0.28)', color:'#5eead4' },
     'הפצה':             { i:'📡', bg:'rgba(20,184,166,0.13)',  border:'rgba(20,184,166,0.28)', color:'#5eead4' },
     // ───── Digital Channels ─────
+    'Social':           { i:'📱', bg:'rgba(236,72,153,0.13)',  border:'rgba(236,72,153,0.28)', color:'#f9a8d4' },
     'סושיאל':           { i:'📱', bg:'rgba(236,72,153,0.13)',  border:'rgba(236,72,153,0.28)', color:'#f9a8d4' },
+    'Bots':             { i:'🤖', bg:'rgba(234,179,8,0.13)',   border:'rgba(234,179,8,0.28)',  color:'#fde047' },
     'בוטים':            { i:'🤖', bg:'rgba(234,179,8,0.13)',   border:'rgba(234,179,8,0.28)',  color:'#fde047' },
     // ───── General ─────
+    'Manual':           { i:'✍️', bg:'rgba(255,255,255,0.06)',  border:'rgba(255,255,255,0.14)', color:'rgba(255,255,255,0.6)' },
     'ידני':             { i:'✍️', bg:'rgba(255,255,255,0.06)',  border:'rgba(255,255,255,0.14)', color:'rgba(255,255,255,0.6)' },
+    'General':          { i:'◈',  bg:'rgba(255,255,255,0.05)',  border:'rgba(255,255,255,0.1)',  color:'rgba(255,255,255,0.45)' },
     'כללי':             { i:'◈',  bg:'rgba(255,255,255,0.05)',  border:'rgba(255,255,255,0.1)',  color:'rgba(255,255,255,0.45)' },
   };
 
@@ -13810,7 +13819,7 @@ window._huntFeedback = function(idx, type, meta) {
   if (typeof showToast === 'function') showToast(msg, 'info');
 };
 
-// ── 5. היסטוריית hunts ───────────────────────────────────────
+// ── 5. Hunt History ───────────────────────────────────────
 window.renderHuntHistory = function() {
   var panel = document.getElementById('saved-searches-panel');
   var list  = document.getElementById('saved-searches-list');
@@ -13818,7 +13827,7 @@ window.renderHuntHistory = function() {
   var history = [];
   try { history = JSON.parse(localStorage.getItem('xtix_hunt_history') || '[]'); } catch(e){}
   if (!history.length) return;
-  // הוסף כותרת history אם לא קיים
+  // Add history title if not exists
   var hist = document.getElementById('hunt-history-section');
   if (!hist) {
     hist = document.createElement('div');
@@ -13847,7 +13856,7 @@ window.renderHuntHistory = function() {
   histList.innerHTML = html;
 };
 
-// ── 6. טען ANDY recs בעת פתיחת Hunt tab ─────────────────────
+// ── 6. Load ANDY recs when opening Hunt tab ─────────────────────
 (function() {
   var origSetMode = window.setLeadMode;
   window.setLeadMode = function(mode) {
@@ -13859,7 +13868,7 @@ window.renderHuntHistory = function() {
       }, 100);
     }
   };
-  // גם ב-Step 4 הצג insight
+  // Also show insight in Step 4
   var origGoStep = window.huntGoStep;
   window.huntGoStep = function(n) {
     if (typeof origGoStep === 'function') origGoStep(n);
@@ -13890,10 +13899,11 @@ window.XTIX_COMPETITORS = {
   'Eventer':     { fee: 3.5, steal: 50, type: 'budget',     color: '#06b6d4', bg: 'rgba(6,182,212,0.12)',    weakness: 'Old, not updated' },
   'Easytix':     { fee: 3.0, steal: 45, type: 'budget',     color: '#a78bfa', bg: 'rgba(167,139,250,0.12)',  weakness: 'Very simple, no features' },
   'Eventim':     { fee: 8.0, steal: 95, type: 'enterprise', color: '#f43f5e', bg: 'rgba(244,63,94,0.12)',    weakness: 'Very expensive, rigid, not flexible' },
+  'Manual/None': { fee: 0,   steal: 30, type: 'none',       color: '#6b7280', bg: 'rgba(107,114,128,0.12)',  weakness: 'Big pain — needs education' },
   'ידני/אין':    { fee: 0,   steal: 30, type: 'none',       color: '#6b7280', bg: 'rgba(107,114,128,0.12)',  weakness: 'Big pain — needs education' },
 };
 
-// חזור על steal score של ליד לפי platform_current
+// Recalculate steal score of lead by platform_current
 window._getStealScore = function(platform) {
   if (!platform) return 30;
   var p = platform.trim();
@@ -13933,11 +13943,11 @@ window._intelCurrentFilter = 'all';
 window._loadIntelDashboard = async function() {
   if (!window._sb) return;
   try {
-    // טען כל הleads עם platform
+    // Load all leads with platform
     var leads = await window._sb.get('leads', 'select=id,name,platform,competitor,steal_score,score,status,segment,estimated_annual_fees,estimated_xtix_savings&order=score.desc&limit=500');
     if (!leads || !leads.length) return;
 
-    // השתמש ב-competitor אם קיים, fallback ל-platform
+    // Use competitor if exists, fallback to platform
     leads.forEach(function(l) {
       if (!l.competitor && l.platform) l.competitor = l.platform;
       if (!l.steal_score && l.competitor && window._getStealScore) {
@@ -13955,7 +13965,7 @@ window._loadIntelDashboard = async function() {
     }
     var C = window.XTIX_COMPETITORS || {};
 
-    // ── ספירה per מתחרה ──
+    // ── Count per competitor ──
     var counts = {};
     withPlatform.forEach(function(l) {
       var p = (l.platform||'').trim();
@@ -13980,7 +13990,7 @@ window._loadIntelDashboard = async function() {
     });
     avgSteal = total ? Math.round(avgSteal / total) : 0;
 
-    // ── עדכן stats bar ──
+    // ── Update stats bar ──
     var el = function(id){ return document.getElementById(id); };
     if (el('intel-total'))    el('intel-total').textContent    = total;
     if (el('intel-top-comp')) { el('intel-top-comp').textContent = topComp; var cd = window._getCompData(topComp); if(cd) el('intel-top-comp').style.color = cd.color; }
@@ -14099,15 +14109,15 @@ window._intelFilter = function(comp) {
   listEl.innerHTML = html;
 };
 
-// Hunt מתוך Intel — קופץ ל-Hunt tab עם המתחרה בפרמטרים
+// Hunt from Intel — jumps to Hunt tab with competitor in params
 window._huntFromCompetitor = function(compName) {
-  // עבור ל-Lead Finder → Hunt tab
+  // Switch to Lead Finder → Hunt tab
   var lf = document.querySelector('[onclick*="leadfinder"]') || document.querySelector('[data-panel="leadfinder"]');
   if (lf) lf.click();
   setTimeout(function() {
     if (typeof window.setLeadMode === 'function') window.setLeadMode('hunt');
     setTimeout(function() {
-      // סמן את המתחרה ברשימת המתחרים
+      // Check the competitor in the competitors list
       document.querySelectorAll('#hunt-competitors input[type=checkbox]').forEach(function(cb) {
         if (cb.value === compName) { cb.checked = true; if(cb.closest('.hunt-chip')) cb.closest('.hunt-chip').style.borderColor = '#a78bfa'; }
       });
@@ -14117,7 +14127,7 @@ window._huntFromCompetitor = function(compName) {
   }, 100);
 };
 
-// טען Intel בפתיחת הטאב
+// Load Intel when opening the tab
 (function() {
   var origMethTab = window.methTab;
   window.methTab = function(tab) {
@@ -14125,7 +14135,7 @@ window._huntFromCompetitor = function(compName) {
     if (tab === 'intel') setTimeout(window._loadIntelDashboard, 150);
   };
 })();
-// ── חשוף API נקי ───────────────────────────────────────────────
+// ── Expose clean API ───────────────────────────────────────────────
 window._signals = {
   record:        window._signalRecord,
   onStatus:      window._signalOnStatusChange,
@@ -14141,11 +14151,11 @@ console.log('[Signal Engine] ✅ Loaded — '+Object.keys(SIGNAL_WEIGHTS).length
 })(); // end Signal Engine IIFE
 
 // ══════════════════════════════════════════════════════════════
-// ANDY Learn Loop — מנתח learning_patterns ומסיק insights
+// ANDY Learn Loop — analyzes learning_patterns and derives insights
 // ══════════════════════════════════════════════════════════════
 (function() {
 
-  // ── נתח patterns וצור insights ──────────────────────────────
+  // ── Analyze patterns and create insights ──────────────────────────────
   window._learnFromPatterns = async function() {
     if (!window._sb) return null;
     try {
@@ -14173,7 +14183,7 @@ console.log('[Signal Engine] ✅ Loaded — '+Object.keys(SIGNAL_WEIGHTS).length
         return { segment:seg, won:s.won, lost:s.lost, total:total, winRate:winRate, avgScore:avgScore };
       }).sort(function(a,b){ return b.winRate - a.winRate; });
 
-      // ── Best pitch angles (מה עבד בwon) ──
+      // ── Best pitch angles (what worked in won) ──
       var pitchCount = {};
       won.forEach(function(r) {
         var p = (r.pitch_angle_used||'').trim();
@@ -14206,7 +14216,7 @@ console.log('[Signal Engine] ✅ Loaded — '+Object.keys(SIGNAL_WEIGHTS).length
       var daysArr = won.filter(function(r){ return r.days_to_close>0; }).map(function(r){ return r.days_to_close; });
       var avgDays = daysArr.length ? Math.round(daysArr.reduce(function(a,b){return a+b;},0)/daysArr.length) : null;
 
-      // ── Email subjects שעבדו ──
+      // ── Winning email subjects ──
       var subjects = won.filter(function(r){ return r.email_subject_won; })
         .map(function(r){ return r.email_subject_won; }).slice(0,5);
 
@@ -14224,7 +14234,7 @@ console.log('[Signal Engine] ✅ Loaded — '+Object.keys(SIGNAL_WEIGHTS).length
         winning_subjects: subjects
       };
 
-      // שמור ב-localStorage לגישה מהירה
+      // Save to localStorage for quick access
       try { localStorage.setItem('andy_insights', JSON.stringify(insights)); } catch(e){}
       console.log('[Learn] ✅ Insights generated — win rate:', insights.overall_win_rate+'%',
         '| accuracy:', insights.ai_accuracy+'%', '| segments:', segRanked.length);
@@ -14235,7 +14245,7 @@ console.log('[Signal Engine] ✅ Loaded — '+Object.keys(SIGNAL_WEIGHTS).length
     }
   };
 
-  // ── טען insights saved ──────────────────────────────────────
+  // ── Load saved insights ──────────────────────────────────────
   window._getInsights = function() {
     try {
       var raw = localStorage.getItem('andy_insights');
@@ -14243,7 +14253,7 @@ console.log('[Signal Engine] ✅ Loaded — '+Object.keys(SIGNAL_WEIGHTS).length
     } catch(e) { return null; }
   };
 
-  // ── הרץ Learn Loop כל 30 דקות אוטומטית ──────────────────────
+  // ── Run Learn Loop every 30 minutes automatically ──────────────────────
   setTimeout(function() {
     window._learnFromPatterns();
     setInterval(function() { window._learnFromPatterns(); }, 30 * 60 * 1000);
