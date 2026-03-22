@@ -3386,16 +3386,16 @@ document.addEventListener("DOMContentLoaded",function(){
         <label style="font-size:11px;color:rgba(196,196,204,0.75);display:block;margin-bottom:5px">סטטוס</label>
         <select id="new-status" style="width:100%;background:var(--surface2);border:1px solid var(--border);border-radius:8px;padding:8px 12px;font-size:13px;color:var(--text);font-family:Heebo,sans-serif;outline:none;box-sizing:border-box">
           <option value="new">🆕 New Lead</option>
-          <option value="new">🟢 ליד חדש</option>
-          <option value="contacted">📧 נוצר קשר</option>
+          <option value="new">🟢 New Lead</option>
+          <option value="contacted">📧 Emailed</option>
           <option value="followup">🔁 Follow-up</option>
           <option value="meeting">📅 Meeting Booked</option>
-          <option value="negotiation">🤝 במשא ומתן</option>
-          <option value="won">✅ נסגר - הצלחה</option>
-          <option value="lost">❌ נסגר - כישלון</option>
+          <option value="negotiation">🤝 Negotiation</option>
+          <option value="won">✅ Won</option>
+          <option value="lost">❌ Lost</option>
           <option value="ghosted">👻 Ghosted</option>
-          <option value="not_relevant">🚫 לא רלוונטי</option>
-          <option value="future_potential">⏳ עתידי - לחזור</option>
+          <option value="not_relevant">🚫 Not Relevant</option>
+          <option value="future_potential">⏳ Future Potential</option>
           <option value="referred_us">🌟 Referred Us</option>
         </select>
       </div>
@@ -3642,7 +3642,7 @@ BP18: Nurture existing customers — repeat customers spend 67% more
       // 3. בנה prompt
       var ai = lead.ai_analysis || {};
       var e  = lead.enrichment  || {};
-      var prompt = `אתה ANDY — מומחה מכירות B2B של XTIX. כתוב פנייה ראשונה אישית ל${lead.name || 'הליד'}.
+      var prompt = `אתה ANDY — מומחה מכירות B2B של XTIX. Write Outreach ראשונה אישית ל${lead.name || 'הליד'}.
 
 === פרטי הליד ===
 שם: ${lead.name || '?'}
@@ -3759,7 +3759,7 @@ ${(function(){
       window._lastOutreachBody = window._lastOutreachBody || {};
       window._lastOutreachBody[leadId] = outreach.body || '';
 
-      if (btn) { btn.disabled = false; btn.textContent = 'כתוב פנייה'; }
+      if (btn) { btn.disabled = false; btn.textContent = 'Write Outreach'; }
 
     } catch(err) {
       console.error('generateOutreach failed:', err);
@@ -3767,7 +3767,7 @@ ${(function(){
         panel.innerHTML = '<div style="color:#e74c3c;font-size:13px;padding:10px">❌ שגיאה: ' + _esc(err.message) + '</div>';
         panel.style.display = 'block';
       }
-      if (btn) { btn.disabled = false; btn.textContent = 'כתוב פנייה'; }
+      if (btn) { btn.disabled = false; btn.textContent = 'Write Outreach'; }
     }
   };
 
@@ -3795,7 +3795,7 @@ ${(function(){
     var bodyEl = panel ? panel.querySelector('div[style*="white-space"]') : null;
     var body   = bodyEl ? bodyEl.textContent : '';
 
-    if (!body) { alert('לא נמצא גוף המייל — נסה לייצר פנייה מחדש'); return; }
+    if (!body) { alert('Email body not found — try regenerating'); return; }
 
     // עדכן סטטוס ב-outreach_queue
     await window._sb.update('outreach_queue',
@@ -4223,7 +4223,7 @@ ${(function(){
 
   // ── Reject ────────────────────────────────────────────────────
   window._outreachReject = async function(rowId) {
-    if (!confirm('לדחות פנייה זו?')) return;
+    if (!confirm('Reject this outreach?')) return;
     try {
       await window._sb.update('outreach_queue', 'id=eq.' + rowId, { status: 'rejected' });
       var idx = _outreachData.findIndex(function(r){ return r.id==rowId; });
@@ -4709,7 +4709,7 @@ ${(function(){
       _s.textContent='@keyframes _aip{0%,100%{opacity:.35}50%{opacity:1}}.email-body{display:none}.email-body.open{display:block}';
       document.head.appendChild(_s);
     }
-    var statusOpts=[['new','🟢 ליד חדש'],['contacted','📧 נוצר קשר'],['followup','🔁 Follow-up'],['meeting','📅 Meeting Booked'],['negotiation','🤝 במשא ומתן'],['won','✅ נסגר - הצלחה'],['lost','❌ נסגר - כישלון'],['ghosted','👻 לא מגיב'],['not_relevant','🚫 לא רלוונטי'],['future_potential','⏳ עתידי - לחזור'],['referred_us','🌟 הפנה אותנו']]
+    var statusOpts=[['new','🟢 New Lead'],['contacted','📧 Emailed'],['followup','🔁 Follow-up'],['meeting','📅 Meeting Booked'],['negotiation','🤝 Negotiation'],['won','✅ Won'],['lost','❌ Lost'],['ghosted','👻 Ghosted'],['not_relevant','🚫 Not Relevant'],['future_potential','⏳ Future Potential'],['referred_us','🌟 Referred Us']]
       .map(function(o){return '<option value="'+o[0]+'"'+(lead.status===o[0]?' selected':'')+'>'+o[1]+'</option>';}).join('');
     var platBadge=(lead.platform||enr.platform_current)?'<span class="plat-badge">'+(lead.platform||enr.platform_current)+'</span>':'';
     var aiBadge=aiSt==='done'?'<span class="ai-badge done">✓ AI</span>':aiSt==='running'?'<span id="ai-badge-'+lead.id+'" class="ai-badge running">⏳</span>':'';
@@ -5168,7 +5168,7 @@ window._editLeadSave = function(lid){
       html += '<div style="background:rgba(255,193,7,0.1);border:1px solid rgba(255,193,7,0.3);border-radius:8px;padding:10px;margin-bottom:12px;font-size:13px;color:#f39c12">';
       html += '<strong>&#9888;&#65039; לפני שכותבים פנייה:</strong><br>';
       html += 'מומלץ לנתח את הליד תחילה. עבור לטאב <strong>&#128100; פרופיל</strong> ולחץ על כפתור <strong>&#128161; נתח</strong> &#8212; ';
-      html += 'כך ANDY יכתוב פנייה מדויקת יותר עם pitch angle, מתחרה, וזווית מכירה ספציפית לליד זה.';
+      html += 'כך ANDY יWrite Outreach מדויקת יותר עם pitch angle, מתחרה, וזווית מכירה ספציפית לליד זה.';
       html += '</div>';
     }
 
@@ -10678,7 +10678,7 @@ window._cleanForSupabase = function _cleanForSupabase(obj) {
         html += '<div style="display:flex;gap:4px">';
         html += '<button onclick="window._huntFeedback('+idx+',\'good\','+JSON.stringify({segment:lead.segment,score:lead.score,tier:lead.tier}).replace(/"/g,'&quot;')+')" title="ליד רלוונטי" ';
         html += 'style="background:rgba(16,185,129,0.08);border:1px solid rgba(16,185,129,0.2);border-radius:6px;padding:4px 9px;color:#10b981;font-size:12px;cursor:pointer" id="hfb-good-'+idx+'">👍</button>';
-        html += '<button onclick="window._huntFeedback('+idx+',\'bad\','+JSON.stringify({segment:lead.segment,score:lead.score,tier:lead.tier}).replace(/"/g,'&quot;')+')" title="ליד לא רלוונטי" ';
+        html += '<button onclick="window._huntFeedback('+idx+',\'bad\','+JSON.stringify({segment:lead.segment,score:lead.score,tier:lead.tier}).replace(/"/g,'&quot;')+')" title="Lead not relevant" ';
         html += 'style="background:rgba(239,68,68,0.08);border:1px solid rgba(239,68,68,0.2);border-radius:6px;padding:4px 9px;color:#ef4444;font-size:12px;cursor:pointer" id="hfb-bad-'+idx+'">👎</button>';
         html += '</div>';
         html += '</div>';
@@ -12104,7 +12104,7 @@ window._setLeadOutcome = function(leadId, outcome) {
     'נסגר':       true,
     'לא נסגר':    false,
     'אין מענה':   false,
-    'לא רלוונטי': false
+    'not_relevant': false
   };
   if (outcome === 'בתהליך') {
     // Just update status, no brain decision needed
@@ -13132,7 +13132,7 @@ window._signalOnStatusChange = function(leadId, newStatus, lead) {
       updates.win_reason = _reason;
       updates.status = 'won';
     } else {
-      _reason = prompt('❌ לא נסגר. מה הסיבה? (מחיר/תזמון/מתחרה/לא רלוונטי)') || '';
+      _reason = prompt('❌ Deal lost. What was the reason? (price/timing/competitor/not relevant)') || '';
       updates.lost_reason = _reason;
     }
 
