@@ -12197,6 +12197,19 @@ window.markDealClosed = async function(leadId, didClose) {
   document.body.appendChild(toast);
   setTimeout(function() { toast.remove(); }, 3500);
 
+  // ── עדכן סטטוס + שמור learning_pattern דרך _signalOnStatusChange ──
+  var _leadForClose = leads && leads.find(function(l){ return l.id === leadId; });
+  if (_leadForClose && typeof window._signalOnStatusChange === 'function') {
+    window._signalOnStatusChange(leadId, didClose ? 'won' : 'lost', _leadForClose);
+  }
+
+  // רענן כרטיס ליד בUI
+  if (_leadForClose) {
+    _leadForClose.status = didClose ? 'won' : 'lost';
+    if (typeof renderSimpleLead === 'function') renderSimpleLead(_leadForClose);
+    else if (typeof window._realRenderSimpleLead === 'function') window._realRenderSimpleLead(_leadForClose);
+  }
+
   return true;
 };
 
