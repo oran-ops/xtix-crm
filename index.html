@@ -9719,78 +9719,7 @@ addSalesPlaybookPanel();
   }
   function hsRow(id,icon,label,def){return '<label style="display:flex;align-items:center;gap:6px;padding:5px 8px;background:var(--surface2);border-radius:6px;cursor:pointer"><input type="checkbox" id="'+id+'" '+(def?'checked':'')+' style="accent-color:var(--accent);width:14px;height:14px"> <span>'+icon+' '+label+'</span></label>';}
 
-  // Override pushToHubspot with upgraded version
-  window.pushToHubspot = async function() {
-    var apiKey=(document.getElementById('hs-api-key')&&document.getElementById('hs-api-key').value.trim())||'';
-    var statusEl=document.getElementById('hs-status');
-    if(!apiKey||!apiKey.startsWith('pat-')){if(statusEl){statusEl.style.color='var(--accent2)';statusEl.textContent='⚠️ Invalid Token';}return;}
-
-    // Field map preferences
-    var gv=function(id){var el=document.getElementById(id);return el?el.checked:true;};
-    var mapScore=gv('hm-score'),mapStatus=gv('hm-status'),mapPlatform=gv('hm-platform'),
-        mapSource=gv('hm-source'),mapXtixId=gv('hm-xtixid'),mapPhone=gv('hm-phone'),
-        mapSegment=gv('hm-segment'),mapPitch=gv('hm-pitch'),mapPain=gv('hm-pain'),mapSocial=gv('hm-social');
-
-    var selected=leads.filter(function(l){var c=document.getElementById('hs-chk-'+l.id);return c&&c.checked;});
-    if(!selected.length){if(statusEl){statusEl.style.color='var(--accent2)';statusEl.textContent='⚠️ No leads selected';}return;}
-    if(statusEl){statusEl.style.color='var(--muted)';statusEl.textContent='⏳ Sending '+selected.length+' leads...';}
-
-    var headers={'Content-Type':'application/json','Authorization':'Bearer '+apiKey};
-    var success=0,errors=0;
-
-    for(var i=0;i<selected.length;i++){
-      var lead=selected[i];
-      var re=document.getElementById('hs-result-'+lead.id);
-      if(re){re.style.color='var(--muted)';re.textContent='⏳';}
-      try{
-        // Company
-        var desc=[];
-        if(mapScore)desc.push('Score: '+(lead.score||0)+'/100 | Tier: '+(lead.tier||'2'));
-        if(mapPlatform&&lead.platform)desc.push('Platform: '+lead.platform);
-        if(mapSegment&&(lead.segment||lead.type))desc.push('Segment: '+(lead.segment||lead.type));
-        if(mapXtixId&&lead.xtix_id)desc.push('XTIX ID: '+lead.xtix_id);
-        if(mapSource&&lead.source)desc.push('Source: '+lead.source);
-        if(mapPitch&&lead.enrichment&&lead.enrichment.pitch)desc.push('Pitch: '+lead.enrichment.pitch);
-        if(mapPain&&lead.enrichment&&lead.enrichment.pain_points)desc.push('Pain: '+lead.enrichment.pain_points.join(', '));
-        if(mapSocial&&lead.enrichment&&lead.enrichment.social&&lead.enrichment.social.followers_estimate)desc.push('Followers: '+lead.enrichment.social.followers_estimate);
-        var compProps={name:lead.name||'',domain:lead.domain||'',website:lead.domain?'https://'+lead.domain:'',industry:'ENTERTAINMENT',description:desc.join(' | ')};
-        if(mapPhone&&lead.phone)compProps.phone=lead.phone;
-        var cRes=await fetch('https://api.hubapi.com/crm/v3/objects/companies',{method:'POST',headers:headers,body:JSON.stringify({properties:compProps})});
-        var cId=null; if(cRes.ok){var cd=await cRes.json();cId=cd.id;}
-
-        // Contact lifecycle mapping
-        var lcMap={new:'lead',contacted:'lead',followup:'lead',meeting:'opportunity',closed:'customer'};
-        var hsMap={new:'NEW',contacted:'IN_PROGRESS',followup:'IN_PROGRESS',meeting:'OPEN_DEAL',closed:'CONNECTED'};
-        var contProps={firstname:lead.name||'',lastname:'(XTIX)',company:lead.name||'',website:lead.domain?'https://'+lead.domain:''};
-        if(mapStatus){contProps.lifecyclestage=lcMap[lead.status||'new']||'lead';contProps.hs_lead_status=hsMap[lead.status||'new']||'NEW';}
-        if(mapScore)contProps.description='XTIX Score: '+(lead.score||0)+'/100';
-        if(lead.email&&lead.email.includes('@'))contProps.email=lead.email;
-        if(mapPhone&&lead.phone)contProps.phone=lead.phone;
-        var tRes=await fetch('https://api.hubapi.com/crm/v3/objects/contacts',{method:'POST',headers:headers,body:JSON.stringify({properties:contProps})});
-
-        // Handle duplicate — patch instead
-        if(tRes.status===409&&lead.email&&lead.email.includes('@')){
-          var exRes=await fetch('https://api.hubapi.com/crm/v3/objects/contacts/'+encodeURIComponent(lead.email)+'?idProperty=email',{headers:headers});
-          if(exRes.ok){var ex=await exRes.json();await fetch('https://api.hubapi.com/crm/v3/objects/contacts/'+ex.id,{method:'PATCH',headers:headers,body:JSON.stringify({properties:contProps})});tRes={ok:true,_id:ex.id};}
-        }
-
-        if(tRes.ok){
-          success++;
-          var tId=tRes._id;
-          if(!tRes._id){var td=await tRes.json();tId=td.id;}
-          if(cId&&tId)await fetch('https://api.hubapi.com/crm/v3/objects/contacts/'+tId+'/associations/companies/'+cId+'/contact_to_company',{method:'PUT',headers:headers}).catch(function(){});
-          lead.hubspot_id=tId; lead.hubspot_company_id=cId;
-          window._sb.update('leads','id=eq.'+lead.id,{hubspot_id:tId,hubspot_company_id:cId}).catch(function(){});
-          if(re){re.style.color='var(--green)';re.textContent='✅';}
-        }else{errors++;var err=await tRes.json().catch(function(){return{};});if(re){re.style.color='var(--accent2)';re.textContent='❌ '+(err.message||'Error').substring(0,40);}}
-      }catch(e){errors++;if(re){re.style.color='var(--accent2)';re.textContent='❌ CORS/Network';}}
-    }
-    if(statusEl){
-      if(!errors){statusEl.style.color='var(--green)';statusEl.textContent='✅ '+success+' leads synced!';}
-      else if(success>0){statusEl.style.color='var(--yellow)';statusEl.textContent='⚠️ '+success+' succeeded,'+errors+' failed';}
-      else{statusEl.style.color='var(--accent2)';statusEl.textContent='❌ Failed — check Token';}
-    }
-  };
+  // pushToHubspot defined in HubSpot Full Sync Engine block below
 
   var hsTabBtn=document.querySelector('.tab[onclick*="hubspot"]');
   if(hsTabBtn)hsTabBtn.addEventListener('click',function(){setTimeout(injectHSFieldMap,150);});
@@ -11269,78 +11198,162 @@ window._cleanForSupabase = function _cleanForSupabase(obj) {
   }
   function hsRow(id,icon,label,def){return '<label style="display:flex;align-items:center;gap:6px;padding:5px 8px;background:var(--surface2);border-radius:6px;cursor:pointer"><input type="checkbox" id="'+id+'" '+(def?'checked':'')+' style="accent-color:var(--accent);width:14px;height:14px"> <span>'+icon+' '+label+'</span></label>';}
 
-  // Override pushToHubspot with upgraded version
-  window.pushToHubspot = async function() {
-    var apiKey=(document.getElementById('hs-api-key')&&document.getElementById('hs-api-key').value.trim())||'';
-    var statusEl=document.getElementById('hs-status');
-    if(!apiKey||!apiKey.startsWith('pat-')){if(statusEl){statusEl.style.color='var(--accent2)';statusEl.textContent='⚠️ Invalid Token';}return;}
+  // ══════════════════════════════════════════════════════════════
+  //  HUBSPOT FULL SYNC ENGINE — CRM → HubSpot (One-Way)
+  //  Syncs: Lead profile, AI analysis, outreach chain, status
+  // ══════════════════════════════════════════════════════════════
 
-    // Field map preferences
-    var gv=function(id){var el=document.getElementById(id);return el?el.checked:true;};
-    var mapScore=gv('hm-score'),mapStatus=gv('hm-status'),mapPlatform=gv('hm-platform'),
-        mapSource=gv('hm-source'),mapXtixId=gv('hm-xtixid'),mapPhone=gv('hm-phone'),
-        mapSegment=gv('hm-segment'),mapPitch=gv('hm-pitch'),mapPain=gv('hm-pain'),mapSocial=gv('hm-social');
+  function _hsToken() {
+    return (document.getElementById('hs-api-key') && document.getElementById('hs-api-key').value.trim())
+      || localStorage.getItem('hs_token') || '';
+  }
+  function _hsHeaders() { return { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + _hsToken() }; }
+  function _hsValid() { var tok = _hsToken(); return tok && tok.startsWith('pat-'); }
 
-    var selected=leads.filter(function(l){var c=document.getElementById('hs-chk-'+l.id);return c&&c.checked;});
-    if(!selected.length){if(statusEl){statusEl.style.color='var(--accent2)';statusEl.textContent='⚠️ No leads selected';}return;}
-    if(statusEl){statusEl.style.color='var(--muted)';statusEl.textContent='⏳ Sending '+selected.length+' leads...';}
+  var _hsLifecycleMap = { new:'lead', contacted:'lead', followup:'lead', meeting:'opportunity', negotiation:'opportunity', won:'customer', lost:'other', ghosted:'other', not_relevant:'other', future_potential:'lead', referred_us:'lead' };
+  var _hsLeadStatusMap = { new:'NEW', contacted:'IN_PROGRESS', followup:'IN_PROGRESS', meeting:'OPEN_DEAL', negotiation:'OPEN_DEAL', won:'CONNECTED', lost:'UNQUALIFIED', ghosted:'UNQUALIFIED', not_relevant:'BAD_TIMING', future_potential:'OPEN', referred_us:'CONNECTED' };
 
-    var headers={'Content-Type':'application/json','Authorization':'Bearer '+apiKey};
-    var success=0,errors=0;
+  // ── syncLeadToHubspot — full single-lead sync ──
+  window.syncLeadToHubspot = async function(leadId) {
+    if (!_hsValid()) throw new Error('No valid HubSpot token');
+    var lead = (typeof leads !== 'undefined' ? leads : []).find(function(l) { return l.id === leadId; });
+    if (!lead) { var rows = await window._sb.get('leads', 'id=eq.' + leadId + '&limit=1'); lead = (rows || [])[0]; }
+    if (!lead) throw new Error('Lead not found: ' + leadId);
 
-    for(var i=0;i<selected.length;i++){
-      var lead=selected[i];
-      var re=document.getElementById('hs-result-'+lead.id);
-      if(re){re.style.color='var(--muted)';re.textContent='⏳';}
-      try{
-        // Company
-        var desc=[];
-        if(mapScore)desc.push('Score: '+(lead.score||0)+'/100 | Tier: '+(lead.tier||'2'));
-        if(mapPlatform&&lead.platform)desc.push('Platform: '+lead.platform);
-        if(mapSegment&&(lead.segment||lead.type))desc.push('Segment: '+(lead.segment||lead.type));
-        if(mapXtixId&&lead.xtix_id)desc.push('XTIX ID: '+lead.xtix_id);
-        if(mapSource&&lead.source)desc.push('Source: '+lead.source);
-        if(mapPitch&&lead.enrichment&&lead.enrichment.pitch)desc.push('Pitch: '+lead.enrichment.pitch);
-        if(mapPain&&lead.enrichment&&lead.enrichment.pain_points)desc.push('Pain: '+lead.enrichment.pain_points.join(', '));
-        if(mapSocial&&lead.enrichment&&lead.enrichment.social&&lead.enrichment.social.followers_estimate)desc.push('Followers: '+lead.enrichment.social.followers_estimate);
-        var compProps={name:lead.name||'',domain:lead.domain||'',website:lead.domain?'https://'+lead.domain:'',industry:'ENTERTAINMENT',description:desc.join(' | ')};
-        if(mapPhone&&lead.phone)compProps.phone=lead.phone;
-        var cRes=await fetch('https://api.hubapi.com/crm/v3/objects/companies',{method:'POST',headers:headers,body:JSON.stringify({properties:compProps})});
-        var cId=null; if(cRes.ok){var cd=await cRes.json();cId=cd.id;}
+    var ai = lead.ai_analysis || {}, enr = lead.enrichment || {}, headers = _hsHeaders();
 
-        // Contact lifecycle mapping
-        var lcMap={new:'lead',contacted:'lead',followup:'lead',meeting:'opportunity',closed:'customer'};
-        var hsMap={new:'NEW',contacted:'IN_PROGRESS',followup:'IN_PROGRESS',meeting:'OPEN_DEAL',closed:'CONNECTED'};
-        var contProps={firstname:lead.name||'',lastname:'(XTIX)',company:lead.name||'',website:lead.domain?'https://'+lead.domain:''};
-        if(mapStatus){contProps.lifecyclestage=lcMap[lead.status||'new']||'lead';contProps.hs_lead_status=hsMap[lead.status||'new']||'NEW';}
-        if(mapScore)contProps.description='XTIX Score: '+(lead.score||0)+'/100';
-        if(lead.email&&lead.email.includes('@'))contProps.email=lead.email;
-        if(mapPhone&&lead.phone)contProps.phone=lead.phone;
-        var tRes=await fetch('https://api.hubapi.com/crm/v3/objects/contacts',{method:'POST',headers:headers,body:JSON.stringify({properties:contProps})});
+    var contactProps = {
+      firstname: lead.contact_name || lead.name || '', lastname: '(XTIX)',
+      company: lead.name || '', website: lead.domain ? 'https://' + lead.domain : '',
+      lifecyclestage: _hsLifecycleMap[lead.status || 'new'] || 'lead',
+      hs_lead_status: _hsLeadStatusMap[lead.status || 'new'] || 'NEW',
+      xtix_id: lead.id || '',
+      xtix_score: String(lead.score || ai.meta_score || ai.score || 0),
+      xtix_tier: lead.tier || ai.tier || ai.final_tier || '',
+      xtix_platform: lead.platform || ai.platform_current || enr.platform_current || '',
+      xtix_segment: lead.segment || lead.type || ai.segment || '',
+      xtix_competitor: lead.competitor || ai.competitor || '',
+      xtix_steal_score: String(lead.steal_score || 0),
+      xtix_pitch_angle: lead.pitch_angle || ai.pitch_angle || enr.pitch_angle || '',
+      xtix_pain_points: (ai.pain_points || enr.pain_points || []).join('\n') || '',
+      xtix_annual_fees: String(lead.estimated_annual_fees || enr.estimated_annual_fees || ''),
+      xtix_savings: String(lead.estimated_xtix_savings || enr.estimated_xtix_savings || ''),
+      xtix_contact_title: lead.contact_title || enr.contact_title || '',
+      xtix_geo: lead.geographic_area || enr.geographic_area || '',
+      xtix_events_year: String(enr.events_per_year || ai.events_per_year || ''),
+      xtix_ai_summary: (ai.final_summary || ai.summary || enr.summary || '').substring(0, 2000),
+      xtix_meta_reasoning: (ai.meta_reasoning || '').substring(0, 2000),
+      xtix_platform_weakness: ai.platform_weakness || enr.platform_weakness || '',
+      xtix_status: lead.status || 'new',
+      xtix_outreach_count: String(lead.outreach_count || 0),
+      xtix_cadence_active: String(!!lead.cadence_active),
+      xtix_last_sync: new Date().toISOString().substring(0, 10)
+    };
+    if (lead.email && lead.email.includes('@')) contactProps.email = lead.email;
+    if (lead.phone) contactProps.phone = lead.phone;
+    ['xtix_score','xtix_steal_score','xtix_events_year','xtix_outreach_count'].forEach(function(k){ if(!contactProps[k]) contactProps[k]='0'; });
+    ['xtix_annual_fees','xtix_savings'].forEach(function(k){ if(contactProps[k]==='undefined') contactProps[k]=''; });
 
-        // Handle duplicate — patch instead
-        if(tRes.status===409&&lead.email&&lead.email.includes('@')){
-          var exRes=await fetch('https://api.hubapi.com/crm/v3/objects/contacts/'+encodeURIComponent(lead.email)+'?idProperty=email',{headers:headers});
-          if(exRes.ok){var ex=await exRes.json();await fetch('https://api.hubapi.com/crm/v3/objects/contacts/'+ex.id,{method:'PATCH',headers:headers,body:JSON.stringify({properties:contProps})});tRes={ok:true,_id:ex.id};}
-        }
-
-        if(tRes.ok){
-          success++;
-          var tId=tRes._id;
-          if(!tRes._id){var td=await tRes.json();tId=td.id;}
-          if(cId&&tId)await fetch('https://api.hubapi.com/crm/v3/objects/contacts/'+tId+'/associations/companies/'+cId+'/contact_to_company',{method:'PUT',headers:headers}).catch(function(){});
-          lead.hubspot_id=tId; lead.hubspot_company_id=cId;
-          window._sb.update('leads','id=eq.'+lead.id,{hubspot_id:tId,hubspot_company_id:cId}).catch(function(){});
-          if(re){re.style.color='var(--green)';re.textContent='✅';}
-        }else{errors++;var err=await tRes.json().catch(function(){return{};});if(re){re.style.color='var(--accent2)';re.textContent='❌ '+(err.message||'Error').substring(0,40);}}
-      }catch(e){errors++;if(re){re.style.color='var(--accent2)';re.textContent='❌ CORS/Network';}}
+    // Create or update Contact
+    var contactId = lead.hubspot_id || null;
+    if (contactId) {
+      await fetch('https://api.hubapi.com/crm/v3/objects/contacts/' + contactId, { method:'PATCH', headers:headers, body:JSON.stringify({properties:contactProps}) });
+    } else {
+      var cRes = await fetch('https://api.hubapi.com/crm/v3/objects/contacts', { method:'POST', headers:headers, body:JSON.stringify({properties:contactProps}) });
+      if (cRes.status === 409 && lead.email && lead.email.includes('@')) {
+        var exRes = await fetch('https://api.hubapi.com/crm/v3/objects/contacts/' + encodeURIComponent(lead.email) + '?idProperty=email', { headers:headers });
+        if (exRes.ok) { var ex = await exRes.json(); contactId = ex.id; await fetch('https://api.hubapi.com/crm/v3/objects/contacts/' + contactId, { method:'PATCH', headers:headers, body:JSON.stringify({properties:contactProps}) }); }
+      } else if (cRes.ok) { var cData = await cRes.json(); contactId = cData.id; }
+      else { var errD = await cRes.json().catch(function(){return{};}); throw new Error('HS Contact: ' + (errD.message||cRes.status)); }
     }
-    if(statusEl){
-      if(!errors){statusEl.style.color='var(--green)';statusEl.textContent='✅ '+success+' leads synced!';}
-      else if(success>0){statusEl.style.color='var(--yellow)';statusEl.textContent='⚠️ '+success+' succeeded,'+errors+' failed';}
-      else{statusEl.style.color='var(--accent2)';statusEl.textContent='❌ Failed — check Token';}
+
+    // Create or update Company
+    var companyId = lead.hubspot_company_id || null;
+    var compProps = { name:lead.name||'', domain:lead.domain||'', website:lead.domain?'https://'+lead.domain:'', industry:'ENTERTAINMENT', xtix_platform:lead.platform||ai.platform_current||'', xtix_fee_pct:String(lead.competitor_fee_pct||''), xtix_steal_score:String(lead.steal_score||0) };
+    if (lead.phone) compProps.phone = lead.phone;
+    try {
+      if (companyId) { await fetch('https://api.hubapi.com/crm/v3/objects/companies/' + companyId, { method:'PATCH', headers:headers, body:JSON.stringify({properties:compProps}) }); }
+      else { var coRes = await fetch('https://api.hubapi.com/crm/v3/objects/companies', { method:'POST', headers:headers, body:JSON.stringify({properties:compProps}) }); if (coRes.ok) { companyId = (await coRes.json()).id; } }
+      if (contactId && companyId) await fetch('https://api.hubapi.com/crm/v3/objects/contacts/' + contactId + '/associations/companies/' + companyId + '/contact_to_company', { method:'PUT', headers:headers }).catch(function(){});
+    } catch(e) { console.warn('[HS] Company error:', e.message); }
+
+    // Save IDs back
+    var upd = { hubspot_last_sync: new Date().toISOString() };
+    if (contactId) { upd.hubspot_id = contactId; lead.hubspot_id = contactId; }
+    if (companyId) { upd.hubspot_company_id = companyId; lead.hubspot_company_id = companyId; }
+    await window._sb.update('leads', 'id=eq.' + lead.id, upd).catch(function(){});
+    console.log('[HS] ✅ Synced:', lead.name, '→ Contact:', contactId);
+    return { contactId: contactId, companyId: companyId };
+  };
+
+  // ── syncOutreachToHubspot — sync email chain as note ──
+  window.syncOutreachToHubspot = async function(leadId) {
+    if (!_hsValid()) return;
+    var lead = (typeof leads !== 'undefined' ? leads : []).find(function(l){ return l.id === leadId; });
+    if (!lead || !lead.hubspot_id) return;
+    var headers = _hsHeaders(), contactId = lead.hubspot_id;
+    try {
+      var rows = await window._sb.get('outreach_queue', 'lead_id=eq.' + leadId + '&status=in.(approved,sent)&order=sequence_num.asc');
+      if (!rows || !rows.length) return;
+      var noteBody = '📧 XTIX Email Chain (' + rows.length + ' emails)\n━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n\n';
+      rows.forEach(function(row, i) {
+        noteBody += '▸ Email ' + (row.sequence_num || i+1) + ' — ' + (row.sent_at ? new Date(row.sent_at).toLocaleDateString('en-GB') : 'Pending') + '\n';
+        noteBody += 'Subject: ' + (row.subject||'') + '\n' + (row.body||'') + '\nStatus: ' + (row.status||'') + '\n\n';
+      });
+      await fetch('https://api.hubapi.com/crm/v3/objects/notes', { method:'POST', headers:headers, body:JSON.stringify({ properties:{ hs_note_body:noteBody.substring(0,10000), hs_timestamp:Date.now() }, associations:[{ to:{id:contactId}, types:[{associationCategory:'HUBSPOT_DEFINED',associationTypeId:202}] }] }) });
+      await fetch('https://api.hubapi.com/crm/v3/objects/contacts/' + contactId, { method:'PATCH', headers:headers, body:JSON.stringify({properties:{ xtix_email_chain_count:String(rows.length), xtix_last_outreach:rows[rows.length-1].sent_at?(rows[rows.length-1].sent_at.substring(0,10)):'' }}) }).catch(function(){});
+      console.log('[HS] ✅ Outreach synced:', lead.name, '—', rows.length, 'emails');
+    } catch(e) { console.warn('[HS] Outreach error:', e.message); }
+  };
+
+  // ── pushToHubspot — bulk push (uses syncLeadToHubspot per lead) ──
+  window.pushToHubspot = async function() {
+    var statusEl = document.getElementById('hs-status');
+    if (!_hsValid()) { if (statusEl) { statusEl.style.color='var(--accent2)'; statusEl.textContent='⚠️ Invalid Token — must start with pat-'; } return; }
+    try { localStorage.setItem('hs_token', _hsToken()); } catch(e) {}
+    var selected = leads.filter(function(l){ var c=document.getElementById('hs-chk-'+l.id); return c&&c.checked; });
+    if (!selected.length) { if (statusEl) { statusEl.style.color='var(--accent2)'; statusEl.textContent='⚠️ No leads selected'; } return; }
+    if (statusEl) { statusEl.style.color='var(--muted)'; statusEl.textContent='⏳ Full sync — '+selected.length+' leads (profile + AI + emails)...'; }
+    var success=0, errors=0;
+    for (var i=0; i<selected.length; i++) {
+      var lead=selected[i], re=document.getElementById('hs-result-'+lead.id);
+      if (re) { re.style.color='var(--muted)'; re.textContent='⏳ '+(i+1)+'/'+selected.length; }
+      try {
+        await window.syncLeadToHubspot(lead.id);
+        try { await window.syncOutreachToHubspot(lead.id); } catch(e){}
+        success++; if (re) { re.style.color='var(--green)'; re.textContent='✅ Synced'; }
+      } catch(e) {
+        errors++; console.error('[HS]', lead.name, e.message);
+        if (re) { re.style.color='var(--accent2)'; re.textContent='❌ '+(e.message||'Error').substring(0,40); }
+      }
+      if (i < selected.length-1) await new Promise(function(r){setTimeout(r,300);});
+    }
+    if (statusEl) {
+      if (!errors) { statusEl.style.color='var(--green)'; statusEl.textContent='✅ '+success+' leads fully synced (profile + AI + emails)!'; }
+      else if (success) { statusEl.style.color='var(--yellow)'; statusEl.textContent='⚠️ '+success+' synced, '+errors+' failed'; }
+      else { statusEl.style.color='var(--accent2)'; statusEl.textContent='❌ All failed — check token & custom properties'; }
     }
   };
+
+  // ── Auto-sync hooks ──
+  (function() {
+    var _origTFA = window.triggerFullAnalysis;
+    if (_origTFA) {
+      window.triggerFullAnalysis = async function(leadId, silent) {
+        var result = await _origTFA.call(this, leadId, silent);
+        if (_hsValid()) { try { await window.syncLeadToHubspot(leadId); console.log('[HS] Auto-sync after analysis'); } catch(e){} }
+        return result;
+      };
+    }
+    var _origChain = window._chainApproveAndSend;
+    if (_origChain) {
+      window._chainApproveAndSend = async function(leadId, cadenceId) {
+        await _origChain.call(this, leadId, cadenceId);
+        if (_hsValid()) { try { await window.syncLeadToHubspot(leadId); await window.syncOutreachToHubspot(leadId); console.log('[HS] Auto-sync after chain send'); } catch(e){} }
+      };
+    }
+    console.log('[HS] ✅ HubSpot Full Sync Engine loaded');
+  })();
 
   var hsTabBtn=document.querySelector('.tab[onclick*="hubspot"]');
   if(hsTabBtn)hsTabBtn.addEventListener('click',function(){setTimeout(injectHSFieldMap,150);});
