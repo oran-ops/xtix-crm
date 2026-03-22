@@ -5614,6 +5614,10 @@ SupaAuth.init(async function(user) {
     var panel = document.getElementById('l' + leadId + '-' + tabName);
     if (panel) panel.classList.add('active');
     if (btn) btn.classList.add('active');
+    // טען שרשרת ANDY כשעוברים לטאב outreach
+    if (tabName === 'outreach' && typeof window._renderChainInAndyTab === 'function') {
+      window._renderChainInAndyTab(leadId);
+    }
   }
 
   window.toggleLead = function toggleLead(id) {
