@@ -12138,8 +12138,24 @@ window.markDealClosed = async function(leadId, didClose) {
   }
 
   if (!decision) {
-    console.warn('[Brain] markDealClosed: no decision found for lead', leadId);
-    return false;
+    console.warn('[Brain] markDealClosed: no decision found for lead', leadId, '— continuing with status update');
+    // אין decision — עדיין נעדכן סטטוס ו-LP
+    var _leadForClose2 = leads && leads.find(function(l){ return l.id === leadId; });
+    if (_leadForClose2 && typeof window._signalOnStatusChange === 'function') {
+      window._signalOnStatusChange(leadId, didClose ? 'won' : 'lost', _leadForClose2);
+    }
+    if (_leadForClose2) {
+      _leadForClose2.status = didClose ? 'won' : 'lost';
+      if (typeof renderSimpleLead === 'function') renderSimpleLead(_leadForClose2);
+      else if (typeof window._realRenderSimpleLead === 'function') window._realRenderSimpleLead(_leadForClose2);
+    }
+    var msg2 = didClose ? '🎉 עסקה נסגרה!' : '📊 עסקה לא נסגרה';
+    var t2 = document.createElement('div');
+    t2.style.cssText = 'position:fixed;bottom:70px;left:50%;transform:translateX(-50%);background:rgba(17,12,34,0.97);border:1px solid rgba(124,58,237,0.4);border-radius:10px;padding:10px 24px;font-size:13px;color:#a78bfa;font-family:Heebo,sans-serif;z-index:9999;font-weight:700';
+    t2.textContent = msg2;
+    document.body.appendChild(t2);
+    setTimeout(function(){ t2.remove(); }, 3500);
+    return true;
   }
 
   var updateData = {
