@@ -234,7 +234,7 @@ ${totalEmails === 4 ? 'מייל 4 (יום 11): Breakup email — קצר, מכב�
 
     try {
       var rows = await window._sb.get('outreach_queue',
-        'lead_id=eq.' + leadId + '&status=eq.chain_draft&order=sequence_num.asc'
+        'lead_id=eq.' + leadId + '&status=in.(chain_draft,pending_approval,approved,scheduled,sent)&order=sequence_num.asc'
       );
 
       if (!rows || !rows.length) {
@@ -320,7 +320,7 @@ ${totalEmails === 4 ? 'מייל 4 (יום 11): Breakup email — קצר, מכב�
     try {
       // קבל את כל מיילי השרשרת
       var rows = await window._sb.get('outreach_queue',
-        'lead_id=eq.' + leadId + '&cadence_id=eq.' + cadenceId + '&status=eq.chain_draft&order=sequence_num.asc'
+        'lead_id=eq.' + leadId + '&cadence_id=eq.' + cadenceId + '&status=in.(chain_draft,pending_approval,approved,scheduled,sent)&order=sequence_num.asc'
       );
       if (!rows || !rows.length) throw new Error('לא נמצאו מיילים בשרשרת');
 
@@ -395,7 +395,7 @@ ${totalEmails === 4 ? 'מייל 4 (יום 11): Breakup email — קצר, מכב�
     try {
       // מחק שרשרת קיימת
       var rows = await window._sb.get('outreach_queue',
-        'lead_id=eq.' + leadId + '&status=eq.chain_draft'
+        'lead_id=eq.' + leadId + '&status=in.(chain_draft,pending_approval,approved,scheduled,sent)'
       );
       for (var i = 0; i < (rows||[]).length; i++) {
         await window._sb.delete('outreach_queue', 'id=eq.' + rows[i].id).catch(function(){});
