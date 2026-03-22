@@ -1656,6 +1656,67 @@ document.addEventListener("DOMContentLoaded",function(){
   });
 });
 </script>
+
+<!-- ══════════════ LTR OVERRIDES (English mode) ══════════════ -->
+<style>
+/* Navigation & sidebar */
+[dir=ltr] .nav-btn,
+[dir=ltr] .nav-sub-btn,
+[dir=ltr] .sb-tool-btn { text-align: left; }
+
+[dir=ltr] .nav-btn.active::after { right: auto; left: -8px; }
+
+[dir=ltr] .nav-sub { padding-right: 0; padding-left: 26px; }
+
+[dir=ltr] #sidebar { border-left: none; border-right: 1px solid var(--b1); }
+
+/* Lead card status accent bars — flip from right to left */
+[dir=ltr] .lead-card[data-status="new"]            { border-right: none !important; border-left: 3px solid #10b981 !important; }
+[dir=ltr] .lead-card[data-status="contacted"]       { border-right: none !important; border-left: 3px solid #3b82f6 !important; }
+[dir=ltr] .lead-card[data-status="followup"]        { border-right: none !important; border-left: 3px solid #f59e0b !important; }
+[dir=ltr] .lead-card[data-status="meeting"]         { border-right: none !important; border-left: 3px solid #8b5cf6 !important; }
+[dir=ltr] .lead-card[data-status="negotiation"]     { border-right: none !important; border-left: 3px solid #818cf8 !important; }
+[dir=ltr] .lead-card[data-status="won"]             { border-right: none !important; border-left: 3px solid #10b981 !important; }
+[dir=ltr] .lead-card[data-status="lost"]            { border-right: none !important; border-left: 3px solid #ef4444 !important; }
+[dir=ltr] .lead-card[data-status="ghosted"]         { border-right: none !important; border-left: 3px solid #6b7280 !important; }
+[dir=ltr] .lead-card[data-status="not_relevant"]    { border-right: none !important; border-left: 3px solid #374151 !important; }
+[dir=ltr] .lead-card[data-status="future_potential"]{ border-right: none !important; border-left: 3px solid #f59e0b !important; }
+[dir=ltr] .lead-card[data-status="referred_us"]     { border-right: none !important; border-left: 3px solid #fbbf24 !important; }
+[dir=ltr] .lead-card[data-status="closed"]          { border-right: none !important; border-left: 3px solid #6b7280 !important; }
+
+/* Pain cards & email research accent bars */
+[dir=ltr] .pain-card { border-right: none; }
+[dir=ltr] .pain-financial { border-left: 3px solid #f59e0b; }
+[dir=ltr] .pain-data      { border-left: 3px solid #3b82f6; }
+[dir=ltr] .pain-ops       { border-left: 3px solid #ef4444; }
+[dir=ltr] .pain-strategic { border-left: 3px solid #10b981; }
+
+/* Search icon */
+[dir=ltr] #top-bar .search-wrap input + svg,
+[dir=ltr] .search-icon { right: auto; left: 10px; }
+
+/* KPI table headers */
+[dir=ltr] .kpi-table th { text-align: left; }
+
+/* Brain panels */
+[dir=ltr] .brain-wrap,
+[dir=ltr] .brain-detail-modal-inner { direction: ltr; }
+
+/* Flex spacers — flip margin auto direction */
+[dir=ltr] .brain-status-badge { margin-right: 0; margin-left: auto; }
+[dir=ltr] .brain-outcome-btn  { margin-left: 0; margin-right: 8px; }
+[dir=ltr] .lead-meta span     { margin-left: 0 !important; margin-right: 8px !important; }
+
+/* Pitch template accent borders */
+[dir=ltr] [style*="border-right:3px solid #7c3aed"],
+[dir=ltr] [style*="border-right:3px solid #3b82f6"],
+[dir=ltr] [style*="border-right:3px solid #10b981"] {
+  border-right: none !important;
+  border-left-width: 3px !important;
+  border-left-style: solid !important;
+}
+</style>
+
 </head>
 <body>
 
@@ -4255,7 +4316,7 @@ Return JSON only (no markdown):
 
     var originalBody = row.body || '';
     bodyEl.innerHTML =
-      '<textarea id="edit-body-' + rowId + '" style="width:100%;min-height:120px;background:var(--surface3);border:1px solid var(--accent);border-radius:8px;padding:8px;color:var(--text);font-size:12px;resize:vertical;box-sizing:border-box;direction:rtl;font-family:Heebo,sans-serif">' +
+      '<textarea id="edit-body-' + rowId + '" style="width:100%;min-height:120px;background:var(--surface3);border:1px solid var(--accent);border-radius:8px;padding:8px;color:var(--text);font-size:12px;resize:vertical;box-sizing:border-box;'+dirStyle()+';font-family:Heebo,sans-serif">' +
       _esc(originalBody) + '</textarea>' +
       '<div style="display:flex;gap:8px;margin-top:8px">' +
       '<button class="or-save" data-id="' + rowId + '" style="flex:1;background:rgba(108,99,255,0.2);border:1px solid rgba(108,99,255,0.4);border-radius:6px;padding:6px;color:#a78bfa;font-size:12px;cursor:pointer">💾 Save</button>' +
@@ -8587,7 +8648,7 @@ addSalesPlaybookPanel();
         <div style="display:flex;gap:10px;align-items:flex-end">
           <textarea id="ai-input"
             placeholder="Ask any question... (Shift+Enter for new line, Enter to send)"
-            style="flex:1;background:var(--surface2);border:1px solid var(--border);border-radius:12px;padding:12px 16px;color:var(--text);font-size:13px;font-family:'Heebo',sans-serif;resize:none;min-height:48px;max-height:160px;outline:none;line-height:1.5;transition:border-color 0.2s;direction:rtl"
+            style="flex:1;background:var(--surface2);border:1px solid var(--border);border-radius:12px;padding:12px 16px;color:var(--text);font-size:13px;font-family:'Heebo',sans-serif;resize:none;min-height:48px;max-height:160px;outline:none;line-height:1.5;transition:border-color 0.2s"
             rows="1"
             onkeydown="aiChatKeydown(event)"
             oninput="this.style.height='auto';this.style.height=Math.min(this.scrollHeight,160)+'px'"
@@ -8733,7 +8794,7 @@ addSalesPlaybookPanel();
 
   <!-- =================== KNOWLEDGE BASE PANEL =================== -->
   <div class="panel" id="tab-kb">
-    <div style="max-width:960px;margin:0 auto;padding:16px 0;direction:rtl">
+    <div style="max-width:960px;margin:0 auto;padding:16px 0">
 
       <!-- Header -->
       <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:20px">
@@ -8778,7 +8839,7 @@ addSalesPlaybookPanel();
 
   <!-- KB Add Modal -->
   <div id="kb-modal" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,0.7);z-index:9000;align-items:center;justify-content:center;backdrop-filter:blur(4px)">
-    <div style="background:var(--surface);border:1px solid var(--border);border-radius:16px;padding:24px;width:480px;max-width:95vw;direction:rtl;max-height:85vh;overflow-y:auto">
+    <div style="background:var(--surface);border:1px solid var(--border);border-radius:16px;padding:24px;width:480px;max-width:95vw;max-height:85vh;overflow-y:auto">
       <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:20px">
         <div style="font-size:16px;font-weight:800;color:var(--text)">📚 Add Knowledge Source</div>
         <button onclick="window._kbCloseModal()" style="background:none;border:none;color:var(--muted);font-size:20px;cursor:pointer;padding:0 4px">✕</button>
@@ -8865,7 +8926,7 @@ addSalesPlaybookPanel();
 
   <!-- =================== USERS PANEL (Admin only) =================== -->
   <div class="panel" id="tab-users">
-    <div style="padding:24px 28px;max-width:100%;width:100%;box-sizing:border-box;direction:rtl">
+    <div style="padding:24px 28px;max-width:100%;width:100%;box-sizing:border-box">
       <div style="max-width:700px;margin:0 auto">
       <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:20px">
         <div>
@@ -12160,7 +12221,7 @@ window._confirmDealClose = function(leadId, didClose) {
   var btnLabel = didClose ? '✅ Yes, Closed!' : '✅ Yes, Lost';
 
   overlay.innerHTML =
-    '<div style="background:#0d0d14;border:1px solid ' + color + '44;border-radius:16px;padding:28px 32px;max-width:360px;width:90%;text-align:center;font-family:Heebo,sans-serif;direction:rtl">' +
+    '<div style="background:#0d0d14;border:1px solid ' + color + '44;border-radius:16px;padding:28px 32px;max-width:360px;width:90%;text-align:center;font-family:Heebo,sans-serif;'+dirStyle()+'">' +
       '<div style="font-size:36px;margin-bottom:12px">' + icon + '</div>' +
       '<div style="font-size:15px;font-weight:800;color:' + color + ';margin-bottom:10px">' + title + '</div>' +
       '<div style="font-size:12px;color:rgba(255,255,255,0.7);line-height:1.8;margin-bottom:24px">' + body + '</div>' +
@@ -13333,7 +13394,7 @@ window._checkNoReplySignals = async function() {
     // show toast
     var names = toReengage.slice(0,3).map(function(l){return l.name||l.domain||'Lead';}).join(', ');
     var toast = document.createElement('div');
-    toast.style.cssText = 'position:fixed;bottom:70px;left:50%;transform:translateX(-50%);background:rgba(17,12,34,0.97);border:1px solid rgba(245,158,11,0.5);border-radius:12px;padding:12px 20px;font-size:12px;color:#fbbf24;font-family:Heebo,sans-serif;z-index:9999;font-weight:700;cursor:pointer;direction:rtl;max-width:340px;text-align:center';
+    toast.style.cssText = 'position:fixed;bottom:70px;left:50%;transform:translateX(-50%);background:rgba(17,12,34,0.97);border:1px solid rgba(245,158,11,0.5);border-radius:12px;padding:12px 20px;font-size:12px;color:#fbbf24;font-family:Heebo,sans-serif;z-index:9999;font-weight:700;cursor:pointer;'+dirStyle()+';max-width:340px;text-align:center';
     toast.innerHTML = '⏳ '+toReengage.length+' future lead(s) awaiting re-engagement:<br><span style="font-weight:400;font-size:11px">'+names+'</span>';
     toast.onclick   = function(){ toast.remove(); };
     document.body.appendChild(toast);

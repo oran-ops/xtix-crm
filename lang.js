@@ -483,7 +483,43 @@
   // expose translations for debugging
   window._LANG_DATA = _translations;
 
+  // ── RTL/LTR: set document direction based on language ──
+  document.documentElement.dir  = _currentLang === 'he' ? 'rtl' : 'ltr';
+  document.documentElement.lang = _currentLang;
+
+  // Helper: directional margin-auto (for JS-generated inline styles)
+  window.msAuto = function() {
+    return _currentLang === 'he' ? 'margin-right:auto' : 'margin-left:auto';
+  };
+
+  // Helper: direction style value
+  window.dirStyle = function() {
+    return 'direction:' + (_currentLang === 'he' ? 'rtl' : 'ltr');
+  };
+
+  // LTR fix: flip inline margin-right:auto → margin-left:auto on all elements
+  if (_currentLang === 'en') {
+    var _fixMarginAuto = function() {
+      document.querySelectorAll('[style*="margin-right"]').forEach(function(el) {
+        if (el.style.marginRight === 'auto') {
+          el.style.marginRight = '';
+          el.style.marginLeft = 'auto';
+        }
+      });
+    };
+    document.addEventListener('DOMContentLoaded', _fixMarginAuto);
+    // Re-run after dynamic content renders (lead cards, brain panel, etc.)
+    var _ltrObs = new MutationObserver(function(mutations) {
+      var needsFix = mutations.some(function(m) { return m.addedNodes.length > 0; });
+      if (needsFix) setTimeout(_fixMarginAuto, 50);
+    });
+    document.addEventListener('DOMContentLoaded', function() {
+      _ltrObs.observe(document.body, { childList: true, subtree: true });
+    });
+  }
+
   console.log('[i18n] ✅ Language engine loaded — lang:', _currentLang,
+    '| dir:', document.documentElement.dir,
     '| keys:', Object.keys(_translations[_currentLang] || {}).length);
 
 })();
