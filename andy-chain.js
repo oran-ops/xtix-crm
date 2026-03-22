@@ -290,7 +290,7 @@ ${totalEmails === 4 ? 'Email 4 (Day 11): Breakup email — short, respectful, gr
           'style="background:linear-gradient(135deg,#10b981,#059669);color:#fff;border:none;border-radius:8px;padding:12px 20px;font-size:14px;font-weight:700;width:100%;cursor:pointer;font-family:Heebo,sans-serif">' +
           '✅ Approve & Send Email 1 — Start Chain' +
         '</button>' +
-        '<div style="font-size:11px;color:var(--t2);text-align:center;margin-top:6px">מיילים 2-' + total + ' יישלחו אוטומטית לפי לוח הזמנים</div>' +
+        '<div style="font-size:11px;color:var(--t2);text-align:center;margin-top:6px">Emails 2-' + total + ' will be sent automatically per schedule</div>' +
       '</div>';
 
       html += '</div>';
