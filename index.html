@@ -1770,6 +1770,11 @@ document.addEventListener("DOMContentLoaded",function(){
       <span id="kb-status-indicator" onclick="switchMainTab('kb',document.querySelector('[data-panel=kb]'));setTimeout(window._kbInit,50)" style="cursor:pointer;font-size:10px" title="Knowledge Base — לחץ לפרטים">📚 KB</span>
     </div>
 
+    <!-- User Info + Logout -->
+    <div id="user-info" style="padding:8px;border-top:1px solid var(--border);display:flex;align-items:center;gap:6px;margin-top:4px">
+      <span style="font-size:11px;color:var(--text2);flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">טוען...</span>
+    </div>
+
     <!-- Tools -->
     <div class="sb-tools">
       <button class="sb-tool-btn" onclick="document.getElementById('csv-import')&&document.getElementById('csv-import').click()" title="ייבוא CSV">
@@ -6858,7 +6863,7 @@ BP6-10: תעדף (פלטפורמה ישנה+דומיין+6+ אירועים), Dis
     'Consensus מחושב: ' + JSON.stringify(consensus) + '\n\n' +
     (kb ? '=== XTIX Sales Playbook ===\n' + kb.substring(0, 2000) + '\n\n' : '') +
     (insightsText ? '=== נתוני למידה מעסקאות קודמות ===\n' + insightsText + '\n\n' : '') +
-    'החזר JSON עם שדות: meta_score (0-100 לפי Scoring Matrix של XTIX), final_platform, final_pain_point, final_annual_fees, final_pitch_angle, recommended_cadence (hot/warm/cool לפי Playbook), meta_reasoning (עברית, 2-3 משפטים), meta_action (הצעד הבא המדויק לפי ה-Playbook בעברית).';
+    'החזר JSON עם שדות: meta_score (0-100 לפי Scoring Matrix של XTIX), final_platform, final_pain_point, final_annual_fees, final_pitch_angle, recommended_cadence (חובה: hot אם meta_score>=80, warm אם 60-79, cool אם <60 — לפי Playbook בלבד), meta_reasoning (עברית, 2-3 משפטים), meta_action (הצעד הבא המדויק לפי ה-Playbook בעברית).';
 
     var payload = {
       model: 'claude-sonnet-4-20250514',
