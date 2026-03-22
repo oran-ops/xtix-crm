@@ -35,12 +35,12 @@
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
-        model: 'claude-sonnet-4-6',
+        model: 'claude-sonnet-4-20250514',
         max_tokens: 2500,
         system: 'אתה מומחה מכירות B2B. החזר JSON נקי בלבד ללא markdown.',
         messages: [{ role: 'user', content: prompt }]
       }),
-      signal: AbortSignal.timeout(45000)
+      signal: AbortSignal.timeout(90000)
     });
     if (!resp.ok) throw new Error('AI error: ' + resp.status);
     var data = await resp.json();
