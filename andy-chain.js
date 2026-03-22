@@ -27,7 +27,7 @@
 
   function _log(msg) { console.log('[Chain] ' + msg); }
 
-  var CHAIN_DAYS = { 1: 0, 2: 3, 3: 6, 4: 11 }; // ימים מהיום לכל מייל
+  var CHAIN_DAYS = { 1: 0, 2: 3, 3: 6, 4: 11 }; //  days מהיום לכל מייל
 
   // ── AI Call ───────────────────────────────────────────────────
   async function _callAI(prompt) {
@@ -110,7 +110,7 @@
       var totalEmails = (tier === 'A' || score >= 80) ? 4 : 3;
 
       var prompt = `אתה ANDY — מומחה מכירות B2B של XTIX Events.
-צור שרשרת של ${totalEmails} מיילים מותאמים לליד הזה. כל מייל חייב להיות בהמשך לקודם — אותו thread, אותה גישה אבל זווית חדשה.
+Create a chain of ${totalEmails} personalized emails for this lead. Each email must follow from the previous — same thread, same approach but new angle.
 
 === פרטי הליד ===
 שם: ${lead.name || '?'}
@@ -129,11 +129,11 @@ ${kb.substring(0, 1200)}
 === Patterns שעבדו ===
 ${patterns || 'אין עדיין'}
 
-=== אסטרטגיית שרשרת ===
-מייל 1 (יום 0): פנייה ראשונה — ערך ספציפי + שאלה אחת
-מייל 2 (יום 3): המשך — זווית חדשה, data point ספציפי לסגמנט
-מייל 3 (יום 6): ישיר יותר — שאל על הבעיה שלהם, הצע 15 דקות
-${totalEmails === 4 ? 'מייל 4 (יום 11): Breakup email — קצר, מכבד, exit מכובד' : ''}
+=== Chain Strategy ===
+Email 1 (Day 0): First Outreach — specific value + one question
+Email 2 (Day 3): Follow-up — new angle, segment-specific data point
+Email 3 (Day 6): More direct — ask about their problem, offer 15 minutes
+${totalEmails === 4 ? 'Email 4 (Day 11): Breakup email — short, respectful, graceful exit' : ''}
 
 === חוקים ===
 - כל מייל בעברית, אנושי וישיר
@@ -205,7 +205,7 @@ ${totalEmails === 4 ? 'מייל 4 (יום 11): Breakup email — קצר, מכב�
     panel.innerHTML =
       '<div style="padding:20px;text-align:center">' +
       '<div style="width:32px;height:32px;border:3px solid var(--accent);border-top-color:transparent;border-radius:50%;animation:spin 1s linear infinite;margin:0 auto 12px"></div>' +
-      '<div style="font-size:13px;color:var(--text);font-weight:700">ANDY כותב שרשרת מיילים...</div>' +
+      '<div style="font-size:13px;color:var(--text);font-weight:700">ANDY is writing email chain...</div>' +
       '<div style="font-size:11px;color:var(--t2);margin-top:4px">מייצר ' + '' + ' מיילים מותאמים לליד</div>' +
       '</div>';
   }
@@ -215,7 +215,7 @@ ${totalEmails === 4 ? 'מייל 4 (יום 11): Breakup email — קצר, מכב�
     var panel = document.getElementById('outreach-panel-' + leadId);
     if (!panel) return;
     panel.innerHTML =
-      '<div style="padding:14px;color:#ef4444;font-size:13px">❌ שגיאה ביצירת שרשרת: ' + (msg||'') + '</div>';
+      '<div style="padding:14px;color:#ef4444;font-size:13px">❌ Chain generation error: ' + (msg||'') + '</div>';
   }
 
   // ══════════════════════════════════════════════════════════════
@@ -230,7 +230,7 @@ ${totalEmails === 4 ? 'מייל 4 (יום 11): Breakup email — קצר, מכב�
     if (!panel) return;
 
     panel.style.display = 'block';
-    panel.innerHTML = '<div style="padding:14px;text-align:center;color:var(--t2);font-size:12px">טוען שרשרת...</div>';
+    panel.innerHTML = '<div style="padding:14px;text-align:center;color:var(--t2);font-size:12px">Loading chain...</div>';
 
     try {
       var rows = await window._sb.get('outreach_queue',
@@ -238,7 +238,7 @@ ${totalEmails === 4 ? 'מייל 4 (יום 11): Breakup email — קצר, מכב�
       );
 
       if (!rows || !rows.length) {
-        panel.innerHTML = '<div style="padding:14px;color:var(--t2);font-size:12px;text-align:center">אין שרשרת — לחץ "כתוב פנייה" ליצירה</div>';
+        panel.innerHTML = '<div style="padding:14px;color:var(--t2);font-size:12px;text-align:center">No chain — click Write Outreach to create</div>';
         return;
       }
 
@@ -252,15 +252,15 @@ ${totalEmails === 4 ? 'מייל 4 (יום 11): Breakup email — קצר, מכב�
       html += '<div style="background:rgba(108,99,255,0.1);border:1px solid rgba(108,99,255,0.25);border-radius:8px;padding:10px 14px;margin-bottom:12px;display:flex;align-items:center;gap:10px">' +
         '<span style="font-size:18px">🔗</span>' +
         '<div style="flex:1">' +
-          '<div style="font-weight:700;font-size:13px;color:var(--text)">שרשרת ' + total + ' מיילים</div>' +
-          '<div style="font-size:11px;color:var(--t2)">יום 0 → +'+(rows[rows.length-1]?.send_after ? Math.round((new Date(rows[rows.length-1].send_after)-new Date())/(1000*60*60*24)) : '?')+' ימים</div>' +
+          '<div style="font-weight:700;font-size:13px;color:var(--text)">' + total + '-Email Chain</div>' +
+          '<div style="font-size:11px;color:var(--t2)">Day 0 → +'+(rows[rows.length-1]?.send_after ? Math.round((new Date(rows[rows.length-1].send_after)-new Date())/(1000*60*60*24)) : '?')+'  days</div>' +
         '</div>' +
-        '<button onclick="window._chainRegenerateConfirm(\'' + leadId + '\')" style="background:rgba(255,255,255,0.05);border:1px solid rgba(255,255,255,0.1);border-radius:6px;padding:5px 10px;font-size:11px;color:var(--t2);cursor:pointer">🔄 צור מחדש</button>' +
+        '<button onclick="window._chainRegenerateConfirm(\'' + leadId + '\')" style="background:rgba(255,255,255,0.05);border:1px solid rgba(255,255,255,0.1);border-radius:6px;padding:5px 10px;font-size:11px;color:var(--t2);cursor:pointer">🔄 Regenerate</button>' +
         '</div>';
 
       // כל מייל
       rows.forEach(function(row, i) {
-        var dayLabel = i === 0 ? 'יום 0 — עכשיו' : '+' + Math.round((new Date(row.send_after)-new Date())/(1000*60*60*24)) + ' ימים';
+        var dayLabel = i === 0 ? 'יום 0 — עכשיו' : '+' + Math.round((new Date(row.send_after)-new Date())/(1000*60*60*24)) + '  days';
         var bodyId = 'chain-body-' + row.id;
 
         html += '<div style="border:1px solid rgba(108,99,255,0.2);border-radius:10px;margin-bottom:8px;overflow:hidden">' +
@@ -288,7 +288,7 @@ ${totalEmails === 4 ? 'מייל 4 (יום 11): Breakup email — קצר, מכב�
       html += '<div style="margin-top:12px">' +
         '<button onclick="window._chainApproveAndSend(\'' + leadId + '\',\'' + cadenceId + '\')" ' +
           'style="background:linear-gradient(135deg,#10b981,#059669);color:#fff;border:none;border-radius:8px;padding:12px 20px;font-size:14px;font-weight:700;width:100%;cursor:pointer;font-family:Heebo,sans-serif">' +
-          '✅ אשר ושלח מייל 1 — הפעל שרשרת' +
+          '✅ Approve & Send Email 1 — Start Chain' +
         '</button>' +
         '<div style="font-size:11px;color:var(--t2);text-align:center;margin-top:6px">מיילים 2-' + total + ' יישלחו אוטומטית לפי לוח הזמנים</div>' +
       '</div>';
@@ -297,7 +297,7 @@ ${totalEmails === 4 ? 'מייל 4 (יום 11): Breakup email — קצר, מכב�
       panel.innerHTML = html;
 
     } catch(e) {
-      panel.innerHTML = '<div style="padding:14px;color:#ef4444;font-size:12px">שגיאה בטעינת שרשרת: ' + e.message + '</div>';
+      panel.innerHTML = '<div style="padding:14px;color:#ef4444;font-size:12px">Error loading chain: ' + e.message + '</div>';
     }
   }
 
