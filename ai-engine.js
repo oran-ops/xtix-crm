@@ -1,8 +1,8 @@
 // ================================================================
 //  XTIX AI ENGINE v3.0
-//  Triple Engine: Claude (כאבים) + GPT (כסף) + Gemini (מודיעין)
-//  Meta-Judge: לומד מ-Firebase, מחליט, מסביר
-//  Human Loop: outcome מעודכן ע"י איש מכירות → מוח לומד
+//  Triple Engine: Claude (Pain) + GPT (Money) + Gemini (Intelligence)
+//  Meta-Judge: Learns from Firebase, decides, explains
+//  Human Loop: outcome updated by sales rep → brain learns
 // ================================================================
 // Dependencies (from index.html):
 //   window.SERVER, window._authFetch, window.db (Firestore)
@@ -14,17 +14,17 @@
 (function() {
 'use strict';
 
-// ── guard: _callAI חייב להיות מוגדר ב-index.html ──────────────
-// אם לא קיים — Meta-Judge יכשל בשקט. נרשום אזהרה ברורה.
+// ── guard: _callAI must be defined in index.html ──────────────
+// If missing — Meta-Judge will fail silently. Log a clear warning.
 if (typeof _callAI === 'undefined' && typeof window._callAI === 'undefined') {
-  console.error('[ai-engine-v3] ⚠️ _callAI לא מוגדר! וודא ש-index.html נטען לפני ai-engine.js');
+  console.error('[ai-engine-v3] ⚠️ _callAI is not defined! Make sure index.html is loaded before ai-engine.js');
 }
 
-// ── fallback: _callAIFast — אם index.html עדיין לא הגדיר אותו ──
+// ── fallback: _callAIFast — if index.html hasn't defined it yet ──
 if (typeof window._callAIFast !== 'function') {
   window._callAIFast = async function(sys, usr, maxTok, timeoutMs) {
     var srv = window.SERVER || '';
-    if (!srv) { console.warn('[AI Fast fallback] SERVER לא מוגדר'); return null; }
+    if (!srv) { console.warn('[AI Fast fallback] SERVER not configured'); return null; }
     try {
       var res = await window._authFetch(srv + '/ai', {
         method: 'POST', headers: { 'Content-Type': 'application/json' },
@@ -68,17 +68,17 @@ var TIMEOUT_DEEP       = 150000;
 // ════════════════════════════════════════════════════════════════
 
 var SHARED_SCORING_GUIDE = [
-  '=== מדריך ציון 0-100 ===',
-  '• +30: מוכר כרטיסים (כולל ידנית)',
-  '• +25: הפנייה לדומיין חיצוני לרכישה',
-  '• +15: מכירה ידנית בלבד (ביט/העברה/וואטסאפ)',
-  '• +10: פעילות קבועה (3+ אירועים/שנה)',
-  '• +10: גודל משמעותי (100+ כרטיסים/אירוע)',
-  '• +5:  מחיר כרטיס 50+ ₪',
-  '• -20: לא מוכר כרטיסים כלל',
-  '• -10: פעילות חד-פעמית / לא ברורה',
+  '=== Scoring Guide 0-100 ===',
+  '• +30: Sells tickets (including manually)',
+  '• +25: Redirects to external domain for purchase',
+  '• +15: Manual sales only (Bit/transfer/WhatsApp)',
+  '• +10: Recurring activity (3+ events/year)',
+  '• +10: Significant size (100+ tickets/event)',
+  '• +5:  Ticket price 50+ ILS',
+  '• -20: Does not sell tickets at all',
+  '• -10: One-time / unclear activity',
   'Tier: A=70-100 | B=40-69 | C=0-39',
-  'כאבים: ראיות בלבד — אסור להמציא'
+  'Pain points: Evidence only — do not fabricate'
 ].join('\n');
 
 // ════════════════════════════════════════════════════════════════
@@ -214,7 +214,7 @@ window.updateAnalysisOutcome = async function(logDocId, outcome, notes) {
 };
 
 // ════════════════════════════════════════════════════════════════
-//  FIREBASE MEMORY — 25 שאלות
+//  FIREBASE MEMORY — 25 Questions
 // ════════════════════════════════════════════════════════════════
 
 window.getBrainMemory = async function(lead) {
@@ -240,12 +240,12 @@ window.getBrainMemory = async function(lead) {
     memory.raw_decisions = all;
 
     var segmentDecisions = all.filter(function(d){ return d.lead_segment===segment&&d.outcome!==null; });
-    var segClosed  = segmentDecisions.filter(function(d){ return d.outcome==='נסגר'; });
-    var segLost    = segmentDecisions.filter(function(d){ return d.outcome==='לא נסגר'; });
+    var segClosed  = segmentDecisions.filter(function(d){ return d.outcome==='won'; });
+    var segLost    = segmentDecisions.filter(function(d){ return d.outcome==='lost'; });
 
     memory.segment_stats = {
       total: segmentDecisions.length, closed: segClosed.length, lost: segLost.length,
-      no_reply: segmentDecisions.filter(function(d){ return d.outcome==='אין מענה'; }).length,
+      no_reply: segmentDecisions.filter(function(d){ return d.outcome==='no_reply'; }).length,
       close_rate: segmentDecisions.length ? Math.round(segClosed.length/segmentDecisions.length*100) : null,
       avg_score_closed: segClosed.length ? Math.round(segClosed.reduce(function(s,d){return s+(d.final_score||d.meta_score||0);},0)/segClosed.length) : null,
       avg_score_lost:   segLost.length   ? Math.round(segLost.reduce(function(s,d){return s+(d.final_score||d.meta_score||0);},0)/segLost.length)   : null,
@@ -255,7 +255,7 @@ window.getBrainMemory = async function(lead) {
     };
 
     var platDecisions = all.filter(function(d){ return d.platform&&platform&&d.platform.toLowerCase().includes(platform.toLowerCase())&&d.outcome!==null; });
-    var platClosed = platDecisions.filter(function(d){ return d.outcome==='נסגר'; });
+    var platClosed = platDecisions.filter(function(d){ return d.outcome==='won'; });
 
     memory.platform_stats = {
       total: platDecisions.length, closed: platClosed.length,
@@ -276,9 +276,9 @@ window.getBrainMemory = async function(lead) {
     };
 
     memory.mistake_patterns = {
-      false_positives: all.filter(function(d){ return (d.final_score||d.meta_score||0)>=70&&d.outcome==='לא נסגר'; }).slice(0,3)
+      false_positives: all.filter(function(d){ return (d.final_score||d.meta_score||0)>=70&&d.outcome==='lost'; }).slice(0,3)
         .map(function(d){ return { lead:d.lead_name, score:d.final_score||d.meta_score, notes:d.outcome_notes||'' }; }),
-      false_negatives: all.filter(function(d){ return (d.final_score||d.meta_score||0)<50&&d.outcome==='נסגר'; }).slice(0,3)
+      false_negatives: all.filter(function(d){ return (d.final_score||d.meta_score||0)<50&&d.outcome==='won'; }).slice(0,3)
         .map(function(d){ return { lead:d.lead_name, score:d.final_score||d.meta_score, notes:d.outcome_notes||'' }; }),
       least_accurate_engine: _findLeastAccurateEngine(segmentDecisions)
     };
@@ -307,11 +307,11 @@ function _calcAvgCloseDays(decisions) {
 function _calcSimilarScoreCloseRate(decisions, target) {
   var s=decisions.filter(function(d){return Math.abs((d.final_score||d.meta_score||0)-target)<=10;});
   if(!s.length)return null;
-  var c=s.filter(function(d){return d.outcome==='נסגר';});
+  var c=s.filter(function(d){return d.outcome==='won';});
   return {total:s.length,closed:c.length,rate:Math.round(c.length/s.length*100)};
 }
 function _calcMinClosingScore(decisions) {
-  var c=decisions.filter(function(d){return d.outcome==='נסגר';});
+  var c=decisions.filter(function(d){return d.outcome==='won';});
   if(!c.length)return null;
   return Math.min.apply(null,c.map(function(d){return d.final_score||d.meta_score||0;}));
 }
@@ -319,20 +319,20 @@ function _calcSureClosingScore(decisions) {
   for(var t=90;t>=60;t-=5){
     var a=decisions.filter(function(d){return(d.final_score||d.meta_score||0)>=t;});
     if(a.length<3)continue;
-    var c=a.filter(function(d){return d.outcome==='נסגר';});
+    var c=a.filter(function(d){return d.outcome==='won';});
     if(c.length/a.length>=0.75)return t;
   }
   return null;
 }
 function _calcScoreDeviation(decisions) {
-  var d=decisions.filter(function(d){return d.outcome!==null;}).map(function(d){return(d.outcome==='נסגר'?1:0)===(((d.final_score||d.meta_score||50)>=60)?1:0)?0:1;});
+  var d=decisions.filter(function(d){return d.outcome!==null;}).map(function(d){return(d.outcome==='won'?1:0)===(((d.final_score||d.meta_score||50)>=60)?1:0)?0:1;});
   return d.length?Math.round(d.reduce(function(a,b){return a+b;},0)/d.length*100):null;
 }
 function _findLeastAccurateEngine(decisions) {
   var e={claude:0,gpt:0,gemini:0,total:0};
   decisions.forEach(function(d){
     if(!d.outcome)return; e.total++;
-    var actual=d.outcome==='נסגר'?1:0;
+    var actual=d.outcome==='won'?1:0;
     ['claude','gpt','gemini'].forEach(function(eng){
       var s=d[eng+'_score']||(d[eng+'_raw']&&d[eng+'_raw'].score)||null;
       if(s!==null&&(s>=60?1:0)!==actual) e[eng]++;
@@ -344,76 +344,76 @@ function _findLeastAccurateEngine(decisions) {
 }
 
 function _buildMemoryString(memory, lead) {
-  if(!memory||!memory.segment_stats) return 'אין היסטוריה זמינה עדיין.';
+  if(!memory||!memory.segment_stats) return 'No history available yet.';
   var lines=['Firebase Memory:'];
   var ss=memory.segment_stats, ps=memory.platform_stats, sc=memory.score_correlations, mp=memory.mistake_patterns;
 
   if(ss.total>0){
-    lines.push('סגמנט "'+( lead.segment||lead.type||'')+'": '+ss.total+' לידים | נסגרו: '+ss.closed+' ('+(ss.close_rate||0)+'%) | לא נסגרו: '+ss.lost);
-    if(ss.avg_score_closed) lines.push('  ציון ממוצע נסגרו: '+ss.avg_score_closed);
-    if(ss.avg_score_lost)   lines.push('  ציון ממוצע לא נסגרו: '+ss.avg_score_lost);
-    if(ss.top_pain_closed)  lines.push('  כאב שהוביל לסגירה: '+ss.top_pain_closed);
-    if(ss.top_pain_lost)    lines.push('  כאב שחזר בלא-נסגרים: '+ss.top_pain_lost);
-    if(ss.best_cadence)     lines.push('  cadence שעבד: '+ss.best_cadence);
-  } else { lines.push('סגמנט "'+( lead.segment||lead.type||'')+'": אין נתונים עדיין'); }
+    lines.push('Segment "'+( lead.segment||lead.type||'')+'": '+ss.total+' leads | Won: '+ss.closed+' ('+(ss.close_rate||0)+'%) | Lost: '+ss.lost);
+    if(ss.avg_score_closed) lines.push('  Avg score won: '+ss.avg_score_closed);
+    if(ss.avg_score_lost)   lines.push('  Avg score lost: '+ss.avg_score_lost);
+    if(ss.top_pain_closed)  lines.push('  Pain that led to closing: '+ss.top_pain_closed);
+    if(ss.top_pain_lost)    lines.push('  Pain recurring in lost deals: '+ss.top_pain_lost);
+    if(ss.best_cadence)     lines.push('  Cadence that worked: '+ss.best_cadence);
+  } else { lines.push('Segment "'+( lead.segment||lead.type||'')+'": No data yet'); }
 
   if(ps&&ps.total>0){
-    lines.push('פלטפורמה "'+( lead.platform||'')+'": '+ps.total+' | נסגרו: '+ps.closed+(ps.close_rate?' ('+ps.close_rate+'%)':''));
-    if(ps.best_pain) lines.push('  כאב שעבד: '+ps.best_pain);
-    if(ps.avg_close_days) lines.push('  זמן סגירה ממוצע: '+ps.avg_close_days+' ימים');
+    lines.push('Platform "'+( lead.platform||'')+'": '+ps.total+' | Won: '+ps.closed+(ps.close_rate?' ('+ps.close_rate+'%)':''));
+    if(ps.best_pain) lines.push('  Pain that worked: '+ps.best_pain);
+    if(ps.avg_close_days) lines.push('  Avg closing time: '+ps.avg_close_days+' days');
   }
 
   if(sc){
-    if(sc.similar_score_close_rate){var s=sc.similar_score_close_rate; lines.push('לידים עם ציון דומה: '+s.total+' | נסגרו: '+s.closed+' ('+s.rate+'%)');}
-    if(sc.min_closing_score)  lines.push('ציון מינימלי שנסגר: '+sc.min_closing_score);
-    if(sc.sure_closing_score) lines.push('ציון שמעליו 75%+ נסגרים: '+sc.sure_closing_score);
+    if(sc.similar_score_close_rate){var s=sc.similar_score_close_rate; lines.push('Leads with similar score: '+s.total+' | Won: '+s.closed+' ('+s.rate+'%)');}
+    if(sc.min_closing_score)  lines.push('Minimum score that closed: '+sc.min_closing_score);
+    if(sc.sure_closing_score) lines.push('Score above which 75%+ close: '+sc.sure_closing_score);
   }
 
   if(mp){
-    if(mp.false_positives&&mp.false_positives.length){ lines.push('⚠️ ציון גבוה שלא נסגר:'); mp.false_positives.forEach(function(fp){ lines.push('  • '+fp.lead+' ('+fp.score+')'+(fp.notes?': '+fp.notes.substring(0,60):'')); }); }
-    if(mp.least_accurate_engine) lines.push('מנוע הכי לא מדויק בסגמנט: '+mp.least_accurate_engine.engine+' ('+mp.least_accurate_engine.error_rate+'% שגיאות)');
+    if(mp.false_positives&&mp.false_positives.length){ lines.push('⚠️ High score that did not close:'); mp.false_positives.forEach(function(fp){ lines.push('  • '+fp.lead+' ('+fp.score+')'+(fp.notes?': '+fp.notes.substring(0,60):'')); }); }
+    if(mp.least_accurate_engine) lines.push('Least accurate engine in segment: '+mp.least_accurate_engine.engine+' ('+mp.least_accurate_engine.error_rate+'% errors)');
   }
 
   if(memory.recent_wins&&memory.recent_wins.length){
-    lines.push('ניצחונות אחרונים:');
+    lines.push('Recent wins:');
     memory.recent_wins.slice(0,3).forEach(function(w){ lines.push('  ✅ '+w.name+' ('+w.score+')'+(w.action?' — '+w.action.substring(0,60):'')); });
   }
   return lines.join('\n');
 }
 
 // ════════════════════════════════════════════════════════════════
-//  ENGINE 1 — CLAUDE: בלש הכאבים
+//  ENGINE 1 — CLAUDE: Pain Detective
 // ════════════════════════════════════════════════════════════════
 
 async function _claudePainDetective(lead, proxyCtx, compInfo, METH) {
   var domain = (lead.domain||'').replace(/https?:\/\//,'').split('/')[0] || lead.name;
 
   var system = [
-    'אתה בלש כאבים של XTIX — מוצא היכן מפיקים מפסידים כסף ושליטה.',
-    'ענה על 5 שאלות ליבה בדיוק. כאבים = ראיות בלבד.',
+    'You are XTIX\'s Pain Detective — finding where producers lose money and control.',
+    'Answer 5 core questions precisely. Pain points = evidence only.',
     '',
-    '5 שאלות ליבה:',
-    '1. DATA OWNERSHIP: הקונים שייכים לליד או לפלטפורמה?',
-    '2. REDIRECT: הרכישה קורית באתר הליד או בחוץ?',
-    '3. UX: תהליך הקנייה קל או מסורבל?',
-    '4. VALUE FOR MONEY: העמלה מוצדקת לעומת המענה?',
-    '5. AI & GROWTH: משתמשים בכלים חכמים לצמיחה?',
+    '5 Core Questions:',
+    '1. DATA OWNERSHIP: Do buyers belong to the lead or to the platform?',
+    '2. REDIRECT: Does the purchase happen on the lead\'s site or externally?',
+    '3. UX: Is the buying process easy or cumbersome?',
+    '4. VALUE FOR MONEY: Is the commission justified vs. the service provided?',
+    '5. AI & GROWTH: Are they using smart tools for growth?',
     '',
-    '⚡ KILLER COMBO: עמלה גבוהה + UX גרוע = סמן במיוחד',
+    '⚡ KILLER COMBO: High commission + Bad UX = Flag especially',
     '',
     SHARED_SCORING_GUIDE,
-    'החזר JSON נקי בלבד. עברית.'
+    'Return clean JSON only. English.'
   ].join('\n');
 
   var user = [
-    'שם: '+(lead.name||'')+' | דומיין: '+domain,
-    'סוג: '+(lead.type||'?')+' | פלטפורמה: '+(lead.platform||'?'),
+    'Name: '+(lead.name||'')+' | Domain: '+domain,
+    'Type: '+(lead.type||'?')+' | Platform: '+(lead.platform||'?'),
     '',
-    'מידע מהאתר (ראיות):',
-    proxyCtx||'לא נמצא',
-    'מתחרים: '+(compInfo||''),
+    'Website data (evidence):',
+    proxyCtx||'Not found',
+    'Competitors: '+(compInfo||''),
     '',
-    'החזר JSON:',
+    'Return JSON:',
     '{',
     '  "score": 75,',
     '  "score_breakdown": {"sells_tickets":30,"external_platform":25,"manual_sales":0,"recurring_events":10,"event_size":10,"ticket_price":5,"deductions":0},',
@@ -426,14 +426,14 @@ async function _claudePainDetective(lead, proxyCtx, compInfo, METH) {
     '    "ai_growth":        {"has_pain":true,  "evidence":"...", "severity":"low"}',
     '  },',
     '  "killer_combo": true,',
-    '  "killer_combo_explanation": "7% עמלה + checkout מחייב הרשמה",',
-    '  "pain_points": ["כאב ספציפי עם ראיה"],',
-    '  "pain_evidence": {"כאב": "הראיה"},',
+    '  "killer_combo_explanation": "7% commission + checkout requires registration",',
+    '  "pain_points": ["Specific pain with evidence"],',
+    '  "pain_evidence": {"pain": "the evidence"},',
     '  "platform_current": "SmartTicket",',
-    '  "platform_weakness": "קהל לא שייך למפיק",',
+    '  "platform_weakness": "Audience does not belong to the producer",',
     '  "competitors_used": ["SmartTicket"],',
-    '  "summary": "2-3 משפטים על הכאבים",',
-    '  "reasoning": "נימוק הציון — כמה נקודות לכל פרמטר",',
+    '  "summary": "2-3 sentences about the pain points",',
+    '  "reasoning": "Score reasoning — points per parameter",',
     '  "score_confidence": 0.85',
     '}'
   ].join('\n');
@@ -445,39 +445,39 @@ async function _claudePainDetective(lead, proxyCtx, compInfo, METH) {
 }
 
 // ════════════════════════════════════════════════════════════════
-//  ENGINE 2 — GPT: אנליסט הכסף
+//  ENGINE 2 — GPT: Money Analyst
 // ════════════════════════════════════════════════════════════════
 
 async function _gptMoneyAnalyst(lead, proxyCtx, compInfo) {
   var domain = (lead.domain||'').replace(/https?:\/\//,'').split('/')[0] || lead.name;
 
   var system = [
-    'אתה אנליסט כלכלי של XTIX — בונה תמונת כסף מדויקת.',
-    '6 משימות: (1) מחירי כרטיסים לפי סוג (2) היקף מכירות ומחזור (3) כמות אירועים (4) אירוע קרוב ותאריך (5) גודל קהילה (6) ROI CALCULATION — כמה חוסכים עם XTIX',
-    'מספרים קונקרטיים — לא טווחים. אם אומדן — ציין.',
+    'You are XTIX\'s Financial Analyst — building an accurate money picture.',
+    '6 tasks: (1) Ticket prices by type (2) Sales volume and revenue (3) Number of events (4) Upcoming event and date (5) Community size (6) ROI CALCULATION — how much they save with XTIX',
+    'Concrete numbers — not ranges. If estimated — state so.',
     SHARED_SCORING_GUIDE,
-    'החזר JSON נקי בלבד. עברית.'
+    'Return clean JSON only. English.'
   ].join('\n');
 
   var user = [
-    'שם: '+(lead.name||'')+' | דומיין: '+domain+' | פלטפורמה: '+(lead.platform||'?'),
+    'Name: '+(lead.name||'')+' | Domain: '+domain+' | Platform: '+(lead.platform||'?'),
     '',
-    'מידע מהאתר:',
-    proxyCtx||'לא נמצא',
+    'Website data:',
+    proxyCtx||'Not found',
     '',
-    'החזר JSON:',
+    'Return JSON:',
     '{',
     '  "score": 80,',
     '  "score_breakdown": {"sells_tickets":30,"external_platform":25,"recurring_events":10,"event_size":10,"ticket_price":5,"deductions":0},',
     '  "tier": "A",',
-    '  "ticket_prices": {"regular":"₪120","vip":"₪220","early_bird":"₪90","source":"אתר/אומדן"},',
-    '  "revenue_intel": {"annual_revenue_estimate":"₪200,000","source":"רשם החברות/אומדן","confidence":"mid"},',
+    '  "ticket_prices": {"regular":"₪120","vip":"₪220","early_bird":"₪90","source":"website/estimate"},',
+    '  "revenue_intel": {"annual_revenue_estimate":"₪200,000","source":"company registry/estimate","confidence":"mid"},',
     '  "event_volume": {"events_per_year":4,"avg_tickets_per_event":350,"total_annual_tickets":1400},',
-    '  "next_event": {"date":"15.4.2026","name":"שם אירוע","urgency":"6 שבועות לסגירה","estimated_tickets":400},',
+    '  "next_event": {"date":"15.4.2026","name":"Event name","urgency":"6 weeks to close","estimated_tickets":400},',
     '  "audience_size": {"facebook_followers":12000,"instagram_followers":4500,"total_blast_potential":16500},',
-    '  "roi_calculation": {"current_platform_fee_pct":7,"current_annual_fees":"₪14,000","xtix_fee_pct":5.5,"xtix_annual_fees":"₪11,000","annual_saving":"₪3,000","total_value_pitch":"₪3,000 חיסכון + 1,400 קונים"},',
-    '  "summary": "2-3 משפטים על תמונת הכסף",',
-    '  "reasoning": "נימוק הציון"',
+    '  "roi_calculation": {"current_platform_fee_pct":7,"current_annual_fees":"₪14,000","xtix_fee_pct":5.5,"xtix_annual_fees":"₪11,000","annual_saving":"₪3,000","total_value_pitch":"₪3,000 savings + 1,400 buyers"},',
+    '  "summary": "2-3 sentences about the money picture",',
+    '  "reasoning": "Score reasoning"',
     '}'
   ].join('\n');
 
@@ -488,27 +488,27 @@ async function _gptMoneyAnalyst(lead, proxyCtx, compInfo) {
 }
 
 // ════════════════════════════════════════════════════════════════
-//  ENGINE 3 — GEMINI: סורק המודיעין
+//  ENGINE 3 — GEMINI: Intelligence Scanner
 // ════════════════════════════════════════════════════════════════
 
 async function _geminiIntelScanner(lead, proxyCtx, compInfo) {
   var domain = (lead.domain||'').replace(/https?:\/\//,'').split('/')[0] || lead.name;
 
   var system = [
-    'אתה סורק מודיעין של XTIX — רואה את הליד מבחוץ.',
-    '7 משימות: (1) COMPETITOR DOMAINS — דומיינים מתחרים (2) ערוצי שיווק (3) מכירה ברשתות או רק פרסום (4) רשתות פעילות + engagement (5) ניתוח עמוד + UX (6) טראפיק (7) מי מתחרה בליד עצמו',
+    'You are XTIX\'s Intelligence Scanner — seeing the lead from the outside.',
+    '7 tasks: (1) COMPETITOR DOMAINS — competing domains (2) Marketing channels (3) Selling on social or just advertising (4) Active networks + engagement (5) Page analysis + UX (6) Traffic (7) Who competes with the lead itself',
     SHARED_SCORING_GUIDE,
-    'החזר JSON נקי בלבד. עברית.'
+    'Return clean JSON only. English.'
   ].join('\n');
 
   var user = [
-    'שם: '+(lead.name||'')+' | דומיין: '+domain+' | פלטפורמה: '+(lead.platform||'?'),
+    'Name: '+(lead.name||'')+' | Domain: '+domain+' | Platform: '+(lead.platform||'?'),
     '',
-    'מידע מהאתר:',
-    proxyCtx||'לא נמצא',
-    'מתחרי XTIX: '+(compInfo||''),
+    'Website data:',
+    proxyCtx||'Not found',
+    'XTIX competitors: '+(compInfo||''),
     '',
-    'החזר JSON:',
+    'Return JSON:',
     '{',
     '  "score": 75,',
     '  "score_breakdown": {"sells_tickets":30,"external_platform":25,"recurring_events":10,"event_size":5,"ticket_price":5,"deductions":0},',
@@ -517,12 +517,12 @@ async function _geminiIntelScanner(lead, proxyCtx, compInfo) {
     '  "marketing": {"channels":["Facebook organic"],"has_paid_ads":false,"has_pixel":false,"sophistication":"low"},',
     '  "social_selling": {"sells_via_social":false,"has_link_in_bio":true,"bio_link_destination":"SmartTicket"},',
     '  "social_platforms": {"facebook":{"active":true,"followers":12000,"posts_per_week":3,"engagement":"mid"},"instagram":{"active":true,"followers":4500,"engagement":"low"},"tiktok":{"active":false}},',
-    '  "page_analysis": {"has_own_website":true,"design_quality":"mid","cta_clarity":"low","notes":"כפתור מוביל ל-SmartTicket"},',
-    '  "traffic": {"monthly_visits_estimate":"2,400","source":"SimilarWeb אומדן"},',
-    '  "lead_competitors": ["מתחרה 1","מתחרה 2"],',
+    '  "page_analysis": {"has_own_website":true,"design_quality":"mid","cta_clarity":"low","notes":"Button leads to SmartTicket"},',
+    '  "traffic": {"monthly_visits_estimate":"2,400","source":"SimilarWeb estimate"},',
+    '  "lead_competitors": ["Competitor 1","Competitor 2"],',
     '  "competitive_pressure": "mid",',
-    '  "summary": "2-3 משפטים על המודיעין החיצוני",',
-    '  "reasoning": "נימוק הציון"',
+    '  "summary": "2-3 sentences about the external intelligence",',
+    '  "reasoning": "Score reasoning"',
     '}'
   ].join('\n');
 
@@ -533,7 +533,7 @@ async function _geminiIntelScanner(lead, proxyCtx, compInfo) {
 }
 
 // ════════════════════════════════════════════════════════════════
-//  META-JUDGE — לומד מ-Firebase, שופט, מחליט
+//  META-JUDGE — Learns from Firebase, judges, decides
 // ════════════════════════════════════════════════════════════════
 
 async function _metaJudge(lead, claudeResult, gptResult, geminiResult, memory, ctx) {
@@ -541,32 +541,32 @@ async function _metaJudge(lead, claudeResult, gptResult, geminiResult, memory, c
   var t0 = Date.now();
 
   function _eLine(name, result, env) {
-    if(!result) return name+' ('+(env&&env.status||'failed')+'): נכשל';
-    var bd = result.score_breakdown ? ' | פירוט: '+JSON.stringify(result.score_breakdown) : '';
-    var rn = result.reasoning ? ' | נימוק: '+result.reasoning.substring(0,200) : '';
-    var pp = result.pain_points&&result.pain_points.length ? ' | כאבים: '+result.pain_points.slice(0,3).join('; ') : '';
-    var pl = result.platform_current ? ' | פלטפורמה: '+result.platform_current : '';
+    if(!result) return name+' ('+(env&&env.status||'failed')+'): Failed';
+    var bd = result.score_breakdown ? ' | Breakdown: '+JSON.stringify(result.score_breakdown) : '';
+    var rn = result.reasoning ? ' | Reasoning: '+result.reasoning.substring(0,200) : '';
+    var pp = result.pain_points&&result.pain_points.length ? ' | Pains: '+result.pain_points.slice(0,3).join('; ') : '';
+    var pl = result.platform_current ? ' | Platform: '+result.platform_current : '';
     var kc = result.killer_combo ? ' | ⚡ KILLER: '+(result.killer_combo_explanation||'') : '';
-    return name+': ציון '+(result.score||'?')+pl+pp+kc+bd+rn;
+    return name+': Score '+(result.score||'?')+pl+pp+kc+bd+rn;
   }
 
   var engineSummary = [
-    _eLine('Claude (כאבים)', claudeResult, ctx.claudeEnv),
-    _eLine('GPT (כסף)',      gptResult,    ctx.gptEnv),
-    _eLine('Gemini (מודיעין)',geminiResult, ctx.geminiEnv)
+    _eLine('Claude (Pain)', claudeResult, ctx.claudeEnv),
+    _eLine('GPT (Money)',      gptResult,    ctx.gptEnv),
+    _eLine('Gemini (Intel)',geminiResult, ctx.geminiEnv)
   ].join('\n\n');
 
   var memStr = _buildMemoryString(memory, lead);
-  var partialNote = (ctx.failedEngines&&ctx.failedEngines.length) ? '\n⚠️ נכשלו: '+ctx.failedEngines.join(', ') : '';
+  var partialNote = (ctx.failedEngines&&ctx.failedEngines.length) ? '\n⚠️ Failed: '+ctx.failedEngines.join(', ') : '';
 
   var system = [
-    'אתה Meta-Judge של XTIX CRM — השופט הסופי.',
-    'יש לך: (1) תוצאות 3 מנועים (2) זיכרון Firebase (3) מדריך ציון (4) מתודולוגיית מכירות מה-Knowledge Base.',
-    'אתה לא ממצע — אתה מחליט ומסביר בנקודות.',
-    'כאב ללא ראיה = לא קיים. Firebase pattern = משקל גבוה.',
-    'מתודולוגיית המכירות מה-KB = הנחיות לטון, cadence, ופיצ\'.',
+    'You are the Meta-Judge of XTIX CRM — the final judge.',
+    'You have: (1) Results from 3 engines (2) Firebase memory (3) Scoring guide (4) Sales methodology from the Knowledge Base.',
+    'You do not average — you decide and explain with bullet points.',
+    'Pain without evidence = does not exist. Firebase pattern = high weight.',
+    'Sales methodology from KB = guidelines for tone, cadence, and pitch.',
     SHARED_SCORING_GUIDE,
-    'החזר JSON נקי בלבד. עברית.'
+    'Return clean JSON only. English.'
   ].join('\n');
 
   // Build brain_insights context
@@ -574,64 +574,64 @@ async function _metaJudge(lead, claudeResult, gptResult, geminiResult, memory, c
   if (memory.brain_insights) {
     var bi = memory.brain_insights;
     insightsStr = [
-      '=== KNOWLEDGE BASE INSIGHTS (נוצר: '+(bi.generated_at||'?')+') ===',
-      bi.sales_methodology_summary ? 'מתודולוגיה: '+bi.sales_methodology_summary : '',
-      bi.tone_guidelines           ? 'טון: '+bi.tone_guidelines : '',
-      bi.score_calibration         ? 'כיול ציון: '+bi.score_calibration : '',
-      (bi.winning_patterns&&bi.winning_patterns.length) ? 'דפוסי ניצחון: '+bi.winning_patterns.join(' | ') : '',
-      (bi.losing_patterns&&bi.losing_patterns.length)   ? 'דפוסי כישלון: '+bi.losing_patterns.join(' | ')   : '',
-      bi.cadence_rules ? 'חוקי cadence: hot='+((bi.cadence_rules||{}).hot||'')+' warm='+((bi.cadence_rules||{}).warm||'')+' cool='+((bi.cadence_rules||{}).cool||'') : '',
-      (bi.key_objections&&bi.key_objections.length) ? 'התנגדויות: '+bi.key_objections.slice(0,3).join(' | ') : '',
-      bi.meta_judge_instructions ? '⭐ הנחיות ישירות ל-Meta-Judge: '+bi.meta_judge_instructions : '',
-      bi.platform_intelligence && bi.platform_intelligence[lead.platform] ? 'intelligence על '+lead.platform+': '+bi.platform_intelligence[lead.platform] : '',
-      '('+( bi.kb_sources_count||0)+' מקורות KB, '+(bi.decisions_analyzed||0)+' ניתוחי עבר)'
+      '=== KNOWLEDGE BASE INSIGHTS (generated: '+(bi.generated_at||'?')+') ===',
+      bi.sales_methodology_summary ? 'Methodology: '+bi.sales_methodology_summary : '',
+      bi.tone_guidelines           ? 'Tone: '+bi.tone_guidelines : '',
+      bi.score_calibration         ? 'Score calibration: '+bi.score_calibration : '',
+      (bi.winning_patterns&&bi.winning_patterns.length) ? 'Winning patterns: '+bi.winning_patterns.join(' | ') : '',
+      (bi.losing_patterns&&bi.losing_patterns.length)   ? 'Losing patterns: '+bi.losing_patterns.join(' | ')   : '',
+      bi.cadence_rules ? 'Cadence rules: hot='+((bi.cadence_rules||{}).hot||'')+' warm='+((bi.cadence_rules||{}).warm||'')+' cool='+((bi.cadence_rules||{}).cool||'') : '',
+      (bi.key_objections&&bi.key_objections.length) ? 'Objections: '+bi.key_objections.slice(0,3).join(' | ') : '',
+      bi.meta_judge_instructions ? '⭐ Direct instructions for Meta-Judge: '+bi.meta_judge_instructions : '',
+      bi.platform_intelligence && bi.platform_intelligence[lead.platform] ? 'Intelligence on '+lead.platform+': '+bi.platform_intelligence[lead.platform] : '',
+      '('+( bi.kb_sources_count||0)+' KB sources, '+(bi.decisions_analyzed||0)+' past analyses)'
     ].filter(Boolean).join('\n');
   }
 
   var user = [
-    'ליד: '+(lead.name||'')+' | סגמנט: '+(lead.segment||lead.type||'')+' | פלטפורמה: '+(lead.platform||''),
+    'Lead: '+(lead.name||'')+' | Segment: '+(lead.segment||lead.type||'')+' | Platform: '+(lead.platform||''),
     '',
-    '=== תוצאות מנועים ===',
+    '=== Engine Results ===',
     engineSummary,
     partialNote,
     '',
-    '=== זיכרון Firebase ===',
+    '=== Firebase Memory ===',
     memStr,
     '',
     insightsStr ? insightsStr+'\n' : '',
-    'החזר JSON מדויק עם כל השדות הבאים — ענה על 25 נקודות בתוך השדות עצמם:',
+    'Return exact JSON with all the following fields — answer 25 points within the fields themselves:',
     '{',
     '  "meta_score": <0-100>,',
     '  "final_tier": "<A|B|C>",',
     '  "score_breakdown": {"sells_tickets":<0-30>,"external_platform":<0-25>,"recurring_events":<0-10>,"event_size":<0-10>,"ticket_price":<0-5>,"deductions":<0 or negative>},',
-    '  "platform_verdict": "<פלטפורמה + ראיה>",',
-    '  "pain_verdict": ["<כאב מאושר בראיה>"],',
+    '  "platform_verdict": "<platform + evidence>",',
+    '  "pain_verdict": ["<pain confirmed with evidence>"],',
     '  "killer_combo": <true|false>,',
-    '  "killer_combo_explanation": "<הסבר>",',
-    '  "roi_pitch": "<ROI קונקרטי לציג>",',
-    '  "next_event_urgency": "<תאריך + דחיפות>",',
+    '  "killer_combo_explanation": "<explanation>",',
+    '  "roi_pitch": "<concrete ROI to present>",',
+    '  "next_event_urgency": "<date + urgency>",',
     '  "recommended_cadence": "<hot|warm|cool>",',
-    '  "meta_reasoning": "<נימוק מפורט — ציון, כאבים, Firebase pattern, מחלוקות>",',
-    '  "meta_action": "<פעולה ספציפית מחר>",',
-    '  "opening_line": "<נוסח פתיחה מדויק>",',
+    '  "meta_reasoning": "<detailed reasoning — score, pains, Firebase pattern, disagreements>",',
+    '  "meta_action": "<specific action for tomorrow>",',
+    '  "opening_line": "<exact opening line>",',
     '  "pitch_angle": "<ROI|Data|Brand|AI>",',
-    '  "blast_potential": <מספר>,',
-    '  "discovery_questions": ["<שאלה>","<שאלה>","<שאלה>","<שאלה>","<שאלה>"],',
-    '  "objection_handler": "<תשובה ל\'מרוצים מהפלטפורמה\'>",',
-    '  "risk_factors": ["<סיכון>"],',
-    '  "social_proof": "<social proof רלוונטי>",',
-    '  "marketing_insight": "<תובנת Gemini>",',
-    '  "rep_summary": "<3 משפטים לנציג לפני שיחה>",',
-    '  "firebase_context": "<מה Firebase לימד על הסגמנט/פלטפורמה>",',
-    '  "disagreements": ["<מנוע X נתן Y — בחרתי A כי B>"],',
+    '  "blast_potential": <number>,',
+    '  "discovery_questions": ["<question>","<question>","<question>","<question>","<question>"],',
+    '  "objection_handler": "<answer to \'happy with current platform\'>",',
+    '  "risk_factors": ["<risk>"],',
+    '  "social_proof": "<relevant social proof>",',
+    '  "marketing_insight": "<Gemini insight>",',
+    '  "rep_summary": "<3 sentences for rep before call>",',
+    '  "firebase_context": "<what Firebase taught about the segment/platform>",',
+    '  "disagreements": ["<engine X gave Y — chose A because B>"],',
     '  "confidence": "<high|mid|low>",',
-    '  "confidence_reason": "<נימוק ביטחון>",',
-    '  "final_summary": "<סיכום מלא>"',
+    '  "confidence_reason": "<confidence reasoning>",',
+    '  "final_summary": "<full summary>"',
     '}'
   ].join('\n');
 
   try {
-    if (typeof _callAI === 'undefined') throw new Error('_callAI לא מוגדר — index.html לא נטען?');
+    if (typeof _callAI === 'undefined') throw new Error('_callAI not defined — index.html not loaded?');
     var judgeAbort = new AbortController();
     var judgeTimer = setTimeout(function(){ judgeAbort.abort(); }, TIMEOUT_META_JUDGE);
     var verdict = await _callAI(system, user, 3500, TIMEOUT_META_JUDGE, judgeAbort.signal);
@@ -642,7 +642,7 @@ async function _metaJudge(lead, claudeResult, gptResult, geminiResult, memory, c
   } catch(e) {
     console.warn('[Brain] Meta-Judge failed:', e.message);
     var best = claudeResult||gptResult||geminiResult||{};
-    return { meta_score:best.score||50, final_tier:best.tier||'B', meta_reasoning:'Meta-Judge לא זמין', meta_action:best.next_action||'', pain_verdict:best.pain_points||[], platform_verdict:best.platform_current||'', disagreements:[], confidence:'low', confidence_reason:'Meta-Judge נכשל', final_summary:best.summary||'', rep_summary:best.summary||'', _judgeMs:Date.now()-t0 };
+    return { meta_score:best.score||50, final_tier:best.tier||'B', meta_reasoning:'Meta-Judge unavailable', meta_action:best.next_action||'', pain_verdict:best.pain_points||[], platform_verdict:best.platform_current||'', disagreements:[], confidence:'low', confidence_reason:'Meta-Judge failed', final_summary:best.summary||'', rep_summary:best.summary||'', _judgeMs:Date.now()-t0 };
   }
 }
 
@@ -683,18 +683,18 @@ function _withTimeout(promise,ms,label){
 }
 
 async function _runEngine(id,promiseFn,timeoutMs,dbgFn){
-  var t0=Date.now(); dbgFn(id,'🔄 רץ...',null,false);
+  var t0=Date.now(); dbgFn(id,'🔄 Running...',null,false);
   try {
     var raw=await _withTimeout(promiseFn(),timeoutMs,id);
     if(raw==='__TIMEOUT__'){dbgFn(id,'⏱ Timeout ('+timeoutMs/1000+'s)',null,true);return _engineEnvelope(id,null,'timeout','timeout',t0);}
-    if(!raw){dbgFn(id,'⚠️ ריק',null,true);return _engineEnvelope(id,null,'error','empty',t0);}
+    if(!raw){dbgFn(id,'⚠️ Empty',null,true);return _engineEnvelope(id,null,'error','empty',t0);}
     var score=raw.score||null;
     var note=(id==='gemini'&&raw._geminiModel&&raw._geminiModel!=='gemini-2.0-flash')?' ('+raw._geminiModel+')':'';
-    dbgFn(id,'✅ '+((Date.now()-t0)/1000).toFixed(1)+'s'+note+(score?' — ציון: '+score:''),score,false);
+    dbgFn(id,'✅ '+((Date.now()-t0)/1000).toFixed(1)+'s'+note+(score?' — Score: '+score:''),score,false);
     return _engineEnvelope(id,raw,'ok',null,t0);
   } catch(e) {
     var isT=e.name==='TimeoutError'||e.name==='AbortError'||(e.message||'').includes('timeout');
-    dbgFn(id,(isT?'⏱ Timeout':'❌ שגיאה')+': '+(e.message||'').substring(0,40),null,true);
+    dbgFn(id,(isT?'⏱ Timeout':'❌ Error')+': '+(e.message||'').substring(0,40),null,true);
     return _engineEnvelope(id,null,isT?'timeout':'error',e.message,t0);
   }
 }
@@ -713,7 +713,7 @@ function _showDebugPanel(brainKeys){
     var ok=!flag||(brainKeys&&brainKeys[flag]);
     return '<div style="display:flex;align-items:center;gap:10px;padding:8px 12px;background:rgba('+color+',0.06);border:1px solid rgba('+color+',0.2);border-radius:8px;margin-bottom:6px">'+
       '<div style="flex:1"><div style="font-size:11px;font-weight:700;color:rgb('+color+')">'+label+'</div>'+
-      '<div id="_dbg_'+id+'_status" style="font-size:11px;color:rgba(255,255,255,0.4)">'+(ok?'⏳ ממתין...':'○ לא מוגדר')+'</div></div>'+
+      '<div id="_dbg_'+id+'_status" style="font-size:11px;color:rgba(255,255,255,0.4)">'+(ok?'⏳ Waiting...':'○ Not configured')+'</div></div>'+
       '<div id="_dbg_'+id+'_score" style="font-size:16px;font-weight:800;color:rgb('+color+');min-width:32px;text-align:center">—</div></div>';
   }
   panel.innerHTML=
@@ -721,10 +721,10 @@ function _showDebugPanel(brainKeys){
       '<div style="font-size:13px;font-weight:800;color:#a78bfa" id="_dbg_header">🔬 Triple Engine</div>'+
       '<button onclick="document.getElementById(\'_triple_debug_panel\').remove()" style="background:rgba(255,255,255,0.06);border:1px solid rgba(255,255,255,0.1);border-radius:5px;padding:2px 8px;color:rgba(255,255,255,0.4);cursor:pointer;font-size:11px">✕</button>'+
     '</div>'+
-    row('claude','139,92,246','🟣 Claude — בלש כאבים',null)+
-    row('gpt',   '16,185,129','🟢 GPT-4o — אנליסט כסף','gpt')+
-    row('gemini','59,130,246','🔵 Gemini — מודיעין','gemini')+
-    row('judge', '245,158,11','⚖️ Meta-Judge — למד מDB',null)+
+    row('claude','139,92,246','🟣 Claude — Pain Detective',null)+
+    row('gpt',   '16,185,129','🟢 GPT-4o — Money Analyst','gpt')+
+    row('gemini','59,130,246','🔵 Gemini — Intelligence','gemini')+
+    row('judge', '245,158,11','⚖️ Meta-Judge — Learned from DB',null)+
     '<div id="_dbg_timing" style="font-size:10px;color:rgba(255,255,255,0.25);text-align:center;margin-top:8px">⏱ <span id="_dbg_elapsed">0</span>s</div>';
   document.body.appendChild(panel);
   var t=Date.now();
@@ -742,7 +742,7 @@ function _dbgUpdate(engine,status,score,isError){
 function _dbgSetHeader(ok,total){var el=document.getElementById('_dbg_header');if(el)el.textContent='🔬 Triple Engine — '+ok+'/'+total;}
 
 // ════════════════════════════════════════════════════════════════
-//  TRIPLE ENGINE PIPELINE — ראשי
+//  TRIPLE ENGINE PIPELINE — Main
 // ════════════════════════════════════════════════════════════════
 
 window._tripleEnginePipeline = async function(lead) {
@@ -761,13 +761,13 @@ window._tripleEnginePipeline = async function(lead) {
   var _brainKeys = window.getBrainKeys ? window.getBrainKeys() : {};
   var activeEngines = 1+(_brainKeys&&_brainKeys.gpt?1:0)+(_brainKeys&&_brainKeys.gemini?1:0);
 
-  setP(5,activeEngines===3?'🚀 Triple Engine — Claude + GPT + Gemini במקביל...':activeEngines===2?'🚀 Dual Engine...':'🧠 Claude מנתח...');
+  setP(5,activeEngines===3?'🚀 Triple Engine — Claude + GPT + Gemini in parallel...':activeEngines===2?'🚀 Dual Engine...':'🧠 Claude analyzing...');
   _showDebugPanel(_brainKeys);
-  if(!(_brainKeys&&_brainKeys.gpt))    _dbgUpdate('gpt','○ לא מוגדר',null,false);
-  if(!(_brainKeys&&_brainKeys.gemini)) _dbgUpdate('gemini','○ לא מוגדר',null,false);
+  if(!(_brainKeys&&_brainKeys.gpt))    _dbgUpdate('gpt','○ Not configured',null,false);
+  if(!(_brainKeys&&_brainKeys.gemini)) _dbgUpdate('gemini','○ Not configured',null,false);
 
-  // שלב 1: proxy — פעם אחת לכולם
-  setP(8,'🌐 סורק את האתר...');
+  // Step 1: proxy — once for all engines
+  setP(8,'🌐 Scanning website...');
   var proxyData=null, sharedProxyCtx='';
   try {
     var domain=(lead.domain||'').replace(/https?:\/\//,'').split('/')[0];
@@ -775,28 +775,28 @@ window._tripleEnginePipeline = async function(lead) {
     if(pr.ok){
       proxyData=await pr.json();
       sharedProxyCtx=[
-        'פלטפורמה: '+(proxyData.ticketPlatform||'לא זוהתה'),
-        'מייל: '+(proxyData.email||'לא נמצא'),
-        'טלפון: '+(proxyData.phone||'לא נמצא'),
-        proxyData.externalTicketUrl?'קישור חיצוני: '+proxyData.externalTicketUrl:'',
-        proxyData.socialLinks&&proxyData.socialLinks.length?'רשתות: '+proxyData.socialLinks.join(', '):'',
-        proxyData.contactName?'איש קשר: '+proxyData.contactName:'',
-        proxyData.address?'כתובת: '+proxyData.address:'',
-        proxyData.description?'תיאור: '+proxyData.description.substring(0,300):''
+        'Platform: '+(proxyData.ticketPlatform||'Not detected'),
+        'Email: '+(proxyData.email||'Not found'),
+        'Phone: '+(proxyData.phone||'Not found'),
+        proxyData.externalTicketUrl?'External link: '+proxyData.externalTicketUrl:'',
+        proxyData.socialLinks&&proxyData.socialLinks.length?'Social networks: '+proxyData.socialLinks.join(', '):'',
+        proxyData.contactName?'Contact person: '+proxyData.contactName:'',
+        proxyData.address?'Address: '+proxyData.address:'',
+        proxyData.description?'Description: '+proxyData.description.substring(0,300):''
       ].filter(Boolean).join('\n');
     }
   } catch(e){console.warn('[Triple] Proxy failed:',e.message);}
 
-  // שלב 2: זיכרון Firebase
-  setP(12,'🧠 טוען זיכרון היסטורי...');
+  // Step 2: Firebase memory
+  setP(12,'🧠 Loading historical memory...');
   var memory={};
   try{memory=await window.getBrainMemory(lead);}catch(e){console.warn('[Brain] Memory failed:',e.message);}
 
-  // שלב 2b: Knowledge Base context
-  // brain_insights נטענים ב-getBrainMemory מ-Firebase — לא ישירות מה-KB
+  // Step 2b: Knowledge Base context
+  // brain_insights are loaded in getBrainMemory from Firebase — not directly from KB
 
-  // שלב 3: 3 מנועים במקביל
-  setP(18,'🚀 '+activeEngines+' מנועים רצים במקביל...');
+  // Step 3: 3 engines in parallel
+  setP(18,'🚀 '+activeEngines+' engines running in parallel...');
 
   var enginePromises=[
     _runEngine('claude',function(){return _claudePainDetective(lead,sharedProxyCtx,compInfo,METH);},TIMEOUT_CLAUDE,_dbgUpdate)
@@ -823,18 +823,18 @@ window._tripleEnginePipeline = async function(lead) {
 
   var allFailed=[claudeEnv,gptEnv,geminiEnv].filter(function(e){return e.status!=='skipped';}).every(function(e){return e.status!=='ok';});
   if(allFailed){
-    _dbgUpdate('judge','⚠️ כל המנועים נכשלו',null,true);
-    var fallback={score:50,tier:'B',summary:'ניתוח לא זמין',status:'done',triple_engine:true,engines_ok:0,engines_total:configuredCount};
+    _dbgUpdate('judge','⚠️ All engines failed',null,true);
+    var fallback={score:50,tier:'B',summary:'Analysis unavailable',status:'done',triple_engine:true,engines_ok:0,engines_total:configuredCount};
     lead.ai_analysis=Object.assign({},fallback);
     if(typeof db!=='undefined'&&db)db.collection('leads').doc(String(lead.id)).set(window._cleanForFirebase(lead)).catch(function(){});
-    renderSimpleLead(lead);setP(100,'⚠️ נסה שנית');return fallback;
+    renderSimpleLead(lead);setP(100,'⚠️ Try again');return fallback;
   }
 
   var baseResult=claudeResult||gptResult||geminiResult;
 
-  // שלב 4: Meta-Judge
-  setP(75,'⚖️ Meta-Judge — מייעץ עם הזיכרון ומחליט...');
-  _dbgUpdate('judge','🔄 שולף היסטוריה ומנתח...',null,false);
+  // Step 4: Meta-Judge
+  setP(75,'⚖️ Meta-Judge — consulting memory and deciding...');
+  _dbgUpdate('judge','🔄 Fetching history and analyzing...',null,false);
 
   var consensus=_calcConsensus(
     claudeResult?(claudeResult.score||50):null,
@@ -847,10 +847,10 @@ window._tripleEnginePipeline = async function(lead) {
     failedEngines:failedEngines,consensus:consensus
   });
 
-  _dbgUpdate('judge','✅ '+((verdict._judgeMs||0)/1000).toFixed(1)+'s — ציון: '+(verdict.meta_score||'?'),verdict.meta_score,false);
+  _dbgUpdate('judge','✅ '+((verdict._judgeMs||0)/1000).toFixed(1)+'s — Score: '+(verdict.meta_score||'?'),verdict.meta_score,false);
 
-  // שלב 5: שמירה
-  setP(92,'💾 שומר ל-Firebase...');
+  // Step 5: Save
+  setP(92,'💾 Saving to Firebase...');
   var logDocId=null;
   try{logDocId=await window.saveAnalysisLog(lead.id,lead.name,{claude:claudeResult,gpt:gptResult,gemini:geminiResult},verdict,proxyData);}catch(e){console.warn('[Brain] saveAnalysisLog:',e.message);}
   try{
@@ -873,7 +873,7 @@ window._tripleEnginePipeline = async function(lead) {
     });
   }catch(e){console.warn('[Brain] saveBrainDecision:',e.message);}
 
-  // שלב 6: תוצאה סופית
+  // Step 6: Final result
   var finalResult=Object.assign({},baseResult,{
     status:'done',enriched_at:new Date().toISOString(),
     triple_engine:true,engines_ok:successCount,engines_total:configuredCount,
@@ -942,12 +942,12 @@ window._tripleEnginePipeline = async function(lead) {
     if(panel._dbgTimer)clearInterval(panel._dbgTimer);
     var el=document.getElementById('_dbg_elapsed');
     var tEl=document.getElementById('_dbg_timing');
-    if(tEl&&el)tEl.innerHTML=(successCount<configuredCount?'<span style="color:#F59E0B">⚠️ '+successCount+'/'+configuredCount+'</span> — ':'✅ ')+'הושלם ב-<strong style="color:#a78bfa">'+el.textContent+'s</strong>';
+    if(tEl&&el)tEl.innerHTML=(successCount<configuredCount?'<span style="color:#F59E0B">⚠️ '+successCount+'/'+configuredCount+'</span> — ':'✅ ')+'Completed in <strong style="color:#a78bfa">'+el.textContent+'s</strong>';
     var sum=document.createElement('div');
     sum.style.cssText='margin-top:8px;padding:8px 12px;background:rgba(245,158,11,0.1);border:1px solid rgba(245,158,11,0.3);border-radius:8px;text-align:center';
     var s=finalResult.score||'?';
     var sc=s>=80?'#10b981':s>=60?'#F59E0B':'#ef4444';
-    sum.innerHTML='<div style="font-size:11px;color:rgba(255,255,255,0.4);margin-bottom:4px">ציון סופי (Meta-Judge)</div>'+
+    sum.innerHTML='<div style="font-size:11px;color:rgba(255,255,255,0.4);margin-bottom:4px">Final Score (Meta-Judge)</div>'+
       '<div style="font-size:26px;font-weight:900;color:'+sc+'">'+s+'</div>'+
       (finalResult.tier?'<div style="font-size:11px;color:rgba(255,255,255,0.5)">Tier '+finalResult.tier+'</div>':'')+
       (finalResult.killer_combo?'<div style="font-size:11px;color:#f59e0b;margin-top:4px">⚡ Killer Combo</div>':'');
@@ -956,7 +956,7 @@ window._tripleEnginePipeline = async function(lead) {
   })();
 
   // Deep pipeline async
-  setP(100,'✅ ניתוח הושלם — מעשיר אסטרטגיה + מיילים...');
+  setP(100,'✅ Analysis complete — enriching strategy + emails...');
   (function(){
     setTimeout(async function(){
       try{
@@ -987,7 +987,7 @@ window._tripleEnginePipeline = async function(lead) {
         renderSimpleLead(lead);
         var bdy=document.getElementById('body-'+lead.id);
         if(bdy&&bdy.classList.contains('open')){var tabs=document.querySelectorAll('#lead-'+lead.id+' .lead-tab');if(tabs[1])switchLeadTab(lead.id,'analysis',tabs[1]);}
-        // progress bar כבר נמחק עם render — אין צורך לעדכן
+        // progress bar already removed on render — no need to update
       }catch(e){console.warn('[Brain] Deep enrich failed:',e.message);}
     },300);
   })();
@@ -996,7 +996,7 @@ window._tripleEnginePipeline = async function(lead) {
 };
 
 // ════════════════════════════════════════════════════════════════
-//  DEEP PIPELINE — אסטרטגיה + מיילים (async)
+//  DEEP PIPELINE — Strategy + Emails (async)
 // ════════════════════════════════════════════════════════════════
 
 window._deepAIPipeline = async function(lead) {
@@ -1013,41 +1013,41 @@ window._deepAIPipeline = async function(lead) {
     _pbUpdate(Math.round(gPct*0.7+pct*0.3),msg.substring(0,35),lead);
   }
 
-  setP(5,'🧠 Claude — מחקר + אסטרטגיה...');
+  setP(5,'🧠 Claude — Research + Strategy...');
   var proxy=null;
   try{var pr=await window._authFetch(SERVER+'/analyze?url='+encodeURIComponent('https://'+domain),{signal:AbortSignal.timeout(7000)});if(pr.ok)proxy=await pr.json();}catch(e){}
-  var pCtx=proxy?'פלטפורמה='+(proxy.ticketPlatform||'?')+', מייל='+(proxy.email||'?')+', טלפון='+(proxy.phone||'?'):'לא נמצא';
+  var pCtx=proxy?'Platform='+(proxy.ticketPlatform||'?')+', Email='+(proxy.email||'?')+', Phone='+(proxy.phone||'?'):'Not found';
 
-  setP(15,'🧠 Claude — ניתוח + אסטרטגיה...');
+  setP(15,'🧠 Claude — Analysis + Strategy...');
   var pA=await _callAI(
-    'אתה חוקר B2B ומנהל מכירות בכיר ב-XTIX.AI. JSON נקי בלבד. עברית.',
-    'נתח:\nשם: '+lead.name+' | דומיין: '+domain+'\nמידע: '+pCtx+'\nמתחרים: '+compInfo+
+    'You are a B2B researcher and senior sales manager at XTIX.AI. Clean JSON only. English.',
+    'Analyze:\nName: '+lead.name+' | Domain: '+domain+'\nData: '+pCtx+'\nCompetitors: '+compInfo+
     '\n\nJSON: {summary,executive_summary,segment,platform_current,platform_weakness,competitors_used,target_audience,events_per_year,venue_size,ticket_price_range,estimated_annual_tickets,estimated_annual_revenue,estimated_annual_fees,estimated_xtix_savings,pain_points,social_intel,pricing_intel,address,raw_research,sales_attack,pitch_angle,pitch,meeting_prep,discovery_questions,next_action,objection_handlers}',
     2500,TIMEOUT_DEEP);
 
-  setP(55,'🧠 Claude — מתודולוגיה...');
+  setP(55,'🧠 Claude — Methodology...');
   var cadenceDays={'hot':[1,3,7,14],'cool':[1,7,21,45],'warm':[1,5,12,25]};
   var pB1=await _callAI(
-    'יועץ מכירות בכיר. JSON נקי בלבד. עברית.',
-    'נתח מתודולוגיה:\n'+lead.name+'\nכאבים: '+(pA.pain_points||[]).join(', ')+'\nפלטפורמה: '+(pA.platform_current||'?')+
+    'Senior sales consultant. Clean JSON only. English.',
+    'Analyze methodology:\n'+lead.name+'\nPain points: '+(pA.pain_points||[]).join(', ')+'\nPlatform: '+(pA.platform_current||'?')+
     '\n\nJSON: {score,tier,recommended_cadence,scoring_breakdown,four_fs,salesforce_bps,attack_angle,best_opening,risk_factors,summary_for_rep}',
     1200,TIMEOUT_DEEP);
 
-  setP(80,'🧠 Claude — מיילים...');
+  setP(80,'🧠 Claude — Emails...');
   var cadence=pB1.recommended_cadence||'warm';
   var days=cadenceDays[cadence]||cadenceDays['warm'];
   var pB2 = { email_sequence: [] };
   try {
     var pB2raw = await window._callAIFast(
-      'מומחה מכירות XTIX. 4 מיילים ספציפיים. JSON בלבד. עברית.',
-      '4 מיילים ל-'+lead.name+' | ימים: '+days.join('→')+' | Cadence: '+cadence+
-      '\nכאבים: '+(pA.pain_points||[]).join(', ')+'\nROI: '+(pA.estimated_xtix_savings||'?')+
+      'XTIX sales expert. 4 specific emails. JSON only. English.',
+      '4 emails for '+lead.name+' | Days: '+days.join('→')+' | Cadence: '+cadence+
+      '\nPain points: '+(pA.pain_points||[]).join(', ')+'\nROI: '+(pA.estimated_xtix_savings||'?')+
       '\n\n{"email_sequence":[{"email_num":1,"day":'+days[0]+',"type":"curiosity","subject":"","body":"","cta":""},{"email_num":2,"day":'+days[1]+',"type":"roi","subject":"","body":"","cta":""},{"email_num":3,"day":'+days[2]+',"type":"social_proof","subject":"","body":"","cta":""},{"email_num":4,"day":'+days[3]+',"type":"breakup","subject":"","body":"","cta":""}]}',
       1400, 40000);
     if (pB2raw && pB2raw.email_sequence) pB2 = pB2raw;
   } catch(e) { console.warn('[Brain] Email failed:', e.message); }
 
-  setP(97,'💾 שומר...');
+  setP(97,'💾 Saving...');
   var sc=parseInt(pB1.score)||55;
   return {
     status:'done',enriched_at:new Date().toISOString(),
@@ -1070,7 +1070,7 @@ window._deepAIPipeline = async function(lead) {
     salesforce_bps:pB1.salesforce_bps||{},attack_angle:pB1.attack_angle||'',
     best_opening:pB1.best_opening||'',risk_factors:pB1.risk_factors||[],
     summary_for_rep:pB1.summary_for_rep||'',email_sequence:pB2.email_sequence||[],
-    internal_summary:(pB1.summary_for_rep||pA.executive_summary||'')+(pA.next_action?'\n\nהצעד הבא: '+pA.next_action:'')
+    internal_summary:(pB1.summary_for_rep||pA.executive_summary||'')+(pA.next_action?'\n\nNext step: '+pA.next_action:'')
   };
 };
 

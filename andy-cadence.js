@@ -6,18 +6,18 @@
  * ╠══════════════════════════════════════════════════════════════╣
  * ║  CHANGELOG                                                   ║
  * ║  v1.0 — initial build                                       ║
- * ║    - andyCadenceStart()  : מפעיל cadence אחרי מייל ראשון   ║
- * ║    - andyCadenceTick()   : scheduler — רץ כל שעה           ║
- * ║    - andyCadenceGenerate(): ANDY מייצר מייל המשך            ║
- * ║    - andyGhostedCheck()  : בודק ghosted → re-engagement     ║
+ * ║    - andyCadenceStart()  : starts cadence after first email   ║
+ * ║    - andyCadenceTick()   : scheduler — runs every hour      ║
+ * ║    - andyCadenceGenerate(): ANDY generates follow-up email   ║
+ * ║    - andyGhostedCheck()  : checks ghosted → re-engagement   ║
  * ╚══════════════════════════════════════════════════════════════╝
  *
  * FLOW:
- *  מייל 1 (ידני) → andyCadenceStart()
- *    → +3 ימים  → מייל 2 (אוטומטי)
- *    → +3 ימים  → מייל 3 (אוטומטי)
- *    → +5 ימים  → מייל 4 (אוטומטי, אם ANDY החליט על 4)
- *    → אין תגובה → ghosted → +14 יום → re-engagement
+ *  Email 1 (manual) → andyCadenceStart()
+ *    → +3 days  → Email 2 (automatic)
+ *    → +3 days  → Email 3 (automatic)
+ *    → +5 days  → Email 4 (automatic, if ANDY decided on 4)
+ *    → No response → ghosted → +14 days → re-engagement
  *
  * DEPENDENCIES: window._sb, window._authFetch, window.SERVER
  */
@@ -26,9 +26,9 @@
   'use strict';
 
   // ── Config ────────────────────────────────────────────────────
-  var CADENCE_DAYS = [0, 3, 3, 5]; // ימים בין כל מייל (index = sequence_num-1)
+  var CADENCE_DAYS = [0, 3, 3, 5]; // days between each email (index = sequence_num-1)
   var GHOSTED_DAYS = 14;
-  var TICK_INTERVAL = 60 * 60 * 1000; // שעה אחת
+  var TICK_INTERVAL = 60 * 60 * 1000; // one hour
 
   // ── Helpers ───────────────────────────────────────────────────
   function _log(msg) { console.log('[Cadence] ' + msg); }
@@ -56,7 +56,7 @@
       body: JSON.stringify({
         model: 'claude-sonnet-4-6',
         max_tokens: 1000,
-        system: 'אתה מומחה מכירות B2B. החזר JSON נקי בלבד ללא markdown.',
+        system: 'You are a B2B sales expert. Return clean JSON only, no markdown.',
         messages: [{ role: 'user', content: prompt }]
       }),
       signal: AbortSignal.timeout(30000)
@@ -87,22 +87,22 @@
   }
 
   // ══════════════════════════════════════════════════════════════
-  // andyCadenceStart — קורא לאחר שליחת מייל ראשון
-  // params: leadId, firstEmailRow (שורה מה-outreach_queue)
+  // andyCadenceStart — called after sending first email
+  // params: leadId, firstEmailRow (row from outreach_queue)
   // ══════════════════════════════════════════════════════════════
   window.andyCadenceStart = async function(leadId, firstEmailRow) {
     try {
       var lead = await _getLead(leadId);
       if (!lead) { _log('Lead not found: ' + leadId); return; }
 
-      // ANDY מחליט על מספר מיילים (3 או 4) בהתבסס על הליד
-      var decisionPrompt = `אתה ANDY. בהתבסס על הליד הבא, האם cadence של 3 או 4 מיילים?
-ליד: ${lead.name || '?'} | Score: ${lead.score || 0} | Tier: ${(lead.ai_analysis||{}).tier || '?'} | Segment: ${lead.segment || '?'}
-כלל: Tier A (score 80+) = 4 מיילים. Tier B/C = 3 מיילים. אם יש סיבה מיוחדת תסביר.
-החזר JSON: {"total_emails": 3, "reasoning": "..."}`;
+      // ANDY decides on number of emails (3 or 4) based on lead
+      var decisionPrompt = `You are ANDY. Based on the following lead, should the cadence be 3 or 4 emails?
+Lead: ${lead.name || '?'} | Score: ${lead.score || 0} | Tier: ${(lead.ai_analysis||{}).tier || '?'} | Segment: ${lead.segment || '?'}
+Rule: Tier A (score 80+) = 4 emails. Tier B/C = 3 emails. If there's a special reason, explain.
+Return JSON: {"total_emails": 3, "reasoning": "..."}`;
 
       var decision = await _callAI(decisionPrompt).catch(function() {
-        return { total_emails: 3, reasoning: 'ברירת מחדל' };
+        return { total_emails: 3, reasoning: 'Default' };
       });
 
       var totalEmails = decision.total_emails === 4 ? 4 : 3;
@@ -110,7 +110,7 @@
         ? firstEmailRow.cadence_id
         : _cadenceId(leadId);
 
-      // עדכן את המייל הראשון עם cadence info
+      // Update first email with cadence info
       if (firstEmailRow && firstEmailRow.id) {
         await window._sb.update('outreach_queue', 'id=eq.' + firstEmailRow.id, {
           sequence_num:   1,
@@ -120,7 +120,7 @@
         }).catch(function(){});
       }
 
-      // עדכן הליד
+      // Update lead
       await window._sb.update('leads', 'id=eq.' + leadId, {
         cadence_active:   true,
         cadence_id:       cadId,
@@ -130,7 +130,7 @@
 
       _log('Cadence started for ' + leadId + ' — ' + totalEmails + ' emails. ID: ' + cadId);
 
-      // תזמן את המיילים הבאים
+      // Schedule next emails
       await _scheduleNextEmail(lead, cadId, 1, totalEmails, firstEmailRow);
 
     } catch(e) {
@@ -149,13 +149,13 @@
     var daysToWait = CADENCE_DAYS[nextSeq - 1] || 3;
     var sendAfter = _addDays(new Date().toISOString(), daysToWait);
 
-    // יצור placeholder לבמייל הבא — body יוכן כשמגיע הזמן
+    // Create placeholder for next email — body will be generated when time comes
     var nextRow = {
       lead_id:        lead.id,
       channel:        'email',
       subject:        '',
       body:           '',
-      reasoning:      'ממתין לייצור תוכן — יוכן ' + daysToWait + ' ימים אחרי המייל הקודם',
+      reasoning:      'Waiting for content generation — will be ready ' + daysToWait + ' days after previous email',
       status:         'scheduled',
       sequence_num:   nextSeq,
       sequence_total: totalEmails,
@@ -173,8 +173,8 @@
   }
 
   // ══════════════════════════════════════════════════════════════
-  // andyCadenceGenerate — מייצר תוכן למייל ממתין
-  // קורא לו andyCadenceTick כשהגיע הזמן
+  // andyCadenceGenerate — generates content for pending email
+  // Called by andyCadenceTick when time comes
   // ══════════════════════════════════════════════════════════════
   async function andyCadenceGenerate(pendingRow) {
     var lead = await _getLead(pendingRow.lead_id);
@@ -189,74 +189,74 @@
     var seqTotal = pendingRow.sequence_total || 3;
     var ai = lead.ai_analysis || {};
 
-    // בנה סיכום מיילים קודמים לקונטקסט
+    // Build summary of previous emails for context
     var prevSummary = sentEmails.map(function(e, i) {
-      return 'מייל ' + (i+1) + ':\nנושא: ' + e.subject + '\nתוכן: ' + (e.body || '').substring(0, 300);
+      return 'Email ' + (i+1) + ':\nSubject: ' + e.subject + '\nContent: ' + (e.body || '').substring(0, 300);
     }).join('\n\n');
 
-    // הגדר אסטרטגיה לכל שלב
+    // Define strategy for each stage
     var strategies = {
-      2: 'מייל המשך — הוסף ערך חדש שלא הוזכר במייל הראשון. הצג case study קצר או data point ספציפי לסגמנט שלהם. אל תחזור על מה שנאמר.',
-      3: 'מייל שלישי — הגישה משתנה. יותר ישיר. שאל שאלה פתוחה אחת חדה על הבעיה שלהם. הצע שיחה קצרה של 15 דקות.',
-      4: 'מייל רביעי ואחרון — "Breakup email". ישיר, קצר, מכבד. ספר שאתה מסגר את הנושא אלא אם יש עניין. תן להם exit מכובד.'
+      2: 'Follow-up email — add new value not mentioned in first email. Show a short case study or segment-specific data point. Do not repeat what was said.',
+      3: 'Third email — approach changes. More direct. Ask one sharp open question about their problem. Offer a short 15-minute call.',
+      4: 'Fourth and final email — "Breakup email". Direct, short, respectful. Say you\'re closing the topic unless there\'s interest. Give them a graceful exit.'
     };
 
     var strategy = strategies[seqNum] || strategies[2];
 
-    var prompt = `אתה ANDY — מומחה מכירות B2B של XTIX.
-זהו מייל מספר ${seqNum} מתוך ${seqTotal} בסדרה לאותו ליד. אין תגובה עדיין.
+    var prompt = `You are ANDY — a B2B sales expert at XTIX.
+This is email number ${seqNum} out of ${seqTotal} in the series for the same lead. No response yet.
 
-=== פרטי הליד ===
-שם: ${lead.name || '?'}
-דומיין: ${lead.domain || '?'}
-סגמנט: ${lead.segment || lead.type || '?'}
-פלטפורמה: ${lead.platform || ai.platform_current || '?'}
+=== Lead Details ===
+Name: ${lead.name || '?'}
+Domain: ${lead.domain || '?'}
+Segment: ${lead.segment || lead.type || '?'}
+Platform: ${lead.platform || ai.platform_current || '?'}
 Score: ${lead.score || 0}/100
 Pitch Angle: ${lead.pitch_angle || ai.pitch_angle || '?'}
 Pain Points: ${(ai.pain_points || []).join(', ') || '?'}
 
-=== מיילים קודמים שנשלחו ===
-${prevSummary || 'אין עדיין — זה המייל הראשון בסדרה'}
+=== Previously Sent Emails ===
+${prevSummary || 'None yet — this is the first email in the series'}
 
-=== אסטרטגיה למייל זה ===
+=== Strategy for This Email ===
 ${strategy}
 
-=== חוקים ===
-- כתוב בעברית, סגנון אנושי וישיר
-- 2-4 משפטים בגוף (לא רשימות)
-- אל תחזור על מה שנכתב במיילים הקודמים
-- המייל חייב להיות בהמשך ישיר לסדרה — אותו thread
-- אל תכתוב שורת פתיחה (היי/שלום) — תתווסף אוטומטית
-- אל תכתוב חתימה — תתווסף אוטומטית
+=== Rules ===
+- Write in English, human and direct style
+- 2-4 sentences in body (no lists)
+- Do not repeat what was written in previous emails
+- Email must be a direct continuation of the series — same thread
+- Do not write greeting line (Hi/Hello) — will be added automatically
+- Do not write signature — will be added automatically
 
-החזר JSON בלבד: {"subject":"...","body":"...","reasoning":"..."}`;
+Return JSON only: {"subject":"...","body":"...","reasoning":"..."}`;
 
     var outreach = await _callAI(prompt);
 
-    // עדכן את השורה הקיימת עם התוכן
+    // Update existing row with content
     await window._sb.update('outreach_queue', 'id=eq.' + pendingRow.id, {
       subject:   outreach.subject || '',
       body:      outreach.body    || '',
       reasoning: outreach.reasoning || '',
-      status:    'auto_ready'  // מוכן לשליחה אוטומטית
+      status:    'auto_ready'  // ready for auto-send
     });
 
     _log('Generated email ' + seqNum + '/' + seqTotal + ' for lead ' + pendingRow.lead_id);
 
-    // שלח אוטומטית
+    // Auto-send
     await _autoSend(pendingRow.id, pendingRow.lead_id, outreach, lead);
 
-    // תזמן את הבא אם יש
+    // Schedule next if any
     if (seqNum < seqTotal) {
       await _scheduleNextEmail(lead, pendingRow.cadence_id, seqNum, seqTotal, pendingRow);
     } else {
-      // סוף cadence — עדכן ליד
+      // End of cadence — update lead
       await window._sb.update('leads', 'id=eq.' + lead.id, {
         cadence_active: false
       }).catch(function(){});
       _log('Cadence ended for lead ' + lead.id + ' — no response after ' + seqTotal + ' emails');
 
-      // תזמן ghosted check
+      // Schedule ghosted check
       await _scheduleGhostedCheck(lead);
     }
   }
@@ -273,10 +273,10 @@ ${strategy}
       var bodyLines = (outreach.body || '').split('\n').filter(function(l){ return l.trim(); });
       var htmlBody =
         '<div dir="rtl" style="font-family:Arial,sans-serif;font-size:15px;line-height:1.8;color:#222;max-width:560px">' +
-        '<p style="margin:0 0 16px">היי ' + contactName + ',</p>' +
+        '<p style="margin:0 0 16px">Hi ' + contactName + ',</p>' +
         bodyLines.map(function(l){ return '<p style="margin:0 0 12px">' + l + '</p>'; }).join('') +
-        '<p style="margin:16px 0 4px">בברכה,</p>' +
-        '<p style="margin:0"><strong>אורן</strong><br><a href="https://xtix.ai" style="color:#6c63ff">xtix.ai</a></p>' +
+        '<p style="margin:16px 0 4px">Best regards,</p>' +
+        '<p style="margin:0"><strong>Oren</strong><br><a href="https://xtix.ai" style="color:#6c63ff">xtix.ai</a></p>' +
         '</div>';
 
       var sendResp = await window._authFetch(window.SERVER + '/send-email', {
@@ -286,7 +286,7 @@ ${strategy}
           to:      lead.email,
           subject: outreach.subject,
           html:    htmlBody,
-          text:    'היי ' + contactName + ',\n\n' + outreach.body + '\n\nבברכה,\nאורן\nxtix.ai'
+          text:    'Hi ' + contactName + ',\n\n' + outreach.body + '\n\nBest regards,\nOren\nxtix.ai'
         })
       });
 
@@ -322,28 +322,28 @@ ${strategy}
   }
 
   // ══════════════════════════════════════════════════════════════
-  // andyGhostedCheck — Re-engagement אחרי 14 יום
+  // andyGhostedCheck — Re-engagement after 14 days
   // ══════════════════════════════════════════════════════════════
   async function andyGhostedCheck(lead) {
     _log('Running ghosted re-engagement for lead ' + lead.id);
 
     var ai = lead.ai_analysis || {};
-    var prompt = `אתה ANDY. ליד זה לא הגיב ל-${lead.outreach_count || 3} מיילים. עבר 14 יום.
-שם: ${lead.name || '?'} | סגמנט: ${lead.segment || '?'} | Score: ${lead.score || 0}
+    var prompt = `You are ANDY. This lead hasn't responded to ${lead.outreach_count || 3} emails. 14 days have passed.
+Name: ${lead.name || '?'} | Segment: ${lead.segment || '?'} | Score: ${lead.score || 0}
 
-כתוב מייל re-engagement שונה לחלוטין מהגישה הקודמת:
-- גישה חדשה לחלוטין — זווית אחרת
-- קצר מאוד (2 משפטים)
-- אל תזכיר שניסית קודם
-- נסה גישת "חדשות/insight" — שתף משהו רלוונטי לסגמנט שלהם
-- סיים בשאלה פשוטה אחת
+Write a re-engagement email completely different from the previous approach:
+- Entirely new approach — different angle
+- Very short (2 sentences)
+- Don't mention you tried before
+- Try a "news/insight" approach — share something relevant to their segment
+- End with one simple question
 
-החזר JSON: {"subject":"...","body":"...","reasoning":"..."}`;
+Return JSON: {"subject":"...","body":"...","reasoning":"..."}`;
 
     try {
       var outreach = await _callAI(prompt);
 
-      // הוסף לתור כ-pending_approval (re-engagement = ידני)
+      // Add to queue as pending_approval (re-engagement = manual)
       var row = {
         lead_id:        lead.id,
         channel:        'email',
@@ -351,17 +351,17 @@ ${strategy}
         body:           outreach.body    || '',
         reasoning:      '[Re-engagement] ' + (outreach.reasoning || ''),
         status:         'pending_approval',
-        sequence_num:   0,  // re-engagement = לא חלק מה-cadence הרגיל
+        sequence_num:   0,  // re-engagement = not part of regular cadence
         auto_generated: true,
         cadence_id:     'reeng_' + lead.id + '_' + Date.now()
       };
 
       await window._sb.insert('outreach_queue', row);
 
-      // עדכן ליד לsגtatus ghosted
+      // Update lead to ghosted status
       await window._sb.update('leads', 'id=eq.' + lead.id, {
         status:     'ghosted',
-        ghosted_at: null  // נוקה — כדי שלא ירוץ שוב
+        ghosted_at: null  // cleared — so it doesn't run again
       }).catch(function(){});
 
       if (typeof window._outreachLoad === 'function') setTimeout(window._outreachLoad, 500);
@@ -374,7 +374,7 @@ ${strategy}
   }
 
   // ══════════════════════════════════════════════════════════════
-  // andyCadenceTick — רץ כל שעה, בודק מה צריך לשלוח
+  // andyCadenceTick — runs every hour, checks what needs to be sent
   // ══════════════════════════════════════════════════════════════
   window.andyCadenceTick = async function() {
     if (!window._sb || !window.currentUser) return;
@@ -383,7 +383,7 @@ ${strategy}
     var now = new Date().toISOString();
 
     try {
-      // 1. בדוק מיילים שהגיע זמנם לייצר ולשלוח
+      // 1. Check emails that are due for generation and sending
       var scheduled = await window._sb.get('outreach_queue',
         'status=eq.scheduled&send_after=lte.' + now + '&auto_generated=eq.true&limit=10'
       ).catch(function(){ return []; });
@@ -398,7 +398,7 @@ ${strategy}
         }
       }
 
-      // 2. בדוק לידים שצריך re-engagement (ghosted_at עבר)
+      // 2. Check leads that need re-engagement (ghosted_at passed)
       var ghostedLeads = await window._sb.get('leads',
         'ghosted_at=lte.' + now + '&cadence_active=eq.false&limit=5'
       ).catch(function(){ return []; });
@@ -418,16 +418,16 @@ ${strategy}
   };
 
   // ══════════════════════════════════════════════════════════════
-  // INIT — מפעיל את ה-ticker
+  // INIT — starts the ticker
   // ══════════════════════════════════════════════════════════════
   window.andyCadenceInit = function() {
-    // הפעל מיד + כל שעה
+    // Run immediately + every hour
     setTimeout(window.andyCadenceTick, 5000);
     setInterval(window.andyCadenceTick, TICK_INTERVAL);
     _log('Cadence engine initialized — tick every 1h');
   };
 
-  // Auto-init אחרי שה-auth מוכן
+  // Auto-init after auth is ready
   var _initInterval = setInterval(function() {
     if (window.currentUser && window._sb && window.SERVER) {
       clearInterval(_initInterval);
