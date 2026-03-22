@@ -1692,7 +1692,7 @@ document.addEventListener("DOMContentLoaded",function(){
     <div class="logo-collapsed">
       <div class="logo-icon">🚀</div>
     </div>
-    <button id="sidebar-toggle" onclick="window.toggleSidebar()" title="הסתר/הצג תפריט">
+    <button id="sidebar-toggle" onclick="window.toggleSidebar()" title="Toggle sidebar">
       <svg width="14" height="14" viewBox="0 0 14 14" fill="none" style="transition:transform 0.2s">
         <path d="M9 2.5L5 7L9 11.5" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
       </svg>
@@ -1702,26 +1702,26 @@ document.addEventListener("DOMContentLoaded",function(){
   <!-- NAV -->
   <nav id="sidebar-nav">
     <button class="nav-btn active" data-panel="leads" onclick="switchMainTab('leads',this)">
-      <span class="nav-icon"><svg width="14" height="14" viewBox="0 0 14 14" fill="none"><rect x="1.5" y="1.5" width="4.5" height="4.5" rx="1.2" stroke="currentColor" stroke-width="1.3"/><rect x="8" y="1.5" width="4.5" height="4.5" rx="1.2" stroke="currentColor" stroke-width="1.3"/><rect x="1.5" y="8" width="4.5" height="4.5" rx="1.2" stroke="currentColor" stroke-width="1.3"/><rect x="8" y="8" width="4.5" height="4.5" rx="1.2" stroke="currentColor" stroke-width="1.3"/></svg></span><span class="nav-label">לידים</span>
+      <span class="nav-icon"><svg width="14" height="14" viewBox="0 0 14 14" fill="none"><rect x="1.5" y="1.5" width="4.5" height="4.5" rx="1.2" stroke="currentColor" stroke-width="1.3"/><rect x="8" y="1.5" width="4.5" height="4.5" rx="1.2" stroke="currentColor" stroke-width="1.3"/><rect x="1.5" y="8" width="4.5" height="4.5" rx="1.2" stroke="currentColor" stroke-width="1.3"/><rect x="8" y="8" width="4.5" height="4.5" rx="1.2" stroke="currentColor" stroke-width="1.3"/></svg></span><span class="nav-label">Leads</span>
       <span id="leads-nav-count" style="background:var(--surface3);border-radius:10px;padding:1px 7px;font-size:10px;color:var(--text2);font-weight:600;margin-right:auto">0</span>
     </button>
     <button class="nav-btn" data-panel="leadfinder" onclick="switchMainTab('leadfinder',this)">
       <span class="nav-icon"><svg width="14" height="14" viewBox="0 0 14 14" fill="none"><circle cx="7" cy="7" r="5.5" stroke="currentColor" stroke-width="1.3"/><path d="M7 4.5v5M4.5 7h5" stroke="currentColor" stroke-width="1.3" stroke-linecap="round"/></svg></span><span class="nav-label">Lead Finder</span>
     </button>
     <button class="nav-btn" data-panel="market" onclick="switchMainTab('market',this)">
-      <span class="nav-icon"><svg width="14" height="14" viewBox="0 0 14 14" fill="none"><circle cx="7" cy="7" r="5.5" stroke="currentColor" stroke-width="1.3"/><circle cx="7" cy="7" r="2" fill="currentColor" opacity=".5"/></svg></span><span class="nav-label">ניתוח שוק</span>
+      <span class="nav-icon"><svg width="14" height="14" viewBox="0 0 14 14" fill="none"><circle cx="7" cy="7" r="5.5" stroke="currentColor" stroke-width="1.3"/><circle cx="7" cy="7" r="2" fill="currentColor" opacity=".5"/></svg></span><span class="nav-label">Market Analysis</span>
     </button>
     <div class="nav-sub" id="sub-market">
-      <button class="nav-sub-btn active" onclick="switchMarket('overview',this)">🧭 מפת השוק</button>
+      <button class="nav-sub-btn active" onclick="switchMarket('overview',this)">🧭 Market Map</button>
       <button class="nav-sub-btn" onclick="switchMarket('pains',this)">💥 Pain Points</button>
       <button class="nav-sub-btn" onclick="switchMarket('scoring',this)">🎯 Scoring</button>
-      <button class="nav-sub-btn" onclick="switchMarket('methodology',this)">⚡ מתודולוגיה</button>
+      <button class="nav-sub-btn" onclick="switchMarket('methodology',this)">⚡ Methodology</button>
       <button class="nav-sub-btn" onclick="switchMarket('emails',this)">📧 Emails</button>
-      <button class="nav-sub-btn" onclick="switchMarket('objections',this)">🛡 התנגדויות</button>
+      <button class="nav-sub-btn" onclick="switchMarket('objections',this)">🛡 Objections</button>
       <button class="nav-sub-btn" onclick="switchMarket('kpis',this)">📊 KPIs</button>
     </div>
     <button class="nav-btn" data-panel="methodology" onclick="switchMainTab('market',this);setTimeout(function(){window.methTab&&window.methTab('methodology');},80)">
-      <span class="nav-icon"><svg width="14" height="14" viewBox="0 0 14 14" fill="none"><path d="M2 3.5h10M2 7h10M2 10.5h6" stroke="currentColor" stroke-width="1.3" stroke-linecap="round"/></svg></span><span class="nav-label">מתודולוגיה</span>
+      <span class="nav-icon"><svg width="14" height="14" viewBox="0 0 14 14" fill="none"><path d="M2 3.5h10M2 7h10M2 10.5h6" stroke="currentColor" stroke-width="1.3" stroke-linecap="round"/></svg></span><span class="nav-label">Methodology</span>
     </button>
     <button class="nav-btn" data-panel="hubspot" onclick="switchMainTab('hubspot',this)">
       <span class="nav-icon"><svg width="14" height="14" viewBox="0 0 14 14" fill="none"><path d="M7 1.5l4.5 2.5v5L7 12.5 2.5 9v-5z" stroke="currentColor" stroke-width="1.3" stroke-linejoin="round"/></svg></span><span class="nav-label">HubSpot</span>
@@ -1732,16 +1732,16 @@ document.addEventListener("DOMContentLoaded",function(){
       <span id="brain-badge" style="display:none;background:linear-gradient(135deg,#7c3aed,#a78bfa);color:#fff;border-radius:10px;padding:1px 7px;font-size:9px;font-weight:700;margin-right:auto">0</span>
     </button>
     <button class="nav-btn" data-panel="tasks" onclick="switchMainTab('tasks',this)" id="nav-tasks">
-      <span class="nav-icon"><svg width="14" height="14" viewBox="0 0 14 14" fill="none"><rect x="2" y="2" width="10" height="10" rx="2" stroke="currentColor" stroke-width="1.3"/><path d="M5 7l2 2 4-3.5" stroke="currentColor" stroke-width="1.3" stroke-linecap="round" stroke-linejoin="round" opacity=".6"/></svg></span><span class="nav-label">משימות</span>
+      <span class="nav-icon"><svg width="14" height="14" viewBox="0 0 14 14" fill="none"><rect x="2" y="2" width="10" height="10" rx="2" stroke="currentColor" stroke-width="1.3"/><path d="M5 7l2 2 4-3.5" stroke="currentColor" stroke-width="1.3" stroke-linecap="round" stroke-linejoin="round" opacity=".6"/></svg></span><span class="nav-label">Tasks</span>
       <span id="tasks-badge" style="display:none;background:var(--accent-blue);color:#fff;border-radius:10px;padding:1px 7px;font-size:9px;font-weight:700;margin-right:auto">0</span>
     </button>
     <button class="nav-btn" data-panel="outreach" onclick="switchMainTab('outreach',this);setTimeout(window._outreachInit,50);setTimeout(window._outreachLoad,200)" id="nav-outreach">
       <span class="nav-icon"><svg width="14" height="14" viewBox="0 0 14 14" fill="none"><path d="M2 2.5h10c.6 0 1 .4 1 1v6c0 .6-.4 1-1 1H2c-.6 0-1-.4-1-1v-6c0-.6.4-1 1-1z" stroke="currentColor" stroke-width="1.3"/><path d="M1 3l6 4 6-4" stroke="currentColor" stroke-width="1.3" stroke-linecap="round"/></svg></span>
-      <span class="nav-label">תור פניות</span>
+      <span class="nav-label">Outreach Queue</span>
       <span id="outreach-badge" style="display:none;background:linear-gradient(135deg,#e74c3c,#c0392b);color:#fff;border-radius:10px;padding:1px 7px;font-size:9px;font-weight:700;margin-right:auto">0</span>
     </button>
     <button class="nav-btn" data-panel="users" onclick="switchMainTab('users',this);setTimeout(window.loadUsers,50);" id="nav-users" style="display:none" data-role="admin">
-      <span class="nav-icon"><svg width="14" height="14" viewBox="0 0 14 14" fill="none"><circle cx="5" cy="4.5" r="2" stroke="currentColor" stroke-width="1.3"/><path d="M1 12c0-2.2 1.8-4 4-4s4 1.8 4 4" stroke="currentColor" stroke-width="1.3" stroke-linecap="round"/><circle cx="10.5" cy="4.5" r="1.5" stroke="currentColor" stroke-width="1.2" opacity=".6"/><path d="M12 10.5c0-1.1-.5-2-1.5-2.5" stroke="currentColor" stroke-width="1.2" stroke-linecap="round" opacity=".6"/></svg></span><span class="nav-label">משתמשים</span>
+      <span class="nav-icon"><svg width="14" height="14" viewBox="0 0 14 14" fill="none"><circle cx="5" cy="4.5" r="2" stroke="currentColor" stroke-width="1.3"/><path d="M1 12c0-2.2 1.8-4 4-4s4 1.8 4 4" stroke="currentColor" stroke-width="1.3" stroke-linecap="round"/><circle cx="10.5" cy="4.5" r="1.5" stroke="currentColor" stroke-width="1.2" opacity=".6"/><path d="M12 10.5c0-1.1-.5-2-1.5-2.5" stroke="currentColor" stroke-width="1.2" stroke-linecap="round" opacity=".6"/></svg></span><span class="nav-label">Users</span>
     </button>
     <button class="nav-btn" data-panel="kb" onclick="switchMainTab('kb',this);setTimeout(window._kbInit,50)">
       <span class="nav-icon"><svg width="14" height="14" viewBox="0 0 14 14" fill="none"><rect x="2" y="1.5" width="8" height="10" rx="1.5" stroke="currentColor" stroke-width="1.3"/><path d="M4.5 4.5h5M4.5 7h5M4.5 9.5h3" stroke="currentColor" stroke-width="1.2" stroke-linecap="round" opacity=".6"/><circle cx="11" cy="11" r="2.5" fill="var(--accent)" opacity=".9"/><path d="M10 11h2M11 10v2" stroke="#fff" stroke-width="1.2" stroke-linecap="round"/></svg></span>
@@ -1760,8 +1760,8 @@ document.addEventListener("DOMContentLoaded",function(){
 
     <!-- Stats -->
     <div class="sb-stats">
-      <div class="sb-stat"><span class="sb-val" id="total-leads">0</span><span class="sb-key">לידים</span></div>
-      <div class="sb-stat"><span class="sb-val" id="contacted-count">0</span><span class="sb-key">פניות</span></div>
+      <div class="sb-stat"><span class="sb-val" id="total-leads">0</span><span class="sb-key">Leads</span></div>
+      <div class="sb-stat"><span class="sb-val" id="contacted-count">0</span><span class="sb-key">Outreach</span></div>
     </div>
 
     <!-- Status indicators -->
@@ -1773,19 +1773,19 @@ document.addEventListener("DOMContentLoaded",function(){
 
     <!-- User Info + Logout -->
     <div id="user-info" style="padding:8px;border-top:1px solid var(--border);display:flex;align-items:center;gap:6px;margin-top:4px">
-      <span style="font-size:11px;color:var(--text2);flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">טוען...</span>
+      <span style="font-size:11px;color:var(--text2);flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">Loading...</span>
     </div>
 
     <!-- Tools -->
     <div class="sb-tools">
       <button class="sb-tool-btn" onclick="document.getElementById('csv-import')&&document.getElementById('csv-import').click()" title="ייבוא CSV">
-        📥 <span>ייבוא CSV</span>
+        📥 <span>Import CSV</span>
       </button>
       <button class="sb-tool-btn" onclick="if(window.exportToExcel)exportToExcel();else if(window.exportLeads)exportLeads();" title="ייצוא Excel">
-        📊 <span>ייצוא Excel</span>
+        📊 <span>Export Excel</span>
       </button>
       <button class="sb-tool-btn" onclick="loadLeadsAsync().then(()=>renderAllLeads())" title="סנכרון Supabase">
-        🔄 <span>סנכרון DB</span>
+        🔄 <span>Sync DB</span>
       </button>
     </div>
 
@@ -2808,7 +2808,7 @@ document.addEventListener("DOMContentLoaded",function(){
           <div class="hs-field-group">
             <label class="hs-label">בחר לידים לשליחה</label>
             <div id="hs-lead-selector" class="hs-lead-selector"></div>
-            <button class="hs-select-all-btn" onclick="selectAllLeads()">☑ בחר הכל</button>
+            <button class="hs-select-all-btn" onclick="selectAllLeads()">☑ Select All</button>
           </div>
           <button class="hs-push-btn" onclick="pushToHubspot()">⚡ שלח לידים נבחרים ל-HubSpot</button>
           <div id="hs-status" class="hs-status"></div>
@@ -3095,11 +3095,11 @@ document.addEventListener("DOMContentLoaded",function(){
             <div class="hunt-field-group">
               <label class="hunt-label">🎭 סוג האירועים</label>
               <div class="hunt-chips-row" id="hunt-segments">
-                <label class="hunt-chip"><input type="checkbox" value="תיאטרון">🎭 תיאטרון</label>
-                <label class="hunt-chip"><input type="checkbox" value="מוזיקה">🎵 מוזיקה</label>
-                <label class="hunt-chip"><input type="checkbox" value="סטנד-אפ">🎤 סטנד-אפ</label>
-                <label class="hunt-chip"><input type="checkbox" value="ספורט">⚽ ספורט</label>
-                <label class="hunt-chip"><input type="checkbox" value="פסטיבל">🎪 פסטיבל</label>
+                <label class="hunt-chip"><input type="checkbox" value="תיאטרון">🎭 Theater</label>
+                <label class="hunt-chip"><input type="checkbox" value="מוזיקה">🎵 Music</label>
+                <label class="hunt-chip"><input type="checkbox" value="סטנד-אפ">🎤 Stand-up</label>
+                <label class="hunt-chip"><input type="checkbox" value="ספורט">⚽ Sports</label>
+                <label class="hunt-chip"><input type="checkbox" value="פסטיבל">🎪 Festival</label>
                 <label class="hunt-chip"><input type="checkbox" value="ילדים">🧒 ילדים</label>
                 <label class="hunt-chip"><input type="checkbox" value="אמנות">🎨 אמנות</label>
                 <label class="hunt-chip"><input type="checkbox" value="כנסים">💼 כנסים</label>
@@ -3385,7 +3385,7 @@ document.addEventListener("DOMContentLoaded",function(){
       <div class="form-group" style="margin:0">
         <label style="font-size:11px;color:rgba(196,196,204,0.75);display:block;margin-bottom:5px">סטטוס</label>
         <select id="new-status" style="width:100%;background:var(--surface2);border:1px solid var(--border);border-radius:8px;padding:8px 12px;font-size:13px;color:var(--text);font-family:Heebo,sans-serif;outline:none;box-sizing:border-box">
-          <option value="new">🆕 ליד חדש</option>
+          <option value="new">🆕 New Lead</option>
           <option value="new">🟢 ליד חדש</option>
           <option value="contacted">📧 נוצר קשר</option>
           <option value="followup">🔁 Follow-up</option>
@@ -3393,10 +3393,10 @@ document.addEventListener("DOMContentLoaded",function(){
           <option value="negotiation">🤝 במשא ומתן</option>
           <option value="won">✅ נסגר - הצלחה</option>
           <option value="lost">❌ נסגר - כישלון</option>
-          <option value="ghosted">👻 לא מגיב</option>
+          <option value="ghosted">👻 Ghosted</option>
           <option value="not_relevant">🚫 לא רלוונטי</option>
           <option value="future_potential">⏳ עתידי - לחזור</option>
-          <option value="referred_us">🌟 הפנה אותנו</option>
+          <option value="referred_us">🌟 Referred Us</option>
         </select>
       </div>
     </div>
@@ -3964,7 +3964,7 @@ ${(function(){
     var listEl  = document.getElementById('outreach-list');
     var statsEl = document.getElementById('outreach-stats');
     // אל תמחק את הרשימה הקיימת בזמן טעינה
-    if (listEl && !listEl.children.length) listEl.innerHTML = '<div style="color:var(--text2);text-align:center;padding:40px;font-size:13px">טוען...</div>';
+    if (listEl && !listEl.children.length) listEl.innerHTML = '<div style="color:var(--text2);text-align:center;padding:40px;font-size:13px">Loading...</div>';
 
     try {
       var filter = (document.getElementById('outreach-filter') || {}).value || 'all';
@@ -5101,7 +5101,7 @@ window._editLeadSave = function(lid){
       }
     }, 100);
 
-    return '<div id="' + containerId + '" style="min-height:80px"><div style="padding:20px;text-align:center;color:var(--t2);font-size:13px">טוען...</div></div>';
+    return '<div id="' + containerId + '" style="min-height:80px"><div style="padding:20px;text-align:center;color:var(--t2);font-size:13px">Loading...</div></div>';
   }
 
   function _statChipSmall(label, count) {
@@ -5532,7 +5532,7 @@ SupaAuth.init(async function(user) {
           '<img src="' + (user.photoURL||'') + '" style="width:22px;height:22px;border-radius:50%;vertical-align:middle" onerror="this.style.display=\'none\'">' +
           '<span style="font-size:11px;color:rgba(196,196,204,0.75);margin:0 6px">' + (user.displayName||user.email) + '</span>' +
           '<span style="font-size:10px;color:var(--accent2);margin-right:4px">' + roleLabel + '</span>' +
-          '<button onclick="googleLogout()" style="background:none;border:1px solid var(--border);border-radius:5px;padding:2px 8px;font-size:10px;color:var(--muted);cursor:pointer;font-family:\'Heebo\',sans-serif">התנתק</button>';
+          '<button onclick="googleLogout()" style="background:none;border:1px solid var(--border);border-radius:5px;padding:2px 8px;font-size:10px;color:var(--muted);cursor:pointer;font-family:\'Heebo\',sans-serif">Sign Out</button>';
       }
 
       _applyRoleUI(role);
@@ -8180,14 +8180,14 @@ BP6-10: תעדף (פלטפורמה ישנה+דומיין+6+ אירועים), Dis
           '<input id="hs-search" type="text" placeholder="🔍 סנן לידים..." ' +
             'style="flex:1;background:var(--surface2);border:1px solid var(--border);border-radius:7px;padding:6px 10px;color:var(--text);font-size:12px;font-family:Heebo,sans-serif;outline:none" ' +
             'oninput="filterHSLeads()">' +
-          '<button onclick="hsSelectAll(true)" style="background:rgba(108,99,255,0.15);border:1px solid rgba(108,99,255,0.3);border-radius:6px;padding:5px 12px;font-size:11px;color:var(--accent);cursor:pointer;font-family:Heebo,sans-serif;white-space:nowrap">☑ בחר הכל</button>' +
+          '<button onclick="hsSelectAll(true)" style="background:rgba(108,99,255,0.15);border:1px solid rgba(108,99,255,0.3);border-radius:6px;padding:5px 12px;font-size:11px;color:var(--accent);cursor:pointer;font-family:Heebo,sans-serif;white-space:nowrap">☑ Select All</button>' +
           '<button onclick="hsSelectAll(false)" style="background:none;border:1px solid var(--border);border-radius:6px;padding:5px 12px;font-size:11px;color:rgba(196,196,204,0.75);cursor:pointer;font-family:Heebo,sans-serif;white-space:nowrap">☐ בטל הכל</button>' +
         '</div>' +
         '<div style="display:flex;gap:6px;flex-wrap:wrap;margin-bottom:6px">' +
           '<button onclick="hsFilterStatus(\'\')" class="hs-flt-btn hs-flt-active" data-flt="" style="background:rgba(108,99,255,0.15);border:1px solid rgba(108,99,255,0.3);border-radius:5px;padding:3px 10px;font-size:11px;color:var(--accent);cursor:pointer;font-family:Heebo,sans-serif">הכל</button>' +
-          '<button onclick="hsFilterStatus(\'new\')" class="hs-flt-btn" data-flt="new" style="background:var(--surface2);border:1px solid var(--border);border-radius:5px;padding:3px 10px;font-size:11px;color:rgba(196,196,204,0.75);cursor:pointer;font-family:Heebo,sans-serif">🟢 חדש</button>' +
-          '<button onclick="hsFilterStatus(\'contacted\')" class="hs-flt-btn" data-flt="contacted" style="background:var(--surface2);border:1px solid var(--border);border-radius:5px;padding:3px 10px;font-size:11px;color:rgba(196,196,204,0.75);cursor:pointer;font-family:Heebo,sans-serif">📧 נשלח מייל</button>' +
-          '<button onclick="hsFilterStatus(\'meeting\')" class="hs-flt-btn" data-flt="meeting" style="background:var(--surface2);border:1px solid var(--border);border-radius:5px;padding:3px 10px;font-size:11px;color:rgba(196,196,204,0.75);cursor:pointer;font-family:Heebo,sans-serif">📅 פגישה</button>' +
+          '<button onclick="hsFilterStatus(\'new\')" class="hs-flt-btn" data-flt="new" style="background:var(--surface2);border:1px solid var(--border);border-radius:5px;padding:3px 10px;font-size:11px;color:rgba(196,196,204,0.75);cursor:pointer;font-family:Heebo,sans-serif">🟢 New</button>' +
+          '<button onclick="hsFilterStatus(\'contacted\')" class="hs-flt-btn" data-flt="contacted" style="background:var(--surface2);border:1px solid var(--border);border-radius:5px;padding:3px 10px;font-size:11px;color:rgba(196,196,204,0.75);cursor:pointer;font-family:Heebo,sans-serif">📧 Emailed</button>' +
+          '<button onclick="hsFilterStatus(\'meeting\')" class="hs-flt-btn" data-flt="meeting" style="background:var(--surface2);border:1px solid var(--border);border-radius:5px;padding:3px 10px;font-size:11px;color:rgba(196,196,204,0.75);cursor:pointer;font-family:Heebo,sans-serif">📅 Meeting</button>' +
           '<span id="hs-sel-count" style="font-size:11px;color:rgba(196,196,204,0.75);align-self:center;margin-right:auto">0 נבחרו</span>' +
         '</div>';
       container.parentNode.insertBefore(ctrl, container);
@@ -8624,7 +8624,7 @@ addSalesPlaybookPanel();
 
     <!-- List -->
     <div id="outreach-list" style="display:flex;flex-direction:column;gap:10px">
-      <div style="color:var(--text2);text-align:center;padding:40px;font-size:13px">טוען...</div>
+      <div style="color:var(--text2);text-align:center;padding:40px;font-size:13px">Loading...</div>
     </div>
 
   </div>
@@ -8939,8 +8939,8 @@ addSalesPlaybookPanel();
     toolbar.innerHTML =
       '<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px">' +
         '<span id="crm-badge" style="background:rgba(108,99,255,0.15);border:1px solid rgba(108,99,255,0.3);border-radius:20px;padding:2px 10px;font-size:11px;color:var(--accent)">0 לידים</span>' +
-        '<button onclick="window.openAddLeadModal&&window.openAddLeadModal()" style="background:rgba(16,185,129,0.12);border:1px solid rgba(16,185,129,0.3);border-radius:20px;padding:2px 12px;font-size:11px;color:#10b981;cursor:pointer;font-family:Heebo,sans-serif;font-weight:700">+ הוסף ליד</button>' +
-        '<button onclick="toggleSelAll()" id="sel-all-v3" style="background:none;border:1px solid var(--border);border-radius:6px;padding:3px 10px;font-size:11px;color:rgba(196,196,204,0.75);cursor:pointer;font-family:Heebo,sans-serif">☐ בחר הכל</button>' +
+        '<button onclick="window.openAddLeadModal&&window.openAddLeadModal()" style="background:rgba(16,185,129,0.12);border:1px solid rgba(16,185,129,0.3);border-radius:20px;padding:2px 12px;font-size:11px;color:#10b981;cursor:pointer;font-family:Heebo,sans-serif;font-weight:700">+ Add Lead</button>' +
+        '<button onclick="toggleSelAll()" id="sel-all-v3" style="background:none;border:1px solid var(--border);border-radius:6px;padding:3px 10px;font-size:11px;color:rgba(196,196,204,0.75);cursor:pointer;font-family:Heebo,sans-serif">☐ Select All</button>' +
       '</div>' +
       '<div style="position:relative;margin-bottom:8px">' +
         '<span style="position:absolute;right:10px;top:50%;transform:translateY(-50%);color:var(--muted);pointer-events:none;font-size:13px">🔍</span>' +
@@ -8950,23 +8950,23 @@ addSalesPlaybookPanel();
       '</div>' +
       '<div style="display:flex;gap:6px;flex-wrap:wrap;margin-bottom:6px;align-items:center">' +
         '<select id="v3-fst" onchange="filterV3()" style="background:var(--surface2);border:1px solid var(--border);border-radius:6px;padding:5px 8px;color:var(--text);font-size:11px;font-family:Heebo,sans-serif;outline:none">' +
-          '<option value="">כל הסטטוסים</option>' +
-          '<option value="new">🟢 חדש</option><option value="contacted">📧 נשלח מייל</option>' +
-          '<option value="followup">🔁 Follow-up</option><option value="meeting">📅 פגישה</option><option value="negotiation">🤝 משא ומתן</option><option value="won">✅ נסגר</option><option value="ghosted">👻 לא מגיב</option><option value="future_potential">⏳ עתידי</option><option value="referred_us">🌟 הפנה אותנו</option>' +
+          '<option value="">All Statuses</option>' +
+          '<option value="new">🟢 New</option><option value="contacted">📧 Emailed</option>' +
+          '<option value="followup">🔁 Follow-up</option><option value="meeting">📅 Meeting</option><option value="negotiation">🤝 Negotiation</option><option value="won">✅ Won</option><option value="ghosted">👻 Ghosted</option><option value="future_potential">⏳ Future</option><option value="referred_us">🌟 Referred Us</option>' +
         '</select>' +
         '<select id="v3-fsrc" onchange="filterV3()" style="background:var(--surface2);border:1px solid var(--border);border-radius:6px;padding:5px 8px;color:var(--text);font-size:11px;font-family:Heebo,sans-serif;outline:none">' +
-          '<option value="">כל המקורות</option>' +
-          '<option value="clay">🤖 Clay</option><option value="manual">✍️ ידני</option>' +
+          '<option value="">All Sources</option>' +
+          '<option value="clay">🤖 Clay</option><option value="manual">✍️ Manual</option>' +
           '<option value="hunt">🎯 Hunt</option><option value="csv">📥 CSV</option>' +
         '</select>' +
         '<select id="v3-fseg" onchange="filterV3()" style="background:var(--surface2);border:1px solid var(--border);border-radius:6px;padding:5px 8px;color:var(--text);font-size:11px;font-family:Heebo,sans-serif;outline:none">' +
-          '<option value="">כל הסגמנטים</option>' +
-          '<option value="תיאטרון">🎭 תיאטרון</option><option value="מוזיקה">🎵 מוזיקה</option>' +
-          '<option value="קולנוע">🎬 קולנוע</option><option value="סטנד-אפ">🎤 סטנד-אפ</option>' +
-          '<option value="פסטיבל">🎪 פסטיבל</option><option value="ספורט">⚽ ספורט</option>' +
+          '<option value="">All Segments</option>' +
+          '<option value="תיאטרון">🎭 Theater</option><option value="מוזיקה">🎵 Music</option>' +
+          '<option value="קולנוע">🎬 Cinema</option><option value="סטנד-אפ">🎤 Stand-up</option>' +
+          '<option value="פסטיבל">🎪 Festival</option><option value="ספורט">⚽ Sports</option>' +
         '</select>' +
         '<select id="v3-sort" onchange="filterV3()" style="background:var(--surface2);border:1px solid rgba(108,99,255,0.4);border-radius:6px;padding:5px 8px;color:var(--accent);font-size:11px;font-family:Heebo,sans-serif;outline:none;font-weight:700">' +
-          '<option value="updated">🕐 עדכון אחרון</option>' +
+          '<option value="updated">🕐 Last Updated</option>' +
           '<option value="created">📅 תאריך הוספה</option>' +
           '<option value="score_desc">🔥 ציון גבוה→נמוך</option>' +
           '<option value="score_asc">🧊 ציון נמוך→גבוה</option>' +
@@ -8981,9 +8981,9 @@ addSalesPlaybookPanel();
       '<div id="v3-bulk" style="display:flex;background:rgba(108,99,255,0.07);border:1px solid rgba(108,99,255,0.18);border-radius:8px;padding:8px 12px;align-items:center;gap:6px;flex-wrap:wrap">' +
         '<span id="v3-bulk-cnt" style="font-size:12px;font-weight:700;color:var(--accent)">0 נבחרו</span>' +
         '<div style="flex:1"></div>' +
-        '<button onclick="window.bulkV3(\'contacted\')" style="background:rgba(0,212,255,0.1);border:1px solid rgba(0,212,255,0.3);border-radius:5px;padding:4px 10px;font-size:11px;color:#00d4ff;cursor:pointer;font-family:Heebo,sans-serif">📧 נשלח מייל</button>' +
+        '<button onclick="window.bulkV3(\'contacted\')" style="background:rgba(0,212,255,0.1);border:1px solid rgba(0,212,255,0.3);border-radius:5px;padding:4px 10px;font-size:11px;color:#00d4ff;cursor:pointer;font-family:Heebo,sans-serif">📧 Emailed</button>' +
         '<button onclick="window.bulkV3(\'followup\')" style="background:rgba(255,214,0,0.1);border:1px solid rgba(255,214,0,0.3);border-radius:5px;padding:4px 10px;font-size:11px;color:var(--yellow);cursor:pointer;font-family:Heebo,sans-serif">🔁 Follow-up</button>' +
-        '<button onclick="window.bulkV3(\'meeting\')" style="background:rgba(0,230,118,0.1);border:1px solid rgba(0,230,118,0.3);border-radius:5px;padding:4px 10px;font-size:11px;color:var(--green);cursor:pointer;font-family:Heebo,sans-serif">📅 פגישה</button>' +
+        '<button onclick="window.bulkV3(\'meeting\')" style="background:rgba(0,230,118,0.1);border:1px solid rgba(0,230,118,0.3);border-radius:5px;padding:4px 10px;font-size:11px;color:var(--green);cursor:pointer;font-family:Heebo,sans-serif">📅 Meeting</button>' +
         '<button onclick="window.bulkV3(\'enrich\')" style="background:rgba(167,139,250,0.1);border:1px solid rgba(167,139,250,0.3);border-radius:5px;padding:4px 10px;font-size:11px;color:#a78bfa;cursor:pointer;font-family:Heebo,sans-serif">🤖 נתח AI</button>' +
         '<button onclick="window.bulkV3(\'delete\')" style="background:rgba(255,71,87,0.1);border:1px solid rgba(255,71,87,0.3);border-radius:5px;padding:4px 10px;font-size:11px;color:var(--red);cursor:pointer;font-family:Heebo,sans-serif">🗑 מחק</button>' +
         '<button onclick="window.clearSelV3&&window.clearSelV3()" style="background:none;border:1px solid var(--border);border-radius:5px;padding:4px 8px;font-size:11px;color:rgba(196,196,204,0.75);cursor:pointer">✕</button>' +
@@ -9551,7 +9551,7 @@ addSalesPlaybookPanel();
         wrap.style.borderColor=anyOff?'var(--accent)':'var(--border)';
       }
     });
-    var btn=document.getElementById('sel-all-v3');if(btn)btn.textContent=anyOff?'☑ בטל הכל':'☐ בחר הכל';
+    var btn=document.getElementById('sel-all-v3');if(btn)btn.textContent=anyOff?'☑ Deselect All':'☐ Select All';
     updBulk();
   };
   window.clearSelV3=function(){
@@ -9565,7 +9565,7 @@ addSalesPlaybookPanel();
       }
     });
     var btn=document.getElementById('sel-all-v3');
-    if(btn)btn.textContent='☐ בחר הכל';
+    if(btn)btn.textContent='☐ Select All';
     updBulk();
   };
   function updBulk(){
@@ -11106,7 +11106,7 @@ window._cleanForSupabase = function _cleanForSupabase(obj) {
         wrap.style.borderColor=anyOff?'var(--accent)':'var(--border)';
       }
     });
-    var btn=document.getElementById('sel-all-v3');if(btn)btn.textContent=anyOff?'☑ בטל הכל':'☐ בחר הכל';
+    var btn=document.getElementById('sel-all-v3');if(btn)btn.textContent=anyOff?'☑ Deselect All':'☐ Select All';
     updBulk();
   };
   window.clearSelV3=function(){
@@ -11120,7 +11120,7 @@ window._cleanForSupabase = function _cleanForSupabase(obj) {
       }
     });
     var btn=document.getElementById('sel-all-v3');
-    if(btn)btn.textContent='☐ בחר הכל';
+    if(btn)btn.textContent='☐ Select All';
     updBulk();
   };
   function updBulk(){
@@ -12332,7 +12332,7 @@ window.addUserByEmail = async function() {
 window.loadUsers = async function() {
   var list = document.getElementById('users-list');
   if (!list || !window.isAdmin()) return;
-  list.innerHTML = '<div style="font-size:12px;color:var(--muted);text-align:center;padding:40px">טוען...</div>';
+  list.innerHTML = '<div style="font-size:12px;color:var(--muted);text-align:center;padding:40px">Loading...</div>';
   try {
     var usersSnap = { docs: (await window._sb.get('users','order=created_at.desc')||[]).map(r=>({id:r.id,data:()=>r})) };
     var pendingSnap = { docs: [] };
